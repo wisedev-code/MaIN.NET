@@ -1,0 +1,85 @@
+﻿@inject ModelSelectionService ChatService
+<style>
+
+    .gradient{
+        box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    }
+
+    .select-label {
+        color: #fff;
+        margin-right: 10px;
+    }
+
+    .select-element {
+        background-color: #2e2e2e;
+        color: #fff;
+        border: 1px solid #333;
+        border-radius: 4px;
+        padding: 6px 12px;
+        font-size: 16px;
+        appearance: none;
+    }
+
+    .select-element:hover {
+        background-color: #4a4a4a;
+    }
+
+    .select-element:focus {
+        outline: none;
+        border-color: #0078D4;
+        box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.3);
+    }
+    
+</style>
+<nav class="navbar navbar-expand-md navbar-dark bg-dark mb-4 gradient">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">MaIN</a>
+        <button class="navbar-toggler @NavButtonCssClass" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse"
+                aria-controls="navbarCollapse" aria-label="Toggle navigation" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse @NavBarCssClass" id="navbarCollapse" @onclick="ToggleNavMenu">
+            <ul class="navbar-nav mb-2 mb-md-0">
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                        <span class="oi oi-home" aria-hidden="true"></span> Home
+                    </NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="chat">
+                        <span class="oi oi-plus" aria-hidden="true"></span> 💬 Chat
+                    </NavLink>
+                </li>
+                
+            </ul>
+            <div class="nav-item" style="color: white; position: absolute; right: 0">
+                Model:
+                <select id="modelSelect" @bind="selectedModel" class="select-element" style="padding: 10px">
+                    @foreach (var model in models)
+                    {
+                    <option value="@model">@model</option>
+                        }
+                    </select>
+                </div>
+        </div>
+    </div>
+</nav>
+
+@code {
+    string selectedModel
+    {
+        get => ChatService.SelectedModel;
+        set => ChatService.SetSelectedModel(value);
+    }
+
+    string[] models = { "gemma:2b", "other_model:version" }; // Define your models herere
+
+    private bool collapseNavMenu = true;
+    private string? NavBarCssClass => collapseNavMenu ? null : "show";
+    private string? NavButtonCssClass => collapseNavMenu ? "collapsed" : null;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+}
