@@ -1,0 +1,6 @@
+@MaIN_HostAddress = http://localhost:5243
+
+GET {{MaIN_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
