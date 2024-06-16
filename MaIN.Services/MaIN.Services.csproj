@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\MaIN.Domain\MaIN.Domain.csproj" />
+      <ProjectReference Include="..\Main.Infrastructure\MaIN.Infrastructure.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="GTranslate" Version="2.2.0" />
+      <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.0-preview.5.24306.7" />
+    </ItemGroup>
+
+</Project>

@@ -1,5 +1,4 @@
 ﻿@page "/chat"
-@using System.Globalization
 @using System.Runtime.Serialization
 @using System.Text.Json.Serialization
 @using Microsoft.FluentUI.AspNetCore.Components
@@ -18,7 +17,7 @@
     }
 
     .sidebar {
-        width: 20%;
+        width: 40%;
         background-color: transparent;
         color: white;
         padding: 20px;
@@ -82,17 +81,19 @@
 </style>
 
 <FluentGrid Class="containerbox" Spacing="1" Justify="JustifyContent.FlexStart">
-    <FluentGridItem lg="2" Class="sidebar" >
+    <FluentGridItem lg="3" Class="sidebar" >
         <FluentButton  OnClick="@NewChatAsync"
                        IconStart="@(new Icons.Regular.Size24.Add())" BackgroundColor="rgba(0, 0, 0, 0.53)" Appearance="Appearance.Accent"
                        Style="margin-bottom: 10px;">New Chat</FluentButton>
         @foreach (var chat in chats)
         {
+            <div style="display: flex; align-items: center; margin-bottom: 5px;">
             @if (chat.IsSelected)
             {
+                
                 <FluentCard  @onclick="() => LoadChatAsync(chat.Id)"
                              Style="
-                            color: #0dcaf0;
+                            color: #ffffff;
                             cursor: pointer;
                             padding: 5px;
                             background-color: rgba(110,110,110,0.8);
@@ -100,30 +101,41 @@
                             margin-bottom: 5px;
                             width: 100%;
                             font-size: small;
+                            align-self: flex-start;
                             border-color: transparent;
                             box-shadow: 0 4px 4px rgba(0,0,0,0.5)">
                     Chat - @chat.Name
                 </FluentCard>
-            }
+                <FluentButton  OnClick="() => DeleteChatAsync(chat.Id)"
+                               IconStart="@(new Icons.Filled.Size16.Delete())" BackgroundColor="rgba(0,0,0,0)"  Appearance="Appearance.Accent"
+                               Style=" align-self: flex-end; margin-bottom: 5px;"
+                ></FluentButton>
+        }
             else
             {
                 <FluentCard @onclick="() => LoadChatAsync(chat.Id)"
                             Style="
-                            color: #0dcaf0;
+                            color: #ffffff;
                             cursor: pointer; 
                             padding: 5px; 
                             background-color: rgba(97,78,78,0.5); 
                             max-height: 30px; margin-bottom: 5px; 
                             width: 100%;
+                            align-self: flex-start;
                             font-size: small;
                             border-color: transparent;
                             box-shadow: 0 4px 4px rgba(0,0,0,0.5)">
                     Chat - @chat.Name
                 </FluentCard>
+                <FluentButton  OnClick="() => DeleteChatAsync(chat.Id)"
+                               IconStart="@(new Icons.Filled.Size16.Delete())"  BackgroundColor="rgba(0,0,0,0)" Appearance="Appearance.Accent"
+                               Style=" align-self: flex-end; margin-bottom: 5px;"
+
+                ></FluentButton>
             }
+            </div>
         }
     </FluentGridItem>
-    <FluentGridItem lg="1"> </FluentGridItem>
 <FluentGridItem lg="8" Class="chat-container">
     <div class="messages-container">
         @foreach(var message in messages)
@@ -189,6 +201,20 @@
         }
     }
     
+    private async Task DeleteChatAsync(string id)
+    {
+        var response = await Http.DeleteAsync("http://localhost:5243/api/chats/" + id);
+        if (response.IsSuccessStatusCode)
+        {
+            chats!.RemoveAll(c => c.Id == id);
+            if (selectedChat.Id == id)
+            {
+                selectedChat = new();
+                messages.Clear();
+            }
+        }
+    }
+    
     private async Task NewChatAsync()
     {
         messages.Clear();
@@ -224,6 +250,7 @@
             });
             
             selectedChat.Messages = messages;
+            selectedChat.Model = ChatService.SelectedModel;
 
             var replyServerOllama = await Http.PostAsJsonAsync("http://localhost:5243/api/chats/complete", selectedChat);
 
