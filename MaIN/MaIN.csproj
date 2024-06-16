@@ -9,7 +9,17 @@
     <ItemGroup>
         <PackageReference Include="GTranslate" Version="2.2.0" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.4"/>
+        <PackageReference Include="MongoDB.Driver" Version="2.26.0" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\MaIN.Services\MaIN.Services.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Main.Infrastructure\MaIN.Infrastructure.csproj" />
+      <ProjectReference Include="..\MaIN.Services\MaIN.Services.csproj" />
     </ItemGroup>
 
 </Project>
