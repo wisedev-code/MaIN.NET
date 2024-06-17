@@ -52,16 +52,16 @@
                 </li>
 
             </ul>
-            <div class="nav-item" style="color: white; position: absolute; right: 0">
-                Model:
-                <FluentSelect TOption="string" id="modelSelect" Value="@ChatService.SelectedModel"
-                              Class="select-element" style="padding: 10px">
-                    @foreach (var model in models)
-                    {
-                        <FluentOption TOption="string" Value="@model">@model </FluentOption>
-                    }
-                </FluentSelect>
-            </div>
+            @* <div class="nav-item" style="color: white; position: absolute; right: 0"> *@
+            @*     Model: *@
+            @*     <FluentSelect TOption="string" id="modelSelect" Value="@ChatService.SelectedModel" *@
+            @*                   Class="select-element" style="padding: 10px"> *@
+            @*         @foreach (var model in models) *@
+            @*         { *@
+            @*             <FluentOption TOption="string" Value="@model">@model </FluentOption> *@
+            @*         } *@
+            @*     </FluentSelect> *@
+            @* </div> *@
         </div>
     </div>
 </nav>
