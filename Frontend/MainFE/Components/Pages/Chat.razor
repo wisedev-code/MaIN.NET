@@ -1,89 +1,19 @@
 ﻿@page "/chat"
-@using System.Runtime.Serialization
-@using System.Text.Json.Serialization
+@using System.Runtime.CompilerServices
+@using MainFE.Components.Models
 @using Markdig
+@using Markdown.ColorCode
 @using Microsoft.FluentUI.AspNetCore.Components
 @using NAssetNameGenerator
+@using Message = MainFE.Components.Models.Message
 @inject HttpClient Http
-@inject ModelSelectionService ChatService
 @rendermode InteractiveServer
 
 <PageTitle>💬 Chat</PageTitle>
-
-<style>
-    .containerbox {
-        display: flex;
-        height: 90vh;
-        width: 90vw !important;
-    }
-
-    .sidebar {
-        width: 40%;
-        background-color: transparent;
-        color: white;
-        padding: 20px;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .chat-container {
-        display: flex;
-        flex-direction: column;
-        flex-grow: 1;
-    }
-
-    .inp{
-        background: #340813 !important; color: aliceblue;
-        border-radius: 10px;
-        border-color: #1c1f23;
-        }
-    
-    .messages-container {
-        flex-grow: 1;
-        overflow-y: auto;
-        padding: 10px;
-        max-height: 90%;
-        display: flex;
-        border-color: #4f5050;
-        border-radius: 15px;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.5);
-        flex-direction: column;
-        background-color: #222;
-    }
-
-    .input-container {
-        height: 7%;
-        display: flex;
-        padding: 5px;
-        position: relative;
-    }
-
-    .message-card {
-        margin-bottom: 15px;
-        width: 80%;
-        /* To adjust the height as well */
-        height: fit-content;
-        padding: 10px;
-        color: #fff;
-    }
-
-    .message-card p {
-        margin: 0;
-    }
-
-    .user-message {
-        align-self: flex-end;
-        background-color: #012139;
-    }
-
-    .bot-message {
-        align-self: flex-start;
-        background-color: #121312;
-    }
-</style>
+<link rel="stylesheet" href="css/chat.css">
 
 <FluentGrid Class="containerbox" Spacing="1" Justify="JustifyContent.FlexStart">
-    <FluentGridItem lg="3" Class="sidebar">
+    <FluentGridItem lg="3" sm="12" xs="12" Class="sidebar">
         <FluentButton OnClick="@NewChatAsync"
                       IconStart="@(new Icons.Regular.Size24.Add())" BackgroundColor="rgba(0, 0, 0, 0.53)" Appearance="Appearance.Accent"
                       Style="margin-bottom: 10px;">
@@ -91,82 +21,39 @@
         </FluentButton>
         @foreach (var chat in chats)
         {
-            <div style="display: flex; align-items: center; margin-bottom: 5px;">
-                @if (chat.IsSelected)
-                {
-                    <FluentCard @onclick="() => LoadChatAsync(chat.Id)"
-                                Style="
-                            color: #ffffff;
-                            cursor: pointer;
-                            padding: 5px;
-                            background-color: rgba(110,110,110,0.8);
-                            max-height: 30px;
-                            margin-bottom: 5px;
-                            width: 100%;
-                            font-size: small;
-                            align-self: flex-start;
-                            border-color: transparent;
-                            box-shadow: 0 4px 4px rgba(0,0,0,0.5)">
-                        Chat - @chat.Name
-                    </FluentCard>
-                    <FluentButton OnClick="() => DeleteChatAsync(chat.Id)"
-                                  IconStart="@(new Icons.Filled.Size16.Delete())" BackgroundColor="rgba(0,0,0,0)" Appearance="Appearance.Accent"
-                                  Style=" align-self: flex-end; margin-bottom: 5px;">
-                    </FluentButton>
-                }
-                else
-                {
-                    <FluentCard @onclick="() => LoadChatAsync(chat.Id)"
-                                Style="
-                            color: #ffffff;
-                            cursor: pointer; 
-                            padding: 5px; 
-                            background-color: rgba(97,78,78,0.5); 
-                            max-height: 30px; margin-bottom: 5px; 
-                            width: 100%;
-                            align-self: flex-start;
-                            font-size: small;
-                            border-color: transparent;
-                            box-shadow: 0 4px 4px rgba(0,0,0,0.5)">
-                        Chat - @chat.Name
-                    </FluentCard>
-                    <FluentButton OnClick="() => DeleteChatAsync(chat.Id)"
-                                  IconStart="@(new Icons.Filled.Size16.Delete())" BackgroundColor="rgba(0,0,0,0)" Appearance="Appearance.Accent"
-                                  Style=" align-self: flex-end; margin-bottom: 5px;">
-                    </FluentButton>
-                }
+            <div class="chat-item">
+                <FluentCard @onclick="() => LoadChatAsync(chat.Id)"
+                            Class="@GetChatCardClass(chat)">
+                    Chat - @chat.Name
+                </FluentCard>
+                <FluentButton OnClick="() => DeleteChatAsync(chat.Id)"
+                              IconStart="@(new Icons.Filled.Size16.Delete())" BackgroundColor="rgba(0,0,0,0)" Appearance="Appearance.Accent"
+                              Class="delete-button">
+                </FluentButton>
             </div>
         }
     </FluentGridItem>
-    <FluentGridItem lg="7" Class="chat-container">
+    <FluentGridItem lg="7" xs="12" Class="chat-container">
         <div class="messages-container">
             @foreach (var message in messages)
             {
-                @if (message.Role == Role.User.ToString())
-                {
-                    <span style="align-self: flex-end; color: white">( ͡° ͜ʖ ͡°) User</span>
-                    <FluentCard class="message-card user-message" Style="border-color: darkslategray; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
-                        <p> @message.Content</p>
-                    </FluentCard>
-                }
-                else
-                {
-                    <span style="align-self: flex-start; color: white">🤖 @selectedModel</span>
-                    <FluentCard class="message-card bot-message" Style="border-color: darkslategray; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
-                         @((MarkupString) Markdown.ToHtml(message.Content!.PrepareMd()!))
-                    </FluentCard>
-                }
+                <span class="@(message.Role == Role.User.ToString() ? "message-role-user" : "message-role-bot")">@GetRoleLabel(message.Role)</span>
+                <FluentCard class="@(message.Role == Role.User.ToString() ? "message-card user-message" : "message-card bot-message")">
+                    @((MarkupString)((message.Role == Role.User.ToString() ? message.Content : 
+    Markdown.ToHtml((string)message.Content!,
+        new MarkdownPipelineBuilder()
+            .UseAdvancedExtensions()
+            .Build())) ?? string.Empty))
+                </FluentCard>
             }
             @if (loading)
             {
-                <span style="align-self: flex-start; color: white">@selectedModel</span>
-                <FluentProgressRing Visible="loading">
-                </FluentProgressRing>
+                <span class="message-role-bot">@selectedModel</span>
+                <FluentProgressRing Visible="loading"></FluentProgressRing>
             }
         </div>
         <div class="input-container">
-            <input @bind=ask placeholder="    Enter your prompt here..." class="inp" style="flex-grow: 1; margin-right: 10px;">
-
+            <input @bind=ask placeholder="Enter your prompt here..." class="inp">
             <FluentButton IconStart="@(new Icons.Filled.Size28.Send())" BackgroundColor="rgba(0, 0, 0, 0)" Style="margin-top: 5px; background-color: transparent"
                           Appearance="Appearance.Lightweight"
                           Loading="@loading"
@@ -175,59 +62,73 @@
         </div>
         <FluentProgress Visible="@(loading)" style="width: 100%;"></FluentProgress>
     </FluentGridItem>
-    <FluentGridItem lg="1">
-        <span style="color: white">Model:</span>
-        <select id="modelSelect" @bind="selectedModel"
-                Class="select-element" style="padding: 10px; align-self: flex-end; width: 100%">
+    <FluentGridItem lg="1" xs="12" Style="padding: 10px">
+        <span class="model-label">Model:</span>
+        <select id="modelSelect" @bind="selectedModel" Class="select-element">
             @foreach (var model in models)
             {
-                <option Value="@model">@model </option>
+                <option Value="@model">@model</option>
             }
         </select>
     </FluentGridItem>
 </FluentGrid>
 
 @code {
-    string[] models = ["llama3:8b", "gemma:2b"]; // Define your models here
-    string selectedModel = "llama3:8b";
+    // Models
+    List<string> models = [];
+    string selectedModel = string.Empty;
+    
+    // Data
     List<Message> messages = new();
-    List<ChatDto>? chats = new();
+    List<ChatDto> chats = new();
     ChatDto selectedChat = new();
-    private string ask = string.Empty;
-    private bool loading = false;
+    string ask = string.Empty;
+    bool loading = false;
 
     protected override async Task OnInitializedAsync()
     {
-        Http.Timeout = TimeSpan.FromMinutes(10); //TIP
+        Http.Timeout = TimeSpan.FromMinutes(10);
         await LoadChatsAsync();
+        await LoadModelsAsync();
     }
 
     private async Task LoadChatsAsync()
     {
+        
         var response = await Http.GetAsync("http://localhost:5243/api/chats");
         if (response.IsSuccessStatusCode)
         {
-            chats = await response.Content.ReadFromJsonAsync<List<ChatDto>>();
+            chats = await response.Content.ReadFromJsonAsync<List<ChatDto>>() ?? [];
+        }
+    }
+
+    private async Task LoadModelsAsync()
+    {
+        var response = await Http.GetAsync("http://localhost:5243/api/chats/models");
+        if (response.IsSuccessStatusCode)
+        {
+            models = await response.Content.ReadFromJsonAsync<List<string>>() ?? [];
+            selectedModel = models!.First();
         }
     }
 
     private async Task LoadChatAsync(string chatId)
     {
-        var response = await Http.GetFromJsonAsync<ChatDto>("http://localhost:5243/api/chats/" + chatId);
+        var response = await Http.GetFromJsonAsync<ChatDto>($"http://localhost:5243/api/chats/{chatId}");
         if (response != null)
         {
             messages = response.Messages;
             selectedChat = response;
-            chats!.ForEach(c => c.IsSelected = c.Id == chatId);
+            chats.ForEach(c => c.IsSelected = c.Id == chatId);
         }
     }
 
     private async Task DeleteChatAsync(string id)
     {
-        var response = await Http.DeleteAsync("http://localhost:5243/api/chats/" + id);
+        var response = await Http.DeleteAsync($"http://localhost:5243/api/chats/{id}");
         if (response.IsSuccessStatusCode)
         {
-            chats!.RemoveAll(c => c.Id == id);
+            chats.RemoveAll(c => c.Id == id);
             if (selectedChat.Id == id)
             {
                 selectedChat = new();
@@ -239,9 +140,9 @@
     private async Task NewChatAsync()
     {
         messages.Clear();
-        var newChatRequest = new ChatRequest()
+        var newChatRequest = new ChatRequest
         {
-            Model = ChatService.SelectedModel,
+            Model = selectedModel,
             Messages = new List<Message>(),
             Name = $"{AssetName.NewName()} | {DateTime.Now.ToShortDateString()}",
             Stream = false,
@@ -252,10 +153,13 @@
         if (result.IsSuccessStatusCode)
         {
             var response = await result.Content.ReadFromJsonAsync<ChatDto>();
-            response!.IsSelected = true;
-            selectedChat = response;
-            chats!.Add(response!);
-            await LoadChatAsync(response!.Id); // Refresh the list of chats
+            if (response != null)
+            {
+                response.IsSelected = true;
+                selectedChat = response;
+                chats.Add(response);
+                await LoadChatAsync(response.Id);
+            }
         }
     }
 
@@ -264,12 +168,7 @@
         loading = true;
         if (!string.IsNullOrWhiteSpace(message))
         {
-            messages.Add(new Message()
-            {
-                Role = Role.User.ToString(),
-                Content = message
-            });
-
+            messages.Add(new Message { Role = Role.User.ToString(), Content = message });
             selectedChat.Messages = messages;
             selectedChat.Model = selectedModel;
 
@@ -278,63 +177,17 @@
             if (replyServerOllama.IsSuccessStatusCode)
             {
                 var response = await replyServerOllama.Content.ReadFromJsonAsync<ChatResponse>();
-                messages.Add(response!.Message);
-                loading = false;
+                if (response != null)
+                {
+                    messages.Add(response.Message);
+                }
             }
-
+            loading = false;
             ask = string.Empty;
         }
-        
-    }
-    
-    public class Message
-    {
-        public string? Content { get; set; }
-        public string Role { get; set; }
     }
 
-    public enum Role
-    {
-        [EnumMember(Value = "system")] System = 1,
-        [EnumMember(Value = "assistant")] Assistant = 2,
-        [EnumMember(Value = "user")] User = 3,
-    }
-
-    public class ChatDto
-    {
-        [JsonPropertyName("id")] public string Id { get; set; }
-
-        [JsonPropertyName("name")] public string Name { get; set; }
-
-        [JsonPropertyName("model")] public string Model { get; set; }
-
-        [JsonPropertyName("messages")] public List<Message> Messages { get; set; }
-
-        [JsonPropertyName("stream")] public bool Stream { get; set; } = false;
-
-        [JsonIgnore] public bool IsSelected { get; set; }
-    }
-
-    public class ChatRequest
-    {
-        [JsonPropertyName("model")] public string Model { get; set; }
-
-        [JsonPropertyName("messages")] public List<Message> Messages { get; set; }
-
-        [JsonPropertyName("stream")] public bool Stream { get; set; } = false;
-
-        [JsonPropertyName("name")] public string Name { get; set; }
-    }
-
-    public class ChatResponse
-    {
-        [JsonPropertyName("model")] public string Model { get; set; }
-
-        [JsonPropertyName("created_at")] public DateTime CreatedAt { get; set; }
-
-        [JsonPropertyName("message")] public Message Message { get; set; }
-
-        [JsonPropertyName("done")] public bool Done { get; set; }
-    }
-
+    // Helper methods
+    private string GetChatCardClass(ChatDto chat) => chat.IsSelected ? "selected-chat-card" : "chat-card";
+    private string GetRoleLabel(string role) => role == Role.User.ToString() ? "( ͡° ͜ʖ ͡°) User" : $"🤖 {selectedModel}";
 }
