@@ -68,6 +68,10 @@ app.MapGet("/api/chats/{id}", async (HttpContext context,
     [FromServices] IChatService chatService, string id) => 
     Results.Ok((await chatService.GetById(id)).ToDto()));
 
+app.MapGet("/api/chats/models", async (HttpContext context,
+        [FromServices] IChatService chatService) => 
+    Results.Ok((await chatService.GetCurrentModels())));
+
 app.MapGet("/api/chats", async ([FromServices] IChatService chatService)
     => Results.Ok((await chatService.GetAll()).Select(x => x.ToDto())));
 

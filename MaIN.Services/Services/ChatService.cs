@@ -4,6 +4,7 @@ using MaIN.Infrastructure.Providers.cs.Abstract;
 using MaIN.Models;
 using MaIN.Services.Mappers;
 using MaIN.Services.Models;
+using MaIN.Services.Models.Ollama;
 using MaIN.Services.Services.Abstract;
 
 namespace MaIN.Services.Services;
@@ -70,6 +71,22 @@ public class ChatService(
     {
         var chatDocument = await chatProvider.GetChatById(id);
         return chatDocument.ToDomain();
+    }
+
+    public async Task<List<string>> GetCurrentModels()
+    {
+        using var client = httpClientFactory.CreateClient();
+        var response = await client.GetAsync("http://localhost:11434/api/ps");
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new Exception($"Failed to fetch models from Ollama, status code {response.StatusCode}");
+        }
+        
+        var result = JsonSerializer.Deserialize<ModelsOllamaResponse>(
+            await response.Content.ReadAsStringAsync());
+
+        return result!.Models.Select(x => x.Name).ToList();
     }
 
     public async Task<List<Chat>> GetAll()

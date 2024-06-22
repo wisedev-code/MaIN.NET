@@ -1,8 +1,8 @@
-﻿@inject ModelSelectionService ChatService
-@using Microsoft.FluentUI.AspNetCore.Components
+﻿@using Microsoft.FluentUI.AspNetCore.Components
 <style>
-    .gradient{
-        box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    .gradient {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+        background-color: #1e1e1e !important;
     }
 
     .select-label {
@@ -29,16 +29,15 @@
         border-color: #0078D4;
         box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.3);
     }
-    
 </style>
+
 <nav class="navbar navbar-expand-md navbar-dark bg-dark mb-4 gradient">
     <div class="container-fluid">
         <a class="navbar-brand" href="">MaIN</a>
-        <button class="navbar-toggler @NavButtonCssClass" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse"
-                aria-controls="navbarCollapse" aria-label="Toggle navigation" @onclick="ToggleNavMenu">
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
-        <div class="collapse navbar-collapse @NavBarCssClass" id="navbarCollapse" @onclick="ToggleNavMenu">
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav mb-2 mb-md-0">
                 <li class="nav-item">
                     <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
@@ -50,33 +49,12 @@
                         <span class="oi oi-plus" aria-hidden="true"></span> 💬 Chat
                     </NavLink>
                 </li>
-
             </ul>
-            @* <div class="nav-item" style="color: white; position: absolute; right: 0"> *@
-            @*     Model: *@
-            @*     <FluentSelect TOption="string" id="modelSelect" Value="@ChatService.SelectedModel" *@
-            @*                   Class="select-element" style="padding: 10px"> *@
-            @*         @foreach (var model in models) *@
-            @*         { *@
-            @*             <FluentOption TOption="string" Value="@model">@model </FluentOption> *@
-            @*         } *@
-            @*     </FluentSelect> *@
-            @* </div> *@
         </div>
     </div>
 </nav>
 
 @code {
-
-    string[] models = { "llama3:70b", "gemma:2b" }; // Define your models here
-
     private bool collapseNavMenu = true;
-    private string? NavBarCssClass => collapseNavMenu ? null : "show";
-    private string? NavButtonCssClass => collapseNavMenu ? "collapsed" : null;
-
-    private void ToggleNavMenu()
-    {
-        collapseNavMenu = !collapseNavMenu;
-    }
 
 }

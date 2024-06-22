@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace MaIN.Services.Models;
+namespace MaIN.Services.Models.Ollama;
 
 public class ChatOllama
 {
