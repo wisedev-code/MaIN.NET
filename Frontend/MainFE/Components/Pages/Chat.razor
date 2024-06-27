@@ -1,8 +1,6 @@
 ﻿@page "/chat"
-@using System.Runtime.CompilerServices
 @using MainFE.Components.Models
 @using Markdig
-@using Markdown.ColorCode
 @using Microsoft.FluentUI.AspNetCore.Components
 @using NAssetNameGenerator
 @using Message = MainFE.Components.Models.Message
@@ -53,7 +51,7 @@
             }
         </div>
         <div class="input-container">
-            <input @bind=ask placeholder="Enter your prompt here..." class="inp">
+            <input @bind-value="ask" @bind-value:event="oninput" placeholder="Enter your prompt here..." @onkeydown="CheckEnterKey" class="inp">
             <FluentButton IconStart="@(new Icons.Filled.Size28.Send())" BackgroundColor="rgba(0, 0, 0, 0)" Style="margin-top: 5px; background-color: transparent"
                           Appearance="Appearance.Lightweight"
                           Loading="@loading"
@@ -85,6 +83,14 @@
     string ask = string.Empty;
     bool loading = false;
 
+    private async Task CheckEnterKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SendAsync(ask);
+        }
+    }
+    
     protected override async Task OnInitializedAsync()
     {
         Http.Timeout = TimeSpan.FromMinutes(10);
@@ -95,7 +101,7 @@
     private async Task LoadChatsAsync()
     {
         
-        var response = await Http.GetAsync("http://localhost:5243/api/chats");
+        var response = await Http.GetAsync($"{ExtensionMethods.GetApiUrl()}/api/chats");
         if (response.IsSuccessStatusCode)
         {
             chats = await response.Content.ReadFromJsonAsync<List<ChatDto>>() ?? [];
@@ -104,7 +110,7 @@
 
     private async Task LoadModelsAsync()
     {
-        var response = await Http.GetAsync("http://localhost:5243/api/chats/models");
+        var response = await Http.GetAsync($"{ExtensionMethods.GetApiUrl()}/api/chats/models");
         if (response.IsSuccessStatusCode)
         {
             models = await response.Content.ReadFromJsonAsync<List<string>>() ?? [];
@@ -114,7 +120,7 @@
 
     private async Task LoadChatAsync(string chatId)
     {
-        var response = await Http.GetFromJsonAsync<ChatDto>($"http://localhost:5243/api/chats/{chatId}");
+        var response = await Http.GetFromJsonAsync<ChatDto>($"{ExtensionMethods.GetApiUrl()}/api/chats/{chatId}");
         if (response != null)
         {
             messages = response.Messages;
@@ -125,7 +131,7 @@
 
     private async Task DeleteChatAsync(string id)
     {
-        var response = await Http.DeleteAsync($"http://localhost:5243/api/chats/{id}");
+        var response = await Http.DeleteAsync($"{ExtensionMethods.GetApiUrl()}/api/chats/{id}");
         if (response.IsSuccessStatusCode)
         {
             chats.RemoveAll(c => c.Id == id);
@@ -148,7 +154,7 @@
             Stream = false,
         };
 
-        var result = await Http.PostAsJsonAsync("http://localhost:5243/api/chats", newChatRequest);
+        var result = await Http.PostAsJsonAsync($"{ExtensionMethods.GetApiUrl()}/api/chats", newChatRequest);
 
         if (result.IsSuccessStatusCode)
         {
@@ -172,7 +178,7 @@
             selectedChat.Messages = messages;
             selectedChat.Model = selectedModel;
 
-            var replyServerOllama = await Http.PostAsJsonAsync("http://localhost:5243/api/chats/complete", selectedChat);
+            var replyServerOllama = await Http.PostAsJsonAsync($"{ExtensionMethods.GetApiUrl()}/api/chats/complete", selectedChat);
 
             if (replyServerOllama.IsSuccessStatusCode)
             {

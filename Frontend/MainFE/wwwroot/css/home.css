@@ -1,0 +1,60 @@
+@import url('https://fonts.googleapis.com/css2?family=Tiny5&display=swap'); /* Importing a coding font */
+body {
+    background-color: #121212;
+    color: #ffffff;
+    font-family: Arial, sans-serif;
+    text-align: center;
+}
+
+.container {
+    position: relative;
+    max-width: 800px;
+    height: 40vmax;
+    margin: 0 auto;
+}
+
+.logo img {
+    max-width: 200px;
+    margin-bottom: 20px;
+}
+
+.description h1 {
+    font-size: 2.5em;
+    margin-bottom: 20px;
+}
+
+.fancy-text {
+    font-family: "Tiny5", sans-serif;
+    font-weight: 400;
+    font-style: normal;
+    color: #00ffcc;
+    text-shadow: 0 0 5px #00ffcc;
+}
+
+.description {
+    color: #999;
+    font-size: 1.2em;
+    margin-bottom: 40px;
+}
+
+.robot{
+    display: inline;
+}
+
+.robot img {
+    max-width: 80px;
+    opacity: 0;
+    transform: translateY(100px);
+    transition: opacity 0.5s, transform 0.5s;
+}
+
+@media (max-width: 767px) {
+    .container{
+        height: 190vmax;
+    }
+}
+
+.robot img.visible {
+    opacity: 1;
+    transform: translateY(0);
+}

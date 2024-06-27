@@ -29,7 +29,7 @@ public class ChatService(
         chat.Messages = translatedMessages.ToList();
 
         using var client = httpClientFactory.CreateClient();
-        var response = await client.PostAsync("http://localhost:11434/api/chat",
+        var response = await client.PostAsync($"{GetLocalhost()}:11434/api/chat",
             new StringContent(JsonSerializer.Serialize(new ChatOllama()
             {
                 Messages = chat.Messages.Select(x => new MessageDto()
@@ -76,7 +76,7 @@ public class ChatService(
     public async Task<List<string>> GetCurrentModels()
     {
         using var client = httpClientFactory.CreateClient();
-        var response = await client.GetAsync("http://localhost:11434/api/ps");
+        var response = await client.GetAsync($"{GetLocalhost()}:11434/api/tags");
 
         if (!response.IsSuccessStatusCode)
         {
@@ -92,4 +92,7 @@ public class ChatService(
     public async Task<List<Chat>> GetAll()
         => (await chatProvider.GetAllChats())
             .Select(x => x.ToDomain()).ToList();
+
+    private static string GetLocalhost() =>
+        Environment.GetEnvironmentVariable("LocalHost") ?? "http://localhost";
 }
