@@ -1,0 +1,4 @@
+gemma:2b
+llama3:8b
+
+#Place any new model here and it will be downloaded during start command

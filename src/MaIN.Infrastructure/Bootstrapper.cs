@@ -12,8 +12,16 @@ public static class Bootstrapper
     public static IServiceCollection ConfigureInfrastructure(this IServiceCollection services,
         ConfigurationManager configuration)
     {
-        services.AddSingleton<IMongoClient, MongoClient>(sp =>
-            new MongoClient(configuration.GetSection("MongoDbSettings:ConnectionString").Value));
+        if(Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Docker")
+        {
+            services.AddSingleton<IMongoClient, MongoClient>(sp =>
+                new MongoClient("mongodb://mongodb:27017"));
+        }
+        else
+        {
+            services.AddSingleton<IMongoClient, MongoClient>(sp =>
+                new MongoClient(configuration.GetSection("MongoDbSettings:ConnectionString").Value));
+        }
 
         services.AddScoped<IChatProvider, ChatProvider>(sp =>
         {

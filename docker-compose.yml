@@ -1,0 +1,40 @@
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  backend:
+    build:
+      context: ./src
+      dockerfile: ./Dockerfile
+    container_name: backend
+    restart: always
+    ports:
+      - "5000:8080"
+    depends_on:
+      - mongodb
+    environment:
+      ASPNETCORE_ENVIRONMENT: Docker
+      LocalHost: http://host.docker.internal
+
+  blazor:
+    build:
+      context: ./Frontend/MainFE
+      dockerfile: ./Dockerfile
+    container_name: blazor
+    restart: always
+    ports:
+      - "5001:8080"
+    depends_on:
+      - backend
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      API_URL: http://backend:8080
+
+volumes:
+  mongo-data:

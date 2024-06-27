@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Tiny5&display=swap'); /* Importing a coding font */
+
 html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
     background-color: #1b1b1b;
@@ -5,6 +7,14 @@ html, body {
 
 a, .btn-link {
     color: #006bb7;
+}
+
+.fancy-text {
+    font-family: "Tiny5", sans-serif;
+    font-weight: 400;
+    font-style: normal;
+    color: #00ffcc;
+    text-shadow: 0 0 5px #00ffcc;
 }
 
 .btn-primary {

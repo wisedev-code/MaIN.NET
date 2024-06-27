@@ -2,7 +2,7 @@ using System.Text.RegularExpressions;
 
 namespace MainFE;
 
-public static class Extensions
+public static class ExtensionMethods
 {
     public static string PrepareMd(this string content)
     {
@@ -39,6 +39,11 @@ public static class Extensions
         content = Regex.Replace(content, patternImage, @"![$1]($2)");
 
         return content;
+    }
+    
+    public static string GetApiUrl()
+    {
+        return Environment.GetEnvironmentVariable("API_URL") ?? throw new InvalidOperationException("API_URL environment variable is not set");
     }
 
 }

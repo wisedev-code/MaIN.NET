@@ -18,7 +18,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowFE",
         policy =>
         {
-            policy.AllowAnyOrigin() // React app origin
+            policy.AllowAnyOrigin() 
                 .AllowAnyHeader()
                 .AllowAnyMethod();
         });
