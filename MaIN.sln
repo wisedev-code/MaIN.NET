@@ -1,12 +1,12 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MaIN", "MaIN\MaIN.csproj", "{7E8DD6E0-F9A8-4BD0-8733-49F0F2F4FCA0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MaIN", "src\MaIN\MaIN.csproj", "{7E8DD6E0-F9A8-4BD0-8733-49F0F2F4FCA0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Main.Infrastructure", "MaIN.Infrastructure\MaIN.Infrastructure.csproj", "{84C09EF9-B9E3-4ACB-9BC3-DEFFC29D528F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Main.Infrastructure", "src\MaIN.Infrastructure\MaIN.Infrastructure.csproj", "{84C09EF9-B9E3-4ACB-9BC3-DEFFC29D528F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MaIN.Services", "MaIN.Services\MaIN.Services.csproj", "{35DBE637-EC89-40A7-B5F9-D005D554E8ED}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MaIN.Services", "src\MaIN.Services\MaIN.Services.csproj", "{35DBE637-EC89-40A7-B5F9-D005D554E8ED}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MaIN.Domain", "MaIN.Domain\MaIN.Domain.csproj", "{4DEF4AA6-DFD8-4626-B8BE-2F773B12FE0C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MaIN.Domain", "src\MaIN.Domain\MaIN.Domain.csproj", "{4DEF4AA6-DFD8-4626-B8BE-2F773B12FE0C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

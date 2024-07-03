@@ -30,5 +30,5 @@ foreach ($model in $models) {
 
 Start-Sleep -Seconds 5
 # Wait for all background jobs to complete
-Write-Host "Success! "
+Write-Host "Listening on http://localhost:5001 - happy travels"
 Get-Job | Wait-Job
