@@ -23,6 +23,53 @@ body {
     margin-bottom: 20px;
 }
 
+
+@media (max-width: 767px) {
+    .social-media-buttons {
+        gap: 5px !important;
+        opacity: 0;
+        margin-left: 0 !important;
+        animation: popup 1s ease-in-out forwards;
+        animation-delay: 0.5s;
+    }
+}
+
+.social-media-buttons {
+    display: flex;
+    gap: 20px;
+    position: relative;
+    opacity: 0;
+    margin-left: 25%;
+    animation: popup 1s ease-in-out forwards;
+    animation-delay: 0.5s;
+}
+
+.button {
+    text-decoration: none;
+    color: white;
+    padding: 15px 30px;
+    border-radius: 10px;
+    border-color: wheat;
+    border-width: 2px;
+    border-style: solid;
+    transition: transform 0.3s ease;
+}
+
+.button:hover {
+    transform: scale(1.1);
+}
+
+@keyframes popup {
+    0% {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
 .fancy-text {
     font-family: "Tiny5", sans-serif;
     font-weight: 400;
