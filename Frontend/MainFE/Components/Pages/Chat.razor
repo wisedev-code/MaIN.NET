@@ -17,7 +17,7 @@
                       Style="margin-bottom: 10px;">
             New Chat
         </FluentButton>
-        @foreach (var chat in chats)
+        @foreach (var chat in _chats)
         {
             <div class="chat-item">
                 <FluentCard @onclick="() => LoadChatAsync(chat.Id)"
@@ -33,7 +33,7 @@
     </FluentGridItem>
     <FluentGridItem lg="7" xs="12" Class="chat-container">
         <div class="messages-container">
-            @foreach (var message in messages)
+            @foreach (var message in _messages)
             {
                 <span class="@(message.Role == Role.User.ToString() ? "message-role-user" : "message-role-bot")">@GetRoleLabel(message.Role)</span>
                 <FluentCard class="@(message.Role == Role.User.ToString() ? "message-card user-message" : "message-card bot-message")">
@@ -44,21 +44,21 @@
             .Build())) ?? string.Empty))
                 </FluentCard>
             }
-            @if (loading)
+            @if (_loading)
             {
                 <span class="message-role-bot">@selectedModel</span>
-                <FluentProgressRing Visible="loading"></FluentProgressRing>
+                <FluentProgressRing Visible="_loading"></FluentProgressRing>
             }
         </div>
         <div class="input-container">
-            <input @bind-value="ask" @bind-value:event="oninput" placeholder="Enter your prompt here..." @onkeydown="CheckEnterKey" class="inp">
+            <input @bind-value="_ask" @bind-value:event="oninput" placeholder="Enter your prompt here..." @onkeydown="CheckEnterKey" class="inp">
             <FluentButton IconStart="@(new Icons.Filled.Size28.Send())" BackgroundColor="rgba(0, 0, 0, 0)" Style="margin-top: 5px; background-color: transparent"
                           Appearance="Appearance.Lightweight"
-                          Loading="@loading"
-                          OnClick="@(() => SendAsync(ask))">
+                          Loading="@_loading"
+                          OnClick="@(() => SendAsync(_ask))">
             </FluentButton>
         </div>
-        <FluentProgress Visible="@(loading)" style="width: 100%;"></FluentProgress>
+        <FluentProgress Visible="@(_loading)" style="width: 100%;"></FluentProgress>
     </FluentGridItem>
     <FluentGridItem lg="1" xs="12" Style="padding: 10px">
         <span class="model-label">Model:</span>
@@ -77,17 +77,17 @@
     string selectedModel = string.Empty;
     
     // Data
-    List<Message> messages = new();
-    List<ChatDto> chats = new();
-    ChatDto selectedChat = new();
-    string ask = string.Empty;
-    bool loading = false;
+    List<Message> _messages = new();
+    List<ChatDto> _chats = new();
+    ChatDto _selectedChat = new();
+    string _ask = string.Empty;
+    bool _loading = false;
 
     private async Task CheckEnterKey(KeyboardEventArgs e)
     {
         if (e.Key == "Enter")
         {
-            await SendAsync(ask);
+            await SendAsync(_ask);
         }
     }
     
@@ -104,7 +104,7 @@
         var response = await Http.GetAsync($"{ExtensionMethods.GetApiUrl()}/api/chats");
         if (response.IsSuccessStatusCode)
         {
-            chats = await response.Content.ReadFromJsonAsync<List<ChatDto>>() ?? [];
+            _chats = await response.Content.ReadFromJsonAsync<List<ChatDto>>() ?? [];
         }
     }
 
@@ -123,9 +123,9 @@
         var response = await Http.GetFromJsonAsync<ChatDto>($"{ExtensionMethods.GetApiUrl()}/api/chats/{chatId}");
         if (response != null)
         {
-            messages = response.Messages;
-            selectedChat = response;
-            chats.ForEach(c => c.IsSelected = c.Id == chatId);
+            _messages = response.Messages;
+            _selectedChat = response;
+            _chats.ForEach(c => c.IsSelected = c.Id == chatId);
         }
     }
 
@@ -134,18 +134,18 @@
         var response = await Http.DeleteAsync($"{ExtensionMethods.GetApiUrl()}/api/chats/{id}");
         if (response.IsSuccessStatusCode)
         {
-            chats.RemoveAll(c => c.Id == id);
-            if (selectedChat.Id == id)
+            _chats.RemoveAll(c => c.Id == id);
+            if (_selectedChat.Id == id)
             {
-                selectedChat = new();
-                messages.Clear();
+                _selectedChat = new();
+                _messages.Clear();
             }
         }
     }
 
     private async Task NewChatAsync()
     {
-        messages.Clear();
+        _messages.Clear();
         var newChatRequest = new ChatRequest
         {
             Model = selectedModel,
@@ -162,8 +162,8 @@
             if (response != null)
             {
                 response.IsSelected = true;
-                selectedChat = response;
-                chats.Add(response);
+                _selectedChat = response;
+                _chats.Add(response);
                 await LoadChatAsync(response.Id);
             }
         }
@@ -171,25 +171,25 @@
 
     private async Task SendAsync(string message)
     {
-        loading = true;
+        _loading = true;
         if (!string.IsNullOrWhiteSpace(message))
         {
-            messages.Add(new Message { Role = Role.User.ToString(), Content = message });
-            selectedChat.Messages = messages;
-            selectedChat.Model = selectedModel;
+            _messages.Add(new Message { Role = Role.User.ToString(), Content = message });
+            _selectedChat.Messages = _messages;
+            _selectedChat.Model = selectedModel;
 
-            var replyServerOllama = await Http.PostAsJsonAsync($"{ExtensionMethods.GetApiUrl()}/api/chats/complete", selectedChat);
+            var replyServerOllama = await Http.PostAsJsonAsync($"{ExtensionMethods.GetApiUrl()}/api/chats/complete", _selectedChat);
 
             if (replyServerOllama.IsSuccessStatusCode)
             {
                 var response = await replyServerOllama.Content.ReadFromJsonAsync<ChatResponse>();
                 if (response != null)
                 {
-                    messages.Add(response.Message);
+                    _messages.Add(response.Message);
                 }
             }
-            loading = false;
-            ask = string.Empty;
+            _loading = false;
+            _ask = string.Empty;
         }
     }
 

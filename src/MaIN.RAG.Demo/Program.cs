@@ -24,16 +24,11 @@ var serializeOptions = new JsonSerializerOptions
     WriteIndented = true
 };
 
-app.MapGet("/laptops/", () => Results.Ok(
-        JsonSerializer.Deserialize<List<Hardware>>(
-            File.ReadAllText("json/laptops.json"), serializeOptions)))
-    .WithName("GetLaptops")
-    .WithOpenApi();
 
-app.MapGet("/pcs/", () => Results.Ok(
+app.MapGet("/items/", () => Results.Ok(
         JsonSerializer.Deserialize<List<Hardware>>(
-            File.ReadAllText("json/pcs.json"), serializeOptions)))
-    .WithName("GetPCs")
+            File.ReadAllText("json/items.json"), serializeOptions)))
+    .WithName("GetHardwareItems")
     .WithOpenApi();
 
 app.Run();
@@ -42,9 +37,11 @@ app.Run();
 public class Hardware
 {
     public int Id { get; set; }
+    public string Image { get; set; }
     public string Name { get; set; }
     public string Brand { get; set; }
     public string Processor { get; set; }
+    public string Type { get; set; }
     public string Ram { get; set; }
     public string Storage { get; set; }
     public string Gpu { get; set; }

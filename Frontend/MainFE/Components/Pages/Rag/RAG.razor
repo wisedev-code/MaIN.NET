@@ -1,0 +1,144 @@
+@page "/RAG"
+@using MainFE.Components.Models
+@using Microsoft.FluentUI.AspNetCore.Components
+@rendermode InteractiveServer
+@inject HttpClient Http
+
+<style>
+    body {
+        background-color: #121212;
+        color: #ffffff;
+    }
+
+    .card-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        padding: 10px;
+    }
+
+    .card {
+        background-color: #1e1e1e;
+        color: #ffffff;
+        margin: 10px;
+        padding: 10px;
+        width: calc(33.333% - 20px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        border-radius: 8px;
+    }
+
+    .card-content {
+        padding: 16px;
+        text-align: center;
+    }
+
+    img {
+        width: 10rem;
+        height: 10rem;
+        object-fit: fill;
+        opacity: 0.5;
+    }
+
+    .card-image {
+        border-radius: 6px;
+        margin-bottom: 7px;
+    }
+
+    .card-content h3 {
+        margin-top: 0;
+        font-size: 1.5em;
+    }
+
+    .card-content p {
+        margin: 4px 0;
+    }
+
+    .card-content .description {
+        margin-top: 12px;
+        color: #aaa;
+
+        .toggle-button {
+            background-color: #333;
+            color: #fff;
+            border: none;
+            padding: 10px;
+            margin-top: 10px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        .collapsible {
+            text-align: left;
+        }
+    }
+</style>
+
+
+<div class="card-container">
+    @foreach (var item in _items)
+    {
+    <FluentCard class="card">
+        <div class="card-content">
+            <img src="/images/demo/@item.Image" alt="@item.Name" class="card-image"/>
+            <h3>@item.Name</h3>
+            <p><strong>Brand:</strong> @item.Brand</p>
+            <p><strong>Type:</strong> @item.Type</p>
+            <button class="btn btn-secondary" data-toggle="modal" data-target="#detailsModal"
+                    @onclick="() => ShowDetailsModal(item)">
+                Show More
+            </button>
+        </div>
+    </FluentCard>
+    }
+</div>
+
+<div class="modal fade" id="detailsModal" tabindex="-1" role="dialog" aria-labelledby="detailsModalLabel"
+     aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content bg-dark text-light border border-secondary">
+            <div class="modal-header border-bottom-0">
+                <h5 class="modal-title" id="detailsModalLabel">@selectedItem.Name Details</h5>
+                <button type="button" class="close text-light" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Brand:</strong> @selectedItem.Brand</p>
+                <p><strong>Type:</strong> @selectedItem.Type</p>
+                <p><strong>Processor:</strong> @selectedItem.Processor</p>
+                <p><strong>RAM:</strong> @selectedItem.Ram</p>
+                <p><strong>Storage:</strong> @selectedItem.Storage</p>
+                <p><strong>GPU:</strong> @selectedItem.Gpu</p>
+                <p><strong>Price:</strong> $@selectedItem.Price</p>
+                <p><strong>Availability:</strong> @selectedItem.Availability</p>
+                <p><strong>Description:</strong></p>
+                <p>@selectedItem.Description</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+
+HardwareItemDto selectedItem = new();
+private List<HardwareItemDto> _items = new();
+protected override async Task OnInitializedAsync()
+{
+Http.Timeout = TimeSpan.FromMinutes(10);
+await LoadProductsAsync();
+}
+
+private async Task LoadProductsAsync()
+{
+var response = await Http.GetAsync($"{ExtensionMethods.GetDemoApiUrl()}/items/");
+if (response.IsSuccessStatusCode)
+{
+_items = await response.Content.ReadFromJsonAsync<List<HardwareItemDto>>() ?? [];
+}
+}
+
+private void ShowDetailsModal(HardwareItemDto item)
+{
+selectedItem = item;
+}
+}

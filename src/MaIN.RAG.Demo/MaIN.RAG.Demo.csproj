@@ -12,10 +12,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Content Update="json\laptops.json">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </Content>
-      <Content Update="json\pcs.json">
+      <Content Update="json\items.json">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </Content>
     </ItemGroup>
