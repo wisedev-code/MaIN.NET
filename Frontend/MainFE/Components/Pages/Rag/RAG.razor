@@ -1,95 +1,81 @@
 @page "/RAG"
 @using MainFE.Components.Models
+@using Markdig
 @using Microsoft.FluentUI.AspNetCore.Components
+@using Message = MainFE.Components.Models.Message
 @rendermode InteractiveServer
 @inject HttpClient Http
+<link rel="stylesheet" href="css/rag.css">
 
-<style>
-    body {
-        background-color: #121212;
-        color: #ffffff;
-    }
-
-    .card-container {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: space-between;
-        padding: 10px;
-    }
-
-    .card {
-        background-color: #1e1e1e;
-        color: #ffffff;
-        margin: 10px;
-        padding: 10px;
-        width: calc(33.333% - 20px);
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-        border-radius: 8px;
-    }
-
-    .card-content {
-        padding: 16px;
-        text-align: center;
-    }
-
-    img {
-        width: 10rem;
-        height: 10rem;
-        object-fit: fill;
-        opacity: 0.5;
-    }
-
-    .card-image {
-        border-radius: 6px;
-        margin-bottom: 7px;
-    }
-
-    .card-content h3 {
-        margin-top: 0;
-        font-size: 1.5em;
-    }
-
-    .card-content p {
-        margin: 4px 0;
-    }
-
-    .card-content .description {
-        margin-top: 12px;
-        color: #aaa;
-
-        .toggle-button {
-            background-color: #333;
-            color: #fff;
-            border: none;
-            padding: 10px;
-            margin-top: 10px;
-            cursor: pointer;
-            border-radius: 5px;
-        }
-
-        .collapsible {
-            text-align: left;
-        }
-    }
-</style>
-
-
+<div class="header-container">
+    <div class="logo-container">
+        <img src="images/demo/logo.png" alt="" class="center-logo"/>
+    </div>
+    <button class="ask-assistant-button" data-toggle="modal" data-target="#askAssistantModal">Ai 💬</button>
+</div>
 <div class="card-container">
     @foreach (var item in _items)
     {
-    <FluentCard class="card">
-        <div class="card-content">
-            <img src="/images/demo/@item.Image" alt="@item.Name" class="card-image"/>
-            <h3>@item.Name</h3>
-            <p><strong>Brand:</strong> @item.Brand</p>
-            <p><strong>Type:</strong> @item.Type</p>
-            <button class="btn btn-secondary" data-toggle="modal" data-target="#detailsModal"
-                    @onclick="() => ShowDetailsModal(item)">
-                Show More
-            </button>
-        </div>
-    </FluentCard>
+        <FluentCard class="card">
+            <div class="card-content">
+                <img src="/images/demo/@item.Image" alt="@item.Name" class="card-image"/>
+                <h3>@item.Name</h3>
+                <p>
+                    <strong>Brand:</strong> @item.Brand
+                </p>
+                <p>
+                    <strong>Type:</strong> @item.Type
+                </p>
+                <button class="btn btn-secondary" data-toggle="modal" data-target="#detailsModal"
+                        @onclick="() => ShowDetailsModal(item)">
+                    Show More
+                </button>
+            </div>
+        </FluentCard>
     }
+</div>
+
+<div class="modal fade" id="askAssistantModal" tabindex="-1" role="dialog" aria-labelledby="askAssistantModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content custom-modal">
+            <div class="modal-header custom-modal-header">
+                <h5 class="modal-title" id="askAssistantModalLabel">Ask 👾</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body custom-modal-body">
+                <div class="messages-container">
+                    @foreach (var message in _messages)
+                    {
+                        <span class="@(message.Role == Role.User.ToString() ? "message-role-user" : "message-role-bot")">@GetRoleLabel(message.Role)</span>
+                        <FluentCard class="@(message.Role == Role.User.ToString() ? "message-card user-message" : "message-card bot-message")">
+                            @((MarkupString)((message.Role == Role.User.ToString()
+                                ? message.Content
+                                : Markdown.ToHtml((string)message.Content!,
+                                    new MarkdownPipelineBuilder()
+                                        .UseAdvancedExtensions()
+                                        .Build())) ?? string.Empty))
+                        </FluentCard>
+                    }
+                    @if (_loading)
+                    {
+                        <span class="message-role-bot">Assistant 👾</span>
+                        <FluentProgressRing Visible="_loading"></FluentProgressRing>
+                    }
+                </div>
+                <div class="input-container">
+                    <input @bind-value="_ask" @bind-value:event="oninput" placeholder="Enter your prompt here..." @onkeydown="CheckEnterKey" class="inp">
+                    <FluentButton IconStart="@(new Icons.Filled.Size28.Send())" BackgroundColor="rgba(0, 0, 0, 0)" Style="margin-top: 5px; background-color: transparent"
+                                  Appearance="Appearance.Lightweight"
+                                  Loading="@_loading"
+                                  OnClick="@(() => SendAsync(_ask))">
+                    </FluentButton>
+                </div>
+                <FluentProgress Visible="@(_loading)" style="width: 100%;"></FluentProgress>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="modal fade" id="detailsModal" tabindex="-1" role="dialog" aria-labelledby="detailsModalLabel"
@@ -103,15 +89,31 @@
                 </button>
             </div>
             <div class="modal-body">
-                <p><strong>Brand:</strong> @selectedItem.Brand</p>
-                <p><strong>Type:</strong> @selectedItem.Type</p>
-                <p><strong>Processor:</strong> @selectedItem.Processor</p>
-                <p><strong>RAM:</strong> @selectedItem.Ram</p>
-                <p><strong>Storage:</strong> @selectedItem.Storage</p>
-                <p><strong>GPU:</strong> @selectedItem.Gpu</p>
+                <p>
+                    <strong>Brand:</strong> @selectedItem.Brand
+                </p>
+                <p>
+                    <strong>Type:</strong> @selectedItem.Type
+                </p>
+                <p>
+                    <strong>Processor:</strong> @selectedItem.Processor
+                </p>
+                <p>
+                    <strong>RAM:</strong> @selectedItem.Ram
+                </p>
+                <p>
+                    <strong>Storage:</strong> @selectedItem.Storage
+                </p>
+                <p>
+                    <strong>GPU:</strong> @selectedItem.Gpu
+                </p>
                 <p><strong>Price:</strong> $@selectedItem.Price</p>
-                <p><strong>Availability:</strong> @selectedItem.Availability</p>
-                <p><strong>Description:</strong></p>
+                <p>
+                    <strong>Availability:</strong> @selectedItem.Availability
+                </p>
+                <p>
+                    <strong>Description:</strong>
+                </p>
                 <p>@selectedItem.Description</p>
             </div>
         </div>
@@ -119,26 +121,66 @@
 </div>
 
 @code {
+    string selectedModel = "llama3:8b";
+    List<Message> _messages = new();
+    ChatDto _selectedChat = new();
+    string _ask = string.Empty;
+    bool _loading = false;
+    
+    HardwareItemDto selectedItem = new();
+    private List<HardwareItemDto> _items = new();
 
-HardwareItemDto selectedItem = new();
-private List<HardwareItemDto> _items = new();
-protected override async Task OnInitializedAsync()
-{
-Http.Timeout = TimeSpan.FromMinutes(10);
-await LoadProductsAsync();
-}
+    protected override async Task OnInitializedAsync()
+    {
+        Http.Timeout = TimeSpan.FromMinutes(10);
+        await LoadProductsAsync();
+    }
+    
+    private async Task LoadProductsAsync()
+    {
+        var response = await Http.GetAsync($"{ExtensionMethods.GetDemoApiUrl()}/items/");
+        if (response.IsSuccessStatusCode)
+        {
+            _items = await response.Content.ReadFromJsonAsync<List<HardwareItemDto>>() ?? [];
+        }
+    }
 
-private async Task LoadProductsAsync()
-{
-var response = await Http.GetAsync($"{ExtensionMethods.GetDemoApiUrl()}/items/");
-if (response.IsSuccessStatusCode)
-{
-_items = await response.Content.ReadFromJsonAsync<List<HardwareItemDto>>() ?? [];
-}
-}
+    private void ShowDetailsModal(HardwareItemDto item)
+    {
+        selectedItem = item;
+    }
 
-private void ShowDetailsModal(HardwareItemDto item)
-{
-selectedItem = item;
-}
+    private async Task CheckEnterKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SendAsync(_ask);
+        }
+    }
+    
+    private async Task SendAsync(string message)
+    {
+        _loading = true;
+        if (!string.IsNullOrWhiteSpace(message))
+        {
+            _messages.Add(new Message { Role = Role.User.ToString(), Content = message });
+            _selectedChat.Messages = _messages;
+            _selectedChat.Model = selectedModel;
+
+            var replyServerOllama = await Http.PostAsJsonAsync($"{ExtensionMethods.GetApiUrl()}/api/chats/complete", _selectedChat);
+
+            if (replyServerOllama.IsSuccessStatusCode)
+            {
+                var response = await replyServerOllama.Content.ReadFromJsonAsync<ChatResponse>();
+                if (response != null)
+                {
+                    _messages.Add(response.Message);
+                }
+            }
+            _loading = false;
+            _ask = string.Empty;
+        }
+    }
+
+    private string GetRoleLabel(string role) => role == Role.User.ToString() ? "User" : "\ud83d\udc7e Assistant";
 }
