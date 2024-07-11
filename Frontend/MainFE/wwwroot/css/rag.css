@@ -1,3 +1,14 @@
+@import url('https://fonts.googleapis.com/css2?family=Tiny5&display=swap'); /* Importing a coding font */
+
+
+.fancy-text {
+    font-family: "Tiny5", sans-serif;
+    font-weight: 400;
+    font-style: normal;
+    color: #00ffcc;
+    text-shadow: 0 0 5px #00ffcc;
+}
+
 body {
     background-color: #121212;
     color: #ffffff;
@@ -68,14 +79,15 @@ body {
 }
 
 .custom-modal-header {
-    background-color: #4dd0e1; /* Medium blue background */
+    background-color: #38383c; /* Medium blue background */
     color: #006064; /* Dark blue text */
     border-bottom: 1px solid #006064;
 }
 
 .custom-modal-body {
-    background-color: #e0f7fa; /* Light blue background */
+    background-color: #3e3c3c; /* Light blue background */
     color: #006064; /* Dark blue text */
+  
 }
 
 .card-image {
@@ -116,7 +128,7 @@ body {
 }
 
 .inp {
-    background: #f8c8f3 !important;
+    background: #06495e !important;
     color: aliceblue;
     border-radius: 10px;
     border-color: #1c1f23;
@@ -143,7 +155,7 @@ body {
     border-radius: 15px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
     flex-direction: column;
-    background-color: #f8f8f8;
+    background-color: #787575;
 }
 
 .input-container {

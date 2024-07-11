@@ -11,7 +11,7 @@ public class ChatDto
     [JsonPropertyName("model")] 
     public string Model { get; set; }
     [JsonPropertyName("messages")] 
-    public List<MessageDto> Messages { get; set; }
+    public List<MessageDto>? Messages { get; set; }
 
     [JsonPropertyName("stream")] 
     public bool Stream { get; set; } = false;
