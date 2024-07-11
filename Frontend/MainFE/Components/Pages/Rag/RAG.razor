@@ -3,8 +3,9 @@
 @using Markdig
 @using Microsoft.FluentUI.AspNetCore.Components
 @using Message = MainFE.Components.Models.Message
-@rendermode InteractiveServer
+@rendermode @(new InteractiveServerRenderMode(prerender:false))
 @inject HttpClient Http
+
 <link rel="stylesheet" href="css/rag.css">
 
 <div class="header-container">
@@ -39,7 +40,7 @@
     <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content custom-modal">
             <div class="modal-header custom-modal-header">
-                <h5 class="modal-title" id="askAssistantModalLabel">Ask 👾</h5>
+                <h5 class="modal-title fancy-text" id="askAssistantModalLabel">Ask 👾</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
@@ -48,15 +49,19 @@
                 <div class="messages-container">
                     @foreach (var message in _messages)
                     {
+                        @if (message.Role != Role.System.ToString().ToLowerInvariant())
+                        {
                         <span class="@(message.Role == Role.User.ToString() ? "message-role-user" : "message-role-bot")">@GetRoleLabel(message.Role)</span>
-                        <FluentCard class="@(message.Role == Role.User.ToString() ? "message-card user-message" : "message-card bot-message")">
-                            @((MarkupString)((message.Role == Role.User.ToString()
-                                ? message.Content
-                                : Markdown.ToHtml((string)message.Content!,
-                                    new MarkdownPipelineBuilder()
-                                        .UseAdvancedExtensions()
-                                        .Build())) ?? string.Empty))
-                        </FluentCard>
+                  
+                            <FluentCard class="@(message.Role == Role.User.ToString() ? "message-card user-message" : "message-card bot-message")">
+                                @((MarkupString)((message.Role == Role.User.ToString()
+                                    ? message.Content
+                                    : Markdown.ToHtml((string)message.Content!,
+                                        new MarkdownPipelineBuilder()
+                                            .UseAdvancedExtensions()
+                                            .Build())) ?? string.Empty))
+                            </FluentCard>
+                        }
                     }
                     @if (_loading)
                     {
@@ -133,6 +138,7 @@
     protected override async Task OnInitializedAsync()
     {
         Http.Timeout = TimeSpan.FromMinutes(10);
+        await InitRagAsync();
         await LoadProductsAsync();
     }
     
@@ -157,24 +163,41 @@
             await SendAsync(_ask);
         }
     }
+
+    private async Task InitRagAsync()
+    {
+        _selectedChat.Messages = _messages;
+        _selectedChat.Model = selectedModel;
+        var replyServerOllama = await Http.PostAsJsonAsync($"{ExtensionMethods.GetApiUrl()}/api/rag/complete", _selectedChat);
+        if (replyServerOllama.IsSuccessStatusCode)
+        {
+            var response = await replyServerOllama.Content.ReadFromJsonAsync<ChatDto>();
+            if (response != null)
+            {
+                _messages = response.Messages;
+            }
+        }
+        _loading = false;
+        _ask = string.Empty;
+    }
     
-    private async Task SendAsync(string message)
+    private async Task SendAsync(string prompt)
     {
         _loading = true;
-        if (!string.IsNullOrWhiteSpace(message))
+        if (!string.IsNullOrWhiteSpace(prompt))
         {
-            _messages.Add(new Message { Role = Role.User.ToString(), Content = message });
+            _messages.Add(new Message { Role = Role.User.ToString(), Content = prompt });
             _selectedChat.Messages = _messages;
             _selectedChat.Model = selectedModel;
 
-            var replyServerOllama = await Http.PostAsJsonAsync($"{ExtensionMethods.GetApiUrl()}/api/chats/complete", _selectedChat);
+            var replyServerOllama = await Http.PostAsJsonAsync($"{ExtensionMethods.GetApiUrl()}/api/rag/complete", _selectedChat);
 
             if (replyServerOllama.IsSuccessStatusCode)
             {
-                var response = await replyServerOllama.Content.ReadFromJsonAsync<ChatResponse>();
+                var response = await replyServerOllama.Content.ReadFromJsonAsync<ChatDto>();
                 if (response != null)
                 {
-                    _messages.Add(response.Message);
+                    _messages = response.Messages;
                 }
             }
             _loading = false;

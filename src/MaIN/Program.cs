@@ -38,6 +38,14 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseCors("AllowFE");
 
+app.MapPost("/api/rag/complete", async (HttpContext context,
+    [FromServices] IRagService ragService,
+    ChatDto request) =>
+{
+    var chat = await ragService.Completions(request.ToDomain());
+    context.Response.ContentType = "application/json";
+    await context.Response.WriteAsync(JsonSerializer.Serialize(chat));
+});
 
 app.MapPost("/api/chats/complete", async (HttpContext context,
     [FromServices] IChatService chatService,
@@ -69,8 +77,8 @@ app.MapGet("/api/chats/{id}", async (HttpContext context,
     Results.Ok((await chatService.GetById(id)).ToDto()));
 
 app.MapGet("/api/chats/models", async (HttpContext context,
-        [FromServices] IChatService chatService) => 
-    Results.Ok((await chatService.GetCurrentModels())));
+        [FromServices] IOllamaService ollamaService) => 
+    Results.Ok((await ollamaService.GetCurrentModels())));
 
 app.MapGet("/api/chats", async ([FromServices] IChatService chatService)
     => Results.Ok((await chatService.GetAll()).Select(x => x.ToDto())));

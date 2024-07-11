@@ -29,7 +29,7 @@ public static class ChatMapper
             Id = chat.Id,
             Name = chat.Name,
             Model = chat.Model,
-            Messages = chat.Messages.Select(m => m.ToDomain()).ToList(),
+            Messages = chat.Messages?.Select(m => m.ToDomain()).ToList(),
             Stream = chat.Stream
         };
 
