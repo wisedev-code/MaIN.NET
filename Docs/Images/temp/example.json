@@ -11,7 +11,7 @@
             "type": "api", //can be api/sql/text/file as we know it now
             "details": 
             {
-                "url": "https://api.example.com/{@category@}",
+                "url": "https://api.example.com/@filter@",
                 "method": "GET",
                 "query": "",
                 "payload": ""
@@ -24,12 +24,10 @@
             {
                 "id": "ac243657-5ab1-4727-b4be-1ea5ae2e76d3",
                 "agentPurpose": "category detection",
-                "keyword": "@category@"
             },
             {
                 "id": "b29211e9-9ee8-45f4-bdbb-054cb835d0d6",
                 "agentPurpose": "output prettifier",
-                "keyword": "@output@"
             }
         ]
     }
