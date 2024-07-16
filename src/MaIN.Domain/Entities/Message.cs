@@ -1,6 +1,4 @@
-using System.Text.Json.Serialization;
-
-namespace MaIN.Models;
+namespace MaIN.Domain.Entities;
 
 public class Message
 {

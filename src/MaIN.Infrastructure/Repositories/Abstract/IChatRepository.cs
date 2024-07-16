@@ -1,8 +1,8 @@
 using MaIN.Infrastructure.Models;
 
-namespace MaIN.Infrastructure.Providers.cs.Abstract;
+namespace MaIN.Infrastructure.Repositories.Abstract;
 
-public interface IChatProvider
+public interface IChatRepository
 {
     Task<IEnumerable<ChatDocument>> GetAllChats();
     Task<ChatDocument> GetChatById(string id);

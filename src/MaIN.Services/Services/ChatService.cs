@@ -1,6 +1,7 @@
 using System.Text.Json;
+using MaIN.Domain.Entities;
 using MaIN.Infrastructure.Models;
-using MaIN.Infrastructure.Providers.cs.Abstract;
+using MaIN.Infrastructure.Repositories.Abstract;
 using MaIN.Models;
 using MaIN.Services.Mappers;
 using MaIN.Services.Models;
@@ -11,7 +12,7 @@ namespace MaIN.Services.Services;
 
 public class ChatService(
     ITranslatorService translatorService,
-    IChatProvider chatProvider,
+    IChatRepository chatProvider,
     IOllamaService ollamaService,
     IHttpClientFactory httpClientFactory) : IChatService
 {

@@ -1,11 +1,20 @@
+using MaIN.Domain.Entities;
+using MaIN.Domain.Entities.Agents;
+using MaIN.Domain.Entities.Agents.Commands;
+using MaIN.Infrastructure.Repositories.Abstract;
 using MaIN.Models;
+using MaIN.Models.Rag;
 using MaIN.Services.Mappers;
 using MaIN.Services.Models.Ollama;
 using MaIN.Services.Services.Abstract;
+using MaIN.Services.Steps;
 
 namespace MaIN.Services.Services;
 
-public class RagService(IOllamaService ollamaService) : IRagService
+public class AgentService(
+  IOllamaService ollamaService,
+  IAgentRepository agentRepository,
+  IChatRepository chatRepository) : IAgentService
 {
   private string testData =
     """
@@ -184,7 +193,6 @@ public class RagService(IOllamaService ollamaService) : IRagService
     {
         if (!chat.Messages.Any())
         {
-          
           var message = new Message()
           {
             Content =
@@ -200,5 +208,34 @@ public class RagService(IOllamaService ollamaService) : IRagService
         var result = await ollamaService.Send(chat);
         chat.Messages.Add(result!.Message.ToDomain());
         return chat;
+    }
+
+    public async Task<Agent> CreateAgent(Agent agent)
+    {
+        var chat = new Chat()
+        {
+            Id = Guid.NewGuid().ToString(),
+            Model = agent.Model,
+            Name = agent.Name,
+            Stream = false,
+            Messages = new List<Message>() //TBD add type to diff with normal chat
+        };
+        
+        var startCommand = new StartCommand()
+        {
+            Chat = chat,
+            InitialPrompt = agent.Context.Instruction,
+        };
+        
+        var result = await Actions.CallAsync("START", startCommand) as Chat;
+        agent.Started = true;
+        await chatRepository.AddChat(result!.ToDocument());
+        await agentRepository.AddAgent(agent.ToDocument());
+        return agent;
+    }
+
+    public Task<List<Agent>> GetAgents()
+    {
+      throw new NotImplementedException();
     }
 }

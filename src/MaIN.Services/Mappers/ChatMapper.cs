@@ -1,3 +1,4 @@
+using MaIN.Domain.Entities;
 using MaIN.Infrastructure.Models;
 using MaIN.Models;
 using MaIN.Services.Models;

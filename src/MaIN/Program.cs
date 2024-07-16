@@ -1,5 +1,6 @@
 using System.Text.Json;
 using MaIN.Infrastructure;
+using MaIN.Models.Rag;
 using MaIN.Services;
 using MaIN.Services.Mappers;
 using MaIN.Services.Models;
@@ -38,13 +39,22 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseCors("AllowFE");
 
-app.MapPost("/api/rag/complete", async (HttpContext context,
-    [FromServices] IRagService ragService,
+app.MapPost("/api/agents/complete", async (HttpContext context,
+    [FromServices] IAgentService agentService,
     ChatDto request) =>
 {
-    var chat = await ragService.Completions(request.ToDomain());
+    var chat = await agentService.Completions(request.ToDomain());
     context.Response.ContentType = "application/json";
     await context.Response.WriteAsync(JsonSerializer.Serialize(chat));
+});
+
+app.MapPost("/api/agents", async (HttpContext context,
+    [FromServices] IAgentService agentService,
+    AgentDto request) =>
+{
+    var agent = await agentService.CreateAgent(request.ToDomain());
+    context.Response.ContentType = "application/json";
+    await context.Response.WriteAsync(JsonSerializer.Serialize(agent));
 });
 
 app.MapPost("/api/chats/complete", async (HttpContext context,

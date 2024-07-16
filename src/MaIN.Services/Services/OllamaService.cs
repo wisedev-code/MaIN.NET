@@ -1,4 +1,5 @@
 using System.Text.Json;
+using MaIN.Domain.Entities;
 using MaIN.Models;
 using MaIN.Services.Models;
 using MaIN.Services.Models.Ollama;
