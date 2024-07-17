@@ -16,10 +16,13 @@ public class ChatService(
     IOllamaService ollamaService,
     IHttpClientFactory httpClientFactory) : IChatService
 {
-    public async Task Create(Chat chat)
-        => await chatProvider.AddChat(chat.ToDocument());
+    public async Task Create(Chat? chat)
+    {
+        chat.Type = ChatType.Conversation;
+        await chatProvider.AddChat(chat.ToDocument());
+    }
 
-    public async Task<ChatOllamaResult> Completions(Chat chat, bool translate = false)
+    public async Task<ChatOllamaResult> Completions(Chat? chat, bool translate = false)
     {
         var lng = await translatorService.DetectLanguage(chat.Messages.Last().Content);
         var originalMessages = chat.Messages;

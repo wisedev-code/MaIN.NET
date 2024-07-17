@@ -9,7 +9,7 @@ namespace MaIN.Services.Services;
 
 public class OllamaService(IHttpClientFactory httpClientFactory) : IOllamaService
 {
-    public async Task<ChatOllamaResult?> Send(Chat chat)
+    public async Task<ChatOllamaResult?> Send(Chat? chat)
     {
         using var client = httpClientFactory.CreateClient();
         var response = await client.PostAsync($"{GetLocalhost()}:11434/api/chat",

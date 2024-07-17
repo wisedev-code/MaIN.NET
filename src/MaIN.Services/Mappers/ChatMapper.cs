@@ -14,7 +14,8 @@ public static class ChatMapper
             Name = chat.Name,
             Model = chat.Model,
             Messages = chat.Messages.Select(m => m.ToDto()).ToList(),
-            Stream = chat.Stream
+            Stream = chat.Stream,
+            Type = Enum.Parse<ChatTypeDto>(chat.Type.ToString())
         };
 
     public static MessageDto ToDto(this Message message)
@@ -24,14 +25,15 @@ public static class ChatMapper
             Role = message.Role
         };
 
-    public static Chat ToDomain(this ChatDto chat)
+    public static Chat? ToDomain(this ChatDto chat)
         => new Chat()
         {
             Id = chat.Id,
             Name = chat.Name,
             Model = chat.Model,
             Messages = chat.Messages?.Select(m => m.ToDomain()).ToList(),
-            Stream = chat.Stream
+            Stream = chat.Stream,
+            Type = Enum.Parse<ChatType>(chat.Type.ToString())
         };
 
     public static Message ToDomain(this MessageDto message)
@@ -48,14 +50,15 @@ public static class ChatMapper
             Role = message.Role
         };
 
-    public static ChatDocument ToDocument(this Chat chat)
+    public static ChatDocument ToDocument(this Chat? chat)
         => new ChatDocument()
         {
             Id = chat.Id,
             Name = chat.Name,
             Model = chat.Model,
             Messages = chat.Messages.Select(m => m.ToDocument()).ToList(),
-            Stream = chat.Stream
+            Stream = chat.Stream,
+            Type = Enum.Parse<ChatTypeDocument>(chat.Type.ToString())
         };
 
     public static Chat ToDomain(this ChatDocument chat)
@@ -65,7 +68,8 @@ public static class ChatMapper
             Name = chat.Name,
             Model = chat.Model,
             Messages = chat.Messages.Select(m => m.ToDomain()).ToList(),
-            Stream = chat.Stream
+            Stream = chat.Stream,
+            Type = Enum.Parse<ChatType>(chat.Type.ToString())
         };
 
     public static Message ToDomain(this MessageDocument message)

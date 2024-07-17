@@ -14,7 +14,7 @@ public static class Actions
     {
         Steps = new Dictionary<string, Delegate>
         {
-            { "START", new Func<StartCommand, Task<Chat>>(async startCommand =>
+            { "START", new Func<StartCommand, Task<Chat?>>(async startCommand =>
             {
                 var message = new Message()
                 {
@@ -27,10 +27,23 @@ public static class Actions
                 return startCommand.Chat;
             })},
 
-            { "REDIRECT", new Func<int, int, int>((a, b) => a + b) },
-            { "FETCH_DATA_WITH_FILTER", new Func<int, int, int>((a, b) => a * b) },
+            { "REDIRECT", new Func<RedirectCommand, Task<Chat?>>(async answerCommand =>
+            {
+                var result = await ollamaService.Send(answerCommand.Chat);
+                answerCommand.Chat.Messages?.Add(result!.Message.ToDomain());
+
+                return answerCommand.Chat;
+            })},
             
-            { "ANSWER", new Func<AnswerCommand, Task<Chat>>(async answerCommand =>
+            { "FETCH_DATA_WITH_FILTER", new Func<FetchCommand, Task<Chat?>>(async answerCommand =>
+            {
+                var result = await ollamaService.Send(answerCommand.Chat);
+                answerCommand.Chat.Messages?.Add(result!.Message.ToDomain());
+
+                return answerCommand.Chat;
+            })},
+            
+            { "ANSWER", new Func<AnswerCommand, Task<Chat?>>(async answerCommand =>
             {
                 var result = await ollamaService.Send(answerCommand.Chat);
                 answerCommand.Chat.Messages?.Add(result!.Message.ToDomain());

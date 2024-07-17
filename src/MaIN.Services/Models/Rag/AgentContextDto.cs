@@ -5,6 +5,6 @@ public class AgentContextDto
     public string Instruction { get; set; }
     public AgentSourceDto Source { get; set; }
     public List<string> Steps { get; set; }
-    public List<AgentRelationDto>? Relations { get; set; }
+    public List<string>? Relations { get; set; }
 
 }

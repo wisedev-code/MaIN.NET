@@ -11,4 +11,5 @@ public class AgentDocument
     public string? Description { get; set; }
     public bool Started { get; set; }
     public AgentContextDocument Context { get; set; }
+    public string? ChatId { get; set; }
 }

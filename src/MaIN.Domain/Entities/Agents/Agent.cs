@@ -8,4 +8,5 @@ public class Agent
     public string? Description { get; set; }
     public bool Started { get; set; }
     public AgentContext Context { get; set; }
+    public string? ChatId { get; set; }
 }
