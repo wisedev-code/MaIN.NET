@@ -9,5 +9,6 @@ public class ChatDocument
     public string Name { get; set; }
     public string Model { get; set; }
     public List<MessageDocument> Messages { get; set; }
+    public ChatTypeDocument Type { get; set; }
     public bool Stream { get; set; } = false;
 }

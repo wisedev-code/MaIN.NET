@@ -6,5 +6,6 @@ public class Chat
     public string Name { get; set; }
     public string Model { get; set; }
     public List<Message>? Messages { get; set; }
+    public ChatType Type { get; set; }
     public bool Stream { get; set; } = false;
 }

@@ -23,11 +23,7 @@ public static class AgentMapper
         => new()
         {
             Instruction = agentContext.Instruction,
-            Relations = agentContext.Relations.Select(x => new AgentRelationDto()
-            {
-                Id = x.Id,
-                AgentPurpose = x.AgentPurpose
-            }).ToList(),
+            Relations = agentContext.Relations,
             Steps = new List<string>(),
             Source = new AgentSourceDto()
             {
@@ -51,11 +47,7 @@ public static class AgentMapper
         => new()
         {
             Instruction = agentContextDto.Instruction,
-            Relations = agentContextDto?.Relations?.Select(x => new AgentRelation()
-            {
-                Id = x.Id,
-                AgentPurpose = x.AgentPurpose
-            }).ToList(),
+            Relations = agentContextDto?.Relations,
             Source = new AgentSource()
             {
                 Details = agentContextDto?.Source?.Details,
@@ -80,7 +72,7 @@ public static class AgentMapper
         => new()
         {
             Instruction = context.Instruction,
-            Relations = context.Relations?.Select(x => x.Id).ToList(),
+            Relations = context.Relations?.ToList(),
             Steps = context.Steps.Select(x => x.Key).ToList(),
             Source = new AgentSourceDocument()
             {
@@ -98,5 +90,29 @@ public static class AgentMapper
             Started = agent.Started,
             Description = agent.Description,
             Context = agent.Context.ToDocument()
+        };
+    
+    public static Agent ToDomain(this AgentDocument agent)
+        => new()
+        {
+            Id = agent.Id,
+            Name = agent.Name,
+            Model = agent.Model,
+            Started = agent.Started,
+            Description = agent.Description,
+            Context = agent.Context.ToDomain()
+        };
+
+    public static AgentContext ToDomain(this AgentContextDocument agentContextDocument)
+        => new()
+        {
+            Instruction = agentContextDocument.Instruction,
+            Relations = agentContextDocument?.Relations,
+            Source = new AgentSource()
+            {
+                Details = agentContextDocument?.Source?.Details,
+                Type = Enum.Parse<AgentSourceType>(agentContextDocument?.Source?.Type.ToString()!)
+            },
+            Steps = agentContextDocument!.Steps.ToLookup(x => x, y => Actions.Steps[y])
         };
 }

@@ -12,6 +12,8 @@ public class ChatDto
     public string Model { get; set; }
     [JsonPropertyName("messages")] 
     public List<MessageDto>? Messages { get; set; }
+    [JsonPropertyName("type")] 
+    public ChatTypeDto Type { get; set; }
 
     [JsonPropertyName("stream")] 
     public bool Stream { get; set; } = false;
