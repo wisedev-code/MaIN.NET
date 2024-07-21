@@ -1,7 +1,6 @@
 # Stop and remove Docker containers, networks, images, and volumes
 Write-Host "Stopping and removing Docker containers, networks, images, and volumes..."
-docker-compose down
-
+docker-compose down -v
 # Start Docker containers in detached mode
 Write-Host "Starting Docker containers in detached mode..."
 docker-compose up -d
