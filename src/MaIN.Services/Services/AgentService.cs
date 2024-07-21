@@ -1,6 +1,8 @@
+using Amazon.Runtime.Internal.Transform;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
 using MaIN.Domain.Entities.Agents.Commands;
+using MaIN.Infrastructure.Models;
 using MaIN.Infrastructure.Repositories.Abstract;
 using MaIN.Models;
 using MaIN.Models.Rag;
@@ -8,11 +10,11 @@ using MaIN.Services.Mappers;
 using MaIN.Services.Models.Ollama;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Steps;
+using MongoDB.Driver.Core.Events;
 
 namespace MaIN.Services.Services;
 
 public class AgentService(
-  IOllamaService ollamaService,
   IAgentRepository agentRepository,
   IChatRepository chatRepository) : IAgentService
 {
@@ -33,13 +35,21 @@ public class AgentService(
         throw new ArgumentException("Agent context not found.");
     }
     
+    chat = await ProcessSteps(context, chat);
+
+    // Return the processed chat
+    return chat;
+}
+
+private static async Task<Chat?> ProcessSteps(AgentContextDocument context, Chat? chat)
+{
     // Process each step in the defined order
     foreach (var step in context.Steps)
     {
-        // Parse the step name and potential id for redirection steps
-        var stepParts = step.Split('_');
+        // provide arguments
+        var stepParts = step.Split('+');
         var stepName = stepParts[0];
-        var relatedAgentId = stepParts.Length > 1 ? stepParts[1] : null;
+        var shouldReplaceLastMessage = step.Contains("REPLACE");
         
         // Create the appropriate command based on the step name
         switch (stepName)
@@ -47,19 +57,57 @@ public class AgentService(
             case "REDIRECT":
                 var redirectCommand = new RedirectCommand
                 {
-                    Chat = chat!,
-                    RelatedAgentId = relatedAgentId
+                    Message = chat?.Messages?.Last()!,
+                    RelatedAgentId = stepParts[1],
+                    SaveAs = Enum.Parse<OutputTypeOfRedirect>(stepParts[2])
                 };
-                chat = await Actions.CallAsync("REDIRECT", redirectCommand) as Chat;
+                
+                var message  = await Actions.CallAsync("REDIRECT", redirectCommand) as Message;
+                if (redirectCommand.SaveAs == OutputTypeOfRedirect.AS_Filter)
+                {
+                    chat?.Properties.TryAdd("data_filter", message!.Content);
+                }
+                else
+                {
+                    if(shouldReplaceLastMessage)
+                    {
+                        chat?.Messages?.RemoveAt(chat.Messages.Count - 1);
+                    }
+                    
+                    chat?.Messages?.Add(message!);
+                }
+                
                 break;
             
-            case "FETCH_DATA_WITH_FILTER":
+            case "FETCH_DATA":
+                var filterExist = chat!.Properties.TryGetValue("data_filter", out var filter); //TODO define a way to create multiple filters
                 var fetchCommand = new FetchCommand
                 {
                     Chat = chat,
-                    //Filter = context.Source.Details.Query // Assuming the query is used as a filter
+                    Filter = filterExist ? filter : string.Empty,
+                    Context = context.ToDomain()
                 };
-                chat = await Actions.CallAsync("FETCH_DATA_WITH_FILTER", fetchCommand) as Chat;
+                var fetchCommandResponse = (await Actions.CallAsync("FETCH_DATA_WITH_FILTER", fetchCommand) as Message)!;
+                chat.Messages?.Add(fetchCommandResponse);
+                break;
+            
+            case "FETCH_DATA*":
+                if (chat!.Properties.ContainsKey("FETCH_DATA*"))
+                {
+                    return chat;
+                }
+                
+                var filterExists = chat!.Properties.TryGetValue("data_filter", out var filterData); //TODO define a way to create multiple filters
+                var fetchCommandOnce = new FetchCommand
+                {
+                    Context = context.ToDomain(),
+                    Chat = chat,
+                    Filter = filterExists ? filterData : string.Empty
+                };
+                var response = (await Actions.CallAsync("FETCH_DATA", fetchCommandOnce) as Message)!;
+                chat.Messages?.Add(response);
+                
+                chat.Properties.Add("FETCH_DATA*", string.Empty);
                 break;
             
             case "ANSWER":
@@ -67,19 +115,25 @@ public class AgentService(
                 {
                     Chat = chat
                 };
-                chat = await Actions.CallAsync("ANSWER", answerCommand) as Chat;
+                var answerResponse = (await Actions.CallAsync("ANSWER", answerCommand) as Message)!;
+                
+                if(shouldReplaceLastMessage)
+                {
+                    chat?.Messages?.RemoveAt(chat.Messages.Count - 1);
+                }
+                
+                chat?.Messages?.Add(answerResponse);
                 break;
             
             default:
                 throw new InvalidOperationException($"Unknown step: {stepName}");
         }
     }
-    
-    // Return the processed chat
+
     return chat;
 }
 
-    public async Task<Agent> CreateAgent(Agent agent)
+public async Task<Agent> CreateAgent(Agent agent)
     {
         var chat = new Chat()
         {
@@ -97,15 +151,22 @@ public class AgentService(
             InitialPrompt = agent.Context.Instruction,
         };
         
-        var result = await Actions.CallAsync("START", startCommand) as Chat;
+        var result = await Actions.CallAsync("START", startCommand) as Message;
         agent.Started = true;
         var agentDocument = agent.ToDocument();
-        agentDocument.ChatId = result?.Id;
-        await chatRepository.AddChat(result!.ToDocument());
+        agentDocument.ChatId = chat.Id;
+        await chatRepository.AddChat(chat!.ToDocument());
         await agentRepository.AddAgent(agentDocument);
         return agent;
     }
 
+    public async Task<Chat> GetChatByAgent(string agentId)
+    {
+        var agent = await agentRepository.GetAgentById(agentId);
+        var chat = await chatRepository.GetChatById(agent.ChatId);
+        return chat.ToDomain();
+    }
+    
     public async Task<List<Agent>> GetAgents()
     {
       var result = await agentRepository.GetAllAgents();

@@ -8,4 +8,5 @@ public class Chat
     public List<Message>? Messages { get; set; }
     public ChatType Type { get; set; }
     public bool Stream { get; set; } = false;
+    public Dictionary<string, string> Properties { get; set; } = new();
 }

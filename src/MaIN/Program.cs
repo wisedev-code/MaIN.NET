@@ -42,8 +42,7 @@ app.UseHttpsRedirection();
 app.UseCors("AllowFE");
 
 //Initialize agents flow
-var ollamaService = app.Services.GetRequiredService<IOllamaService>();
-Actions.Initialize(ollamaService);
+app.Services.InitializeAgents();
 
 
 app.MapPost("/api/agents/{agentId}/process", async (HttpContext context,
@@ -61,8 +60,9 @@ app.MapPost("/api/agents", async (HttpContext context,
     AgentDto request) =>
 {
     var agent = await agentService.CreateAgent(request.ToDomain());
+    var chat = await agentService.GetChatByAgent(agent.Id);
     context.Response.ContentType = "application/json";
-    await context.Response.WriteAsync(JsonSerializer.Serialize(agent));
+    await context.Response.WriteAsync(JsonSerializer.Serialize(chat.ToDto()));
 });
 
 app.MapGet("/api/agents", async (HttpContext context, 

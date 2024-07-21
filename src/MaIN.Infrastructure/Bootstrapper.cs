@@ -23,11 +23,18 @@ public static class Bootstrapper
                 new MongoClient(configuration.GetSection("MongoDbSettings:ConnectionString").Value));
         }
 
-        services.AddScoped<IChatRepository, ChatRepository>(sp =>
+        services.AddSingleton<IChatRepository, ChatRepository>(sp =>
         {
             var mongoClient = sp.GetRequiredService<IMongoClient>();
             var database = mongoClient.GetDatabase(configuration.GetSection("MongoDbSettings:DatabaseName").Value);
-            return new ChatRepository(database, configuration.GetSection("Chats").Value!);
+            return new ChatRepository(database, "Chats");
+        });
+        
+        services.AddSingleton<IAgentRepository, AgentRepository>(sp =>
+        {
+            var mongoClient = sp.GetRequiredService<IMongoClient>();
+            var database = mongoClient.GetDatabase(configuration.GetSection("MongoDbSettings:DatabaseName").Value);
+            return new AgentRepository(database, "Agents");
         });
 
         return services;

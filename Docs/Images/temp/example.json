@@ -18,8 +18,8 @@
                 //In future we will also have to add authentication details
             }
         },
-        //"steps": ["ANSWER"],
-        "steps": ["REDIRECT_ac243657-5ab1-4727-b4be-1ea5ae2e76d3", "FETCH_DATA_WITH_FILTER", "ANSWER", "REDIRECT_b29211e9-9ee8-45f4-bdbb-054cb835d0d6"],
+        "steps": ["ANSWER"],
+        //"steps": ["REDIRECT_ac243657-5ab1-4727-b4be-1ea5ae2e76d3", "FETCH_DATA_WITH_FILTER", "ANSWER", "REDIRECT_b29211e9-9ee8-45f4-bdbb-054cb835d0d6"],
         "relations": //connections that this agent can make to other agents
         [
             {

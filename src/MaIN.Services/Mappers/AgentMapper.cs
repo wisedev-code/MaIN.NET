@@ -1,3 +1,4 @@
+using System.Text.Json;
 using MaIN.Domain.Entities.Agents;
 using MaIN.Domain.Entities.Agents.AgentSource;
 using MaIN.Infrastructure.Models;
@@ -48,12 +49,12 @@ public static class AgentMapper
         {
             Instruction = agentContextDto.Instruction,
             Relations = agentContextDto?.Relations,
-            Source = new AgentSource()
+            Source = agentContextDto?.Source is not null ? new AgentSource()
             {
                 Details = agentContextDto?.Source?.Details,
                 Type = Enum.Parse<AgentSourceType>(agentContextDto?.Source?.Type.ToString()!)
-            },
-            Steps = agentContextDto!.Steps.ToLookup(x => x, y => Actions.Steps[y])
+            } : null,
+            Steps = agentContextDto!.Steps.ToLookup(x => x, y => Actions.Steps[y.Split('+').First()])
         };
 
     private static AgentSourceDetailsBase MapDetailsToType(object? details, AgentSourceTypeDto? sourceDetailsType)
@@ -74,11 +75,11 @@ public static class AgentMapper
             Instruction = context.Instruction,
             Relations = context.Relations?.ToList(),
             Steps = context.Steps.Select(x => x.Key).ToList(),
-            Source = new AgentSourceDocument()
+            Source = context.Source is not null ? new AgentSourceDocument()
             {
-                Details = context.Source.Details,
+                DetailsSerialized = JsonSerializer.Serialize(context.Source.Details),
                 Type = Enum.Parse<AgentSourceTypeDocument>(context.Source.Type.ToString())
-            }
+            } : null
         };
 
     public static AgentDocument ToDocument(this Agent agent)
@@ -108,11 +109,11 @@ public static class AgentMapper
         {
             Instruction = agentContextDocument.Instruction,
             Relations = agentContextDocument?.Relations,
-            Source = new AgentSource()
+            Source = new AgentSource
             {
-                Details = agentContextDocument?.Source?.Details,
-                Type = Enum.Parse<AgentSourceType>(agentContextDocument?.Source?.Type.ToString()!)
+                Details = agentContextDocument?.Source.DetailsSerialized,
+                Type = Enum.Parse<AgentSourceType>(agentContextDocument?.Source.Type.ToString()!)
             },
-            Steps = agentContextDocument!.Steps.ToLookup(x => x, y => Actions.Steps[y])
+            Steps = agentContextDocument!.Steps.ToLookup(x => x, y => Actions.Steps[y.Split('+').First()])
         };
 }

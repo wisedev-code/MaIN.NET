@@ -22,5 +22,4 @@ public class ChatRepository(IMongoDatabase database, string collectionName) : IC
     
     public async Task DeleteChat(string id) =>
         await _chats.DeleteOneAsync(x => x.Id == id);
-    
 }

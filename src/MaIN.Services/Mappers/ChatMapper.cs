@@ -57,6 +57,7 @@ public static class ChatMapper
             Name = chat.Name,
             Model = chat.Model,
             Messages = chat.Messages.Select(m => m.ToDocument()).ToList(),
+            Properties = chat.Properties,
             Stream = chat.Stream,
             Type = Enum.Parse<ChatTypeDocument>(chat.Type.ToString())
         };
@@ -69,6 +70,7 @@ public static class ChatMapper
             Model = chat.Model,
             Messages = chat.Messages.Select(m => m.ToDomain()).ToList(),
             Stream = chat.Stream,
+            Properties = chat.Properties,
             Type = Enum.Parse<ChatType>(chat.Type.ToString())
         };
 
