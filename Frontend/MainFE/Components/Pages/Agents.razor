@@ -1,0 +1,116 @@
+﻿@page "/agents"
+@using MaIN.Models.Rag
+@using MainFE.Components.Models
+@using Markdig
+@using Microsoft.FluentUI.AspNetCore.Components
+@using NAssetNameGenerator
+@using Message = MainFE.Components.Models.Message
+@using MainFE.Components.Elements
+@inject HttpClient Http
+@rendermode InteractiveServer
+
+<PageTitle>👥 Agents</PageTitle>
+<link rel="stylesheet" href="css/agents.css">
+
+@switch (_mode)
+{
+    case AgentsPageMode.List:
+        <FluentGrid Class="containerbox" Spacing="1" Justify="JustifyContent.FlexStart">
+            @foreach (var agent in agents)
+            {
+                <FluentGridItem lg="4" xs="12" Class="agent-tile" @onclick="() => ViewAgentDetails(agent.Id)">
+                    <div class="agent-content">
+                        <h3>@agent.Name</h3>
+                        <p>@agent.Description</p>
+                    </div>
+                </FluentGridItem>
+            }
+        </FluentGrid>
+        break;
+    case AgentsPageMode.Create:
+        <EditForm Model="newAgent" OnValidSubmit="CreateAgent">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            <div>
+                <label for="name">Name</label>
+                <InputText id="name" @bind-Value="newAgent.Name" />
+            </div>
+            <div>
+                <label for="description">Description</label>
+                <InputTextArea id="description" @bind-Value="newAgent.Description" />
+            </div>
+            <div>
+                <label for="type">Model</label>
+                <InputText id="type" @bind-Value="newAgent.Model" />
+            </div>
+            <div>
+                <label for="configuration">Configuration</label>
+                <InputTextArea id="configuration" @bind-Value="newAgent.Context.Instruction" />
+            </div>
+            <FluentButton Type="ButtonType.Submit">Create</FluentButton>
+        </EditForm>
+        break;
+    case AgentsPageMode.Details:
+        <div>
+            <h2>@selectedAgent.Name</h2>
+            <p>@selectedAgent.Description</p>
+            <ChatComponent ChatId="@_selectedChat.Id" />
+        </div>
+        break;
+    case AgentsPageMode.Demo:
+        break;
+}
+
+@code {
+    // Models
+    List<string> models = new();
+    List<AgentDto> agents = new();
+    string selectedModel = string.Empty;
+    ChatDto _selectedChat = new() { Messages = new() };
+    AgentDto selectedAgent = new();
+    AgentDto newAgent = new();
+    AgentsPageMode _mode = AgentsPageMode.List;
+    bool _loading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Http.Timeout = TimeSpan.FromMinutes(10);
+        await LoadAgentsAsync();
+    }
+
+    private async Task LoadChatAsync(string agentId)
+    {
+        var response = await Http.GetFromJsonAsync<ChatDto>($"{ExtensionMethods.GetApiUrl()}/api/agents/{agentId}/chat");
+        if (response != null)
+        {
+            _selectedChat = response;
+        }
+    }
+
+    private async Task LoadAgentsAsync()
+    {
+        var response = await Http.GetFromJsonAsync<List<AgentDto>>($"{ExtensionMethods.GetApiUrl()}/api/agents");
+        if (response != null)
+        {
+            agents = response;
+        }
+    }
+
+    private void ViewAgentDetails(string agentId)
+    {
+        selectedAgent = agents.FirstOrDefault(a => a.Id == agentId)!;
+        _mode = AgentsPageMode.Details;
+        LoadChatAsync(selectedAgent.Id); // Assuming each agent has a ChatId property
+    }
+
+    private async Task CreateAgent()
+    {
+        var response = await Http.PostAsJsonAsync($"{ExtensionMethods.GetApiUrl()}/api/agents", newAgent);
+        if (response.IsSuccessStatusCode)
+        {
+            newAgent = new(); // Reset the form
+            await LoadAgentsAsync(); // Refresh the agents list
+            _mode = AgentsPageMode.List; // Switch back to list mode
+        }
+    }
+}

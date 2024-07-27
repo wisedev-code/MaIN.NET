@@ -4,6 +4,7 @@
 @using Microsoft.FluentUI.AspNetCore.Components
 @using NAssetNameGenerator
 @using Message = MainFE.Components.Models.Message
+@using MainFE.Components.Elements
 @inject HttpClient Http
 @rendermode InteractiveServer
 
@@ -32,33 +33,7 @@
         }
     </FluentGridItem>
     <FluentGridItem lg="6" xs="12" Class="chat-container">
-        <div class="messages-container">
-            @foreach (var message in _messages)
-            {
-                <span class="@(message.Role == Role.User.ToString() ? "message-role-user" : "message-role-bot")">@GetRoleLabel(message.Role)</span>
-                <FluentCard class="@(message.Role == Role.User.ToString() ? "message-card user-message" : "message-card bot-message")">
-                    @((MarkupString)((message.Role == Role.User.ToString() ? message.Content : 
-    Markdown.ToHtml((string)message.Content!,
-        new MarkdownPipelineBuilder()
-            .UseAdvancedExtensions()
-            .Build())) ?? string.Empty))
-                </FluentCard>
-            }
-            @if (_loading)
-            {
-                <span class="message-role-bot">@selectedModel</span>
-                <FluentProgressRing Visible="_loading"></FluentProgressRing>
-            }
-        </div>
-        <div class="input-container">
-            <input @bind-value="_ask" @bind-value:event="oninput" placeholder="Enter your prompt here..." @onkeydown="CheckEnterKey" class="inp">
-            <FluentButton IconStart="@(new Icons.Filled.Size28.Send())" BackgroundColor="rgba(0, 0, 0, 0)" Style="margin-top: 5px; background-color: transparent"
-                          Appearance="Appearance.Lightweight"
-                          Loading="@_loading"
-                          OnClick="@(() => SendAsync(_ask))">
-            </FluentButton>
-        </div>
-        <FluentProgress Visible="@(_loading)" style="width: 100%;"></FluentProgress>
+        <ChatComponent Chat="@_selectedChat" SelectedModel="@selectedModel" IsLoading="@_loading" />
     </FluentGridItem>
     <FluentGridItem lg="2" xs="12" Style="padding: 10px">
         <h3 style="color: #3dd5f3">Select a Model</h3>
@@ -72,20 +47,12 @@
     string selectedModel = string.Empty;
     
     // Data
-    List<Message> _messages = new();
     List<ChatDto> _chats = new();
-    ChatDto _selectedChat = new();
-    string _ask = string.Empty;
-    bool _loading = false;
-
-    private async Task CheckEnterKey(KeyboardEventArgs e)
+    ChatDto _selectedChat = new()
     {
-        if (e.Key == "Enter")
-        {
-            await SendAsync(_ask);
-        }
-    }
-    
+        Messages = []
+    };
+    bool _loading = false;
     
     private void OnModelSelected(string model)
     {
@@ -124,7 +91,6 @@
         var response = await Http.GetFromJsonAsync<ChatDto>($"{ExtensionMethods.GetApiUrl()}/api/chats/{chatId}");
         if (response != null)
         {
-            _messages = response.Messages;
             _selectedChat = response;
             _chats.ForEach(c => c.IsSelected = c.Id == chatId);
         }
@@ -139,14 +105,12 @@
             if (_selectedChat.Id == id)
             {
                 _selectedChat = new();
-                _messages.Clear();
             }
         }
     }
 
     private async Task NewChatAsync()
     {
-        _messages.Clear();
         var newChatRequest = new ChatRequest
         {
             Model = selectedModel,
@@ -170,31 +134,6 @@
         }
     }
 
-    private async Task SendAsync(string message)
-    {
-        _loading = true;
-        if (!string.IsNullOrWhiteSpace(message))
-        {
-            _messages.Add(new Message { Role = Role.User.ToString(), Content = message });
-            _selectedChat.Messages = _messages;
-            _selectedChat.Model = selectedModel;
-
-            var replyServerOllama = await Http.PostAsJsonAsync($"{ExtensionMethods.GetApiUrl()}/api/chats/complete", _selectedChat);
-
-            if (replyServerOllama.IsSuccessStatusCode)
-            {
-                var response = await replyServerOllama.Content.ReadFromJsonAsync<ChatResponse>();
-                if (response != null)
-                {
-                    _messages.Add(response.Message);
-                }
-            }
-            _loading = false;
-            _ask = string.Empty;
-        }
-    }
-
     // Helper methods
     private string GetChatCardClass(ChatDto chat) => chat.IsSelected ? "selected-chat-card" : "chat-card";
-    private string GetRoleLabel(string role) => role == Role.User.ToString() ? "( ͡° ͜ʖ ͡°) User" : $"🤖 {selectedModel}";
 }

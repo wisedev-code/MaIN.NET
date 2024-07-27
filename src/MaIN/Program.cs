@@ -44,6 +44,18 @@ app.UseCors("AllowFE");
 //Initialize agents flow
 app.Services.InitializeAgents();
 
+//load initial agents configuration
+var agentService = app.Services.GetRequiredService<IAgentService>();
+var agents = JsonSerializer.Deserialize<List<AgentDto>>(File.ReadAllText("./initial_agents.json"), new JsonSerializerOptions()
+{
+    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+});
+
+foreach (var agent in agents!)
+{
+    await agentService.CreateAgent(agent.ToDomain());
+}
+
 
 app.MapPost("/api/agents/{agentId}/process", async (HttpContext context,
     [FromServices] IAgentService agentService,
@@ -70,15 +82,23 @@ app.MapGet("/api/agents", async (HttpContext context,
 {
     var agents = await agentService.GetAgents();
     context.Response.ContentType = "application/json";
-    await context.Response.WriteAsync(JsonSerializer.Serialize(agents));
+    await context.Response.WriteAsync(JsonSerializer.Serialize(agents.Select(x => x.ToDto())));
 });
 
-app.MapGet("/api/agents/{id}", async (HttpContext context,
+app.MapGet("/api/agents/{id}/chat", async (HttpContext context,
+    [FromServices] IAgentService agentService, string id) =>
+{
+    var chat = await agentService.GetChatByAgent(id);
+    context.Response.ContentType = "application/json";
+    await context.Response.WriteAsync(JsonSerializer.Serialize(chat.ToDto()));
+});
+
+app.MapGet("/api/agents/{id}/chat", async (HttpContext context,
     [FromServices] IAgentService agentService, string id) =>
 {
     var agent = await agentService.GetAgentById(id);
     context.Response.ContentType = "application/json";
-    await context.Response.WriteAsync(JsonSerializer.Serialize(agent));
+    await context.Response.WriteAsync(JsonSerializer.Serialize(agent.ToDto()));
 });
 
 app.MapPost("/api/chats/complete", async (HttpContext context,
