@@ -46,7 +46,7 @@ public static class Actions
                     var chat = await agentService.GetChatByAgent(redirectCommand.RelatedAgentId);
                     chat.Messages?.Add(new Message()
                     {
-                        Role = "user",
+                        Role = "system",
                         Content = redirectCommand.Message.Content //TODO: workaround to fake user input and make agent respond
                     });
                     var result = await agentService.Process(chat, redirectCommand.RelatedAgentId);

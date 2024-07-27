@@ -1,0 +1,75 @@
+@using MainFE.Components.Models
+@using Markdig
+@using Microsoft.FluentUI.AspNetCore.Components
+@using Message = MainFE.Components.Models.Message
+@inject HttpClient Http
+
+<div class="messages-container">
+    @foreach (var message in Chat?.Messages ?? [])
+    {
+        <span class="@(message.Role == Role.User.ToString() ? "message-role-user" : "message-role-bot")">@GetRoleLabel(message.Role)</span>
+        <FluentCard class="@(message.Role == Role.User.ToString() ? "message-card user-message" : "message-card bot-message")">
+            @((MarkupString)((message.Role == Role.User.ToString() ? message.Content : 
+                Markdown.ToHtml((string)message.Content!,
+                    new MarkdownPipelineBuilder()
+                        .UseAdvancedExtensions()
+                        .Build())) ?? string.Empty))
+        </FluentCard>
+    }
+    @if (IsLoading)
+    {
+        <span class="message-role-bot">@SelectedModel</span>
+        <FluentProgressRing Visible="IsLoading"></FluentProgressRing>
+    }
+</div>
+<div class="input-container">
+    <input @bind-value="_ask" @bind-value:event="oninput" placeholder="Enter your prompt here..." @onkeydown="CheckEnterKey" class="inp">
+    <FluentButton IconStart="@(new Icons.Filled.Size28.Send())" BackgroundColor="rgba(0, 0, 0, 0)" Style="margin-top: 5px; background-color: transparent"
+                  Appearance="Appearance.Lightweight"
+                  Loading="@IsLoading"
+                  OnClick="@(() => SendAsync(_ask))">
+    </FluentButton>
+</div>
+<FluentProgress Visible="@(IsLoading)" style="width: 100%;"></FluentProgress>
+
+@code
+{
+    [Parameter] public ChatDto? Chat { get; set; }
+    [Parameter] public string SelectedModel { get; set; }
+    [Parameter] public bool IsLoading { get; set; }
+    
+    private string _ask = string.Empty;
+    
+    private async Task SendAsync(string message)
+    {
+        IsLoading = true;
+        if (!string.IsNullOrWhiteSpace(message))
+        {
+            Chat.Messages.Add(new Message { Role = Role.User.ToString(), Content = message });
+            Chat.Model = SelectedModel;
+
+            var apiResponse = await Http.PostAsJsonAsync($"{ExtensionMethods.GetApiUrl()}/api/chats/complete", Chat);
+
+            if (apiResponse.IsSuccessStatusCode)
+            {
+                var response = await apiResponse.Content.ReadFromJsonAsync<ChatResponse>();
+                if (response != null)
+                {
+                    Chat.Messages.Add(response.Message);
+                }
+            }
+            IsLoading = false;
+            _ask = string.Empty;
+        }
+    }
+    
+    private async Task CheckEnterKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SendAsync(_ask);
+        }
+    }
+    
+    private string GetRoleLabel(string role) => role == Role.User.ToString() ? "( ͡° ͜ʖ ͡°) User" : $"🤖 {SelectedModel}";
+}
