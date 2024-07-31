@@ -9,5 +9,5 @@ public interface IAgentService
     Task<Agent> CreateAgent(Agent agent);
     Task<Chat> GetChatByAgent(string agentId);
     Task<List<Agent>> GetAgents();
-    Task<Agent> GetAgentById(string id);
+    Task<Agent?> GetAgentById(string id);
 }

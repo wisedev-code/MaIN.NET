@@ -1,5 +1,6 @@
 using System.Text.Json;
 using MaIN.Domain.Entities;
+using MaIN.Domain.Entities.Agents;
 using MaIN.Infrastructure;
 using MaIN.Models.Rag;
 using MaIN.Services;
@@ -53,6 +54,8 @@ var agents = JsonSerializer.Deserialize<List<AgentDto>>(File.ReadAllText("./init
 
 foreach (var agent in agents!)
 {
+    var existingAgent = await agentService.GetAgentById(agent.Id);
+    if(existingAgent != null) continue;
     await agentService.CreateAgent(agent.ToDomain());
 }
 
@@ -93,7 +96,7 @@ app.MapGet("/api/agents/{id}/chat", async (HttpContext context,
     await context.Response.WriteAsync(JsonSerializer.Serialize(chat.ToDto()));
 });
 
-app.MapGet("/api/agents/{id}/chat", async (HttpContext context,
+app.MapGet("/api/agents/{id}", async (HttpContext context,
     [FromServices] IAgentService agentService, string id) =>
 {
     var agent = await agentService.GetAgentById(id);
@@ -135,7 +138,6 @@ app.MapGet("/api/chats/models", async (HttpContext context,
     Results.Ok((await ollamaService.GetCurrentModels())));
 
 app.MapGet("/api/chats", async ([FromServices] IChatService chatService)
-    => Results.Ok((await chatService.GetAll()).Select(x => x.ToDto())));
-
+    => Results.Ok((await chatService.GetAll()).Where(x => x.Type == ChatType.Conversation).Select(x => x.ToDto())));
 
 app.Run();

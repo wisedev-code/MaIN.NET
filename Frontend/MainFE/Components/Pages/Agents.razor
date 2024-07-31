@@ -1,26 +1,35 @@
 ﻿@page "/agents"
 @using MaIN.Models.Rag
 @using MainFE.Components.Models
-@using Markdig
 @using Microsoft.FluentUI.AspNetCore.Components
-@using NAssetNameGenerator
-@using Message = MainFE.Components.Models.Message
 @using MainFE.Components.Elements
 @inject HttpClient Http
 @rendermode InteractiveServer
 
 <PageTitle>👥 Agents</PageTitle>
 <link rel="stylesheet" href="css/agents.css">
+<link rel="stylesheet" href="css/chat.css">
 
 @switch (_mode)
 {
     case AgentsPageMode.List:
-        <FluentGrid Class="containerbox" Spacing="1" Justify="JustifyContent.FlexStart">
+        <FluentGrid Class="agents-grid" Spacing="1" Justify="JustifyContent.Center">
             @foreach (var agent in agents)
             {
-                <FluentGridItem lg="4" xs="12" Class="agent-tile" @onclick="() => ViewAgentDetails(agent.Id)">
+                <FluentGridItem lg="3" md="4" sm="6" xs="12" Class="agent-tile" @onclick="() => ViewAgentDetails(agent.Id)">
                     <div class="agent-content">
-                        <h3>@agent.Name</h3>
+                        @if (agent.Id == "b29211e9-9ee8-45f4-bdbb-054cb835d0d6")
+                        {
+                            <span class="agent-emoji">👑</span>
+                        }
+                        @if (agent.Id == "c39211w9-9ee8-4xf4-edbb-b54cb835d2d6")
+                        {
+                            <span class="agent-emoji">🎮</span>
+                        }
+                        @if (agent.Id == "vd9d11w9-9ee8-4xf4-edbb-b54cb335d25b")
+                        {
+                            <span class="agent-emoji">👨‍⚕️</span>
+                        }
                         <p>@agent.Description</p>
                     </div>
                 </FluentGridItem>
@@ -29,43 +38,65 @@
         break;
     case AgentsPageMode.Create:
         <EditForm Model="newAgent" OnValidSubmit="CreateAgent">
-            <DataAnnotationsValidator />
-            <ValidationSummary />
+            <DataAnnotationsValidator/>
+            <ValidationSummary/>
             <div>
                 <label for="name">Name</label>
-                <InputText id="name" @bind-Value="newAgent.Name" />
+                <InputText id="name" @bind-Value="newAgent.Name"/>
             </div>
             <div>
                 <label for="description">Description</label>
-                <InputTextArea id="description" @bind-Value="newAgent.Description" />
+                <InputTextArea id="description" @bind-Value="newAgent.Description"/>
             </div>
             <div>
                 <label for="type">Model</label>
-                <InputText id="type" @bind-Value="newAgent.Model" />
+                <InputText id="type" @bind-Value="newAgent.Model"/>
             </div>
             <div>
                 <label for="configuration">Configuration</label>
-                <InputTextArea id="configuration" @bind-Value="newAgent.Context.Instruction" />
+                <InputTextArea id="configuration" @bind-Value="newAgent.Context.Instruction"/>
             </div>
             <FluentButton Type="ButtonType.Submit">Create</FluentButton>
         </EditForm>
         break;
     case AgentsPageMode.Details:
-        <div>
-            <h2>@selectedAgent.Name</h2>
-            <p>@selectedAgent.Description</p>
-            <ChatComponent ChatId="@_selectedChat.Id" />
-        </div>
+        <FluentGrid Class="agents-grid" Spacing="1" Justify="JustifyContent.Center">
+            <FluentGridItem lg="7" xs="12">
+                <h2>@selectedAgent.Name</h2>
+            </FluentGridItem>
+            <FluentGridItem lg="7" xs="12">
+                <p>@selectedAgent.Description</p>
+            </FluentGridItem>
+            <FluentGridItem lg="8" xs="12" Class="chat-container" Style="height: 30rem">
+                @if (selectedAgent.Id == "b29211e9-9ee8-45f4-bdbb-054cb835d0d6")
+                {
+                    <ChatComponent Chat="@_selectedChat" SelectedModel="@_selectedModel" IsLoading="@_loading" CustomName="👸 Princess"/>
+                }
+                else if (selectedAgent.Id == "c39211w9-9ee8-4xf4-edbb-b54cb835d2d6")
+                {
+                    <ChatComponent Chat="@_selectedChat" SelectedModel="@_selectedModel" IsLoading="@_loading" CustomName="🌃 Panam"/>
+                }
+                else if (selectedAgent.Id == "vd9d11w9-9ee8-4xf4-edbb-b54cb335d25b")
+                {
+                    <ChatComponent Chat="@_selectedChat" SelectedModel="@_selectedModel" IsLoading="@_loading" CustomName="👨‍⚕️ Doctor"/>
+                }
+                else
+                {
+                    <ChatComponent Chat="@_selectedChat" SelectedModel="@_selectedModel" IsLoading="@_loading"/>
+                }
+            </FluentGridItem>
+        </FluentGrid>
         break;
     case AgentsPageMode.Demo:
         break;
 }
 
 @code {
+
     // Models
     List<string> models = new();
     List<AgentDto> agents = new();
-    string selectedModel = string.Empty;
+    string _selectedModel = string.Empty;
     ChatDto _selectedChat = new() { Messages = new() };
     AgentDto selectedAgent = new();
     AgentDto newAgent = new();
@@ -84,6 +115,7 @@
         if (response != null)
         {
             _selectedChat = response;
+            _selectedModel = response.Model;
         }
     }
 
@@ -96,11 +128,11 @@
         }
     }
 
-    private void ViewAgentDetails(string agentId)
+    private async Task ViewAgentDetails(string agentId)
     {
         selectedAgent = agents.FirstOrDefault(a => a.Id == agentId)!;
         _mode = AgentsPageMode.Details;
-        LoadChatAsync(selectedAgent.Id); // Assuming each agent has a ChatId property
+        await LoadChatAsync(selectedAgent.Id); // Assuming each agent has a ChatId property
     }
 
     private async Task CreateAgent()
@@ -113,4 +145,5 @@
             _mode = AgentsPageMode.List; // Switch back to list mode
         }
     }
+
 }
