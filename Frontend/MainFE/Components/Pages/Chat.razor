@@ -61,14 +61,12 @@
     
     protected override async Task OnInitializedAsync()
     {
-        Http.Timeout = TimeSpan.FromMinutes(10);
         await LoadChatsAsync();
         await LoadModelsAsync();
     }
 
     private async Task LoadChatsAsync()
     {
-        
         var response = await Http.GetAsync($"{ExtensionMethods.GetApiUrl()}/api/chats");
         if (response.IsSuccessStatusCode)
         {

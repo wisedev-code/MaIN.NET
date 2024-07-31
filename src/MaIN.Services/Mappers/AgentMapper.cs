@@ -9,7 +9,7 @@ namespace MaIN.Services.Mappers;
 
 public static class AgentMapper
 {
-    public static AgentDto ToDto(this Agent agent)
+    public static AgentDto ToDto(this Agent? agent)
         => new()
         {
             Id = agent.Id,
@@ -82,7 +82,7 @@ public static class AgentMapper
             } : null
         };
 
-    public static AgentDocument ToDocument(this Agent agent)
+    public static AgentDocument? ToDocument(this Agent agent)
         => new()
         {
             Id = agent.Id,
@@ -93,7 +93,7 @@ public static class AgentMapper
             Context = agent.Context.ToDocument()
         };
     
-    public static Agent ToDomain(this AgentDocument agent)
+    public static Agent? ToDomain(this AgentDocument? agent)
         => new()
         {
             Id = agent.Id,
@@ -111,8 +111,8 @@ public static class AgentMapper
             Relations = agentContextDocument?.Relations,
             Source = new AgentSource
             {
-                Details = agentContextDocument?.Source.DetailsSerialized,
-                Type = Enum.Parse<AgentSourceType>(agentContextDocument?.Source.Type.ToString()!)
+                Details = agentContextDocument?.Source?.DetailsSerialized,
+                Type = Enum.Parse<AgentSourceType>(agentContextDocument?.Source?.Type.ToString() ?? AgentSourceType.Text.ToString())
             },
             Steps = agentContextDocument!.Steps.ToLookup(x => x, y => Actions.Steps[y.Split('+').First()])
         };

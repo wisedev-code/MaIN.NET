@@ -87,7 +87,7 @@
 }
 
 .input-container {
-    max-height: 7%;
+    height: 3rem;
     display: flex;
     padding: 5px;
     position: relative;
@@ -107,12 +107,12 @@
 
 .user-message {
     align-self: flex-end;
-    background-color: #012139;
+    background-color: #0d1820;
 }
 
 .bot-message {
     align-self: flex-start;
-    background-color: #121312;
+    background-color: #0c0c0c;
 }
 
 .chat-item {

@@ -152,9 +152,11 @@ public async Task<Agent> CreateAgent(Agent agent)
         };
         
         var result = await Actions.CallAsync("START", startCommand) as Message;
+        result!.Role = "system";
         agent.Started = true;
+        chat.Messages.Add(result!);
         var agentDocument = agent.ToDocument();
-        agentDocument.ChatId = chat.Id;
+        agentDocument!.ChatId = chat.Id;
         await chatRepository.AddChat(chat!.ToDocument());
         await agentRepository.AddAgent(agentDocument);
         return agent;
@@ -171,13 +173,13 @@ public async Task<Agent> CreateAgent(Agent agent)
     {
       var result = await agentRepository.GetAllAgents();
       return result
-        .Select(x => x.ToDomain())
-        .ToList();
+          .Select(x => x.ToDomain())
+          .ToList()!;
     }
 
-    public async Task<Agent> GetAgentById(string id)
+    public async Task<Agent?> GetAgentById(string id)
     {
       var result = await agentRepository.GetAgentById(id);
-      return result.ToDomain();
+      return result?.ToDomain();
     }
 }

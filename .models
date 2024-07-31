@@ -3,3 +3,4 @@ llama3:8b
 qwen2:0.5b
 
 #Place any new model here and it will be downloaded during start command
+

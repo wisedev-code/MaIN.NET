@@ -3,22 +3,27 @@
 @using Microsoft.FluentUI.AspNetCore.Components
 @using Message = MainFE.Components.Models.Message
 @inject HttpClient Http
+<link rel="stylesheet" href="css/chat.css">
 
 <div class="messages-container">
     @foreach (var message in Chat?.Messages ?? [])
     {
-        <span class="@(message.Role == Role.User.ToString() ? "message-role-user" : "message-role-bot")">@GetRoleLabel(message.Role)</span>
-        <FluentCard class="@(message.Role == Role.User.ToString() ? "message-card user-message" : "message-card bot-message")">
-            @((MarkupString)((message.Role == Role.User.ToString() ? message.Content : 
-                Markdown.ToHtml((string)message.Content!,
-                    new MarkdownPipelineBuilder()
-                        .UseAdvancedExtensions()
-                        .Build())) ?? string.Empty))
-        </FluentCard>
+        @if (message.Role != Role.System.ToString().ToLowerInvariant())
+        {
+            <span class="@(message.Role == Role.User.ToString() ? "message-role-user" : "message-role-bot")">@GetRoleLabel(message.Role)</span>
+            <FluentCard class="@(message.Role == Role.User.ToString() ? "message-card user-message" : "message-card bot-message")">
+                @((MarkupString)((message.Role == Role.User.ToString()
+                    ? message.Content
+                    : Markdown.ToHtml((string)message.Content!,
+                        new MarkdownPipelineBuilder()
+                            .UseAdvancedExtensions()
+                            .Build())) ?? string.Empty))
+            </FluentCard>
+        }
     }
     @if (IsLoading)
     {
-        <span class="message-role-bot">@SelectedModel</span>
+        <span class="message-role-bot">@_displayName</span>
         <FluentProgressRing Visible="IsLoading"></FluentProgressRing>
     }
 </div>
@@ -37,8 +42,10 @@
     [Parameter] public ChatDto? Chat { get; set; }
     [Parameter] public string SelectedModel { get; set; }
     [Parameter] public bool IsLoading { get; set; }
+    [Parameter] public string? CustomName { get; set; }
     
     private string _ask = string.Empty;
+    private string _displayName => CustomName ?? SelectedModel;
     
     private async Task SendAsync(string message)
     {
@@ -71,5 +78,5 @@
         }
     }
     
-    private string GetRoleLabel(string role) => role == Role.User.ToString() ? "( ͡° ͜ʖ ͡°) User" : $"🤖 {SelectedModel}";
+    private string GetRoleLabel(string role) => role == Role.User.ToString() ? "( ͡° ͜ʖ ͡°) User" : $"{_displayName}";
 }
