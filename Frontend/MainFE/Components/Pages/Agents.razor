@@ -52,7 +52,7 @@
             {
                 <FluentGridItem lg="3" md="4" sm="6" xs="12" Class="agent-tile" @onclick="() => ViewAgentDetails(agent.Id)">
                     <div class="agent-content">
-                        <button class="remove-btn" @onclick="() => RemoveAgent(agent.Id)">
+                        <button class="remove-btn" @onclick:stopPropagation="true"  @onclick="() => RemoveAgent(agent.Id)">
                             <i class="fas fa-trash-alt"></i>
                         </button>
                         <div class="badge-agent-model">@agent.Model</div>
@@ -102,7 +102,14 @@
                             <label for="configuration">Configuration</label>
                             <InputTextArea id="configuration" @bind-Value="newAgent.Context.Instruction" class="form-control"/>
                         </div>
-                        <button type="submit" class="create-button">Create</button>
+                        @if(!_loading)
+                        {
+                            <button type="submit" class="create-button">Create</button>
+                        }
+                        else
+                        {
+                            <FluentProgressRing Visible="_loading"></FluentProgressRing>
+                        }
                     </EditForm>
                 </div>
             </FluentGridItem>
@@ -188,6 +195,7 @@
     private async Task RemoveAgent(string agentId)
     {
         await Http.DeleteAsync($"{ExtensionMethods.GetApiUrl()}/api/agents/{agentId}");
+        await LoadAgentsAsync();
     }
     
     private async Task Cleanup(string selectedAgentId)
@@ -214,6 +222,7 @@
 
     private async Task CreateAgent()
     {
+        _loading = true;
         newAgent.Context.Steps = ["START"];
         newAgent.Id = Guid.NewGuid().ToString();
         var response = await Http.PostAsJsonAsync($"{ExtensionMethods.GetApiUrl()}/api/agents", newAgent);
@@ -221,6 +230,7 @@
         {
             newAgent = new(); // Reset the form
             await LoadAgentsAsync(); // Refresh the agents list
+            _loading = false;
             _mode = AgentsPageMode.List; // Switch back to list mode
         }
     }
