@@ -4,6 +4,20 @@ body {
     font-family: Arial, sans-serif;
 }
 
+.remove-btn {
+    position: absolute;
+    top: 1px;
+    right: 1px;
+    background: transparent;
+    border: none;
+    color: #fff6a3;
+    cursor: pointer;
+}
+
+.remove-btn:hover {
+    color: #ea7373;
+}
+
 .main-container {
     padding: 0 20px;
 }
@@ -31,6 +45,7 @@ body {
 }
 
 .agent-content {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -41,50 +56,104 @@ body {
     margin-bottom: 10px;
 }
 
+.back-button {
+    background-color: transparent;
+    border: none;
+    color: #00dcaa; /* Primary blue color */
+    font-size: 3rem;
+    cursor: pointer;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.3s ease;
+}
+
+.back-button:hover {
+    color: #5ff158; /* Darker blue color for hover effect */
+}
+
+.back-button i {
+    margin-right: 8px; /* Space between the icon and text (if any) */
+}
+
+.cleanup-button {
+    background-color: #4CAF50; /* Green background */
+    border: none; /* Remove borders */
+    color: white; /* White text */
+    padding: 10px 10px; /* Some padding */
+    text-align: center; /* Centered text */
+    text-decoration: none; /* Remove underline */
+    display: inline-block; /* Get the element to behave like an inline-block */
+    font-size: 13px; /* Increase font size */
+    cursor: pointer; /* Pointer/hand icon */
+    border-radius: 8px; /* Rounded corners */
+    transition-duration: 0.4s; /* Smooth transition */
+}
+
+.cleanup-button:hover {
+    background-color: white; /* White background on hover */
+    color: black; /* Black text on hover */
+    border: 2px solid #4CAF50; /* Green border on hover */
+}
+
+.cleanup-button i {
+    margin-right: 8px; /* Space between icon and text */
+}
+
+.badge-agent-model {
+    top: 10px;
+    right: 10px;
+    background-color: #8df18d; /* Primary blue color */
+    color: #4c4c4c;
+    padding: 5px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
 .create-form-container {
     max-width: 600px;
     margin: auto;
     padding: 20px;
-    background-color: #1f1f1f;
+    background-color: #2b2b2b;
     border: 1px solid #3c3c3c;
     border-radius: 8px;
 }
 
 .create-form-container label {
     color: #cccccc;
+    margin-bottom: -10px;
+}
+
+.create-form-container .form-group {
+    margin-bottom: 15px;
 }
 
 .create-form-container input,
 .create-form-container textarea {
     width: 100%;
     padding: 10px;
-    margin: 10px 0;
+    margin-top: 5px;
     border: 1px solid #333;
     border-radius: 4px;
     background-color: #121212;
     color: #ffffff;
 }
 
-.create-form-container input[type="submit"] {
-    background-color: #0078D4;
-    color: #ffffff;
+.create-button {
+    background-color: #7aeda3;
+    color: #3a3232;
     border: none;
     cursor: pointer;
     padding: 10px 20px;
     border-radius: 4px;
+    width: 15rem;
     transition: background-color 0.2s;
-}
-
-.create-form-container input[type="submit"]:hover {
-    background-color: #005a9e;
-}
-
-.agent-details-container {
-    max-width: 800px;
+    display: block;
     margin: auto;
-    padding: 20px;
-    background-color: #1f1f1f;
-    border: 1px solid #3c3c3c;
-    border-radius: 8px;
-    text-align: center;
+}
+
+.create-button:hover {
+    background-color: #005a9e;
 }
