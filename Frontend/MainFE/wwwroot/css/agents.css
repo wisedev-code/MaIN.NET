@@ -141,6 +141,18 @@ body {
     color: #ffffff;
 }
 
+.create-form-container input:focus,
+.create-form-container textarea:focus {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    border: 1px solid #af6bff;
+    border-radius: 4px;
+    background-color: #121212;
+    color: #ffffff;
+}
+
+
 .create-button {
     background-color: #7aeda3;
     color: #3a3232;
