@@ -8,6 +8,7 @@ using MaIN.Services.Mappers;
 using MaIN.Services.Models;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Steps;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -96,12 +97,25 @@ app.MapGet("/api/agents/{id}/chat", async (HttpContext context,
     await context.Response.WriteAsync(JsonSerializer.Serialize(chat.ToDto()));
 });
 
+app.MapPut("/api/agents/{id}/chat/reset", async ([FromServices] IAgentService agentService, string id) =>
+{
+    await agentService.Restart(id);
+    return Results.Ok();
+});
+
 app.MapGet("/api/agents/{id}", async (HttpContext context,
     [FromServices] IAgentService agentService, string id) =>
 {
     var agent = await agentService.GetAgentById(id);
     context.Response.ContentType = "application/json";
     await context.Response.WriteAsync(JsonSerializer.Serialize(agent.ToDto()));
+});
+
+app.MapDelete("/api/agents/{id}", async ([FromServices] IAgentService agentService,
+    string id) =>
+{
+    await agentService.DeleteAgent(id);
+    return Results.NoContent();
 });
 
 app.MapPost("/api/chats/complete", async (HttpContext context,

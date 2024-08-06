@@ -7,6 +7,7 @@
 @rendermode InteractiveServer
 
 <PageTitle>👥 Agents</PageTitle>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
 <link rel="stylesheet" href="css/agents.css">
 <link rel="stylesheet" href="css/chat.css">
 
@@ -14,10 +15,15 @@
 {
     case AgentsPageMode.List:
         <FluentGrid Class="agents-grid" Spacing="1" Justify="JustifyContent.Center">
-            @foreach (var agent in agents)
+            <FluentGridItem lg="4"></FluentGridItem>
+            <FluentGridItem lg="6" md="4" sm="6" xs="12" Style="margin-left: 5rem;">
+                <h2>Predefined Agents</h2>
+            </FluentGridItem>
+            @foreach (var agent in agents.Where(x => _predefinedAgents.Contains(x.Id)))
             {
                 <FluentGridItem lg="3" md="4" sm="6" xs="12" Class="agent-tile" @onclick="() => ViewAgentDetails(agent.Id)">
                     <div class="agent-content">
+                        <div class="badge-agent-model">@agent.Model</div>
                         @if (agent.Id == "b29211e9-9ee8-45f4-bdbb-054cb835d0d6")
                         {
                             <span class="agent-emoji">👑</span>
@@ -34,35 +40,88 @@
                     </div>
                 </FluentGridItem>
             }
+            @if (agents.Any(x => !_predefinedAgents.Contains(x.Id)))
+            {
+                <FluentGridItem lg="4"></FluentGridItem>
+                <FluentGridItem lg="6" md="4" sm="6" xs="12" Style="margin-left: 5rem;">
+                    <h2>Custom Agents</h2>
+                </FluentGridItem>
+
+            }
+            @foreach (var agent in agents.Where(x => !_predefinedAgents.Contains(x.Id)))
+            {
+                <FluentGridItem lg="3" md="4" sm="6" xs="12" Class="agent-tile" @onclick="() => ViewAgentDetails(agent.Id)">
+                    <div class="agent-content">
+                        <button class="remove-btn" @onclick="() => RemoveAgent(agent.Id)">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                        <div class="badge-agent-model">@agent.Model</div>
+                        <span class="agent-emoji">✨</span>
+                        <p>@agent.Description</p>
+                    </div>
+                </FluentGridItem>
+            }
+            <FluentGridItem lg="12"></FluentGridItem>
+            <FluentGridItem lg="4"></FluentGridItem>
+            <FluentGridItem lg="6" md="12" sm="12" xs="12" Style="margin: auto">
+                <button @onclick="SwitchToCreate" class="cleanup-button" style="width: 20rem; font-size: 20px !important;">
+                    <i class="fas fa-plus"></i> Create new
+                </button>
+            </FluentGridItem>
+            <FluentGridItem lg="3"></FluentGridItem>
         </FluentGrid>
         break;
     case AgentsPageMode.Create:
-        <EditForm Model="newAgent" OnValidSubmit="CreateAgent">
-            <DataAnnotationsValidator/>
-            <ValidationSummary/>
-            <div>
-                <label for="name">Name</label>
-                <InputText id="name" @bind-Value="newAgent.Name"/>
-            </div>
-            <div>
-                <label for="description">Description</label>
-                <InputTextArea id="description" @bind-Value="newAgent.Description"/>
-            </div>
-            <div>
-                <label for="type">Model</label>
-                <InputText id="type" @bind-Value="newAgent.Model"/>
-            </div>
-            <div>
-                <label for="configuration">Configuration</label>
-                <InputTextArea id="configuration" @bind-Value="newAgent.Context.Instruction"/>
-            </div>
-            <FluentButton Type="ButtonType.Submit">Create</FluentButton>
-        </EditForm>
+        <FluentGrid Class="agents-grid" Spacing="1" Justify="JustifyContent.Center">
+            <FluentGridItem lg="3">
+                <button @onclick="GoBack" class="back-button">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+            </FluentGridItem>
+            <FluentGridItem lg="7">
+                <h2>Create new agent ✨</h2>
+            </FluentGridItem>
+            <FluentGridItem lg="8" xs="12">
+                <div class="create-form-container">
+                    <EditForm Model="newAgent" OnValidSubmit="CreateAgent">
+                        <DataAnnotationsValidator/>
+                        <ValidationSummary/>
+                        <div class="form-group">
+                            <label for="name">Name</label>
+                            <InputText id="name" @bind-Value="newAgent.Name" class="form-control"/>
+                        </div>
+                        <div class="form-group">
+                            <label for="type">Model</label>
+                            <InputText id="type" @bind-Value="newAgent.Model" class="form-control"/>
+                        </div>
+                        <div class="form-group">
+                            <label for="description">Description</label>
+                            <InputTextArea id="description" @bind-Value="newAgent.Description" class="form-control"/>
+                        </div>
+                        <div class="form-group">
+                            <label for="configuration">Configuration</label>
+                            <InputTextArea id="configuration" @bind-Value="newAgent.Context.Instruction" class="form-control"/>
+                        </div>
+                        <button type="submit" class="create-button">Create</button>
+                    </EditForm>
+                </div>
+            </FluentGridItem>
+        </FluentGrid>
         break;
     case AgentsPageMode.Details:
-        <FluentGrid Class="agents-grid" Spacing="1" Justify="JustifyContent.Center">
-            <FluentGridItem lg="7" xs="12">
+        <FluentGrid Class="agents-grid" Spacing="1" Justify="JustifyContent.SpaceEvenly">
+            <FluentGridItem lg="1" xs="4">
+                <button @onclick="GoBack" class="back-button">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+            </FluentGridItem>
+            <FluentGridItem lg="6" xs="12">
                 <h2>@selectedAgent.Name</h2>
+            </FluentGridItem>
+            <FluentGridItem lg="1" xs="3">
+                <button @onclick="() => Cleanup(selectedAgent.Id)" class="cleanup-button">
+                    <i class="fas fa-broom"></i> Cleanup
+                </button>
             </FluentGridItem>
             <FluentGridItem lg="7" xs="12">
                 <p>@selectedAgent.Description</p>
@@ -93,18 +152,25 @@
 
 @code {
 
+    private List<string> _predefinedAgents = ["b29211e9-9ee8-45f4-bdbb-054cb835d0d6", "c39211w9-9ee8-4xf4-edbb-b54cb835d2d6", "vd9d11w9-9ee8-4xf4-edbb-b54cb335d25b"];
+
     // Models
+    AgentDto newAgent;
     List<string> models = new();
     List<AgentDto> agents = new();
     string _selectedModel = string.Empty;
     ChatDto _selectedChat = new() { Messages = new() };
     AgentDto selectedAgent = new();
-    AgentDto newAgent = new();
     AgentsPageMode _mode = AgentsPageMode.List;
     bool _loading = false;
 
     protected override async Task OnInitializedAsync()
     {
+        newAgent = new()
+        {
+            Context = new()
+        };
+
         Http.Timeout = TimeSpan.FromMinutes(10);
         await LoadAgentsAsync();
     }
@@ -117,6 +183,17 @@
             _selectedChat = response;
             _selectedModel = response.Model;
         }
+    }
+
+    private async Task RemoveAgent(string agentId)
+    {
+        await Http.DeleteAsync($"{ExtensionMethods.GetApiUrl()}/api/agents/{agentId}");
+    }
+    
+    private async Task Cleanup(string selectedAgentId)
+    {
+        await Http.PutAsync($"{ExtensionMethods.GetApiUrl()}/api/agents/{selectedAgentId}/chat/reset", default);
+        await LoadChatAsync(selectedAgentId);
     }
 
     private async Task LoadAgentsAsync()
@@ -137,6 +214,8 @@
 
     private async Task CreateAgent()
     {
+        newAgent.Context.Steps = ["START"];
+        newAgent.Id = Guid.NewGuid().ToString();
         var response = await Http.PostAsJsonAsync($"{ExtensionMethods.GetApiUrl()}/api/agents", newAgent);
         if (response.IsSuccessStatusCode)
         {
@@ -146,4 +225,15 @@
         }
     }
 
+    private void GoBack()
+    {
+        _mode = AgentsPageMode.List;
+    }
+
+    private void SwitchToCreate()
+    {
+        _mode = AgentsPageMode.Create;
+    }
+
 }
+

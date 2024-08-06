@@ -154,7 +154,7 @@ public async Task<Agent> CreateAgent(Agent agent)
         var result = await Actions.CallAsync("START", startCommand) as Message;
         result!.Role = "system";
         agent.Started = true;
-        chat.Messages.Add(result!);
+        //chat.Messages.Add(result!);
         var agentDocument = agent.ToDocument();
         agentDocument!.ChatId = chat.Id;
         await chatRepository.AddChat(chat!.ToDocument());
@@ -168,7 +168,17 @@ public async Task<Agent> CreateAgent(Agent agent)
         var chat = await chatRepository.GetChatById(agent.ChatId);
         return chat.ToDomain();
     }
-    
+
+    public async Task<Chat> Restart(string agentId)
+    {
+        var agent = await agentRepository.GetAgentById(agentId);
+        var chat = await chatRepository.GetChatById(agent?.ChatId!);
+        chat.Messages = chat.Messages.Take(1).ToList(); //Takes only system message and initial prompt
+        await chatRepository.UpdateChat(chat.Id, chat);
+
+        return chat.ToDomain();
+    }
+
     public async Task<List<Agent>> GetAgents()
     {
       var result = await agentRepository.GetAllAgents();
@@ -181,5 +191,12 @@ public async Task<Agent> CreateAgent(Agent agent)
     {
       var result = await agentRepository.GetAgentById(id);
       return result?.ToDomain();
+    }
+
+    public async Task DeleteAgent(string id)
+    {
+        var chat = await GetChatByAgent(id);
+        await chatRepository.DeleteChat(chat.Id);
+        await agentRepository.DeleteAgent(id);
     }
 }
