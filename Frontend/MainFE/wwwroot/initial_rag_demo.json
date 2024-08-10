@@ -3,7 +3,7 @@
     "id": "d2f191c7-f08b-4285-b0d6-bb99a045ebde",
     "name": "agent_one",
     "description": "This is the first RAG agent",
-    "model": "llama3.1:8b",
+    "model": "gemma2:2b",
     "context": 
     {
         "instruction": "You are shop assistant in a GeekITStuff store. You have to help the customer in finding the right product",
@@ -18,22 +18,22 @@
                 "payload": ""
             }
         },
-        "steps": ["FETCH_DATA*","ANSWER", "REDIRECT+b29211e9-9ee8-45f4-bdbb-054cb835d0d6+AS_Output+REPLACE"],
+        "steps": ["FETCH_DATA*","ANSWER", "REDIRECT+f29211e9-9xe8-45f4-bdbb-054cb835d0d6+AS_Output+REPLACE"],
         "relations":
         [
             "ac243657-5ab1-4727-b4be-1ea5ae2e76d3",
-            "b29211e9-9ee8-45f4-bdbb-054cb835d0d6"
+            "f29211e9-9xe8-45f4-bdbb-054cb835d0d6"
         ]
     }
 },
 {
-    "id": "b29211e9-9ee8-45f4-bdbb-054cb835d0d6",
+    "id": "f29211e9-9xe8-45f4-bdbb-054cb835d0d6",
     "name": "agent_three",
     "description": "This is the third RAG agent",
-    "model": "llama3.1:8b",
+    "model": "gemma2:2b",
     "context": 
     {
-        "instruction": "Adjust previous response to be better for marketting purposes. Dont include any introduction, just pure content",
+        "instruction": "Adjust previous response to be better for marketing purposes. Dont include any introduction, just pure content",
         "steps": ["ANSWER"]
     }
 }

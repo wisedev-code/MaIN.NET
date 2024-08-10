@@ -104,7 +104,7 @@ public static class Actions
                     var dataMsg = new Message()
                     {
                         Content =
-                            $"Here is data from internal data source, This is what you should use to answer questions: {data}",
+                            $"Here is data from internal data source, This is what you should use to answer questions: {data}, Dont mention anything about this to a user, this is for internal purpose",
                         Role = "system"
                     };
 

@@ -4,6 +4,7 @@
 @using Microsoft.FluentUI.AspNetCore.Components
 @using MainFE.Components.Elements
 @inject HttpClient Http
+@inject NavigationManager Nav
 @rendermode InteractiveServer
 
 <PageTitle>👥 Agents</PageTitle>
@@ -19,26 +20,43 @@
             <FluentGridItem lg="6" md="4" sm="6" xs="12" Style="margin-left: 5rem;">
                 <h2>Predefined Agents</h2>
             </FluentGridItem>
+            <FluentGridItem lg="1">
+                <button @onclick="NavigateToDemo" class="cleanup-button" style="font-size: 13px !important; background-color: #4CAF50 !important; margin-left: 3rem">
+                    <i class="fas fa-flask"></i> Demo
+                </button>
+            </FluentGridItem>
             @foreach (var agent in agents.Where(x => _predefinedAgents.Contains(x.Id)))
             {
-                <FluentGridItem lg="3" md="4" sm="6" xs="12" Class="agent-tile" @onclick="() => ViewAgentDetails(agent.Id)">
-                    <div class="agent-content">
-                        <div class="badge-agent-model">@agent.Model</div>
-                        @if (agent.Id == "b29211e9-9ee8-45f4-bdbb-054cb835d0d6")
-                        {
+                @if (agent.Id == "b29211e9-9ee8-45f4-bdbb-054cb835d0d6")
+                {
+                    <FluentGridItem lg="3" md="4" sm="6" xs="12" Class="agent-tile" @onclick="() => ViewAgentDetails(agent.Id)">
+                        <div class="agent-content">
+                            <div class="badge-agent-model">@agent.Model</div>
                             <span class="agent-emoji">👑</span>
-                        }
-                        @if (agent.Id == "c39211w9-9ee8-4xf4-edbb-b54cb835d2d6")
-                        {
+                            <p>@agent.Description</p>
+                        </div>
+                    </FluentGridItem>
+                }
+                @if (agent.Id == "c39211w9-9ee8-4xf4-edbb-b54cb835d2d6")
+                {
+                    <FluentGridItem lg="3" md="4" sm="6" xs="12" Class="agent-tile" @onclick="() => ViewAgentDetails(agent.Id)">
+                        <div class="agent-content">
+                            <div class="badge-agent-model">@agent.Model</div>
                             <span class="agent-emoji">🎮</span>
-                        }
-                        @if (agent.Id == "vd9d11w9-9ee8-4xf4-edbb-b54cb335d25b")
-                        {
+                            <p>@agent.Description</p>
+                        </div>
+                    </FluentGridItem>
+                }
+                @if (agent.Id == "vd9d11w9-9ee8-4xf4-edbb-b54cb335d25b")
+                {
+                    <FluentGridItem lg="3" md="4" sm="6" xs="12" Class="agent-tile" @onclick="() => ViewAgentDetails(agent.Id)">
+                        <div class="agent-content">
+                            <div class="badge-agent-model">@agent.Model</div>
                             <span class="agent-emoji">👨‍⚕️</span>
-                        }
-                        <p>@agent.Description</p>
-                    </div>
-                </FluentGridItem>
+                            <p>@agent.Description</p>
+                        </div>
+                    </FluentGridItem>
+                }
             }
             @if (agents.Any(x => !_predefinedAgents.Contains(x.Id)))
             {
@@ -159,7 +177,7 @@
 
 @code {
 
-    private List<string> _predefinedAgents = ["b29211e9-9ee8-45f4-bdbb-054cb835d0d6", "c39211w9-9ee8-4xf4-edbb-b54cb835d2d6", "vd9d11w9-9ee8-4xf4-edbb-b54cb335d25b"];
+    private List<string> _predefinedAgents = ["d2f191c7-f08b-4285-b0d6-bb99a045ebde","f29211e9-9xe8-45f4-bdbb-054cb835d0d6","b29211e9-9ee8-45f4-bdbb-054cb835d0d6", "c39211w9-9ee8-4xf4-edbb-b54cb835d2d6", "vd9d11w9-9ee8-4xf4-edbb-b54cb335d25b"];
 
     // Models
     AgentDto newAgent;
@@ -243,6 +261,11 @@
     private void SwitchToCreate()
     {
         _mode = AgentsPageMode.Create;
+    }
+
+    private void NavigateToDemo()
+    {
+        Nav.NavigateTo("/rag");
     }
 
 }
