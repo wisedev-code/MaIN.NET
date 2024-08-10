@@ -4,6 +4,17 @@
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
         background-color: #1e1e1e !important;
     }
+    
+    .disabledNav{
+        cursor: not-allowed !important;
+        pointer-events: none;
+        color: #6c757d;
+    }
+    
+    .enabled{
+        color: #ffffff !important;
+    }
+    
 </style>
 
 <nav class="navbar navbar-expand-md navbar-dark bg-dark mb-4 gradient">
@@ -15,18 +26,29 @@
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav mb-2 mb-md-0 w-100">
                 <li class="nav-item">
-                    <NavLink class="nav-link" href="chat">
+                    <NavLink class="nav-link enabled" href="chat">
                         <span class="oi oi-plus" aria-hidden="true"></span> 💬 Chat
                     </NavLink>
                 </li>
                 <li class="nav-item">
-                    <NavLink class="nav-link" href="agents">
+                    <NavLink class="nav-link enabled" href="agents">
                         <span class="oi oi-plus" aria-hidden="true"></span> 👥 Agents
+                    </NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="nav-link disabledNav" href="agents" id="disabledNav">
+                        <span class="oi oi-plus" aria-hidden="true"></span> 👁 Vision
+                    </NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="nav-link disabledNav" href="agents" id="disabledNav">
+                        <span class="oi oi-plus" aria-hidden="true"></span> 🎨 Images
                     </NavLink>
                 </li>
             </ul>
         </div>
     </div>
+    <FluentTooltip Anchor="disabledNav" HideTooltipOnCursorLeave="true" Position=TooltipPosition.Bottom Delay=5>Feature in development</FluentTooltip>
 </nav>
 
 @code {

@@ -15,7 +15,8 @@ public static class ChatMapper
             Model = chat.Model,
             Messages = chat.Messages.Select(m => m.ToDto()).ToList(),
             Stream = chat.Stream,
-            Type = Enum.Parse<ChatTypeDto>(chat.Type.ToString())
+            Type = Enum.Parse<ChatTypeDto>(chat.Type.ToString()),
+            Properties = chat.Properties
         };
 
     public static MessageDto ToDto(this Message message)
@@ -33,7 +34,8 @@ public static class ChatMapper
             Model = chat.Model,
             Messages = chat.Messages?.Select(m => m.ToDomain()).ToList(),
             Stream = chat.Stream,
-            Type = Enum.Parse<ChatType>(chat.Type.ToString())
+            Type = Enum.Parse<ChatType>(chat.Type.ToString()),
+            Properties = chat.Properties
         };
 
     public static Message ToDomain(this MessageDto message)

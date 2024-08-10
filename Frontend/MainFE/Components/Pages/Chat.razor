@@ -6,11 +6,10 @@
 @using Message = MainFE.Components.Models.Message
 @using MainFE.Components.Elements
 @inject HttpClient Http
-@rendermode InteractiveServer
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
 
 <PageTitle>💬 Chat</PageTitle>
 <link rel="stylesheet" href="css/chat.css">
-
 <FluentGrid Class="containerbox" Spacing="1" Justify="JustifyContent.FlexStart">
     <FluentGridItem lg="3" sm="12" xs="12" Class="sidebar">
         <FluentButton OnClick="@NewChatAsync"
@@ -33,32 +32,44 @@
         }
     </FluentGridItem>
     <FluentGridItem lg="6" xs="12" Class="chat-container">
-        <ChatComponent Chat="@_selectedChat" SelectedModel="@selectedModel" IsLoading="@_loading" />
+        <ChatComponent Chat="@_selectedChat" Translate="@_translate" SelectedModel="@_selectedModel" IsLoading="@_loading"/>
     </FluentGridItem>
     <FluentGridItem lg="2" xs="12" Style="padding: 10px">
         <h3 style="color: #3dd5f3">Select a Model</h3>
-        <TileSelect TItem="string" Items="models" SelectedItem="selectedModel" SelectedItemChanged="OnModelSelected"/>
+        <TileSelect TItem="string" Items="_models" SelectedItem="_selectedModel" SelectedItemChanged="OnModelSelected"/>
+
+        <br/>
+        <h3 style="color: #3dd5f3">Multilingual</h3>
+        <div class="containerToggle">
+            <span class="text">Improve translations</span>
+            <input type="checkbox" @bind="_translate" id="checkboxInput">
+            <label for="checkboxInput" class="toggleSwitch"></label>
+        </div>
+
     </FluentGridItem>
 </FluentGrid>
 
 @code {
+
     // Models
-    List<string> models = [];
-    string selectedModel = string.Empty;
+    bool _translate = false;
+    List<string> _models = [];
+    string _selectedModel = string.Empty;
+    bool _loading = false;
     
     // Data
     List<ChatDto> _chats = new();
+
     ChatDto _selectedChat = new()
     {
         Messages = []
     };
-    bool _loading = false;
     
     private void OnModelSelected(string model)
     {
-        selectedModel = model;
+        _selectedModel = model;
     }
-    
+
     protected override async Task OnInitializedAsync()
     {
         await LoadChatsAsync();
@@ -79,8 +90,8 @@
         var response = await Http.GetAsync($"{ExtensionMethods.GetApiUrl()}/api/chats/models");
         if (response.IsSuccessStatusCode)
         {
-            models = await response.Content.ReadFromJsonAsync<List<string>>() ?? [];
-            selectedModel = models!.First();
+            _models = await response.Content.ReadFromJsonAsync<List<string>>() ?? [];
+            _selectedModel = _models!.First();
         }
     }
 
@@ -111,7 +122,7 @@
     {
         var newChatRequest = new ChatRequest
         {
-            Model = selectedModel,
+            Model = _selectedModel,
             Messages = new List<Message>(),
             Name = $"{AssetName.NewName()} | {DateTime.Now.ToShortDateString()}",
             Stream = false,

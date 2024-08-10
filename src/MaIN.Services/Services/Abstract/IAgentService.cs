@@ -12,4 +12,5 @@ public interface IAgentService
     Task<List<Agent>> GetAgents();
     Task<Agent?> GetAgentById(string id);
     Task DeleteAgent(string id);
+    Task<bool> AgentExists(string id);
 }

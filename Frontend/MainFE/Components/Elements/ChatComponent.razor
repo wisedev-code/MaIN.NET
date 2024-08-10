@@ -43,19 +43,28 @@
     [Parameter] public string SelectedModel { get; set; }
     [Parameter] public bool IsLoading { get; set; }
     [Parameter] public string? CustomName { get; set; }
+    [Parameter] public bool IsRagChat { get; set; }
+    [Parameter] public string? AgentId { get; set; }
+    [Parameter] public bool Translate { get; set; }
     
     private string _ask = string.Empty;
     private string _displayName => CustomName ?? SelectedModel;
     
     private async Task SendAsync(string message)
     {
+        if (IsRagChat)
+        {
+            await RaGSendAsync(message);
+            return;
+        }
+        
         IsLoading = true;
         if (!string.IsNullOrWhiteSpace(message))
         {
             Chat.Messages.Add(new Message { Role = Role.User.ToString(), Content = message });
             Chat.Model = SelectedModel;
 
-            var apiResponse = await Http.PostAsJsonAsync($"{ExtensionMethods.GetApiUrl()}/api/chats/complete", Chat);
+            var apiResponse = await Http.PostAsJsonAsync($"{ExtensionMethods.GetApiUrl()}/api/chats/complete?translate={Translate}", Chat);
 
             if (apiResponse.IsSuccessStatusCode)
             {
@@ -63,6 +72,29 @@
                 if (response != null)
                 {
                     Chat.Messages.Add(response.Message);
+                }
+            }
+            IsLoading = false;
+            _ask = string.Empty;
+        }
+    }
+    
+    private async Task RaGSendAsync(string message)
+    {
+        IsLoading = true;
+        if (!string.IsNullOrWhiteSpace(message))
+        {
+            Chat.Messages.Add(new Message { Role = Role.User.ToString(), Content = message });
+            Chat.Model = SelectedModel;
+
+            var apiResponse = await Http.PostAsJsonAsync($"{ExtensionMethods.GetApiUrl()}/api/agents/{AgentId}/process", Chat);
+
+            if (apiResponse.IsSuccessStatusCode)
+            {
+                var response = await apiResponse.Content.ReadFromJsonAsync<ChatDto>();
+                if (response != null)
+                {
+                    Chat = response;
                 }
             }
             IsLoading = false;

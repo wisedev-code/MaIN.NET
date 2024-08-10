@@ -9,4 +9,5 @@ public interface IAgentRepository
     Task AddAgent(AgentDocument? agent);
     Task UpdateAgent(string id, AgentDocument? agent);
     Task DeleteAgent(string id);
+    Task<bool> Exists(string id);
 }

@@ -6,7 +6,7 @@ namespace MaIN.Infrastructure.Repositories;
 
 public class AgentRepository(IMongoDatabase database, string collectionName) : IAgentRepository
 {
-    private readonly IMongoCollection<AgentDocument?> _agents = database.GetCollection<AgentDocument>(collectionName);
+    private readonly IMongoCollection<AgentDocument?> _agents = database.GetCollection<AgentDocument>(collectionName)!;
 
     public async Task<IEnumerable<AgentDocument?>> GetAllAgents() =>
         await _agents.Find(chat => true).ToListAsync();
@@ -22,5 +22,8 @@ public class AgentRepository(IMongoDatabase database, string collectionName) : I
     
     public async Task DeleteAgent(string id) =>
         await _agents.DeleteOneAsync(x => x.Id == id);
+
+    public async Task<bool> Exists(string id) => 
+        (await _agents.CountDocumentsAsync(x => x!.Id == id)) > 0;
     
 }

@@ -11,7 +11,7 @@ Start-Sleep -Seconds 5
 
 
 Write-Host "Running the Ollama serve."
-Start-Job -ScriptBlock { ollama serve }
+# Start-Job -ScriptBlock { ollama serve }
 
 Start-Sleep -Seconds 15
 

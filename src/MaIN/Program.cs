@@ -68,17 +68,19 @@ app.MapPost("/api/agents/{agentId}/process", async (HttpContext context,
 {
     var chat = await agentService.Process(request.ToDomain(), agentId);
     context.Response.ContentType = "application/json";
-    await context.Response.WriteAsync(JsonSerializer.Serialize(chat));
+    await context.Response.WriteAsync(JsonSerializer.Serialize(chat?.ToDto()));
 });
 
 app.MapPost("/api/agents", async (HttpContext context,
     [FromServices] IAgentService agentService,
     AgentDto request) =>
 {
+    var agentExists = await agentService.AgentExists(request.Id);
+    if(agentExists) return Results.NoContent();
     var agent = await agentService.CreateAgent(request.ToDomain());
     var chat = await agentService.GetChatByAgent(agent.Id);
     context.Response.ContentType = "application/json";
-    await context.Response.WriteAsync(JsonSerializer.Serialize(chat.ToDto()));
+    return Results.Ok(chat.ToDto());
 });
 
 app.MapGet("/api/agents", async (HttpContext context, 
@@ -120,9 +122,10 @@ app.MapDelete("/api/agents/{id}", async ([FromServices] IAgentService agentServi
 
 app.MapPost("/api/chats/complete", async (HttpContext context,
     [FromServices] IChatService chatService,
-    ChatDto request) =>
+    ChatDto request,
+    [FromQuery] bool translate = false) =>
 {
-    var chat = await chatService.Completions(request.ToDomain());
+    var chat = await chatService.Completions(request.ToDomain(), translate);
     context.Response.ContentType = "application/json";
     await context.Response.WriteAsync(JsonSerializer.Serialize(chat));
 });

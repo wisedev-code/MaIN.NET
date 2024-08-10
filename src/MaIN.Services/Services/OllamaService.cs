@@ -21,7 +21,7 @@ public class OllamaService(IHttpClientFactory httpClientFactory) : IOllamaServic
                     Role = x.Role
                 }).ToList(),
                 Model = chat.Model,
-                Stream = chat.Stream
+                Stream = chat.Stream,
             }), System.Text.Encoding.UTF8, "application/json"));
 
         if (!response.IsSuccessStatusCode)
