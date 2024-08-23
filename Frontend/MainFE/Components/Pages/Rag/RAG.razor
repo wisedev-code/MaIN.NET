@@ -176,8 +176,9 @@ else
 
     private async Task InitRagAsync()
     {
+        var filePath = ExtensionMethods.GetWorkingEnvironment() == "Docker" ? "wwwroot/initial_rag_demo_docker.json" : "wwwroot/initial_rag_demo.json";
         var agents = JsonSerializer.Deserialize<List<AgentDto>>(
-            await File.ReadAllTextAsync("wwwroot/initial_rag_demo.json"), new JsonSerializerOptions()
+            await File.ReadAllTextAsync(filePath), new JsonSerializerOptions()
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             });
@@ -197,6 +198,4 @@ else
         _selectedChat.Properties.Clear();
         _selectedChat.Messages = _selectedChat.Messages.Take(1).ToList();
     }
-    
-    private string GetRoleLabel(string role) => role == Role.User.ToString() ? "User" : "\ud83d\udc7e Assistant";
 }
