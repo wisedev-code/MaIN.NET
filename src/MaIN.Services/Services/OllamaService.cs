@@ -45,8 +45,8 @@ public class OllamaService(IHttpClientFactory httpClientFactory) : IOllamaServic
             throw new Exception($"Failed to fetch models from Ollama, status code {response.StatusCode}");
         }
         
-        var result = JsonSerializer.Deserialize<ModelsOllamaResponse>(
-            await response.Content.ReadAsStringAsync());
+        var stringResponse = await response.Content.ReadAsStringAsync();
+        var result = JsonSerializer.Deserialize<ModelsOllamaResponse>(stringResponse);
 
         return result!.Models.Select(x => x.Name).ToList();
     }
