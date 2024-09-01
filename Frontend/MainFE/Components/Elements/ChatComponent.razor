@@ -29,6 +29,7 @@
 </div>
 <div class="input-container">
     <input @bind-value="_ask" @bind-value:event="oninput" placeholder="Enter your prompt here..." @onkeydown="CheckEnterKey" class="inp">
+
     <FluentButton IconStart="@(new Icons.Filled.Size28.Send())" BackgroundColor="rgba(0, 0, 0, 0)" Style="margin-top: 5px; background-color: transparent"
                   Appearance="Appearance.Lightweight"
                   Loading="@IsLoading"
@@ -45,11 +46,13 @@
     [Parameter] public string? CustomName { get; set; }
     [Parameter] public bool IsRagChat { get; set; }
     [Parameter] public string? AgentId { get; set; }
+    [Parameter] public FluentInputFileEventArgs[] Files { get; set; }
     [Parameter] public bool Translate { get; set; }
-    
+
     private string _ask = string.Empty;
     private string _displayName => CustomName ?? SelectedModel;
-    
+    int ProgressPercent = 0;
+
     private async Task SendAsync(string message)
     {
         if (IsRagChat)
@@ -57,11 +60,18 @@
             await RaGSendAsync(message);
             return;
         }
-        
+
         IsLoading = true;
         if (!string.IsNullOrWhiteSpace(message))
         {
-            Chat.Messages.Add(new Message { Role = Role.User.ToString(), Content = message });
+            var newMsg = new Message { Role = Role.User.ToString(), Content = message };
+            if(ExtensionMethods.IsVisionModel(SelectedModel) && Files.Any())
+            {
+                var file = await File.ReadAllBytesAsync(Files.First().LocalFile!.FullName);
+                newMsg.Images = [Convert.ToBase64String(file)];
+                Files = []; // Clear files
+            }
+            Chat.Messages.Add(newMsg);
             Chat.Model = SelectedModel;
 
             var apiResponse = await Http.PostAsJsonAsync($"{ExtensionMethods.GetApiUrl()}/api/chats/complete?translate={Translate}", Chat);
@@ -74,11 +84,12 @@
                     Chat.Messages.Add(response.Message);
                 }
             }
+
             IsLoading = false;
             _ask = string.Empty;
         }
     }
-    
+
     private async Task RaGSendAsync(string message)
     {
         IsLoading = true;
@@ -97,11 +108,12 @@
                     Chat = response;
                 }
             }
+
             IsLoading = false;
             _ask = string.Empty;
         }
     }
-    
+
     private async Task CheckEnterKey(KeyboardEventArgs e)
     {
         if (e.Key == "Enter")
@@ -109,6 +121,8 @@
             await SendAsync(_ask);
         }
     }
-    
+
     private string GetRoleLabel(string role) => role == Role.User.ToString() ? "( ͡° ͜ʖ ͡°) User" : $"{_displayName}";
+}
+
 }

@@ -32,7 +32,7 @@
         }
     </FluentGridItem>
     <FluentGridItem lg="6" xs="12" Class="chat-container">
-        <ChatComponent Chat="@_selectedChat" Translate="@_translate" SelectedModel="@_selectedModel" IsLoading="@_loading"/>
+        <ChatComponent Chat="@_selectedChat" Translate="@_translate" SelectedModel="@_selectedModel" IsLoading="@_loading" Files="@Files"/>
     </FluentGridItem>
     <FluentGridItem lg="2" xs="12" Style="padding: 10px">
         <h3 style="color: #3dd5f3">Select a Model</h3>
@@ -46,6 +46,54 @@
             <label for="checkboxInput" class="toggleSwitch"></label>
         </div>
 
+        <br/>
+
+        @if (ExtensionMethods.IsVisionModel(_selectedModel))
+        {
+            <FluentInputFile Id="my-file-uploader"
+                             Mode="InputFileMode.SaveToTemporaryFolder"
+                             Multiple="true"
+                             MaximumFileCount="4"
+                             MaximumFileSize="@(10 * 1024 * 1024)"
+                             Accept="image/*"
+                             @bind-ProgressPercent="@ProgressPercent"
+                             OnCompleted="@OnCompletedAsync"
+                             Style="height: 150px; border: 1px dashed var(--accent-fill-rest); background-color: transparent !important;">
+                <ChildContent>
+                    <br/>
+                    <label for="my-file-uploader">
+                        <FluentIcon Value="@(new @Icons.Regular.Size24.ArrowUpload())"/>
+                    </label>
+
+                    <div style="color: #7aeda3">
+                        Drag files here
+                        or <label for="my-file-uploader">browse</label>
+                        <br/>
+                    </div>
+
+                    <div>
+                        <br/>
+                    </div>
+                </ChildContent>
+            </FluentInputFile>
+            
+            @if (Files.Any())
+            {
+                <h6 style="color: #7aeda3">File(s) uploaded:</h6>
+                <ul>
+                    @foreach (var file in Files)
+                    {
+                        <li style="color: #7aeda3">
+                            <b>@file.Name</b> 🔹
+                            @($"{Decimal.Divide(file.Size, 1024):N} KB") 🔹
+                            @file.ContentType 🔹
+                            @file.LocalFile?.FullName
+                            @file.ErrorMessage
+                        </li>
+                    }
+                </ul>
+            }
+        }
     </FluentGridItem>
 </FluentGrid>
 
@@ -70,6 +118,17 @@
         _selectedModel = model;
     }
 
+    int ProgressPercent = 0;
+    FluentInputFileEventArgs[] Files = [];
+
+    private async Task OnCompletedAsync(IEnumerable<FluentInputFileEventArgs> files)
+    {
+        Files = files.ToArray();
+        // Wait 3 seconds before to reset the progress bar.
+        await Task.Delay(3000);
+        ProgressPercent = 0;
+    }
+    
     protected override async Task OnInitializedAsync()
     {
         await LoadChatsAsync();

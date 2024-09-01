@@ -23,7 +23,8 @@ public static class ChatMapper
         => new MessageDto()
         {
             Content = message.Content,
-            Role = message.Role
+            Role = message.Role,
+            Images = message.Images
         };
 
     public static Chat? ToDomain(this ChatDto chat)
@@ -42,7 +43,8 @@ public static class ChatMapper
         => new Message()
         {
             Content = message.Content,
-            Role = message.Role
+            Role = message.Role,
+            Images = message.Images,
         };
 
     public static MessageDocument ToDocument(this Message message)
@@ -80,6 +82,7 @@ public static class ChatMapper
         => new Message()
         {
             Content = message.Content,
-            Role = message.Role
+            Role = message.Role,
+            Images = message.Images
         };
 }

@@ -9,4 +9,7 @@ public class MessageDto
 
     [JsonPropertyName("content")] 
     public string Content { get; set; }
+    
+    [JsonPropertyName("images")] 
+    public string[] Images { get; set; }
 }
