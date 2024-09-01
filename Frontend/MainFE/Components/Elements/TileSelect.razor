@@ -3,10 +3,14 @@
 <div class="tile-select">
     @foreach (var item in Items)
     {
-        <div class="tile @(EqualityComparer<TItem>.Default.Equals(item, SelectedItem) ? "selected" : "")"
-             @onclick="() => SelectItem(item)">
-            @item
-        </div>
+    <div class="tile @(EqualityComparer<TItem>.Default.Equals(item, SelectedItem) ? "selected" : "")"
+         @onclick="() => SelectItem(item)">
+        @item
+        @if (ExtensionMethods.IsVisionModel(item!.ToString()!))
+        {
+        <span class="badge">Vision</span>
+        }
+    </div>
     }
 </div>
 
@@ -27,6 +31,15 @@
         display: flex;
         flex-wrap: wrap;
         gap: 10px;
+    }
+
+    .badge {
+        background-color: #007bff;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        margin-left: 8px;
     }
 
     .tile {

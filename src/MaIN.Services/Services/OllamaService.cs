@@ -18,7 +18,8 @@ public class OllamaService(IHttpClientFactory httpClientFactory) : IOllamaServic
                 Messages = chat.Messages.Select(x => new MessageDto()
                 {
                     Content = x.Content,
-                    Role = x.Role
+                    Role = x.Role,
+                    Images = x.Images
                 }).ToList(),
                 Model = chat.Model,
                 Stream = chat.Stream,

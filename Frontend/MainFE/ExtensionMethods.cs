@@ -4,41 +4,15 @@ namespace MainFE;
 
 public static class ExtensionMethods
 {
-    public static string PrepareMd(this string content)
+    public static string GetWorkingEnvironment()
     {
-        // Bold text correction: ** text** -> **text**
-        string patternBold = @"\*\*\s*(.*?)\s*\*\*";
-        content = Regex.Replace(content, patternBold, @"**$1**");
-
-        // Italic text correction: * text* -> *text*
-        string patternItalic = @"\*\s*(.*?)\s*\*";
-        content = Regex.Replace(content, patternItalic, @"*$1*");
-
-        // Bold and Italic text correction: *** text*** -> ***text***
-        string patternBoldItalic = @"\*\*\*\s*(.*?)\s*\*\*\*";
-        content = Regex.Replace(content, patternBoldItalic, @"***$1***");
-
-        // Inline code correction: ` code ` -> `code`
-        string patternCode = @"`\s*(.*?)\s*`";
-        content = Regex.Replace(content, patternCode, @"`$1`");
-
-        // Heading correction: # Heading -> #Heading
-        for (int i = 1; i <= 6; i++)
+        var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+        if (environment == null)
         {
-            string patternHeading = $@"^(\s*#{i}\s+)\s*(.*?)\s*$";
-            string replacementHeading = $@"#{i} $2";
-            content = Regex.Replace(content, patternHeading, replacementHeading, RegexOptions.Multiline);
+            throw new InvalidOperationException("ASPNETCORE_ENVIRONMENT environment variable is not set");
         }
 
-        // Link correction: [ text](url) -> [text](url)
-        string patternLink = @"\[\s*(.*?)\s*\]\(\s*(.*?)\s*\)";
-        content = Regex.Replace(content, patternLink, @"[$1]($2)");
-
-        // Image correction: ![ alt text](url) -> ![alt text](url)
-        string patternImage = @"!\[\s*(.*?)\s*\]\(\s*(.*?)\s*\)";
-        content = Regex.Replace(content, patternImage, @"![$1]($2)");
-
-        return content;
+        return environment;
     }
     
     public static string GetApiUrl()
@@ -49,6 +23,12 @@ public static class ExtensionMethods
     public static string GetDemoApiUrl()
     {
         return Environment.GetEnvironmentVariable("DEMO_API_URL") ?? throw new InvalidOperationException("DEMO_API_URL environment variable is not set");
+    }
+    
+    public static bool IsVisionModel(string modelName)
+    {
+        string[] knownVisionModels = ["llava"];
+        return knownVisionModels.Any(modelName.Contains);
     }
 
 }
