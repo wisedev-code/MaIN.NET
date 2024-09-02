@@ -1,0 +1,51 @@
+@typeparam TItem
+
+<div class="tile-select">
+    @foreach (var item in Items)
+    {
+        <div class="tile @(EqualityComparer<TItem>.Default.Equals(item, SelectedItem) ? "selected" : "")"
+             @onclick="() => SelectItem(item)">
+            @item
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public List<TItem> Items { get; set; }
+    [Parameter] public TItem SelectedItem { get; set; }
+    [Parameter] public EventCallback<TItem> SelectedItemChanged { get; set; }
+
+    private void SelectItem(TItem item)
+    {
+        SelectedItem = item;
+        SelectedItemChanged.InvokeAsync(item);
+    }
+}
+
+<style>
+    .tile-select {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .tile {
+        padding: 10px;
+        border: 1px solid #2b2a2a;
+        border-radius: 8px;
+        color: wheat;
+        width: 100%;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+
+    .tile:hover {
+        background-color: #494949;
+    }
+
+    .tile.selected {
+        background-color: #8c8282;
+        color: white;
+        border-color: #ffffff;
+    }
+</style>

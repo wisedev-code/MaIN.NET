@@ -16,6 +16,7 @@
         "applicationUrl": "http://localhost:5028",
         "environmentVariables": {
           "API_URL": "http://localhost:5243",
+          "DEMO_API_URL": "http://localhost:5098",
           "ASPNETCORE_ENVIRONMENT": "Development"
         }
       },

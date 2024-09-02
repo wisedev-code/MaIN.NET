@@ -45,5 +45,10 @@ public static class ExtensionMethods
     {
         return Environment.GetEnvironmentVariable("API_URL") ?? throw new InvalidOperationException("API_URL environment variable is not set");
     }
+    
+    public static string GetDemoApiUrl()
+    {
+        return Environment.GetEnvironmentVariable("DEMO_API_URL") ?? throw new InvalidOperationException("DEMO_API_URL environment variable is not set");
+    }
 
 }

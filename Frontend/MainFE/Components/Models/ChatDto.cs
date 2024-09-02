@@ -10,5 +10,7 @@ public class ChatDto
     [JsonPropertyName("model")] public string Model { get; set; }
     [JsonPropertyName("messages")] public List<Message> Messages { get; set; }
     [JsonPropertyName("stream")] public bool Stream { get; set; } = false;
+    [JsonPropertyName("properties")]
+    public Dictionary<string, string> Properties { get; set; }
     [JsonIgnore] public bool IsSelected { get; set; }
 }

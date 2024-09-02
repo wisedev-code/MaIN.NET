@@ -4,12 +4,12 @@
 @using Microsoft.FluentUI.AspNetCore.Components
 @using NAssetNameGenerator
 @using Message = MainFE.Components.Models.Message
+@using MainFE.Components.Elements
 @inject HttpClient Http
-@rendermode InteractiveServer
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
 
 <PageTitle>💬 Chat</PageTitle>
 <link rel="stylesheet" href="css/chat.css">
-
 <FluentGrid Class="containerbox" Spacing="1" Justify="JustifyContent.FlexStart">
     <FluentGridItem lg="3" sm="12" xs="12" Class="sidebar">
         <FluentButton OnClick="@NewChatAsync"
@@ -17,7 +17,7 @@
                       Style="margin-bottom: 10px;">
             New Chat
         </FluentButton>
-        @foreach (var chat in chats)
+        @foreach (var chat in _chats)
         {
             <div class="chat-item">
                 <FluentCard @onclick="() => LoadChatAsync(chat.Id)"
@@ -31,80 +31,57 @@
             </div>
         }
     </FluentGridItem>
-    <FluentGridItem lg="7" xs="12" Class="chat-container">
-        <div class="messages-container">
-            @foreach (var message in messages)
-            {
-                <span class="@(message.Role == Role.User.ToString() ? "message-role-user" : "message-role-bot")">@GetRoleLabel(message.Role)</span>
-                <FluentCard class="@(message.Role == Role.User.ToString() ? "message-card user-message" : "message-card bot-message")">
-                    @((MarkupString)((message.Role == Role.User.ToString() ? message.Content : 
-    Markdown.ToHtml((string)message.Content!,
-        new MarkdownPipelineBuilder()
-            .UseAdvancedExtensions()
-            .Build())) ?? string.Empty))
-                </FluentCard>
-            }
-            @if (loading)
-            {
-                <span class="message-role-bot">@selectedModel</span>
-                <FluentProgressRing Visible="loading"></FluentProgressRing>
-            }
-        </div>
-        <div class="input-container">
-            <input @bind-value="ask" @bind-value:event="oninput" placeholder="Enter your prompt here..." @onkeydown="CheckEnterKey" class="inp">
-            <FluentButton IconStart="@(new Icons.Filled.Size28.Send())" BackgroundColor="rgba(0, 0, 0, 0)" Style="margin-top: 5px; background-color: transparent"
-                          Appearance="Appearance.Lightweight"
-                          Loading="@loading"
-                          OnClick="@(() => SendAsync(ask))">
-            </FluentButton>
-        </div>
-        <FluentProgress Visible="@(loading)" style="width: 100%;"></FluentProgress>
+    <FluentGridItem lg="6" xs="12" Class="chat-container">
+        <ChatComponent Chat="@_selectedChat" Translate="@_translate" SelectedModel="@_selectedModel" IsLoading="@_loading"/>
     </FluentGridItem>
-    <FluentGridItem lg="1" xs="12" Style="padding: 10px">
-        <span class="model-label">Model:</span>
-        <select id="modelSelect" @bind="selectedModel" Class="select-element">
-            @foreach (var model in models)
-            {
-                <option Value="@model">@model</option>
-            }
-        </select>
+    <FluentGridItem lg="2" xs="12" Style="padding: 10px">
+        <h3 style="color: #3dd5f3">Select a Model</h3>
+        <TileSelect TItem="string" Items="_models" SelectedItem="_selectedModel" SelectedItemChanged="OnModelSelected"/>
+
+        <br/>
+        <h3 style="color: #3dd5f3">Multilingual</h3>
+        <div class="containerToggle">
+            <span class="text">Improve translations</span>
+            <input type="checkbox" @bind="_translate" id="checkboxInput">
+            <label for="checkboxInput" class="toggleSwitch"></label>
+        </div>
+
     </FluentGridItem>
 </FluentGrid>
 
 @code {
+
     // Models
-    List<string> models = [];
-    string selectedModel = string.Empty;
+    bool _translate = false;
+    List<string> _models = [];
+    string _selectedModel = string.Empty;
+    bool _loading = false;
     
     // Data
-    List<Message> messages = new();
-    List<ChatDto> chats = new();
-    ChatDto selectedChat = new();
-    string ask = string.Empty;
-    bool loading = false;
+    List<ChatDto> _chats = new();
 
-    private async Task CheckEnterKey(KeyboardEventArgs e)
+    ChatDto _selectedChat = new()
     {
-        if (e.Key == "Enter")
-        {
-            await SendAsync(ask);
-        }
-    }
+        Messages = []
+    };
     
+    private void OnModelSelected(string model)
+    {
+        _selectedModel = model;
+    }
+
     protected override async Task OnInitializedAsync()
     {
-        Http.Timeout = TimeSpan.FromMinutes(10);
         await LoadChatsAsync();
         await LoadModelsAsync();
     }
 
     private async Task LoadChatsAsync()
     {
-        
         var response = await Http.GetAsync($"{ExtensionMethods.GetApiUrl()}/api/chats");
         if (response.IsSuccessStatusCode)
         {
-            chats = await response.Content.ReadFromJsonAsync<List<ChatDto>>() ?? [];
+            _chats = await response.Content.ReadFromJsonAsync<List<ChatDto>>() ?? [];
         }
     }
 
@@ -113,8 +90,8 @@
         var response = await Http.GetAsync($"{ExtensionMethods.GetApiUrl()}/api/chats/models");
         if (response.IsSuccessStatusCode)
         {
-            models = await response.Content.ReadFromJsonAsync<List<string>>() ?? [];
-            selectedModel = models!.First();
+            _models = await response.Content.ReadFromJsonAsync<List<string>>() ?? [];
+            _selectedModel = _models!.First();
         }
     }
 
@@ -123,9 +100,8 @@
         var response = await Http.GetFromJsonAsync<ChatDto>($"{ExtensionMethods.GetApiUrl()}/api/chats/{chatId}");
         if (response != null)
         {
-            messages = response.Messages;
-            selectedChat = response;
-            chats.ForEach(c => c.IsSelected = c.Id == chatId);
+            _selectedChat = response;
+            _chats.ForEach(c => c.IsSelected = c.Id == chatId);
         }
     }
 
@@ -134,21 +110,19 @@
         var response = await Http.DeleteAsync($"{ExtensionMethods.GetApiUrl()}/api/chats/{id}");
         if (response.IsSuccessStatusCode)
         {
-            chats.RemoveAll(c => c.Id == id);
-            if (selectedChat.Id == id)
+            _chats.RemoveAll(c => c.Id == id);
+            if (_selectedChat.Id == id)
             {
-                selectedChat = new();
-                messages.Clear();
+                _selectedChat = new();
             }
         }
     }
 
     private async Task NewChatAsync()
     {
-        messages.Clear();
         var newChatRequest = new ChatRequest
         {
-            Model = selectedModel,
+            Model = _selectedModel,
             Messages = new List<Message>(),
             Name = $"{AssetName.NewName()} | {DateTime.Now.ToShortDateString()}",
             Stream = false,
@@ -162,38 +136,13 @@
             if (response != null)
             {
                 response.IsSelected = true;
-                selectedChat = response;
-                chats.Add(response);
+                _selectedChat = response;
+                _chats.Add(response);
                 await LoadChatAsync(response.Id);
             }
         }
     }
 
-    private async Task SendAsync(string message)
-    {
-        loading = true;
-        if (!string.IsNullOrWhiteSpace(message))
-        {
-            messages.Add(new Message { Role = Role.User.ToString(), Content = message });
-            selectedChat.Messages = messages;
-            selectedChat.Model = selectedModel;
-
-            var replyServerOllama = await Http.PostAsJsonAsync($"{ExtensionMethods.GetApiUrl()}/api/chats/complete", selectedChat);
-
-            if (replyServerOllama.IsSuccessStatusCode)
-            {
-                var response = await replyServerOllama.Content.ReadFromJsonAsync<ChatResponse>();
-                if (response != null)
-                {
-                    messages.Add(response.Message);
-                }
-            }
-            loading = false;
-            ask = string.Empty;
-        }
-    }
-
     // Helper methods
     private string GetChatCardClass(ChatDto chat) => chat.IsSelected ? "selected-chat-card" : "chat-card";
-    private string GetRoleLabel(string role) => role == Role.User.ToString() ? "( ͡° ͜ʖ ͡°) User" : $"🤖 {selectedModel}";
 }

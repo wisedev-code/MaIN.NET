@@ -22,4 +22,10 @@
       <ProjectReference Include="..\MaIN.Services\MaIN.Services.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Content Update="initial_agents.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </Content>
+    </ItemGroup>
+
 </Project>

@@ -1,6 +1,6 @@
 using MaIN.Infrastructure.Configuration;
-using MaIN.Infrastructure.Providers.cs;
-using MaIN.Infrastructure.Providers.cs.Abstract;
+using MaIN.Infrastructure.Repositories;
+using MaIN.Infrastructure.Repositories.Abstract;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
@@ -23,11 +23,18 @@ public static class Bootstrapper
                 new MongoClient(configuration.GetSection("MongoDbSettings:ConnectionString").Value));
         }
 
-        services.AddScoped<IChatProvider, ChatProvider>(sp =>
+        services.AddSingleton<IChatRepository, ChatRepository>(sp =>
         {
             var mongoClient = sp.GetRequiredService<IMongoClient>();
             var database = mongoClient.GetDatabase(configuration.GetSection("MongoDbSettings:DatabaseName").Value);
-            return new ChatProvider(database, configuration.GetSection("MongoDbSettings:CollectionName").Value!);
+            return new ChatRepository(database, "Chats");
+        });
+        
+        services.AddSingleton<IAgentRepository, AgentRepository>(sp =>
+        {
+            var mongoClient = sp.GetRequiredService<IMongoClient>();
+            var database = mongoClient.GetDatabase(configuration.GetSection("MongoDbSettings:DatabaseName").Value);
+            return new AgentRepository(database, "Agents");
         });
 
         return services;

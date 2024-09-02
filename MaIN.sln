@@ -8,6 +8,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MaIN.Services", "src\MaIN.S
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MaIN.Domain", "src\MaIN.Domain\MaIN.Domain.csproj", "{4DEF4AA6-DFD8-4626-B8BE-2F773B12FE0C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MaIN.RAG.Demo", "src\MaIN.RAG.Demo\MaIN.RAG.Demo.csproj", "{2351B015-EA33-42F3-A844-CECABF140E9A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +32,9 @@ Global
 		{4DEF4AA6-DFD8-4626-B8BE-2F773B12FE0C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4DEF4AA6-DFD8-4626-B8BE-2F773B12FE0C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4DEF4AA6-DFD8-4626-B8BE-2F773B12FE0C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2351B015-EA33-42F3-A844-CECABF140E9A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2351B015-EA33-42F3-A844-CECABF140E9A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2351B015-EA33-42F3-A844-CECABF140E9A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2351B015-EA33-42F3-A844-CECABF140E9A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
