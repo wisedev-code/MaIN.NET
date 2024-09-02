@@ -9,9 +9,7 @@ services:
       - mongo-data:/data/db
 
   backend:
-    build:
-      context: ./src
-      dockerfile: ./Dockerfile
+    image: inza124/main-backend:latest
     container_name: backend
     restart: always
     ports:
@@ -23,9 +21,7 @@ services:
       LocalHost: http://host.docker.internal
 
   blazor:
-    build:
-      context: ./Frontend/MainFE
-      dockerfile: ./Dockerfile
+    image: inza124/main-blazor:latest
     container_name: blazor
     restart: always
     ports:
@@ -33,8 +29,21 @@ services:
     depends_on:
       - backend
     environment:
-      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_ENVIRONMENT: Docker
       API_URL: http://backend:8080
+      DEMO_API_URL: http://demo:8080
+
+  demo:
+    image: inza124/main-demo
+    container_name: demo
+    restart: always
+    ports:
+      - "5002:8080"
+    depends_on:
+      - blazor
+    environment:
+      ASPNETCORE_ENVIRONMENT: Docker
+      LocalHost: http://host.docker.internal
 
 volumes:
   mongo-data:

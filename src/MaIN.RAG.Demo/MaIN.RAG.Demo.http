@@ -1,0 +1,6 @@
+@MaIN.RAG.Demo_HostAddress = http://localhost:5098
+
+GET {{MaIN.RAG.Demo_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

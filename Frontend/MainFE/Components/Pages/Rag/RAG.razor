@@ -1,0 +1,201 @@
+@page "/RAG"
+@using System.Text.Json
+@using MaIN.Models.Rag
+@using MainFE.Components.Models
+@using Markdig
+@using Microsoft.FluentUI.AspNetCore.Components
+@using Message = MainFE.Components.Models.Message
+@using MainFE.Components.Elements
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@inject HttpClient Http
+
+<link rel="stylesheet" href="css/rag.css">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+
+@if (_globalLoading)
+{
+    <FluentProgressRing Style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100px; height: 100px; color: #0078D4;"></FluentProgressRing>
+}
+else
+{
+    <div class="header-container">
+        <div class="logo-container">
+            <img src="images/demo/logo.png" alt="" class="center-logo"/>
+        </div>
+        <button class="ask-assistant-button" data-toggle="modal" data-target="#askAssistantModal">Ai 💬</button>
+        <button class="information-button" data-toggle="modal" data-target="#intelModal">Information</button>
+    </div>
+    <div class="card-container">
+        @foreach (var item in _items)
+        {
+            <FluentCard class="card">
+                <div class="card-content">
+                    <img src="/images/demo/@item.Image" alt="@item.Name" class="card-image"/>
+                    <h4>@item.Name</h4>
+                    <p>
+                        <strong>Brand:</strong> @item.Brand
+                    </p>
+                    <p>
+                        <strong>Type:</strong> @item.Type
+                    </p>
+                    <button class="btn btn-secondary" data-toggle="modal" data-target="#detailsModal"
+                            @onclick="() => ShowDetailsModal(item)">
+                        Show More
+                    </button>
+                </div>
+            </FluentCard>
+        }
+    </div>
+
+    <div class="modal fade" id="askAssistantModal" tabindex="-1" role="dialog" aria-labelledby="askAssistantModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered custom-modal-dialog" role="document">
+            <div class="modal-content custom-modal">
+                <div class="modal-header custom-modal-header">
+                    <h5 class="modal-title fancy-text" id="askAssistantModalLabel">Ask 👾</h5>
+                    <button @onclick="() => Cleanup(_selectedAgent.Id)" class="cleanup-button">
+                        <i class="fas fa-broom"></i> Clear
+                    </button>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body custom-modal-body">
+                    <ChatComponent Chat="_selectedChat" SelectedModel="@_selectedAgent.Model" IsLoading="_loading" CustomName="Assistant 👩🏻‍💻" IsRagChat="@true" AgentId="@_selectedAgent.Id"/>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal fade" id="intelModal" tabindex="-1" role="dialog" aria-labelledby="askAssistantModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered custom-modal-dialog" role="document">
+            <div class="modal-content custom-modal">
+                <div class="modal-header custom-modal-header">
+                    <h5 class="modal-title fancy-text" id="askAssistantModalLabel">Demo information</h5>
+                </div>
+                <div class="modal-body custom-modal-body">
+                    <h1>RAG Technology Demo</h1>
+                    <p>Experience the capabilities of our cutting-edge technology through our IT shop demo, featuring a sophisticated two-agent architecture built on the open-source Gemma2 (2B) models. This demo showcases the seamless integration of our custom infrastructure in creating dynamic and engaging user interactions.</p>
+
+                    <h2>Technical Flow</h2>
+                    <p>Our system operates with a streamlined flow involving two specialized agents:</p>
+                    <ul>
+                        <li><strong>User:</strong> - Looking for good PC/Laptop writing initial message</li>
+                        <li><strong>Agent 1: Intelligent Assistant</strong> - This agent interfaces with external APIs to dynamically retrieve and aggregate detailed information about products, such as PCs and laptops. It pulls in specifications, availability, and other relevant data.</li>
+                        <li><strong>Agent 2: Response Enhancer</strong> - After receiving the initial product information, this agent processes and refines the data, transforming it into polished, marketing-optimized responses that enhance user engagement and improve presentation.</li>
+                    </ul>
+                    
+                    <p>Its worth to mention that Agents are prepared to fetch data from lots of other sources as well, such as txt files, json, sql and nosql databases</p>
+                    <p>Our custom infrastructure ensures smooth data flow and interaction between these agents, allowing for a flexible and scalable system that can be adapted to various applications, including e-commerce platforms, customer support systems, and content generation.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="detailsModal" tabindex="-1" role="dialog" aria-labelledby="detailsModalLabel"
+         aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content bg-dark text-light border border-secondary">
+                <div class="modal-header border-bottom-0">
+                    <h5 class="modal-title" id="detailsModalLabel">@selectedItem.Name Details</h5>
+                    <button type="button" class="close text-light" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>
+                        <strong>Brand:</strong> @selectedItem.Brand
+                    </p>
+                    <p>
+                        <strong>Type:</strong> @selectedItem.Type
+                    </p>
+                    <p>
+                        <strong>Processor:</strong> @selectedItem.Processor
+                    </p>
+                    <p>
+                        <strong>RAM:</strong> @selectedItem.Ram
+                    </p>
+                    <p>
+                        <strong>Storage:</strong> @selectedItem.Storage
+                    </p>
+                    <p>
+                        <strong>GPU:</strong> @selectedItem.Gpu
+                    </p>
+                    <p><strong>Price:</strong> $@selectedItem.Price</p>
+                    <p>
+                        <strong>Availability:</strong> @selectedItem.Availability
+                    </p>
+                    <p>
+                        <strong>Description:</strong>
+                    </p>
+                    <p>@selectedItem.Description</p>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    ChatDto _selectedChat = new();
+    string _ask = string.Empty;
+    bool _loading = false;
+    bool _globalLoading = true;
+    AgentDto _selectedAgent;
+    string _designatedAgent = "agent_one";
+
+    HardwareItemDto selectedItem = new();
+    private List<HardwareItemDto> _items = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            Http.Timeout = TimeSpan.FromMinutes(10);
+            await InitRagAsync();
+            await LoadProductsAsync();
+        }
+        finally
+        {
+            _globalLoading = false;
+        }
+    }
+
+    private async Task LoadProductsAsync()
+    {
+        var response = await Http.GetAsync($"{ExtensionMethods.GetDemoApiUrl()}/items/");
+        if (response.IsSuccessStatusCode)
+        {
+            _items = await response.Content.ReadFromJsonAsync<List<HardwareItemDto>>() ?? [];
+        }
+    }
+
+    private void ShowDetailsModal(HardwareItemDto item)
+    {
+        selectedItem = item;
+    }
+
+
+    private async Task InitRagAsync()
+    {
+        var filePath = ExtensionMethods.GetWorkingEnvironment() == "Docker" ? "wwwroot/initial_rag_demo_docker.json" : "wwwroot/initial_rag_demo.json";
+        var agents = JsonSerializer.Deserialize<List<AgentDto>>(
+            await File.ReadAllTextAsync(filePath), new JsonSerializerOptions()
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            });
+
+        _selectedAgent = agents?.FirstOrDefault(x => x.Name == _designatedAgent)!;
+        foreach (var agent in agents!)
+        {
+            await Http.PostAsJsonAsync($"{ExtensionMethods.GetApiUrl()}/api/agents", agent);
+        }
+
+        _selectedChat = (await Http.GetFromJsonAsync<ChatDto>($"{ExtensionMethods.GetApiUrl()}/api/agents/{_selectedAgent.Id}/chat"))!;
+    }
+
+    private async Task Cleanup(string selectedAgentId)
+    {
+        await Http.PutAsync($"{ExtensionMethods.GetApiUrl()}/api/agents/{selectedAgentId}/chat/reset", default);
+        _selectedChat.Properties.Clear();
+        _selectedChat.Messages = _selectedChat.Messages.Take(1).ToList();
+    }
+}

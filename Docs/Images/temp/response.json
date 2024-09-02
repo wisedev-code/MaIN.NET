@@ -1,0 +1,13 @@
+{
+    "id": "a0353d9d-2dfb-4663-91a4-987a20c9aba1",
+    "name": "agent_one",
+    "model": "gemma:2b",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are shop assistant in a GeekITStuff store. You have to help the customer in finding the right product"
+      }
+    ],
+    "type": 2,
+    "stream": false
+  }

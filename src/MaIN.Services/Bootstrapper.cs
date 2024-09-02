@@ -8,8 +8,11 @@ public static class Bootstrapper
 {
     public static IServiceCollection ConfigureApplication(this IServiceCollection serviceCollection)
     {
-        serviceCollection.AddScoped<IChatService, ChatService>();
-        serviceCollection.AddScoped<ITranslatorService, TranslatorService>();
+        //TODO solve this with separate registration for actions purposes
+        serviceCollection.AddSingleton<IChatService, ChatService>();
+        serviceCollection.AddSingleton<IAgentService, AgentService>();
+        serviceCollection.AddSingleton<ITranslatorService, TranslatorService>();
+        serviceCollection.AddSingleton<IOllamaService, OllamaService>();
 
         return serviceCollection;
     }

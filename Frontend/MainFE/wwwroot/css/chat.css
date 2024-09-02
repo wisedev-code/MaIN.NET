@@ -12,7 +12,6 @@
 .containerbox {
     display: flex;
     height: 90vh;
-    width: 90vw !important;
     flex-direction: column;
 }
 
@@ -88,7 +87,7 @@
 }
 
 .input-container {
-    max-height: 7%;
+    height: 3rem;
     display: flex;
     padding: 5px;
     position: relative;
@@ -106,14 +105,70 @@
     margin: 0;
 }
 
+ h1 {
+     color: green;
+ }
+
+/* To hide the checkbox */
+#checkboxInput {
+    display: none;
+}
+
+.containerToggle {
+    display: flex;
+    align-items: center;
+}
+
+.text {
+    color: white; /* Make the text white */
+    margin-right: 10px; /* Space between text and label */
+}
+
+.toggleSwitch {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    width: 50px;
+    height: 30px;
+    background-color: rgb(82, 82, 82);
+    border-radius: 20px;
+    cursor: pointer;
+    transition-duration: .2s;
+}
+
+.toggleSwitch::after {
+    content: "";
+    position: absolute;
+    height: 10px;
+    width: 10px;
+    left: 5px;
+    background-color: transparent;
+    border-radius: 50%;
+    transition-duration: .2s;
+    box-shadow: 5px 2px 7px rgba(8, 8, 8, 0.26);
+    border: 5px solid white;
+}
+
+#checkboxInput:checked+.toggleSwitch::after {
+    transform: translateX(200%);
+    transition-duration: .2s;
+    background-color: white;
+}
+/* Switch background change */
+#checkboxInput:checked+.toggleSwitch {
+    background-color: rgb(148, 118, 255);
+    transition-duration: .2s;
+}
+
 .user-message {
     align-self: flex-end;
-    background-color: #012139;
+    background-color: #0d1820;
 }
 
 .bot-message {
     align-self: flex-start;
-    background-color: #121312;
+    background-color: #0c0c0c;
 }
 
 .chat-item {

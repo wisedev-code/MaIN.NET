@@ -1,3 +1,4 @@
+using MaIN.Domain.Entities;
 using MaIN.Infrastructure.Models;
 using MaIN.Models;
 using MaIN.Services.Models;
@@ -13,7 +14,9 @@ public static class ChatMapper
             Name = chat.Name,
             Model = chat.Model,
             Messages = chat.Messages.Select(m => m.ToDto()).ToList(),
-            Stream = chat.Stream
+            Stream = chat.Stream,
+            Type = Enum.Parse<ChatTypeDto>(chat.Type.ToString()),
+            Properties = chat.Properties
         };
 
     public static MessageDto ToDto(this Message message)
@@ -23,14 +26,16 @@ public static class ChatMapper
             Role = message.Role
         };
 
-    public static Chat ToDomain(this ChatDto chat)
+    public static Chat? ToDomain(this ChatDto chat)
         => new Chat()
         {
             Id = chat.Id,
             Name = chat.Name,
             Model = chat.Model,
-            Messages = chat.Messages.Select(m => m.ToDomain()).ToList(),
-            Stream = chat.Stream
+            Messages = chat.Messages?.Select(m => m.ToDomain()).ToList(),
+            Stream = chat.Stream,
+            Type = Enum.Parse<ChatType>(chat.Type.ToString()),
+            Properties = chat.Properties
         };
 
     public static Message ToDomain(this MessageDto message)
@@ -47,14 +52,16 @@ public static class ChatMapper
             Role = message.Role
         };
 
-    public static ChatDocument ToDocument(this Chat chat)
+    public static ChatDocument ToDocument(this Chat? chat)
         => new ChatDocument()
         {
             Id = chat.Id,
             Name = chat.Name,
             Model = chat.Model,
             Messages = chat.Messages.Select(m => m.ToDocument()).ToList(),
-            Stream = chat.Stream
+            Properties = chat.Properties,
+            Stream = chat.Stream,
+            Type = Enum.Parse<ChatTypeDocument>(chat.Type.ToString())
         };
 
     public static Chat ToDomain(this ChatDocument chat)
@@ -64,7 +71,9 @@ public static class ChatMapper
             Name = chat.Name,
             Model = chat.Model,
             Messages = chat.Messages.Select(m => m.ToDomain()).ToList(),
-            Stream = chat.Stream
+            Stream = chat.Stream,
+            Properties = chat.Properties,
+            Type = Enum.Parse<ChatType>(chat.Type.ToString())
         };
 
     public static Message ToDomain(this MessageDocument message)

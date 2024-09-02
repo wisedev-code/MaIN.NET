@@ -1,4 +1,6 @@
-gemma:2b
-llama3:8b
+gemma2:2b
+llama3.1:8b
+phi3:mini
 
 #Place any new model here and it will be downloaded during start command
+
