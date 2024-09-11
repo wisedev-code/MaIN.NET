@@ -116,6 +116,9 @@
     private void OnModelSelected(string model)
     {
         _selectedModel = model;
+        _selectedChat.Model = model;
+        _selectedChat.Visual = ExtensionMethods.IsImageModel(model);
+        
     }
 
     int ProgressPercent = 0;
@@ -160,6 +163,7 @@
         if (response != null)
         {
             _selectedChat = response;
+            _selectedModel = response.Model;
             _chats.ForEach(c => c.IsSelected = c.Id == chatId);
         }
     }
@@ -185,6 +189,7 @@
             Messages = new List<Message>(),
             Name = $"{AssetName.NewName()} | {DateTime.Now.ToShortDateString()}",
             Stream = false,
+            Visual = ExtensionMethods.IsImageModel(_selectedModel)
         };
 
         var result = await Http.PostAsJsonAsync($"{ExtensionMethods.GetApiUrl()}/api/chats", newChatRequest);

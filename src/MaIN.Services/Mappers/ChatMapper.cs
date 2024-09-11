@@ -14,6 +14,7 @@ public static class ChatMapper
             Name = chat.Name,
             Model = chat.Model,
             Messages = chat.Messages.Select(m => m.ToDto()).ToList(),
+            Visual = chat.Visual,
             Stream = chat.Stream,
             Type = Enum.Parse<ChatTypeDto>(chat.Type.ToString()),
             Properties = chat.Properties
@@ -34,6 +35,7 @@ public static class ChatMapper
             Name = chat.Name,
             Model = chat.Model,
             Messages = chat.Messages?.Select(m => m.ToDomain()).ToList(),
+            Visual = chat.Visual,
             Stream = chat.Stream,
             Type = Enum.Parse<ChatType>(chat.Type.ToString()),
             Properties = chat.Properties
@@ -51,7 +53,8 @@ public static class ChatMapper
         => new MessageDocument()
         {
             Content = message.Content,
-            Role = message.Role
+            Role = message.Role,
+            Images = message.Images
         };
 
     public static ChatDocument ToDocument(this Chat? chat)
@@ -61,6 +64,7 @@ public static class ChatMapper
             Name = chat.Name,
             Model = chat.Model,
             Messages = chat.Messages.Select(m => m.ToDocument()).ToList(),
+            Visual = chat.Visual,
             Properties = chat.Properties,
             Stream = chat.Stream,
             Type = Enum.Parse<ChatTypeDocument>(chat.Type.ToString())
@@ -73,6 +77,7 @@ public static class ChatMapper
             Name = chat.Name,
             Model = chat.Model,
             Messages = chat.Messages.Select(m => m.ToDomain()).ToList(),
+            Visual = chat.Visual,
             Stream = chat.Stream,
             Properties = chat.Properties,
             Type = Enum.Parse<ChatType>(chat.Type.ToString())

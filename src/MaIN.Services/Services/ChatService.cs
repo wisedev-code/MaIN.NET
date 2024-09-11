@@ -1,10 +1,6 @@
-using System.Text.Json;
 using MaIN.Domain.Entities;
-using MaIN.Infrastructure.Models;
 using MaIN.Infrastructure.Repositories.Abstract;
-using MaIN.Models;
 using MaIN.Services.Mappers;
-using MaIN.Services.Models;
 using MaIN.Services.Models.Ollama;
 using MaIN.Services.Services.Abstract;
 
@@ -14,7 +10,7 @@ public class ChatService(
     ITranslatorService translatorService,
     IChatRepository chatProvider,
     IOllamaService ollamaService,
-    IHttpClientFactory httpClientFactory) : IChatService
+    IImageGenService imageGenService) : IChatService
 {
     public async Task Create(Chat? chat)
     {
@@ -22,7 +18,7 @@ public class ChatService(
         await chatProvider.AddChat(chat.ToDocument());
     }
 
-    public async Task<ChatOllamaResult> Completions(Chat? chat, bool translate = false)
+    public async Task<ChatResult> Completions(Chat? chat, bool translate = false)
     {
         var lng = await translatorService.DetectLanguage(chat.Messages.Last().Content);
         var originalMessages = chat.Messages;
@@ -37,7 +33,9 @@ public class ChatService(
             chat.Messages = translatedMessages.ToList();
         }
 
-        var result = await ollamaService.Send(chat);
+        var result = chat.Visual 
+            ? await imageGenService.Send(chat) 
+            : await ollamaService.Send(chat);
     
         if (translate)
         {
@@ -47,12 +45,12 @@ public class ChatService(
         originalMessages.Add(new Message()
         {
             Content = result!.Message.Content,
-            Role = result.Message.Role
+            Role = result.Message.Role,
+            Images = result.Message.Images
         });
         chat.Messages = originalMessages;
 
         await chatProvider.UpdateChat(chat.Id, chat.ToDocument());
-
         return result;
     }
 
@@ -68,6 +66,4 @@ public class ChatService(
     public async Task<List<Chat>> GetAll()
         => (await chatProvider.GetAllChats())
             .Select(x => x.ToDomain()).ToList();
-
-   
 }

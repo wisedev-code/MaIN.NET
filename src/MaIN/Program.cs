@@ -1,14 +1,13 @@
 using System.Text.Json;
 using MaIN.Domain.Entities;
-using MaIN.Domain.Entities.Agents;
 using MaIN.Infrastructure;
 using MaIN.Models.Rag;
 using MaIN.Services;
 using MaIN.Services.Mappers;
 using MaIN.Services.Models;
+using MaIN.Services.Services;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Steps;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -29,7 +28,7 @@ builder.Services.AddCors(options =>
         });
 });
 
-builder.Services.ConfigureApplication();
+builder.Services.ConfigureMaIN(builder.Configuration);
 builder.Services.ConfigureInfrastructure(builder.Configuration);
 var app = builder.Build();
 
@@ -151,8 +150,15 @@ app.MapGet("/api/chats/{id}", async (HttpContext context,
     Results.Ok((await chatService.GetById(id)).ToDto()));
 
 app.MapGet("/api/chats/models", async (HttpContext context,
-        [FromServices] IOllamaService ollamaService) => 
-    Results.Ok((await ollamaService.GetCurrentModels())));
+    [FromServices] IOllamaService ollamaService) =>
+{
+    var models = await ollamaService.GetCurrentModels();
+    //add flux support
+    models.Add(ImageGenService.Models.FLUX);
+    context.Response.ContentType = "application/json";
+    await context.Response.WriteAsync(JsonSerializer.Serialize(models));
+});
+    
 
 app.MapGet("/api/chats", async ([FromServices] IChatService chatService)
     => Results.Ok((await chatService.GetAll()).Where(x => x.Type == ChatType.Conversation).Select(x => x.ToDto())));
