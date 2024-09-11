@@ -10,21 +10,55 @@
     {
         @if (message.Role != Role.System.ToString().ToLowerInvariant())
         {
-            <span class="@(message.Role == Role.User.ToString() ? "message-role-user" : "message-role-bot")">@GetRoleLabel(message.Role)</span>
-            <FluentCard class="@(message.Role == Role.User.ToString() ? "message-card user-message" : "message-card bot-message")">
-                @((MarkupString)((message.Role == Role.User.ToString()
-                    ? message.Content
-                    : Markdown.ToHtml((string)message.Content!,
-                        new MarkdownPipelineBuilder()
-                            .UseAdvancedExtensions()
-                            .Build())) ?? string.Empty))
-            </FluentCard>
+            @if (Chat!.Visual)
+            {
+                <span class="@(message.Role == Role.User.ToString() ? "message-role-user" : "message-role-bot")">@GetRoleLabel(message.Role)</span>
+                @if (message.Role == Role.User.ToString())
+                {
+                    <FluentCard class="message-card user-message" Style="color: #7aeda3">
+                        @message.Content
+                    </FluentCard>
+                }
+                else
+                {
+                    <FluentCard class="message-card-img bot-message" Style="height: 30rem !important; width: 30rem !important; ">
+                        <div>
+                            <a href="data:image/png;base64,@message.Images![0]"
+                               style="cursor: -webkit-zoom-in; cursor: zoom-in;" target="_blank"> <img src="data:image/png;base64,@message.Images![0]"
+                             style="object-fit: fill; width:100%; height:100%;"
+                             alt="imageResponse"/> </a>
+                        </div>
+                    </FluentCard>
+                }
+            }
+            else
+            {
+                <span class="@(message.Role == Role.User.ToString() ? "message-role-user" : "message-role-bot")">@GetRoleLabel(message.Role)</span>
+                <FluentCard class="@(message.Role == Role.User.ToString() ? "message-card user-message" : "message-card bot-message")">
+                    @((MarkupString)((message.Role == Role.User.ToString()
+                        ? message.Content
+                        : Markdown.ToHtml((string)message.Content!,
+                            new MarkdownPipelineBuilder()
+                                .UseAdvancedExtensions()
+                                .Build())) ?? string.Empty))
+                </FluentCard>
+            }
         }
     }
     @if (IsLoading)
     {
         <span class="message-role-bot">@_displayName</span>
-        <FluentProgressRing Visible="IsLoading"></FluentProgressRing>
+        @if (Chat.Visual)
+        {
+            <span class="message-role-bot" style="font-style: italic; font-size: small">This might take a while...</span>
+            <FluentProgressRing Visible="IsLoading" Color="#afffab"></FluentProgressRing>
+        }
+        else
+        {
+            <FluentProgressRing Visible="IsLoading"></FluentProgressRing>
+        }
+
+       
     }
 </div>
 <div class="input-container">
@@ -65,12 +99,13 @@
         if (!string.IsNullOrWhiteSpace(message))
         {
             var newMsg = new Message { Role = Role.User.ToString(), Content = message };
-            if(ExtensionMethods.IsVisionModel(SelectedModel) && Files.Any())
+            if (ExtensionMethods.IsVisionModel(SelectedModel) && Files.Any())
             {
                 var file = await File.ReadAllBytesAsync(Files.First().LocalFile!.FullName);
                 newMsg.Images = [Convert.ToBase64String(file)];
                 Files = []; // Clear files
             }
+
             Chat.Messages.Add(newMsg);
             Chat.Model = SelectedModel;
 
@@ -81,7 +116,7 @@
                 var response = await apiResponse.Content.ReadFromJsonAsync<ChatResponse>();
                 if (response != null)
                 {
-                    Chat.Messages.Add(response.Message);
+                    Chat?.Messages.Add(response.Message);
                 }
             }
 
@@ -95,7 +130,7 @@
         IsLoading = true;
         if (!string.IsNullOrWhiteSpace(message))
         {
-            Chat.Messages.Add(new Message { Role = Role.User.ToString(), Content = message });
+            Chat?.Messages.Add(new Message { Role = Role.User.ToString(), Content = message });
             Chat.Model = SelectedModel;
 
             var apiResponse = await Http.PostAsJsonAsync($"{ExtensionMethods.GetApiUrl()}/api/agents/{AgentId}/process", Chat);
@@ -125,4 +160,3 @@
     private string GetRoleLabel(string role) => role == Role.User.ToString() ? "( ͡° ͜ʖ ͡°) User" : $"{_displayName}";
 }
 
-}

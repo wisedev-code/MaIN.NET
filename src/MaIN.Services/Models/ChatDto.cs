@@ -20,4 +20,7 @@ public class ChatDto
     
     [JsonPropertyName("properties")]
     public Dictionary<string, string> Properties { get; set; }
+
+    [JsonPropertyName("visual")]
+    public bool Visual { get; set; }
 }

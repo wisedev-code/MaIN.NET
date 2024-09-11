@@ -101,6 +101,14 @@
     color: #fff;
 }
 
+.message-card-img {
+    margin-bottom: 15px;
+    width: 80%;
+    height: fit-content;
+    padding: 1px !important;
+    color: #fff;
+}
+
 .message-card p {
     margin: 0;
 }
