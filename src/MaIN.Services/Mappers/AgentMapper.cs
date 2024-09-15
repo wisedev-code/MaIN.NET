@@ -82,7 +82,7 @@ public static class AgentMapper
             } : null
         };
 
-    public static AgentDocument? ToDocument(this Agent agent)
+    public static AgentDocument ToDocument(this Agent agent)
         => new()
         {
             Id = agent.Id,
@@ -93,7 +93,7 @@ public static class AgentMapper
             Context = agent.Context.ToDocument()
         };
     
-    public static Agent? ToDomain(this AgentDocument? agent)
+    public static Agent ToDomain(this AgentDocument? agent)
         => new()
         {
             Id = agent.Id,

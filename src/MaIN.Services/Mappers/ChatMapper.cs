@@ -2,6 +2,7 @@ using MaIN.Domain.Entities;
 using MaIN.Infrastructure.Models;
 using MaIN.Models;
 using MaIN.Services.Models;
+using FileInfo = MaIN.Domain.Entities.FileInfo;
 
 namespace MaIN.Services.Mappers;
 
@@ -24,8 +25,14 @@ public static class ChatMapper
         => new MessageDto()
         {
             Content = message.Content,
-            Role = message.Role,
-            Images = message.Images
+            Role = message.Tool ? "system" : message.Role,
+            Images = message.Images,
+            Files = message.Files?.Select(x => new FileInfoDto()
+            {
+                Content = x.Content,
+                Name = x.Name,
+                Extension = x.Extension
+            }) as FileInfoDto[]
         };
 
     public static Chat? ToDomain(this ChatDto chat)
@@ -47,6 +54,12 @@ public static class ChatMapper
             Content = message.Content,
             Role = message.Role,
             Images = message.Images,
+            Files = message.Files?.Select(x => new FileInfo()
+            {
+                Content = x.Content,
+                Name = x.Name,
+                Extension = x.Extension
+            }).ToList()
         };
 
     public static MessageDocument ToDocument(this Message message)
@@ -54,7 +67,9 @@ public static class ChatMapper
         {
             Content = message.Content,
             Role = message.Role,
-            Images = message.Images
+            Images = message.Images,
+            Tool = message.Tool,
+            Files = message.Files?.Select(x => x.Content).ToArray() ?? []
         };
 
     public static ChatDocument ToDocument(this Chat? chat)
@@ -87,7 +102,8 @@ public static class ChatMapper
         => new Message()
         {
             Content = message.Content,
+            Tool = message.Tool,
             Role = message.Role,
-            Images = message.Images
+            Images = message.Images,
         };
 }
