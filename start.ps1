@@ -43,6 +43,12 @@ if (-not $noInfra -or $infraOnly) {
 
     Start-Sleep -Seconds 10
 
+    # Install packages from requirements.txt
+    Write-Host "Installing dependencies from requirements.txt..."
+    pip install -r "./ImageGen/requirements.txt"
+
+    Start-Sleep -Seconds 5
+
     Write-Host "Running the Ollama serve."
     Start-Sleep -Seconds 5
 
@@ -54,13 +60,13 @@ if (-not $noInfra -or $infraOnly) {
 # Run Docker-related tasks only if --infra-only is not provided
 if (-not $infraOnly) {
     # Stop and remove Docker containers, networks, images (and volumes if --hard is provided)
-if ($hard) {
-    Write-Host "Stopping and removing Docker containers, networks, images, and volumes..."
-    docker-compose down -v
-} else {
-    Write-Host "Stopping and removing Docker containers, networks, and images (volumes retained)..."
-    docker-compose down
-}
+    if ($hard) {
+        Write-Host "Stopping and removing Docker containers, networks, images, and volumes..."
+        docker-compose down -v
+    } else {
+        Write-Host "Stopping and removing Docker containers, networks, and images (volumes retained)..."
+        docker-compose down
+    }
 
     # Start Docker containers in detached mode
     Write-Host "Starting Docker containers in detached mode..."

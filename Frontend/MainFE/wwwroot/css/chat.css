@@ -9,6 +9,21 @@
     text-shadow: 0 0 5px #00ffcc;
 }
 
+.attachment-btn {
+    position: relative;
+    display: inline-block;
+    z-index: 5;
+}
+
+/* Change the color of the button when a file is selected */
+.attachment-btn-selected{
+    color: green !important; /* This will make the button green once a file is selected */
+}
+
+.fluent-inputfile-container .inputfile-progress {
+    display: none !important;
+}
+
 .containerbox {
     display: flex;
     height: 90vh;
