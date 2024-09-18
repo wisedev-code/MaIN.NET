@@ -1,4 +1,5 @@
 using System.Text.Json;
+using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Infrastructure;
 using MaIN.Models.Rag;
@@ -9,6 +10,7 @@ using MaIN.Services.Services;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Steps;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -150,11 +152,26 @@ app.MapGet("/api/chats/{id}", async (HttpContext context,
     Results.Ok((await chatService.GetById(id)).ToDto()));
 
 app.MapGet("/api/chats/models", async (HttpContext context,
-    [FromServices] IOllamaService ollamaService) =>
+    [FromServices] IOllamaService ollamaService, 
+    [FromServices] IHttpClientFactory httpClientFactory,
+    [FromServices] IOptions<MainSettings> options) =>
 {
     var models = await ollamaService.GetCurrentModels();
     //add flux support
-    models.Add(ImageGenService.Models.FLUX);
+    var client = httpClientFactory.CreateClient();
+    try
+    {
+        var response = await client.GetAsync(options.Value.ImageGenUrl + "/health");
+        if (response.IsSuccessStatusCode)
+        {
+            models.Add(ImageGenService.Models.FLUX);
+        }
+    }
+    catch (Exception _)
+    {
+        Console.WriteLine("No image-gen service running");
+    }
+    
     context.Response.ContentType = "application/json";
     await context.Response.WriteAsync(JsonSerializer.Serialize(models));
 });
