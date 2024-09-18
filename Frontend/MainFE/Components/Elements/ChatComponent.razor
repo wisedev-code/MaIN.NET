@@ -118,7 +118,9 @@
 
         if (!string.IsNullOrWhiteSpace(message))
         {
+            IsLoading = true;
             var newMsg = new Message { Role = Role.User.ToString(), Content = message };
+            Chat.Messages.Add(newMsg);
             if (ExtensionMethods.IsVisionModel(SelectedModel) && Images.Any())
             {
                 var file = await File.ReadAllBytesAsync(Images.First().LocalFile!.FullName);
@@ -136,9 +138,7 @@
                 }).ToArray();
                 _filesAttached = false;
             }
-            Chat.Messages.Add(newMsg);
             Chat.Model = SelectedModel;
-            IsLoading = true;
 
             var apiResponse = await Http.PostAsJsonAsync($"{ExtensionMethods.GetApiUrl()}/api/chats/complete?translate={Translate}", Chat);
 
