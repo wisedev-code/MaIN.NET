@@ -52,39 +52,73 @@ if [[ $noInfra == false || $infraOnly == true ]]; then
 
     # Install Python and run Image Gen API if --no-image-gen is not provided
     if [[ $noImageGen == false ]]; then
-        pythonVersion="3.9.13"
-        pythonInstallerUrl="https://www.python.org/ftp/python/$pythonVersion/Python-$pythonVersion.tgz"
+pythonVersion="3.9.13"
+pythonInstallerUrl="https://www.python.org/ftp/python/$pythonVersion/Python-$pythonVersion.tgz"
 
-        # Check if Python 3.9 is already installed
-        if ! command -v python3 &> /dev/null || [[ $(python3 --version | awk '{print $2}') != $pythonVersion ]]; then
-            echo "Downloading Python $pythonVersion..."
-            wget "$pythonInstallerUrl" -O /tmp/Python-$pythonVersion.tgz
-            tar -xzf /tmp/Python-$pythonVersion.tgz -C /tmp
+# Check if Python 3.9 is already installed
+if ! command -v python3.9 &> /dev/null || [[ $(python3.9 --version | awk '{print $2}') != $pythonVersion ]]; then
+    echo "Downloading Python $pythonVersion..."
+    wget "$pythonInstallerUrl" -O /tmp/Python-$pythonVersion.tgz
+    tar -xzf /tmp/Python-$pythonVersion.tgz -C /tmp
 
-            cd /tmp/Python-$pythonVersion
-            ./configure --enable-optimizations
-            make altinstall
+    cd /tmp/Python-$pythonVersion
 
-            cd -
-            rm -rf /tmp/Python-$pythonVersion /tmp/Python-$pythonVersion.tgz
-        else
-            echo "Python is already installed."
-        fi
+    # Ensure necessary build tools are installed
+    sudo apt update
+    sudo apt install -y build-essential zlib1g-dev libffi-dev libssl-dev libreadline-dev libbz2-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev liblzma-dev
 
-        # Verify Python and pip installation
-        echo "Verifying Python installation..."
-        python3 --version
-        pip3 --version
+    # Configure and install
+    ./configure --enable-optimizations
+    make -j$(nproc)
+    sudo make altinstall
 
-        # Install packages from requirements.txt
-        echo "Installing dependencies from requirements.txt..."
-        pip3 install --default-timeout=900 -r "./ImageGen/requirements.txt"
+    cd -
+
+    # Clean up
+    rm -rf /tmp/Python-$pythonVersion /tmp/Python-$pythonVersion.tgz
+
+    # Manually check for and add Python3.9 to PATH if it's not already there
+    pythonPath=$(command -v python3.9)
+    if [[ -z "$pythonPath" ]]; then
+        echo "Python installation failed. Exiting."
+        exit 1
+    fi
+
+    # Adding Python to PATH if not already in it
+    currentPath=$(echo "$PATH")
+    pythonBinDir=$(dirname "$pythonPath")
+
+    if [[ ! "$currentPath" =~ "$pythonBinDir" ]]; then
+        echo "Adding Python 3.9 to the PATH..."
+        echo "export PATH=\"$pythonBinDir:\$PATH\"" >> ~/.bashrc
+        export PATH="$pythonBinDir:$PATH"
+    fi
+else
+    echo "Python is already installed."
+fi
+
+# Verify Python and pip installation
+echo "Verifying Python installation..."
+python3.9 --version
+if ! command -v pip3.9 &> /dev/null; then
+    echo "Installing pip for Python 3.9..."
+    curl https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py
+    python3.9 /tmp/get-pip.py
+    rm /tmp/get-pip.py
+fi
+
+echo "Verifying pip installation..."
+pip3.9 --version
+
+# Install packages from requirements.txt
+echo "Installing dependencies from requirements.txt..."
+pip3.9 install --user --default-timeout=900 -r "./ImageGen/requirements.txt"
 
         sleep 5
 
         # Conditionally run the image generation API based on --no-image-gen
         echo "Running image gen API"
-        nohup python3 ./ImageGen/main.py &
+        nohup python3.9 ./ImageGen/main.py &
         sleep 100
     else
         echo "--no-image-gen flag provided, skipping image generation API..."
