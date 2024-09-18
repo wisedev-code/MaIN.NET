@@ -3,6 +3,7 @@ $hard = $false
 $models = @()
 $noInfra = $false
 $infraOnly = $false
+$noImageGen = $false  # New variable for --no-image-gen
 
 # Manually parse the command-line arguments for double-dash parameters
 foreach ($arg in $args) {
@@ -17,6 +18,8 @@ foreach ($arg in $args) {
         $noInfra = $true
     } elseif ($arg -eq '--infra-only') {
         $infraOnly = $true
+    } elseif ($arg -eq '--no-image-gen') {
+        $noImageGen = $true  # Set the flag for --no-image-gen
     }
 }
 
@@ -42,19 +45,72 @@ if (-not $noInfra -or $infraOnly) {
     }
 
     Start-Sleep -Seconds 10
-
-    # Install packages from requirements.txt
-    Write-Host "Installing dependencies from requirements.txt..."
-    pip install -r "./ImageGen/requirements.txt"
-
-    Start-Sleep -Seconds 5
-
     Write-Host "Running the Ollama serve."
     Start-Sleep -Seconds 5
 
-    Write-Host "Running image gen API"
-    Start-Process -FilePath "python" -ArgumentList "./ImageGen/main.py" -NoNewWindow -PassThru
-    Start-Sleep -Seconds 100
+    # Install Python and run Image Gen API if --no-image-gen is not provided
+    if (-not $noImageGen) {
+        $pythonVersion = "3.9.13"
+        $pythonInstallerUrl = "https://www.python.org/ftp/python/$pythonVersion/python-$pythonVersion-amd64.exe"
+        $installerPath = "$env:TEMP\python-$pythonVersion-installer.exe"
+
+        # Check if Python 3.9 is already installed
+        $python = Get-Command python -ErrorAction SilentlyContinue
+        if (-not $python) {
+            Write-Host "Downloading Python $pythonVersion..."
+
+            # Download the Python installer
+            Invoke-WebRequest $pythonInstallerUrl -OutFile $installerPath
+
+            # Install Python 3.9 silently, add to PATH, and ensure pip is installed
+            Write-Host "Installing Python $pythonVersion..."
+            Start-Process $installerPath -ArgumentList '/quiet InstallAllUsers=1 PrependPath=1 Include_pip=1' -Wait
+
+            # Clean up the installer
+            Remove-Item $installerPath
+
+            # Manually add Python to PATH if not automatically set
+            $pythonPath = [System.IO.Path]::Combine("C:\Program Files\Python39", "python.exe")
+            if (-not (Test-Path $pythonPath)) {
+                $pythonPath = [System.IO.Path]::Combine("C:\Program Files (x86)\Python39", "python.exe")
+            }
+
+            if (-not (Test-Path $pythonPath)) {
+                Write-Host "Python installation path not found. Please check the installation."
+                exit 1
+            }
+
+            # Check if the path is already in the PATH environment variable
+            $currentPath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+            if ($currentPath -notlike "*Python39*") {
+                Write-Host "Adding Python to the PATH manually..."
+                [System.Environment]::SetEnvironmentVariable("Path", "$currentPath;$($pythonPath -replace 'python.exe', '')", "Machine")
+            }
+
+            # Refresh PATH environment variable for the current session
+            $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+        } else {
+            Write-Host "Python is already installed."
+        }
+
+        # Verify Python and pip installation
+        Write-Host "Verifying Python installation..."
+        python --version
+        pip --version
+
+        # Install packages from requirements.txt
+        Write-Host "Installing dependencies from requirements.txt..."
+        pip install --default-timeout=900 -r "./ImageGen/requirements.txt"
+
+        Start-Sleep -Seconds 5
+
+        # Conditionally run the image generation API based on --no-image-gen
+        Write-Host "Running image gen API"
+        Start-Process -FilePath "python" -ArgumentList "./ImageGen/main.py" -NoNewWindow -PassThru
+        Start-Sleep -Seconds 100
+    } else {
+        Write-Host "--no-image-gen flag provided, skipping image generation API..."
+    }
 }
 
 # Run Docker-related tasks only if --infra-only is not provided

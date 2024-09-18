@@ -10,6 +10,16 @@ swagger = Swagger(app)
 pipe = FluxPipeline.from_pretrained("black-forest-labs/FLUX.1-schnell", torch_dtype=torch.float16)
 pipe.enable_sequential_cpu_offload()
 
+@app.route('/health', methods=['GET'])
+@swag_from({
+    'parameters': [],
+    'responses': {
+        200: 'OK'
+    }
+})
+def health():
+    return 'OK'
+
 @app.route('/generate/<string:prompt>', methods=['POST'])
 @swag_from({
     'parameters': [
