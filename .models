@@ -1,6 +1,6 @@
 gemma2:2b
 llama3.1:8b
 phi3:mini
-
+llava
 #Place any new model here and it will be downloaded during start command
 

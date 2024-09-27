@@ -10,24 +10,76 @@
     {
         @if (message.Role != Role.System.ToString().ToLowerInvariant())
         {
-            <span class="@(message.Role == Role.User.ToString() ? "message-role-user" : "message-role-bot")">@GetRoleLabel(message.Role)</span>
-            <FluentCard class="@(message.Role == Role.User.ToString() ? "message-card user-message" : "message-card bot-message")">
-                @((MarkupString)((message.Role == Role.User.ToString()
-                    ? message.Content
-                    : Markdown.ToHtml((string)message.Content!,
-                        new MarkdownPipelineBuilder()
-                            .UseAdvancedExtensions()
-                            .Build())) ?? string.Empty))
-            </FluentCard>
+            @if (Chat!.Visual)
+            {
+                <span class="@(message.Role == Role.User.ToString() ? "message-role-user" : "message-role-bot")">@GetRoleLabel(message.Role)</span>
+                @if (message.Role == Role.User.ToString())
+                {
+                    <FluentCard class="message-card user-message" Style="color: #7aeda3">
+                        @message.Content
+                    </FluentCard>
+                }
+                else
+                {
+                    <FluentCard class="message-card-img bot-message" Style="height: 30rem !important; width: 30rem !important; ">
+                        <div>
+                            <a href="data:image/png;base64,@message.Images![0]"
+                               style="cursor: -webkit-zoom-in; cursor: zoom-in;" target="_blank"> <img src="data:image/png;base64,@message.Images![0]"
+                             style="object-fit: fill; width:100%; height:100%;"
+                             alt="imageResponse"/> </a>
+                        </div>
+                    </FluentCard>
+                }
+            }
+            else
+            {
+                <span class="@(message.Role == Role.User.ToString() ? "message-role-user" : "message-role-bot")">@GetRoleLabel(message.Role)</span>
+                <FluentCard class="@(message.Role == Role.User.ToString() ? "message-card user-message" : "message-card bot-message")">
+                    @((MarkupString)((message.Role == Role.User.ToString()
+                        ? message.Content
+                        : Markdown.ToHtml((string)message.Content!,
+                            new MarkdownPipelineBuilder()
+                                .UseAdvancedExtensions()
+                                .Build())) ?? string.Empty))
+                </FluentCard>
+            }
         }
     }
     @if (IsLoading)
     {
         <span class="message-role-bot">@_displayName</span>
-        <FluentProgressRing Visible="IsLoading"></FluentProgressRing>
+        @if (Chat.Visual)
+        {
+            <span class="message-role-bot" style="font-style: italic; font-size: small">This might take a while...</span>
+            <FluentProgressRing Visible="IsLoading" Color="#afffab"></FluentProgressRing>
+        }
+        else
+        {
+            <FluentProgressRing Visible="IsLoading"></FluentProgressRing>
+        }
+
+       
     }
 </div>
 <div class="input-container">
+    <FluentInputFile Id="my-file-uploader"
+                     Mode="InputFileMode.SaveToTemporaryFolder"
+                     Multiple="true"
+                     MaximumFileCount="4"
+                     MaximumFileSize="@(10 * 1024 * 1024)"
+                     Accept=".csv, .json, .txt"
+                     ProgressPercent="@ProgressPercent"
+                     OnCompleted="@OnFileCompletedAsync"
+                     Style="background-color: transparent !important; width: 3rem">
+        <ChildContent>
+            <label for="my-file-uploader" class="attachment-btn ">
+                <FluentIcon Value="@(new Icons.Filled.Size32.Attach())"
+                             Color="@_filesAttachedClass" Style="margin-right: 5px; background-color: transparent">
+                </FluentIcon>
+            </label>
+        </ChildContent>
+    </FluentInputFile>
+    
     <input @bind-value="_ask" @bind-value:event="oninput" placeholder="Enter your prompt here..." @onkeydown="CheckEnterKey" class="inp">
 
     <FluentButton IconStart="@(new Icons.Filled.Size28.Send())" BackgroundColor="rgba(0, 0, 0, 0)" Style="margin-top: 5px; background-color: transparent"
@@ -46,9 +98,12 @@
     [Parameter] public string? CustomName { get; set; }
     [Parameter] public bool IsRagChat { get; set; }
     [Parameter] public string? AgentId { get; set; }
-    [Parameter] public FluentInputFileEventArgs[] Files { get; set; }
+    [Parameter] public FluentInputFileEventArgs[] Images { get; set; }
     [Parameter] public bool Translate { get; set; }
 
+    public FluentInputFileEventArgs[] Files = [];
+    private bool _filesAttached = false;
+    private Color _filesAttachedClass => _filesAttached ? Color.Success : Color.Accent;
     private string _ask = string.Empty;
     private string _displayName => CustomName ?? SelectedModel;
     int ProgressPercent = 0;
@@ -61,32 +116,40 @@
             return;
         }
 
-        IsLoading = true;
         if (!string.IsNullOrWhiteSpace(message))
         {
+            IsLoading = true;
             var newMsg = new Message { Role = Role.User.ToString(), Content = message };
-            if(ExtensionMethods.IsVisionModel(SelectedModel) && Files.Any())
-            {
-                var file = await File.ReadAllBytesAsync(Files.First().LocalFile!.FullName);
-                newMsg.Images = [Convert.ToBase64String(file)];
-                Files = []; // Clear files
-            }
             Chat.Messages.Add(newMsg);
+            if (ExtensionMethods.IsVisionModel(SelectedModel) && Images.Any())
+            {
+                var file = await File.ReadAllBytesAsync(Images.First().LocalFile!.FullName);
+                newMsg.Images = [Convert.ToBase64String(file)];
+                Images = []; // Clear files
+            }
+
+            if(Files.Any())
+            {
+                newMsg.Files = Files.Select(x => new FileData()
+                {
+                    Content = File.ReadAllText(x.LocalFile!.FullName),
+                    Extension = x.Name.Split('.').Last(),
+                    Name = x.Name.Split('.').First()
+                }).ToArray();
+                _filesAttached = false;
+            }
             Chat.Model = SelectedModel;
 
             var apiResponse = await Http.PostAsJsonAsync($"{ExtensionMethods.GetApiUrl()}/api/chats/complete?translate={Translate}", Chat);
 
             if (apiResponse.IsSuccessStatusCode)
             {
-                var response = await apiResponse.Content.ReadFromJsonAsync<ChatResponse>();
-                if (response != null)
-                {
-                    Chat.Messages.Add(response.Message);
-                }
+                await LoadChatAsync(Chat.Id);
             }
 
             IsLoading = false;
             _ask = string.Empty;
+            Files = []; // Clear files
         }
     }
 
@@ -95,7 +158,7 @@
         IsLoading = true;
         if (!string.IsNullOrWhiteSpace(message))
         {
-            Chat.Messages.Add(new Message { Role = Role.User.ToString(), Content = message });
+            Chat?.Messages.Add(new Message { Role = Role.User.ToString(), Content = message });
             Chat.Model = SelectedModel;
 
             var apiResponse = await Http.PostAsJsonAsync($"{ExtensionMethods.GetApiUrl()}/api/agents/{AgentId}/process", Chat);
@@ -114,6 +177,22 @@
         }
     }
 
+    private async Task LoadChatAsync(string chatId)
+    {
+        var response = await Http.GetFromJsonAsync<ChatDto>($"{ExtensionMethods.GetApiUrl()}/api/chats/{chatId}");
+        if (response != null)
+        {
+            Chat = response;
+            SelectedModel = response.Model!;
+        }
+    }
+    
+    private async Task OnFileCompletedAsync(IEnumerable<FluentInputFileEventArgs> files)
+    {
+        Files = files.ToArray();
+        _filesAttached = true;
+    }
+
     private async Task CheckEnterKey(KeyboardEventArgs e)
     {
         if (e.Key == "Enter")
@@ -125,4 +204,3 @@
     private string GetRoleLabel(string role) => role == Role.User.ToString() ? "( ͡° ͜ʖ ͡°) User" : $"{_displayName}";
 }
 
-}

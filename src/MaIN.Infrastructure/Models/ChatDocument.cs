@@ -12,4 +12,5 @@ public class ChatDocument
     public ChatTypeDocument Type { get; set; }
     public Dictionary<string, string> Properties { get; set; }
     public bool Stream { get; set; } = false;
+    public bool Visual { get; set; }
 }

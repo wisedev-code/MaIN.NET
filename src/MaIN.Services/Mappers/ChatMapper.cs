@@ -2,6 +2,7 @@ using MaIN.Domain.Entities;
 using MaIN.Infrastructure.Models;
 using MaIN.Models;
 using MaIN.Services.Models;
+using FileInfo = MaIN.Domain.Entities.FileInfo;
 
 namespace MaIN.Services.Mappers;
 
@@ -14,6 +15,7 @@ public static class ChatMapper
             Name = chat.Name,
             Model = chat.Model,
             Messages = chat.Messages.Select(m => m.ToDto()).ToList(),
+            Visual = chat.Visual,
             Stream = chat.Stream,
             Type = Enum.Parse<ChatTypeDto>(chat.Type.ToString()),
             Properties = chat.Properties
@@ -23,8 +25,14 @@ public static class ChatMapper
         => new MessageDto()
         {
             Content = message.Content,
-            Role = message.Role,
-            Images = message.Images
+            Role = message.Tool ? "system" : message.Role,
+            Images = message.Images,
+            Files = message.Files?.Select(x => new FileInfoDto()
+            {
+                Content = x.Content,
+                Name = x.Name,
+                Extension = x.Extension
+            }) as FileInfoDto[]
         };
 
     public static Chat? ToDomain(this ChatDto chat)
@@ -34,6 +42,7 @@ public static class ChatMapper
             Name = chat.Name,
             Model = chat.Model,
             Messages = chat.Messages?.Select(m => m.ToDomain()).ToList(),
+            Visual = chat.Visual,
             Stream = chat.Stream,
             Type = Enum.Parse<ChatType>(chat.Type.ToString()),
             Properties = chat.Properties
@@ -45,13 +54,22 @@ public static class ChatMapper
             Content = message.Content,
             Role = message.Role,
             Images = message.Images,
+            Files = message.Files?.Select(x => new FileInfo()
+            {
+                Content = x.Content,
+                Name = x.Name,
+                Extension = x.Extension
+            }).ToList()
         };
 
     public static MessageDocument ToDocument(this Message message)
         => new MessageDocument()
         {
             Content = message.Content,
-            Role = message.Role
+            Role = message.Role,
+            Images = message.Images,
+            Tool = message.Tool,
+            Files = message.Files?.Select(x => x.Content).ToArray() ?? []
         };
 
     public static ChatDocument ToDocument(this Chat? chat)
@@ -61,6 +79,7 @@ public static class ChatMapper
             Name = chat.Name,
             Model = chat.Model,
             Messages = chat.Messages.Select(m => m.ToDocument()).ToList(),
+            Visual = chat.Visual,
             Properties = chat.Properties,
             Stream = chat.Stream,
             Type = Enum.Parse<ChatTypeDocument>(chat.Type.ToString())
@@ -73,6 +92,7 @@ public static class ChatMapper
             Name = chat.Name,
             Model = chat.Model,
             Messages = chat.Messages.Select(m => m.ToDomain()).ToList(),
+            Visual = chat.Visual,
             Stream = chat.Stream,
             Properties = chat.Properties,
             Type = Enum.Parse<ChatType>(chat.Type.ToString())
@@ -82,7 +102,8 @@ public static class ChatMapper
         => new Message()
         {
             Content = message.Content,
+            Tool = message.Tool,
             Role = message.Role,
-            Images = message.Images
+            Images = message.Images,
         };
 }

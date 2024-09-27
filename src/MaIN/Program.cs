@@ -1,15 +1,16 @@
 using System.Text.Json;
+using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
-using MaIN.Domain.Entities.Agents;
 using MaIN.Infrastructure;
 using MaIN.Models.Rag;
 using MaIN.Services;
 using MaIN.Services.Mappers;
 using MaIN.Services.Models;
+using MaIN.Services.Services;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Steps;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,7 +30,7 @@ builder.Services.AddCors(options =>
         });
 });
 
-builder.Services.ConfigureApplication();
+builder.Services.ConfigureMaIN(builder.Configuration);
 builder.Services.ConfigureInfrastructure(builder.Configuration);
 var app = builder.Build();
 
@@ -57,7 +58,11 @@ foreach (var agent in agents!)
 {
     var existingAgent = await agentService.GetAgentById(agent.Id);
     if(existingAgent != null) continue;
-    await agentService.CreateAgent(agent.ToDomain());
+    var models = await app.Services.GetRequiredService<IOllamaService>().GetCurrentModels();
+    if(models.Contains(agent.Model))
+    {
+        await agentService.CreateAgent(agent.ToDomain());
+    }
 }
 
 
@@ -151,8 +156,30 @@ app.MapGet("/api/chats/{id}", async (HttpContext context,
     Results.Ok((await chatService.GetById(id)).ToDto()));
 
 app.MapGet("/api/chats/models", async (HttpContext context,
-        [FromServices] IOllamaService ollamaService) => 
-    Results.Ok((await ollamaService.GetCurrentModels())));
+    [FromServices] IOllamaService ollamaService, 
+    [FromServices] IHttpClientFactory httpClientFactory,
+    [FromServices] IOptions<MainSettings> options) =>
+{
+    var models = await ollamaService.GetCurrentModels();
+    //add flux support
+    var client = httpClientFactory.CreateClient();
+    try
+    {
+        var response = await client.GetAsync(options.Value.ImageGenUrl + "/health");
+        if (response.IsSuccessStatusCode)
+        {
+            models.Add(ImageGenService.Models.FLUX);
+        }
+    }
+    catch (Exception _)
+    {
+        Console.WriteLine("No image-gen service running");
+    }
+    
+    context.Response.ContentType = "application/json";
+    await context.Response.WriteAsync(JsonSerializer.Serialize(models));
+});
+    
 
 app.MapGet("/api/chats", async ([FromServices] IChatService chatService)
     => Results.Ok((await chatService.GetAll()).Where(x => x.Type == ChatType.Conversation).Select(x => x.ToDto())));

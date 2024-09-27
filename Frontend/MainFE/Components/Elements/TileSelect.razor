@@ -8,7 +8,11 @@
         @item
         @if (ExtensionMethods.IsVisionModel(item!.ToString()!))
         {
-        <span class="badge">Vision</span>
+        <span class="badge">Vision 👁️</span>
+        }
+        @if (ExtensionMethods.IsImageModel(item!.ToString()!))
+        {
+        <span class="badgeImg">Images 🪄</span>
         }
     </div>
     }
@@ -35,6 +39,15 @@
 
     .badge {
         background-color: #007bff;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        margin-left: 8px;
+    }
+
+    .badgeImg {
+        background-color: #4d7c3e;
         color: white;
         padding: 2px 8px;
         border-radius: 12px;
