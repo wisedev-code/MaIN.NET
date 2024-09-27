@@ -58,7 +58,11 @@ foreach (var agent in agents!)
 {
     var existingAgent = await agentService.GetAgentById(agent.Id);
     if(existingAgent != null) continue;
-    await agentService.CreateAgent(agent.ToDomain());
+    var models = await app.Services.GetRequiredService<IOllamaService>().GetCurrentModels();
+    if(models.Contains(agent.Model))
+    {
+        await agentService.CreateAgent(agent.ToDomain());
+    }
 }
 
 
