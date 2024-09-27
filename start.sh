@@ -116,9 +116,16 @@ pip3.9 install --user --default-timeout=900 -r "./ImageGen/requirements.txt"
 
         sleep 5
 
-        # Conditionally run the image generation API based on --no-image-gen
-        echo "Running image gen API"
-        nohup python3.9 ./ImageGen/main.py &
+        logfile="image_gen.log"
+
+# Assuming Python installation steps here
+
+# Run the wrapper script using setsid and name the process
+echo "Running image generation API in the background with real-time logs..."
+setsid ./image_gen_wrapper.sh | tee image_gen.log &
+# Continue with the rest of the script
+echo "Main script is continuing..."
+
         sleep 100
     else
         echo "--no-image-gen flag provided, skipping image generation API..."
