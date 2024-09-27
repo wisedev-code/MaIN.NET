@@ -12,4 +12,6 @@ public class MessageDto
     
     [JsonPropertyName("images")] 
     public string[] Images { get; set; }
+    [JsonPropertyName("files")] 
+    public FileInfoDto[]? Files { get; set; }
 }

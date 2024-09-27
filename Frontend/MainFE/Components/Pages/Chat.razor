@@ -32,7 +32,7 @@
         }
     </FluentGridItem>
     <FluentGridItem lg="6" xs="12" Class="chat-container">
-        <ChatComponent Chat="@_selectedChat" Translate="@_translate" SelectedModel="@_selectedModel" IsLoading="@_loading" Files="@Files"/>
+        <ChatComponent Chat="@_selectedChat" Translate="@_translate" SelectedModel="@_selectedModel" IsLoading="@_loading" Images="@Files"/>
     </FluentGridItem>
     <FluentGridItem lg="2" xs="12" Style="padding: 10px">
         <h3 style="color: #3dd5f3">Select a Model</h3>
@@ -50,7 +50,7 @@
 
         @if (ExtensionMethods.IsVisionModel(_selectedModel))
         {
-            <FluentInputFile Id="my-file-uploader"
+            <FluentInputFile Id="my-image-uploader"
                              Mode="InputFileMode.SaveToTemporaryFolder"
                              Multiple="true"
                              MaximumFileCount="4"
@@ -61,13 +61,13 @@
                              Style="height: 150px; border: 1px dashed var(--accent-fill-rest); background-color: transparent !important;">
                 <ChildContent>
                     <br/>
-                    <label for="my-file-uploader">
+                    <label for="my-image-uploader">
                         <FluentIcon Value="@(new @Icons.Regular.Size24.ArrowUpload())"/>
                     </label>
 
                     <div style="color: #7aeda3">
                         Drag files here
-                        or <label for="my-file-uploader">browse</label>
+                        or <label for="my-image-uploader">browse</label>
                         <br/>
                     </div>
 
@@ -116,6 +116,9 @@
     private void OnModelSelected(string model)
     {
         _selectedModel = model;
+        _selectedChat.Model = model;
+        _selectedChat.Visual = ExtensionMethods.IsImageModel(model);
+        
     }
 
     int ProgressPercent = 0;
@@ -160,6 +163,7 @@
         if (response != null)
         {
             _selectedChat = response;
+            _selectedModel = response.Model;
             _chats.ForEach(c => c.IsSelected = c.Id == chatId);
         }
     }
@@ -185,6 +189,7 @@
             Messages = new List<Message>(),
             Name = $"{AssetName.NewName()} | {DateTime.Now.ToShortDateString()}",
             Stream = false,
+            Visual = ExtensionMethods.IsImageModel(_selectedModel)
         };
 
         var result = await Http.PostAsJsonAsync($"{ExtensionMethods.GetApiUrl()}/api/chats", newChatRequest);

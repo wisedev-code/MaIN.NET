@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace MaIN.Services.Models.Ollama;
 
-public class ChatOllama
+public class ChatRequest
 {
     [JsonPropertyName("model")] 
     public string Model { get; set; }

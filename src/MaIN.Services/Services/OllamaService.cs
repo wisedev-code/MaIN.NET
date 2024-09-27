@@ -1,19 +1,22 @@
 using System.Text.Json;
+using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
-using MaIN.Models;
 using MaIN.Services.Models;
 using MaIN.Services.Models.Ollama;
 using MaIN.Services.Services.Abstract;
+using Microsoft.Extensions.Options;
 
 namespace MaIN.Services.Services;
 
-public class OllamaService(IHttpClientFactory httpClientFactory) : IOllamaService
+public class OllamaService(
+    IHttpClientFactory httpClientFactory,
+    IOptions<MainSettings> options) : IOllamaService
 {
-    public async Task<ChatOllamaResult?> Send(Chat? chat)
+    public async Task<ChatResult?> Send(Chat? chat)
     {
         using var client = httpClientFactory.CreateClient();
-        var response = await client.PostAsync($"{GetLocalhost()}:11434/api/chat",
-            new StringContent(JsonSerializer.Serialize(new ChatOllama()
+        var response = await client.PostAsync($"{options.Value.OllamaUrl}/api/chat",
+            new StringContent(JsonSerializer.Serialize(new ChatRequest()
             {
                 Messages = chat.Messages.Select(x => new MessageDto()
                 {
@@ -32,14 +35,14 @@ public class OllamaService(IHttpClientFactory httpClientFactory) : IOllamaServic
         }
 
         var responseBody = await response.Content.ReadAsStringAsync();
-        var result = JsonSerializer.Deserialize<ChatOllamaResult>(responseBody);
+        var result = JsonSerializer.Deserialize<ChatResult>(responseBody);
         return result;
     }
     
     public async Task<List<string>> GetCurrentModels()
     {
         using var client = httpClientFactory.CreateClient();
-        var response = await client.GetAsync($"{GetLocalhost()}:11434/api/tags");
+        var response = await client.GetAsync($"{options.Value.OllamaUrl}/api/tags");
 
         if (!response.IsSuccessStatusCode)
         {
@@ -51,7 +54,4 @@ public class OllamaService(IHttpClientFactory httpClientFactory) : IOllamaServic
 
         return result!.Models.Select(x => x.Name).ToList();
     }
-    
-    private static string GetLocalhost() =>
-        Environment.GetEnvironmentVariable("LocalHost") ?? "http://localhost";
 }
