@@ -13,4 +13,5 @@ public class MongoDbSettings
     public string DatabaseName { get; set; }
     public string ChatsCollection { get; set; }
     public string AgentsCollection { get; set; }
+    public string FlowsCollection { get; set; }
 }

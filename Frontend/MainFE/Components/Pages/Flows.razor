@@ -1,0 +1,224 @@
+﻿@page "/flows"
+@using MaIN.Models.Rag
+@using MainFE.Components.Models
+@using Microsoft.FluentUI.AspNetCore.Components
+@using MainFE.Components.Elements
+@inject HttpClient Http
+@inject NavigationManager Nav
+@rendermode InteractiveServer
+
+<PageTitle>👥 Flows</PageTitle>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="css/flows.css">
+<link rel="stylesheet" href="css/chat.css">
+
+@switch (_mode)
+{
+    case AgentsFlowPageMode.List:
+        <FluentGrid Class="flow-grid" Spacing="1" Justify="JustifyContent.Center">
+            <FluentGridItem lg="4"></FluentGridItem>
+            <FluentGridItem lg="6" md="4" sm="6" xs="12" Style="margin-left: 5rem;">
+                <h2>Flows</h2>
+            </FluentGridItem>
+            <FluentGridItem lg="1">
+                @* <button @onclick="NavigateToDemo" class="cleanup-button" style="font-size: 13px !important; background-color: #4CAF50 !important; margin-left: 3rem"> *@
+                @*     <i class="fas fa-flask"></i> Demo *@
+                @* </button> *@
+            </FluentGridItem>
+            }
+            @foreach (var flow in flows)
+            {
+                <FluentGridItem lg="3" md="4" sm="6" xs="12" Class="agent-tile" @onclick="() => ViewFlowDetails(flow.Id)">
+                    <div class="agent-content">
+                        <button class="remove-btn" @onclick:stopPropagation="true"  @onclick="() => RemoveFlow(flow.Id)">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                        @* <div class="badge-agent-model">@agent.Model</div> *@
+                        @* <span class="agent-emoji">✨</span> *@
+                        @* <p>@agent.Description</p> *@ // TODO add some details
+                    </div>
+                </FluentGridItem>
+            }
+            <FluentGridItem lg="12"></FluentGridItem>
+            <FluentGridItem lg="4"></FluentGridItem>
+            <FluentGridItem lg="6" md="12" sm="12" xs="12" Style="margin: auto">
+                <button @onclick="SwitchToCreate" class="cleanup-button" style="width: 20rem; font-size: 20px !important;">
+                    <i class="fas fa-plus"></i> Create new
+                </button>
+            </FluentGridItem>
+            <FluentGridItem lg="3"></FluentGridItem>
+        </FluentGrid>
+        break;
+        
+        
+    case AgentsFlowPageMode.Create:
+        <FluentGrid Class="agents-grid" Spacing="1" Justify="JustifyContent.Center">
+            <FluentGridItem lg="3">
+                <button @onclick="GoBack" class="back-button">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+            </FluentGridItem>
+            <FluentGridItem lg="7">
+                <h2>Create new agent ✨</h2>
+            </FluentGridItem>
+            <FluentGridItem lg="8" xs="12">
+                <div class="create-form-container">
+                    <EditForm Model="newFlow" OnValidSubmit="CreateFlow">
+                        <DataAnnotationsValidator/>
+                        <ValidationSummary/>
+                        <div class="form-group">
+                            <label for="name">Name</label>
+                            <InputText id="name" @bind-Value="newFlow.Name" class="form-control"/>
+                        </div>
+                        @* <div class="form-group"> *@
+                        @*     <label for="type">Model</label> *@
+                        @*     <InputText id="type" @bind-Value="newFlow.Model" class="form-control"/> *@
+                        @* </div> *@
+                        @* <div class="form-group"> *@
+                        @*     <label for="description">Description</label> *@
+                        @*     <InputTextArea id="description" @bind-Value="newFlow.Description" class="form-control"/> *@
+                        @* </div> *@
+                        @* <div class="form-group"> *@
+                        @*     <label for="configuration">Configuration</label> *@
+                        @*     <InputTextArea id="configuration" @bind-Value="newFlow.Context.Instruction" class="form-control"/> *@
+                        @* </div> *@ //TODO add missing data
+                        @if(!_loading)
+                        {
+                            <button type="submit" class="create-button">Create</button>
+                        }
+                        else
+                        {
+                            <FluentProgressRing Visible="_loading"></FluentProgressRing>
+                        }
+                    </EditForm>
+                </div>
+            </FluentGridItem>
+        </FluentGrid>
+        break;
+    case AgentsFlowPageMode.Details:
+        <FluentGrid Class="agents-grid" Spacing="1" Justify="JustifyContent.SpaceEvenly">
+            <FluentGridItem lg="1" xs="4">
+                <button @onclick="GoBack" class="back-button">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+            </FluentGridItem>
+            <FluentGridItem lg="6" xs="12">
+                <h2>@selectedFlow.Name</h2>
+            </FluentGridItem>
+            <FluentGridItem lg="1" xs="3">
+                <button @onclick="() => Cleanup(selectedFlow.Id)" class="cleanup-button">
+                    <i class="fas fa-broom"></i> Cleanup
+                </button>
+            </FluentGridItem>
+            <FluentGridItem lg="7" xs="12">
+                @* <p>@selectedAgent.Description</p> *@
+            </FluentGridItem>
+            <FluentGridItem lg="8" xs="12" Class="chat-container" Style="height: 30rem">
+                @* @if (selectedAgent.Id == "b29211e9-9ee8-45f4-bdbb-054cb835d0d6") *@
+                @* { *@
+                @*     <ChatComponent Chat="@_selectedChat" SelectedModel="@_selectedModel" IsLoading="@_loading" CustomName="👸 Princess"/> *@
+                @* } *@
+                @* else if (selectedAgent.Id == "c39211w9-9ee8-4xf4-edbb-b54cb835d2d6") *@
+                @* { *@
+                @*     <ChatComponent Chat="@_selectedChat" SelectedModel="@_selectedModel" IsLoading="@_loading" CustomName="🌃 Panam"/> *@
+                @* } *@
+                @* else if (selectedAgent.Id == "vd9d11w9-9ee8-4xf4-edbb-b54cb335d25b") *@
+                @* { *@
+                @*     <ChatComponent Chat="@_selectedChat" SelectedModel="@_selectedModel" IsLoading="@_loading" CustomName="👨‍⚕️ Doctor"/> *@
+                @* } *@
+                @* else *@
+                @* { *@
+                @*     <ChatComponent Chat="@_selectedChat" SelectedModel="@_selectedModel" IsLoading="@_loading"/> *@
+                @* } *@
+            </FluentGridItem>
+        </FluentGrid>
+        break;
+}
+
+@code {
+    
+    // Models
+    AgentFlowDto newFlow;
+    List<string> models = new();
+    List<AgentFlowDto> flows = new();
+    string _selectedModel = string.Empty;
+    ChatDto _selectedChat = new() { Messages = new() };
+    AgentFlowDto selectedFlow = new();
+    AgentsFlowPageMode _mode = AgentsFlowPageMode.List;
+    bool _loading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        newFlow = new()
+        {
+            Id = Guid.NewGuid().ToString()
+        };
+
+        Http.Timeout = TimeSpan.FromMinutes(10);
+        await LoadFlowsAsync();
+    }
+
+    private async Task LoadChatAsync(string agentId)
+    {
+        var response = await Http.GetFromJsonAsync<ChatDto>($"{ExtensionMethods.GetApiUrl()}/api/agents/{agentId}/chat");
+        if (response != null)
+        {
+            _selectedChat = response;
+            _selectedModel = response.Model;
+        }
+    }
+
+    private async Task RemoveFlow(string agentId)
+    {
+        await Http.DeleteAsync($"{ExtensionMethods.GetApiUrl()}/api/agents/{agentId}");
+        await LoadFlowsAsync();
+    }
+    
+    private async Task Cleanup(string selectedAgentId) //Is it still valid?
+    {
+        await Http.PutAsync($"{ExtensionMethods.GetApiUrl()}/api/agents/{selectedAgentId}/chat/reset", default);
+        await LoadChatAsync(selectedAgentId);
+    }
+
+    private async Task LoadFlowsAsync()
+    {
+        var response = await Http.GetFromJsonAsync<List<AgentFlowDto>>($"{ExtensionMethods.GetApiUrl()}/api/flows");
+        if (response != null)
+        {
+            flows = response;
+        }
+    }
+
+    private async Task ViewFlowDetails(string agentId)
+    {
+        selectedFlow = flows.FirstOrDefault(a => a.Id == agentId)!;
+        _mode = AgentsFlowPageMode.Details;
+        //await LoadChatAsync(selectedAgent.Id); TODO fix this the way we can see real entrypoint for flow
+    }
+
+    private async Task CreateFlow()
+    {
+        _loading = true;
+      //  newFlow.Context.Steps = ["START"];
+        newFlow.Id = Guid.NewGuid().ToString();
+        var response = await Http.PostAsJsonAsync($"{ExtensionMethods.GetApiUrl()}/api/flows", newFlow);
+        if (response.IsSuccessStatusCode)
+        {
+            newFlow = new(); // Reset the form
+            await LoadFlowsAsync(); // Refresh the agents list
+            _loading = false;
+            _mode = AgentsFlowPageMode.List; // Switch back to list mode
+        }
+    }
+
+    private void GoBack()
+    {
+        _mode = AgentsFlowPageMode.List;
+    }
+
+    private void SwitchToCreate()
+    {
+        _mode = AgentsFlowPageMode.Create;
+    }
+}
+
