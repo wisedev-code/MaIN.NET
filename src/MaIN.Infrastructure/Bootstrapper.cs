@@ -31,6 +31,13 @@ public static class Bootstrapper
             var database = mongoClient.GetDatabase(settings.MongoDbSettings?.DatabaseName!);
             return new AgentRepository(database, settings.MongoDbSettings?.AgentsCollection!);
         });
+        
+        services.AddSingleton<IAgentFlowRepository, AgentFlowRepository>(sp =>
+        {
+            var mongoClient = sp.GetRequiredService<IMongoClient>();
+            var database = mongoClient.GetDatabase(settings.MongoDbSettings?.DatabaseName!);
+            return new AgentFlowRepository(database, settings.MongoDbSettings?.FlowsCollection!);
+        });
 
         return services;
     }

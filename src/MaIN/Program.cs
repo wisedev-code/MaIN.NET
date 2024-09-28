@@ -118,6 +118,30 @@ app.MapGet("/api/agents/{id}", async (HttpContext context,
     await context.Response.WriteAsync(JsonSerializer.Serialize(agent.ToDto()));
 });
 
+app.MapGet("/api/flows/{id}", async (HttpContext context,
+    [FromServices] IAgentFlowService agentFlowService, string id) =>
+{
+    var flow = await agentFlowService.GetFlowById(id);
+    context.Response.ContentType = "application/json";
+    await context.Response.WriteAsync(JsonSerializer.Serialize(flow.ToDto()));
+});
+
+app.MapPost("/api/flows/", async (HttpContext context,
+    [FromServices] IAgentFlowService agentFlowService, AgentFlowDto request) =>
+{
+    var flow = await agentFlowService.CreateFlow(request.ToDomain());
+    context.Response.ContentType = "application/json";
+    await context.Response.WriteAsync(JsonSerializer.Serialize(flow.ToDto()));
+});
+
+app.MapDelete("/api/flows/{id}", async (HttpContext context,
+    [FromServices] IAgentFlowService agentFlowService, string id) =>
+{
+    await agentFlowService.DeleteFlow(id);
+    context.Response.ContentType = "application/json";
+    return Results.NoContent();
+});
+
 app.MapDelete("/api/agents/{id}", async ([FromServices] IAgentService agentService,
     string id) =>
 {
