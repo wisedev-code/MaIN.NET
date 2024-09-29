@@ -1,8 +1,9 @@
 ﻿@page "/flows"
+@using System.IO.Compression
+@using System.Text.Json
 @using MaIN.Models.Rag
 @using MainFE.Components.Models
 @using Microsoft.FluentUI.AspNetCore.Components
-@using MainFE.Components.Elements
 @inject HttpClient Http
 @inject NavigationManager Nav
 @rendermode InteractiveServer
@@ -18,19 +19,18 @@
         <FluentGrid Class="flow-grid" Spacing="1" Justify="JustifyContent.Center">
             <FluentGridItem lg="4"></FluentGridItem>
             <FluentGridItem lg="6" md="4" sm="6" xs="12" Style="margin-left: 5rem;">
-                <h2>Flows</h2>
+                @* <h2>Flows</h2> *@
             </FluentGridItem>
             <FluentGridItem lg="1">
                 @* <button @onclick="NavigateToDemo" class="cleanup-button" style="font-size: 13px !important; background-color: #4CAF50 !important; margin-left: 3rem"> *@
                 @*     <i class="fas fa-flask"></i> Demo *@
                 @* </button> *@
             </FluentGridItem>
-            }
             @foreach (var flow in flows)
             {
                 <FluentGridItem lg="3" md="4" sm="6" xs="12" Class="agent-tile" @onclick="() => ViewFlowDetails(flow.Id)">
                     <div class="agent-content">
-                        <button class="remove-btn" @onclick:stopPropagation="true"  @onclick="() => RemoveFlow(flow.Id)">
+                        <button class="remove-btn" @onclick:stopPropagation="true" @onclick="() => RemoveFlow(flow.Id)">
                             <i class="fas fa-trash-alt"></i>
                         </button>
                         @* <div class="badge-agent-model">@agent.Model</div> *@
@@ -40,17 +40,33 @@
                 </FluentGridItem>
             }
             <FluentGridItem lg="12"></FluentGridItem>
-            <FluentGridItem lg="4"></FluentGridItem>
+            <FluentGridItem lg="3"></FluentGridItem>
             <FluentGridItem lg="6" md="12" sm="12" xs="12" Style="margin: auto">
-                <button @onclick="SwitchToCreate" class="cleanup-button" style="width: 20rem; font-size: 20px !important;">
-                    <i class="fas fa-plus"></i> Create new
-                </button>
+                <FluentInputFile Id="my-zip-uploader"
+                                 Mode="InputFileMode.SaveToTemporaryFolder"
+                                 Multiple="true"
+                                 MaximumFileCount="4"
+                                 MaximumFileSize="@(10 * 1024 * 1024)"
+                                 Accept=".zip"
+                                 @* @bind-ProgressPercent="@ProgressPercent" *@
+                                 OnCompleted="@OnCompletedAsync"
+                                 Style="background-color: transparent !important;">
+                    <ChildContent>
+                        <label for="my-zip-uploader" class="cleanup-button"
+                               style="text-decoration: none !important; font-style: normal; width: 20rem; font-size: 20px !important;" >
+                            <i class="fas fa-stream"></i> Import flow
+                            @* <button class="cleanup-button" style="width: 20rem; font-size: 20px !important;"> *@
+                            @*     <i class="fas fa-stream"></i> Import flow *@
+                            @* </button> *@
+                        </label>
+                    </ChildContent>
+                </FluentInputFile>
             </FluentGridItem>
             <FluentGridItem lg="3"></FluentGridItem>
         </FluentGrid>
         break;
-        
-        
+
+
     case AgentsFlowPageMode.Create:
         <FluentGrid Class="agents-grid" Spacing="1" Justify="JustifyContent.Center">
             <FluentGridItem lg="3">
@@ -59,7 +75,7 @@
                 </button>
             </FluentGridItem>
             <FluentGridItem lg="7">
-                <h2>Create new agent ✨</h2>
+                <h2>Create new flow ✨</h2>
             </FluentGridItem>
             <FluentGridItem lg="8" xs="12">
                 <div class="create-form-container">
@@ -82,7 +98,7 @@
                         @*     <label for="configuration">Configuration</label> *@
                         @*     <InputTextArea id="configuration" @bind-Value="newFlow.Context.Instruction" class="form-control"/> *@
                         @* </div> *@ //TODO add missing data
-                        @if(!_loading)
+                        @if (!_loading)
                         {
                             <button type="submit" class="create-button">Create</button>
                         }
@@ -95,6 +111,8 @@
             </FluentGridItem>
         </FluentGrid>
         break;
+
+
     case AgentsFlowPageMode.Details:
         <FluentGrid Class="agents-grid" Spacing="1" Justify="JustifyContent.SpaceEvenly">
             <FluentGridItem lg="1" xs="4">
@@ -136,7 +154,7 @@
 }
 
 @code {
-    
+
     // Models
     AgentFlowDto newFlow;
     List<string> models = new();
@@ -170,10 +188,10 @@
 
     private async Task RemoveFlow(string agentId)
     {
-        await Http.DeleteAsync($"{ExtensionMethods.GetApiUrl()}/api/agents/{agentId}");
+        await Http.DeleteAsync($"{ExtensionMethods.GetApiUrl()}/api/flows/{agentId}");
         await LoadFlowsAsync();
     }
-    
+
     private async Task Cleanup(string selectedAgentId) //Is it still valid?
     {
         await Http.PutAsync($"{ExtensionMethods.GetApiUrl()}/api/agents/{selectedAgentId}/chat/reset", default);
@@ -199,7 +217,7 @@
     private async Task CreateFlow()
     {
         _loading = true;
-      //  newFlow.Context.Steps = ["START"];
+        //  newFlow.Context.Steps = ["START"];
         newFlow.Id = Guid.NewGuid().ToString();
         var response = await Http.PostAsJsonAsync($"{ExtensionMethods.GetApiUrl()}/api/flows", newFlow);
         if (response.IsSuccessStatusCode)
@@ -220,5 +238,41 @@
     {
         _mode = AgentsFlowPageMode.Create;
     }
-}
 
+    private async Task OnCompletedAsync(IEnumerable<FluentInputFileEventArgs> files)
+    {
+        List<AgentDto> agents = new List<AgentDto>();
+        foreach (var fileEvent in files)
+        {
+            var file = fileEvent.LocalFile; // Access the uploaded file
+        
+            if (file != null && file.Name.EndsWith(".zip"))
+            {
+                await using var stream = file.Open(FileMode.Open);
+                // Create a ZipArchive object from the stream
+                using var zipArchive = new ZipArchive(stream, ZipArchiveMode.Read);
+                foreach (var entry in zipArchive.Entries)
+                {
+                    if (!entry.FullName.EndsWith(".json", StringComparison.OrdinalIgnoreCase)) continue;
+                    // Extract JSON file
+                    await using var jsonStream = entry.Open();
+                    using var reader = new StreamReader(jsonStream);
+                    var jsonString = await reader.ReadToEndAsync();
+                                
+                    // Process the JSON string (e.g., deserialize it into an object)
+                    var agent = JsonSerializer.Deserialize<AgentDto>(jsonString);
+                                
+                    // Now, you can work with the jsonObject
+                    agents.Add(agent!);
+                }
+            }
+        }
+
+        var newFlow = new AgentFlowDto()
+        {
+            Agents = agents,
+            Name = files.First().Name
+        };
+    }
+
+}
