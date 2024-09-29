@@ -10,6 +10,9 @@ public class AgentFlowService(IAgentFlowRepository flowRepository) : IAgentFlowS
     public async Task<AgentFlow> GetFlowById(string id)
         => (await flowRepository.GetFlowById(id)).ToDomain();
 
+    public async Task<List<AgentFlow>> GetAllFlows()
+        => (await flowRepository.GetAllFlows()).Select(x => x.ToDomain()).ToList();
+
     public async Task<AgentFlow> CreateFlow(AgentFlow flow)
     {
         await flowRepository.AddFlow(flow.ToDocument());

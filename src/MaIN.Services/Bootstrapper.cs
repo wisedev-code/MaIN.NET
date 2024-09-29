@@ -16,6 +16,7 @@ public static class Bootstrapper
         serviceCollection.AddSingleton<IImageGenService, ImageGenService>();
         serviceCollection.AddSingleton<IChatService, ChatService>();
         serviceCollection.AddSingleton<IAgentService, AgentService>();
+        serviceCollection.AddSingleton<IAgentFlowService, AgentFlowService>();
         serviceCollection.AddSingleton<ITranslatorService, TranslatorService>();
         serviceCollection.AddSingleton<IOllamaService, OllamaService>();
 

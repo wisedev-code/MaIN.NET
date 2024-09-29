@@ -126,6 +126,14 @@ app.MapGet("/api/flows/{id}", async (HttpContext context,
     await context.Response.WriteAsync(JsonSerializer.Serialize(flow.ToDto()));
 });
 
+app.MapGet("/api/flows/", async (HttpContext context,
+    [FromServices] IAgentFlowService agentFlowService) =>
+{
+    var flows = await agentFlowService.GetAllFlows();
+    context.Response.ContentType = "application/json";
+    await context.Response.WriteAsync(JsonSerializer.Serialize(flows.Select(x => x.ToDto())));
+});
+
 app.MapPost("/api/flows/", async (HttpContext context,
     [FromServices] IAgentFlowService agentFlowService, AgentFlowDto request) =>
 {
