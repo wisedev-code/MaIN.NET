@@ -17,31 +17,8 @@
 {
     case AgentsFlowPageMode.List:
         <FluentGrid Class="flow-grid" Spacing="1" Justify="JustifyContent.Center">
-            <FluentGridItem lg="4"></FluentGridItem>
-            <FluentGridItem lg="6" md="4" sm="6" xs="12" Style="margin-left: 5rem;">
-                @* <h2>Flows</h2> *@
-            </FluentGridItem>
-            <FluentGridItem lg="1">
-                @* <button @onclick="NavigateToDemo" class="cleanup-button" style="font-size: 13px !important; background-color: #4CAF50 !important; margin-left: 3rem"> *@
-                @*     <i class="fas fa-flask"></i> Demo *@
-                @* </button> *@
-            </FluentGridItem>
-            @foreach (var flow in flows)
-            {
-                <FluentGridItem lg="3" md="4" sm="6" xs="12" Class="agent-tile" @onclick="() => ViewFlowDetails(flow.Id)">
-                    <div class="agent-content">
-                        <button class="remove-btn" @onclick:stopPropagation="true" @onclick="() => RemoveFlow(flow.Id)">
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
-                        @* <div class="badge-agent-model">@agent.Model</div> *@
-                        @* <span class="agent-emoji">✨</span> *@
-                        @* <p>@agent.Description</p> *@ // TODO add some details
-                    </div>
-                </FluentGridItem>
-            }
-            <FluentGridItem lg="12"></FluentGridItem>
-            <FluentGridItem lg="3"></FluentGridItem>
-            <FluentGridItem lg="6" md="12" sm="12" xs="12" Style="margin: auto">
+            @* <FluentGridItem lg="1"></FluentGridItem> *@
+            <FluentGridItem lg="8" md="4" sm="6" xs="12" Style="margin-left: 5rem;">
                 <FluentInputFile Id="my-zip-uploader"
                                  Mode="InputFileMode.SaveToTemporaryFolder"
                                  Multiple="true"
@@ -50,10 +27,10 @@
                                  Accept=".zip"
                                  @* @bind-ProgressPercent="@ProgressPercent" *@
                                  OnCompleted="@OnCompletedAsync"
-                                 Style="background-color: transparent !important;">
+                                 Style="background-color: transparent !important; color: whitesmoke !important;">
                     <ChildContent>
                         <label for="my-zip-uploader" class="cleanup-button"
-                               style="text-decoration: none !important; font-style: normal; width: 20rem; font-size: 20px !important;" >
+                               style="text-decoration: none !important; font-style: normal; width: 20rem; font-size: 20px !important; color: white" >
                             <i class="fas fa-stream"></i> Import flow
                             @* <button class="cleanup-button" style="width: 20rem; font-size: 20px !important;"> *@
                             @*     <i class="fas fa-stream"></i> Import flow *@
@@ -61,6 +38,53 @@
                         </label>
                     </ChildContent>
                 </FluentInputFile>
+            </FluentGridItem>
+            <FluentGridItem lg="1">
+                @* <button @onclick="NavigateToDemo" class="cleanup-button" style="font-size: 13px !important; background-color: #4CAF50 !important; margin-left: 3rem"> *@
+                @*     <i class="fas fa-flask"></i> Demo *@
+                @* </button> *@
+            </FluentGridItem>
+            <FluentProgressRing Visible="_loading"></FluentProgressRing>
+
+            @foreach (var flow in flows)
+            {
+                <FluentGridItem lg="3" md="4" sm="6" xs="12" Class="flow-tile" @onclick="() => ViewFlowDetails(flow.Id)">
+                    <div class="flow-content">
+                        <button class="remove-btn" @onclick:stopPropagation="true" @onclick="() => RemoveFlow(flow.Id)">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                        <div class="badge-agent-model">@flow.Name ✨</div>
+                        @foreach (var agent in flow.Agents.Select((value, index) => new { value, index }))
+                        {
+                        <div>
+                            @agent.index + 1. @agent.value.Name - <strong>@agent.value.Model</strong>
+                        </div>
+                        }
+                    </div>
+                </FluentGridItem>
+            }
+            <FluentGridItem lg="12"></FluentGridItem>
+            <FluentGridItem lg="3"></FluentGridItem>
+            <FluentGridItem lg="6" md="12" sm="12" xs="12" Style="margin: auto">
+                @* <FluentInputFile Id="my-zip-uploader" *@
+                @*                  Mode="InputFileMode.SaveToTemporaryFolder" *@
+                @*                  Multiple="true" *@
+                @*                  MaximumFileCount="4" *@
+                @*                  MaximumFileSize="@(10 * 1024 * 1024)" *@
+                @*                  Accept=".zip" *@
+                @*                  $1$ @bind-ProgressPercent="@ProgressPercent" #1# *@
+                @*                  OnCompleted="@OnCompletedAsync" *@
+                @*                  Style="background-color: transparent !important;"> *@
+                @*     <ChildContent> *@
+                @*         <label for="my-zip-uploader" class="cleanup-button" *@
+                @*                style="text-decoration: none !important; font-style: normal; width: 20rem; font-size: 20px !important;" > *@
+                @*             <i class="fas fa-stream"></i> Import flow *@
+                @*             $1$ <button class="cleanup-button" style="width: 20rem; font-size: 20px !important;"> #1# *@
+                @*             $1$     <i class="fas fa-stream"></i> Import flow #1# *@
+                @*             $1$ </button> #1# *@
+                @*         </label> *@
+                @*     </ChildContent> *@
+                @* </FluentInputFile> *@
             </FluentGridItem>
             <FluentGridItem lg="3"></FluentGridItem>
         </FluentGrid>
@@ -186,9 +210,9 @@
         }
     }
 
-    private async Task RemoveFlow(string agentId)
+    private async Task RemoveFlow(string flowId)
     {
-        await Http.DeleteAsync($"{ExtensionMethods.GetApiUrl()}/api/flows/{agentId}");
+        await Http.DeleteAsync($"{ExtensionMethods.GetApiUrl()}/api/flows/{flowId}");
         await LoadFlowsAsync();
     }
 
@@ -241,12 +265,13 @@
 
     private async Task OnCompletedAsync(IEnumerable<FluentInputFileEventArgs> files)
     {
+        _loading = true;
         List<AgentDto> agents = new List<AgentDto>();
         foreach (var fileEvent in files)
         {
             var file = fileEvent.LocalFile; // Access the uploaded file
         
-            if (file != null && file.Name.EndsWith(".zip"))
+            if (file != null && fileEvent.Name.EndsWith(".zip"))
             {
                 await using var stream = file.Open(FileMode.Open);
                 // Create a ZipArchive object from the stream
@@ -271,8 +296,12 @@
         var newFlow = new AgentFlowDto()
         {
             Agents = agents,
-            Name = files.First().Name
+            Name = files.First().Name.Split('.').First()
         };
+        
+        await Http.PostAsJsonAsync($"{ExtensionMethods.GetApiUrl()}/api/flows", newFlow);
+        await LoadFlowsAsync();
+        _loading = false;
     }
 
 }

@@ -1,0 +1,11 @@
+{
+    "id": "2998a83a-42ee-444b-9289-231ad2536c4c",
+    "name": "agent_poet",
+    "description": "1st in a flow",
+    "model": "gemma2:2b",
+    "context": 
+    {
+        "instruction": "Your role is to write a poem for a topic that user gives you",
+        "steps": ["ANSWER"]
+    }
+}
