@@ -15,6 +15,7 @@ public class AgentFlowService(IAgentFlowRepository flowRepository) : IAgentFlowS
 
     public async Task<AgentFlow> CreateFlow(AgentFlow flow)
     {
+        flow.Id ??= Guid.NewGuid().ToString();
         await flowRepository.AddFlow(flow.ToDocument());
         return flow;
     }
