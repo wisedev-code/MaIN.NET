@@ -1,4 +1,5 @@
 using System.Text.Json;
+using MaIN;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Infrastructure;
@@ -19,6 +20,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddHttpClient();
+builder.Services.AddSignalR();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFE",
@@ -43,6 +45,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors("AllowFE");
+app.MapHub<NotificationHub>("/notifications");
+
 
 //Initialize agents flow
 app.Services.InitializeAgents();

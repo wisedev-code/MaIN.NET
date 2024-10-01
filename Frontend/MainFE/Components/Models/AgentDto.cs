@@ -8,4 +8,6 @@ public class AgentDto
     public string? Description { get; set; }
     public bool Started { get; set; }
     public AgentContextDto Context { get; set; }
+    public bool IsProcessing { get; set; }
+    public string? AgentDependencyId { get; set; }
 }

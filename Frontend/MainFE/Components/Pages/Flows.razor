@@ -3,6 +3,7 @@
 @using System.Text.Json
 @using MaIN.Models.Rag
 @using MainFE.Components.Models
+@using Microsoft.AspNetCore.SignalR.Client
 @using Microsoft.FluentUI.AspNetCore.Components
 @inject HttpClient Http
 @inject NavigationManager Nav
@@ -91,7 +92,7 @@
         break;
 
 
-    case AgentsFlowPageMode.Create:
+    case AgentsFlowPageMode.Details:
         <FluentGrid Class="agents-grid" Spacing="1" Justify="JustifyContent.Center">
             <FluentGridItem lg="3">
                 <button @onclick="GoBack" class="back-button">
@@ -99,79 +100,21 @@
                 </button>
             </FluentGridItem>
             <FluentGridItem lg="7">
-                <h2>Create new flow ✨</h2>
-            </FluentGridItem>
-            <FluentGridItem lg="8" xs="12">
-                <div class="create-form-container">
-                    <EditForm Model="newFlow" OnValidSubmit="CreateFlow">
-                        <DataAnnotationsValidator/>
-                        <ValidationSummary/>
-                        <div class="form-group">
-                            <label for="name">Name</label>
-                            <InputText id="name" @bind-Value="newFlow.Name" class="form-control"/>
-                        </div>
-                        @* <div class="form-group"> *@
-                        @*     <label for="type">Model</label> *@
-                        @*     <InputText id="type" @bind-Value="newFlow.Model" class="form-control"/> *@
-                        @* </div> *@
-                        @* <div class="form-group"> *@
-                        @*     <label for="description">Description</label> *@
-                        @*     <InputTextArea id="description" @bind-Value="newFlow.Description" class="form-control"/> *@
-                        @* </div> *@
-                        @* <div class="form-group"> *@
-                        @*     <label for="configuration">Configuration</label> *@
-                        @*     <InputTextArea id="configuration" @bind-Value="newFlow.Context.Instruction" class="form-control"/> *@
-                        @* </div> *@ //TODO add missing data
-                        @if (!_loading)
-                        {
-                            <button type="submit" class="create-button">Create</button>
-                        }
-                        else
-                        {
-                            <FluentProgressRing Visible="_loading"></FluentProgressRing>
-                        }
-                    </EditForm>
-                </div>
-            </FluentGridItem>
-        </FluentGrid>
-        break;
-
-
-    case AgentsFlowPageMode.Details:
-        <FluentGrid Class="agents-grid" Spacing="1" Justify="JustifyContent.SpaceEvenly">
-            <FluentGridItem lg="1" xs="4">
-                <button @onclick="GoBack" class="back-button">
-                    <i class="fas fa-arrow-left"></i>
-                </button>
-            </FluentGridItem>
-            <FluentGridItem lg="6" xs="12">
-                <h2>@selectedFlow.Name</h2>
-            </FluentGridItem>
-            <FluentGridItem lg="1" xs="3">
-                <button @onclick="() => Cleanup(selectedFlow.Id)" class="cleanup-button">
-                    <i class="fas fa-broom"></i> Cleanup
-                </button>
-            </FluentGridItem>
-            <FluentGridItem lg="7" xs="12">
-                @* <p>@selectedAgent.Description</p> *@
-            </FluentGridItem>
-            <FluentGridItem lg="8" xs="12" Class="chat-container" Style="height: 30rem">
-                @* @if (selectedAgent.Id == "b29211e9-9ee8-45f4-bdbb-054cb835d0d6") *@
-                @* { *@
-                @*     <ChatComponent Chat="@_selectedChat" SelectedModel="@_selectedModel" IsLoading="@_loading" CustomName="👸 Princess"/> *@
-                @* } *@
-                @* else if (selectedAgent.Id == "c39211w9-9ee8-4xf4-edbb-b54cb835d2d6") *@
-                @* { *@
-                @*     <ChatComponent Chat="@_selectedChat" SelectedModel="@_selectedModel" IsLoading="@_loading" CustomName="🌃 Panam"/> *@
-                @* } *@
-                @* else if (selectedAgent.Id == "vd9d11w9-9ee8-4xf4-edbb-b54cb335d25b") *@
-                @* { *@
-                @*     <ChatComponent Chat="@_selectedChat" SelectedModel="@_selectedModel" IsLoading="@_loading" CustomName="👨‍⚕️ Doctor"/> *@
-                @* } *@
-                @* else *@
-                @* { *@
-                @*     <ChatComponent Chat="@_selectedChat" SelectedModel="@_selectedModel" IsLoading="@_loading"/> *@
-                @* } *@
+              <div class="agent-container">
+                  @foreach (var agent in selectedFlow.Agents)
+                  {
+                      <div class="agent-card @GetProcessingClass(agent)" id="@GetAgentId(agent)">
+                          <FluentCard>
+                              <h3>@agent.Name</h3>
+                          </FluentCard>
+              
+                          @if (agent.AgentDependencyId is not null)
+                          {
+                              <div class="agent-line" data-from="@agent.Id" data-to="@agent.AgentDependencyId"></div>
+                          }
+                      </div>
+                  }
+              </div>
             </FluentGridItem>
         </FluentGrid>
         break;
@@ -188,6 +131,7 @@
     AgentFlowDto selectedFlow = new();
     AgentsFlowPageMode _mode = AgentsFlowPageMode.List;
     bool _loading = false;
+    private HubConnection? hubConnection;
 
     protected override async Task OnInitializedAsync()
     {
@@ -195,7 +139,25 @@
         {
             Id = Guid.NewGuid().ToString()
         };
+        
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl($"{ExtensionMethods.GetApiUrl()}/diagnostic")
+            .Build();
+        
+        hubConnection!.On<JsonElement>("ReceiveAgentUpdate", (jsonElement) =>
+        {
+            var agentId = jsonElement.GetProperty("agentId").GetString();
+            var isProcessing = jsonElement.GetProperty("isProcessing").GetBoolean();
 
+            var agent = selectedFlow.Agents.FirstOrDefault(a => a.Id.ToString() == agentId);
+            if (agent != null)
+            {
+                agent.IsProcessing = isProcessing;
+                InvokeAsync(StateHasChanged); 
+            }
+        });
+
+        await hubConnection.StartAsync();
         Http.Timeout = TimeSpan.FromMinutes(10);
         await LoadFlowsAsync();
     }
@@ -209,7 +171,13 @@
             _selectedModel = response.Model;
         }
     }
+    
+    private string GetProcessingClass(AgentDto agent)
+    {
+        return agent.IsProcessing ? "loading-border" : string.Empty;
+    }
 
+    private string GetAgentId(AgentDto agent) => $"agent-{agent.Id}";
     private async Task RemoveFlow(string flowId)
     {
         await Http.DeleteAsync($"{ExtensionMethods.GetApiUrl()}/api/flows/{flowId}");
