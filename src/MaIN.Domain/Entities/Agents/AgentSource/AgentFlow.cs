@@ -5,4 +5,5 @@ public class AgentFlow
     public string? Id { get; set; }
     public string Name { get; set; }
     public List<Agent> Agents { get; set; }
+    public string Description { get; set; }
 }

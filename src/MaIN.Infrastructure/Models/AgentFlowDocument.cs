@@ -8,4 +8,5 @@ public class AgentFlowDocument
     public string Id { get; set; }
     public string Name { get; set; }
     public List<AgentDocument> Agents { get; set; }
+    public string Description { get; set; }
 }

@@ -8,7 +8,7 @@
 @inject NavigationManager Nav
 @rendermode InteractiveServer
 
-<PageTitle>👥 Flows</PageTitle>
+<PageTitle>🌀 Flows</PageTitle>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
 <link rel="stylesheet" href="css/flows.css">
 <link rel="stylesheet" href="css/chat.css">
@@ -30,7 +30,7 @@
                                  Style="background-color: transparent !important; color: whitesmoke !important;">
                     <ChildContent>
                         <label for="my-zip-uploader" class="cleanup-button"
-                               style="text-decoration: none !important; font-style: normal; width: 20rem; font-size: 20px !important; color: white" >
+                               style="text-decoration: none !important; font-style: normal; width: 20rem; font-size: 20px !important; color: white">
                             <i class="fas fa-stream"></i> Import flow
                             @* <button class="cleanup-button" style="width: 20rem; font-size: 20px !important;"> *@
                             @*     <i class="fas fa-stream"></i> Import flow *@
@@ -48,18 +48,38 @@
 
             @foreach (var flow in flows)
             {
-                <FluentGridItem lg="3" md="4" sm="6" xs="12" Class="flow-tile" @onclick="() => ViewFlowDetails(flow.Id)">
-                    <div class="flow-content">
-                        <button class="remove-btn" @onclick:stopPropagation="true" @onclick="() => RemoveFlow(flow.Id)">
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
-                        <div class="badge-agent-model">@flow.Name ✨</div>
-                        @foreach (var agent in flow.Agents.Select((value, index) => new { value, index }))
-                        {
-                        <div>
-                            @agent.index + 1. @agent.value.Name - <strong>@agent.value.Model</strong>
+                <FluentGridItem lg="3" md="4" sm="6" xs="12" Class="flow-tile-container">
+                    <div class="flow-tile" @onclick="() => ViewFlowDetails(flow.Id)">
+                        <div class="flow-header">
+                            <FluentBadge Appearance="Appearance.Neutral" Class="flow-name-badge">
+                                @flow.Name 🌀
+                            </FluentBadge>
+                            <button class="remove-btn" @onclick:stopPropagation="true" @onclick="() => RemoveFlow(flow.Id)">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
                         </div>
-                        }
+                        <div class="flow-description-box">
+                            <p>@flow.Description</p>
+                        </div>
+                        <div class="flow-agents">
+                            @foreach (var agent in flow.Agents.Select((value, index) => new { value, index }))
+                            {
+                                <div class="agent-item">
+                                    <span class="agent-number">@(agent.index + 1).</span>
+                                    <span class="agent-name">@agent.value.Name</span>
+                                    <FluentBadge Style="margin-left: 5px;" Appearance="Appearance.Accent">@agent.value.Model</FluentBadge>
+                                    <FluentBadge Style="margin-left: 5px;" Appearance="Appearance.Accent">@(agent.value.Context.Steps.Count == 1 ? "1 step" : $"{agent.value.Context.Steps.Count} steps")</FluentBadge>
+                                    @if (IsEntryPoint(flow, agent.value))
+                                    {
+                                        <i class="fas fa-sign-in-alt entry-icon" title="Entry Point"></i>
+                                    }
+                                    @if (IsExitPoint(agent.value))
+                                    {
+                                        <i class="fas fa-sign-out-alt exit-icon" title="Exit Point"></i>
+                                    }
+                                </div>
+                            }
+                        </div>
                     </div>
                 </FluentGridItem>
             }
@@ -258,6 +278,16 @@
         _mode = AgentsFlowPageMode.List;
     }
 
+    private bool IsEntryPoint(AgentFlowDto flow, AgentDto agent)
+    {
+        return flow.Agents.All(a => !a.Context.Steps.Any(step => step.Contains("REDIRECT") && step.Contains(agent.Id))) || flow.Agents.Count == 1;
+    }
+
+    private bool IsExitPoint(AgentDto agent)
+    {
+        return !agent.Context.Steps.Any(step => step.StartsWith("REDIRECT")) || agent.Context.Steps.Count == 1;
+    }
+    
     private void SwitchToCreate()
     {
         _mode = AgentsFlowPageMode.Create;
@@ -267,10 +297,11 @@
     {
         _loading = true;
         List<AgentDto> agents = new List<AgentDto>();
+        var desc = string.Empty;
+
         foreach (var fileEvent in files)
         {
             var file = fileEvent.LocalFile; // Access the uploaded file
-        
             if (file != null && fileEvent.Name.EndsWith(".zip"))
             {
                 await using var stream = file.Open(FileMode.Open);
@@ -278,15 +309,23 @@
                 using var zipArchive = new ZipArchive(stream, ZipArchiveMode.Read);
                 foreach (var entry in zipArchive.Entries)
                 {
+                    if (entry.FullName.EndsWith("description.txt"))
+                    {
+                        await using var textStream = entry.Open();
+                        using var textReader = new StreamReader(textStream);
+                        var txtString = await textReader.ReadToEndAsync();
+                        desc = txtString;
+                    }
+
                     if (!entry.FullName.EndsWith(".json", StringComparison.OrdinalIgnoreCase)) continue;
                     // Extract JSON file
                     await using var jsonStream = entry.Open();
                     using var reader = new StreamReader(jsonStream);
                     var jsonString = await reader.ReadToEndAsync();
-                                
+
                     // Process the JSON string (e.g., deserialize it into an object)
                     var agent = JsonSerializer.Deserialize<AgentDto>(jsonString);
-                                
+
                     // Now, you can work with the jsonObject
                     agents.Add(agent!);
                 }
@@ -296,9 +335,10 @@
         var newFlow = new AgentFlowDto()
         {
             Agents = agents,
-            Name = files.First().Name.Split('.').First()
+            Name = files.First().Name.Split('.').First(),
+            Description = desc
         };
-        
+
         await Http.PostAsJsonAsync($"{ExtensionMethods.GetApiUrl()}/api/flows", newFlow);
         await LoadFlowsAsync();
         _loading = false;
