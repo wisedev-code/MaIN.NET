@@ -77,6 +77,36 @@ body {
     margin-right: 8px; /* Space between the icon and text (if any) */
 }
 
+.agent-card {
+    padding: 15px;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1);
+    background-color: white;
+    transition: border 0.3s ease;
+}
+
+.agent-card:hover {
+    border-color: #0078d4;
+}
+
+.loading-border {
+    border-color: #0078d4;
+    animation: borderBlink 1.5s infinite;
+}
+
+@keyframes borderBlink {
+    0% {
+        border-color: transparent;
+    }
+    50% {
+        border-color: #0078d4;
+    }
+    100% {
+        border-color: transparent;
+    }
+}
+
 .cleanup-button {
     background-color: #4CAF50; /* Green background */
     border: none; /* Remove borders */
