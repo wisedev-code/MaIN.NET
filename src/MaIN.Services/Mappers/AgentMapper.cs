@@ -24,8 +24,8 @@ public static class AgentMapper
         => new()
         {
             Instruction = agentContext.Instruction,
-            Relations = agentContext.Relations,
-            Steps = new List<string>(),
+            Relations = agentContext?.Relations,
+            Steps = agentContext?.Steps.Select(x => x.Key).ToList() ?? [],
             Source = new AgentSourceDto()
             {
                 Details = agentContext.Source.Details,

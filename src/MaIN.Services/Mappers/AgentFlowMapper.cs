@@ -12,6 +12,7 @@ public static class AgentFlowMapper
         {
             Id = agentFlow.Id,
             Name = agentFlow.Name,
+            Description = agentFlow.Description,
             Agents = agentFlow.Agents.Select(x => x.ToDto()).ToList()
         };
     }
@@ -21,6 +22,7 @@ public static class AgentFlowMapper
         {
             Id = agentFlow.Id,
             Name = agentFlow.Name,
+            Description = agentFlow.Description,
             Agents = agentFlow.Agents.Select(x => x.ToDomain()).ToList()
         };
 
@@ -29,6 +31,7 @@ public static class AgentFlowMapper
         {
             Id = agentFlow.Id,
             Name = agentFlow.Name,
+            Description = agentFlow.Description,
             Agents = agentFlow.Agents.Select(x => x.ToDomain()).ToList()
         };
 
@@ -37,6 +40,7 @@ public static class AgentFlowMapper
         {
             Id = agentFlow.Id,
             Name = agentFlow.Name,
+            Description = agentFlow.Description,
             Agents = agentFlow.Agents.Select(x => x.ToDocument()).ToList()
         };
     
@@ -45,6 +49,7 @@ public static class AgentFlowMapper
         {
             Id = agentFlow.Id,
             Name = agentFlow.Name,
+            Description = agentFlow.Description,
             Agents = agentFlow.Agents.Select(x => x.ToDomain()).ToList()
         };
 }
