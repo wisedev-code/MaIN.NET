@@ -223,6 +223,7 @@ body {
     display: flex;
     justify-content: center;
     margin-bottom: 12px;
+    position: relative;
 }
 
 .flow-name-badge {
@@ -254,30 +255,61 @@ fluent-badge span{
     margin: 0;
     line-height: 1.4;
 }
-
 .flow-agents {
-    font-size: 0.9em;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: rgba(204, 195, 195, 0.1);
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 5px;
+    flex-grow: 1;
 }
 
 .agent-item {
     display: flex;
     align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    max-width: 400px;
     margin-bottom: 8px;
 }
 
 .agent-number {
-    margin-right: 8px;
     font-weight: bold;
-    color: #a0a0a0;
+    margin-right: 8px;
+    color: #ffffff;
+    min-width: 25px;
 }
 
 .agent-name {
-    margin-right: 8px;
+    font-weight: 500;
     color: #ffffff;
+    margin-right: 8px;
+    min-width: 120px;
 }
 
-.agent-item fluent-badge {
-    font-size: 0.75em;
-    background-color: transparent;
-    border-color: #4a4a4a;
+.agent-badges {
+    display: flex;
+    margin-right: 8px;
+}
+
+.model-badge, .steps-badge {
+    margin-right: 4px;
+    font-size: 0.8em;
+    padding: 2px 6px;
+    background-color: #5d8e59;
+}
+
+.entry-icon, .exit-icon {
+    font-size: 1.4em;
+    margin-left: auto;
+}
+
+.entry-icon {
+    color: #4CAF50;
+}
+
+.exit-icon {
+    color: #f44336;
 }
