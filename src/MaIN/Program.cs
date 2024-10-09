@@ -45,7 +45,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors("AllowFE");
-app.MapHub<NotificationHub>("/notifications");
+app.MapHub<NotificationHub>("/diagnostics");
 
 
 //Initialize agents flow

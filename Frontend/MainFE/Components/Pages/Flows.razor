@@ -66,15 +66,18 @@
                             @foreach (var agent in flow.Agents.Select((value, index) => new { value, index }))
                             {
                                 <div class="agent-item">
-                                    <span class="agent-number">@(agent.index + 1).</span>
-                                    <span class="agent-name">@agent.value.Name</span>
-                                    <FluentBadge Style="margin-left: 5px;" Appearance="Appearance.Accent">@agent.value.Model</FluentBadge>
-                                    <FluentBadge Style="margin-left: 5px;" Appearance="Appearance.Accent">@(agent.value.Context.Steps.Count == 1 ? "1 step" : $"{agent.value.Context.Steps.Count} steps")</FluentBadge>
+                                    <span class="agent-number">@(agent.index + 1). @agent.value.Name</span>
+                                    <div class="agent-badges">
+                                        <span class="model-badge">@agent.value.Model</span>
+                                        <span class="steps-badge">
+                                            @(agent.value.Context.Steps.Count) steps
+                                        </span>
+                                    </div>
                                     @if (IsEntryPoint(flow, agent.value))
                                     {
                                         <i class="fas fa-sign-in-alt entry-icon" title="Entry Point"></i>
                                     }
-                                    @if (IsExitPoint(agent.value))
+                                    else if (IsExitPoint(agent.value))
                                     {
                                         <i class="fas fa-sign-out-alt exit-icon" title="Exit Point"></i>
                                     }
@@ -125,7 +128,8 @@
                   {
                       <div class="agent-card @GetProcessingClass(agent)" id="@GetAgentId(agent)">
                           <FluentCard>
-                              <h3>@agent.Name</h3>
+                              <h5>@agent.Name</h5>
+                              <span class="model-badge">@agent.Model</span>
                           </FluentCard>
               
                           @if (agent.AgentDependencyId is not null)
@@ -161,7 +165,7 @@
         };
         
         hubConnection = new HubConnectionBuilder()
-            .WithUrl($"{ExtensionMethods.GetApiUrl()}/diagnostic")
+            .WithUrl($"{ExtensionMethods.GetApiUrl()}/diagnostics")
             .Build();
         
         hubConnection!.On<JsonElement>("ReceiveAgentUpdate", (jsonElement) =>
