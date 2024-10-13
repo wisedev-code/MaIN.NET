@@ -16,12 +16,18 @@ namespace MaIN.Services.Services;
 
 public class AgentService(
     IAgentRepository agentRepository,
-    IChatRepository chatRepository) : IAgentService
+    IChatRepository chatRepository, 
+    INotificationService notificationService) : IAgentService
 {
     public async Task<Chat?> Process(Chat? chat, string agentId, bool translatePrompt = false)
     {
         // Fetch the agent details from the repository
         var agent = await agentRepository.GetAgentById(agentId);
+        await notificationService.DispatchNotification(new
+        {
+            AgnetId = agent!.Id,
+            IsProcessing = true
+        });
 
         // Ensure the agent and its context are valid
         if (agent == null)
@@ -37,6 +43,11 @@ public class AgentService(
 
         chat = await ProcessSteps(context, chat);
 
+        await notificationService.DispatchNotification(new
+        {
+            AgnetId = agent!.Id,
+            IsProcessing = false
+        });
         // Return the processed chat
         return chat;
     }

@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using MainFE.Components.Models;
 
 namespace MaIN.Models.Rag;
 
@@ -16,6 +17,8 @@ public class AgentDto
     public bool Started { get; set; }
     [JsonPropertyName("context")]
     public AgentContextDto Context { get; set; }
+    public AgentProcessingState State { get; set; }
+
     public bool IsProcessing { get; set; }
     public string? AgentDependencyId { get; set; }
 }

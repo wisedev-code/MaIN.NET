@@ -5,6 +5,7 @@
 @using MainFE.Components.Models
 @using Microsoft.AspNetCore.SignalR.Client
 @using Microsoft.FluentUI.AspNetCore.Components
+@using Message = MainFE.Components.Models.Message
 @inject HttpClient Http
 @inject NavigationManager Nav
 @rendermode InteractiveServer
@@ -113,40 +114,79 @@
             <FluentGridItem lg="3"></FluentGridItem>
         </FluentGrid>
         break;
-
-
+        
     case AgentsFlowPageMode.Details:
-        <FluentGrid Class="agents-grid" Spacing="1" Justify="JustifyContent.Center">
-            <FluentGridItem lg="3">
-                <button @onclick="GoBack" class="back-button">
-                    <i class="fas fa-arrow-left"></i>
-                </button>
-            </FluentGridItem>
-            <FluentGridItem lg="7">
-              <div class="agent-container">
-                  @foreach (var agent in selectedFlow.Agents)
-                  {
-                      <div class="agent-card @GetProcessingClass(agent)" id="@GetAgentId(agent)">
-                          <FluentCard>
-                              <h5>@agent.Name</h5>
-                              <span class="model-badge">@agent.Model</span>
-                          </FluentCard>
-              
-                          @if (agent.AgentDependencyId is not null)
-                          {
-                              <div class="agent-line" data-from="@agent.Id" data-to="@agent.AgentDependencyId"></div>
-                          }
-                      </div>
-                  }
-              </div>
-            </FluentGridItem>
-        </FluentGrid>
-        break;
+<div class="agents-flow-container">
+    <div class="back-button-container">
+        <button @onclick="GoBack" class="back-button">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+    </div>
+    <div class="agent-grid">
+        @foreach (var level in AgentLevels)
+        {
+        <div class="agent-level">
+            @foreach (var agent in level)
+            {
+            <div class="agent-card @(agent.AgentDependencyId != null ? "has-dependency" : "")"
+                 data-dependency-id="@agent.AgentDependencyId">
+                <div class="agent-header">
+                    <h3>@agent.Name</h3>
+                </div>
+                <span class="badge">@agent.Model</span>
+                <div class="agent-body">
+                    <div class="instruction-container">
+                        <span>Instruction</span>
+                        <button @onclick="() => ShowInstruction(agent)" class="instruction-button">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <div class="state-container">
+                        <span>State: @agent.State</span>
+                    </div>
+                </div>
+            </div>
+            }
+        </div>
+        }
+    </div>
+</div>
+            
+<div class="input-container">
+    <FluentInputFile Id="my-file-uploader"
+                     Mode="InputFileMode.SaveToTemporaryFolder"
+                     Multiple="true"
+                     MaximumFileCount="4"
+                     MaximumFileSize="@(10 * 1024 * 1024)"
+                     Accept=".csv, .json, .txt"
+                     ProgressPercent="@ProgressPercent"
+                     OnCompleted="@OnFileCompletedAsync"
+                     Style="background-color: transparent !important; width: 3rem">
+        <ChildContent>
+            <label for="my-file-uploader" class="attachment-btn ">
+                <FluentIcon Value="@(new Icons.Filled.Size32.Attach())"
+                            Color="@_filesAttachedClass" Style="margin-right: 5px; background-color: transparent">
+                </FluentIcon>
+            </label>
+        </ChildContent>
+    </FluentInputFile>
+    
+    <input @bind-value="_ask" @bind-value:event="oninput" placeholder="Enter your prompt here..." @onkeydown="CheckEnterKey" class="inp">
+
+    <FluentButton IconStart="@(new Icons.Filled.Size28.Send())" BackgroundColor="rgba(0, 0, 0, 0)" Style="margin-top: 5px; background-color: transparent"
+                  Appearance="Appearance.Lightweight"
+                  Loading="@IsLoading"
+                  OnClick="@(() => SendAsync(_ask))">
+    </FluentButton>
+</div>
+<FluentProgress Visible="@(IsLoading)" style="width: 100%;"></FluentProgress>
+break;
 }
 
 @code {
 
     // Models
+    public List<List<AgentDto>> AgentLevels { get; set; } = [];
     AgentFlowDto newFlow;
     List<string> models = new();
     List<AgentFlowDto> flows = new();
@@ -156,6 +196,77 @@
     AgentsFlowPageMode _mode = AgentsFlowPageMode.List;
     bool _loading = false;
     private HubConnection? hubConnection;
+    
+    
+    //CHAT
+    [Parameter] public ChatDto? Chat { get; set; }
+    [Parameter] public string SelectedModel { get; set; }
+    [Parameter] public bool IsLoading { get; set; }
+    [Parameter] public string? CustomName { get; set; }
+    [Parameter] public bool IsRagChat { get; set; }
+    [Parameter] public string? AgentId { get; set; }
+    [Parameter] public FluentInputFileEventArgs[] Images { get; set; }
+    [Parameter] public bool Translate { get; set; }
+
+    public FluentInputFileEventArgs[] Files = [];
+    private bool _filesAttached = false;
+    private Color _filesAttachedClass => _filesAttached ? Color.Success : Color.Accent;
+    private string _ask = string.Empty;
+    private string _displayName => CustomName ?? SelectedModel;
+    int ProgressPercent = 0;
+    
+    private async Task CheckEnterKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SendAsync(_ask);
+        }
+    }
+    
+    private async Task SendAsync(string message)
+    {
+        if (!string.IsNullOrWhiteSpace(message))
+        {
+            IsLoading = true;
+            var newMsg = new Message { Role = Role.User.ToString(), Content = message };
+            Chat.Messages.Add(newMsg);
+            if (ExtensionMethods.IsVisionModel(SelectedModel) && Images.Any())
+            {
+                var file = await File.ReadAllBytesAsync(Images.First().LocalFile!.FullName);
+                newMsg.Images = [Convert.ToBase64String(file)];
+                Images = []; // Clear files
+            }
+
+            if(Files.Any())
+            {
+                newMsg.Files = Files.Select(x => new FileData()
+                {
+                    Content = File.ReadAllText(x.LocalFile!.FullName),
+                    Extension = x.Name.Split('.').Last(),
+                    Name = x.Name.Split('.').First()
+                }).ToArray();
+                _filesAttached = false;
+            }
+            Chat.Model = SelectedModel;
+
+            var apiResponse = await Http.PostAsJsonAsync($"{ExtensionMethods.GetApiUrl()}/api/chats/complete?translate={Translate}", Chat);
+
+            if (apiResponse.IsSuccessStatusCode)
+            {
+                await LoadChatAsync(Chat.Id);
+            }
+
+            IsLoading = false;
+            _ask = string.Empty;
+            Files = []; // Clear files
+        }
+    }
+    
+    private async Task OnFileCompletedAsync(IEnumerable<FluentInputFileEventArgs> files)
+    {
+        Files = files.ToArray();
+        _filesAttached = true;
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -186,6 +297,58 @@
         await LoadFlowsAsync();
     }
 
+    private List<List<AgentDto>> OrganizeAgentsIntoLevels(List<AgentDto> agents)
+    {
+        // Implement your logic to organize agents into levels
+        // This is a placeholder implementation
+        var levels = new List<List<AgentDto>>();
+        var currentLevel = new List<AgentDto>();
+
+        foreach (var agent in agents)
+        {
+            if (currentLevel.Count >= 3 || (currentLevel.Count > 0 && agent.AgentDependencyId == null))
+            {
+                levels.Add(currentLevel);
+                currentLevel = new List<AgentDto>();
+            }
+            currentLevel.Add(agent);
+        }
+
+        if (currentLevel.Count > 0)
+        {
+            levels.Add(currentLevel);
+        }
+
+        return levels;
+    }
+
+    public void CalculateAgentDependencies(List<AgentDto> agents)
+    {
+        var agentDictionary = agents.ToDictionary(a => a.Id, a => a);
+
+        foreach (var agent in agents)
+        {
+            if (agent.Context?.Steps != null)
+            {
+                foreach (var step in agent.Context.Steps)
+                {
+                    if (step.StartsWith("REDIRECT", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var parts = step.Split('+');
+                        if (parts.Length >= 2 )
+                        {
+                            if (agentDictionary.TryGetValue(parts[1], out var dependentAgent))
+                            {
+                                dependentAgent.AgentDependencyId = agent.Id;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
     private async Task LoadChatAsync(string agentId)
     {
         var response = await Http.GetFromJsonAsync<ChatDto>($"{ExtensionMethods.GetApiUrl()}/api/agents/{agentId}/chat");
@@ -214,6 +377,11 @@
         await LoadChatAsync(selectedAgentId);
     }
 
+    private void ShowInstruction(AgentDto agent)
+    {
+        // Implement your instruction display logic here
+    }
+    
     private async Task LoadFlowsAsync()
     {
         var response = await Http.GetFromJsonAsync<List<AgentFlowDto>>($"{ExtensionMethods.GetApiUrl()}/api/flows");
@@ -226,6 +394,8 @@
     private async Task ViewFlowDetails(string agentId)
     {
         selectedFlow = flows.FirstOrDefault(a => a.Id == agentId)!;
+        CalculateAgentDependencies(selectedFlow.Agents);
+        AgentLevels = OrganizeAgentsIntoLevels(selectedFlow.Agents);
         _mode = AgentsFlowPageMode.Details;
         //await LoadChatAsync(selectedAgent.Id); TODO fix this the way we can see real entrypoint for flow
     }
@@ -244,7 +414,7 @@
             _mode = AgentsFlowPageMode.List; // Switch back to list mode
         }
     }
-
+    
     private void GoBack()
     {
         _mode = AgentsFlowPageMode.List;
@@ -315,5 +485,4 @@
         await LoadFlowsAsync();
         _loading = false;
     }
-
 }
