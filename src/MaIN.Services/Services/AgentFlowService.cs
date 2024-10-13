@@ -5,7 +5,7 @@ using MaIN.Services.Services.Abstract;
 
 namespace MaIN.Services.Services;
 
-public class AgentFlowService(IAgentFlowRepository flowRepository) : IAgentFlowService
+public class AgentFlowService(IAgentFlowRepository flowRepository, IAgentService agentService) : IAgentFlowService
 {
     public async Task<AgentFlow> GetFlowById(string id)
         => (await flowRepository.GetFlowById(id)).ToDomain();
@@ -17,6 +17,11 @@ public class AgentFlowService(IAgentFlowRepository flowRepository) : IAgentFlowS
     {
         flow.Id ??= Guid.NewGuid().ToString();
         await flowRepository.AddFlow(flow.ToDocument());
+        foreach (var agent in flow.Agents)
+        {
+            await agentService.CreateAgent(agent);
+        }
+        
         return flow;
     }
 
