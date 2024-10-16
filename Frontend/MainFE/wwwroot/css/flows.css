@@ -176,6 +176,8 @@ body {
 }
 
 .loading-border {
+    border-style: solid;
+    border-width: medium;
     border-color: #0078d4;
     animation: borderBlink 1.5s infinite;
 }
@@ -379,4 +381,53 @@ fluent-badge span {
 .state-container {
     font-style: italic;
     color: #cccccc;
+}
+
+.page-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 90vh;
+}
+
+.content-container {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 10px; /* Adjust this value based on the height of your input container */
+}
+
+.input-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: #121212;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    border-top: 1px solid #333;
+}
+
+.inp {
+    flex: 1;
+    background-color: #1e1e1e;
+    color: #ffffff;
+    border: none;
+    padding: 10px;
+    margin: 0 10px;
+    border-radius: 4px;
+}
+
+.attachment-btn,
+.fluent-button {
+    background-color: transparent;
+    border: none;
+    color: #00ffff;
+    cursor: pointer;
+}
+
+.fluent-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
 }

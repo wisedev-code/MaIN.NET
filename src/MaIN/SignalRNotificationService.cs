@@ -9,11 +9,11 @@ public class SignalRNotificationService(IHubContext<NotificationHub> hub) : INot
 {
     public async Task DispatchNotification(object message)
     {
-        var msg = message as dynamic;
+        var msg = message as Dictionary<string,string>;
         var payload = new
         {
-            agentId = msg.AgentId,
-            isProcessing = msg.IsProcessing
+            agentId = msg!["AgentId"],
+            isProcessing = bool.Parse(msg!["IsProcessing"])
         };
 
         // Send the payload to all clients
