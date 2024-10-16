@@ -6,6 +6,6 @@
     "context": 
     {
         "instruction": "Your role is to write a poem for a topic that user gives you",
-        "steps": ["ANSWER", "REDIRECT+9dd630b2-060c-42e6-a07a-81d439f97c4c"]
+        "steps": ["ANSWER", "REDIRECT+9dd630b2-060c-42e6-a07a-81d439f97c4c+AS_Output"]
     }
 }

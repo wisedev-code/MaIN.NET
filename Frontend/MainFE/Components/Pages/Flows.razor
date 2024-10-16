@@ -18,9 +18,9 @@
 @switch (_mode)
 {
     case AgentsFlowPageMode.List:
-        <FluentGrid Class="flow-grid" Spacing="1" Justify="JustifyContent.Center">
-            @* <FluentGridItem lg="1"></FluentGridItem> *@
-            <FluentGridItem lg="8" md="4" sm="6" xs="12" Style="margin-left: 5rem;">
+        <FluentGrid Class="flow-grid" Justify="JustifyContent.Center">
+            <FluentGridItem lg="2"></FluentGridItem> 
+            <FluentGridItem lg="8" md="4" sm="6" xs="12" Style="">
                 <FluentInputFile Id="my-zip-uploader"
                                  Mode="InputFileMode.SaveToTemporaryFolder"
                                  Multiple="true"
@@ -41,7 +41,7 @@
                     </ChildContent>
                 </FluentInputFile>
             </FluentGridItem>
-            <FluentGridItem lg="1">
+            <FluentGridItem lg="2">
                 @* <button @onclick="NavigateToDemo" class="cleanup-button" style="font-size: 13px !important; background-color: #4CAF50 !important; margin-left: 3rem"> *@
                 @*     <i class="fas fa-flask"></i> Demo *@
                 @* </button> *@
@@ -116,70 +116,74 @@
         break;
         
     case AgentsFlowPageMode.Details:
-<div class="agents-flow-container">
-    <div class="back-button-container">
-        <button @onclick="GoBack" class="back-button">
-            <i class="fas fa-arrow-left"></i>
-        </button>
-    </div>
-    <div class="agent-grid">
-        @foreach (var level in AgentLevels)
-        {
-        <div class="agent-level">
-            @foreach (var agent in level)
-            {
-            <div class="agent-card @(agent.AgentDependencyId != null ? "has-dependency" : "")"
-                 data-dependency-id="@agent.AgentDependencyId">
-                <div class="agent-header">
-                    <h3>@agent.Name</h3>
-                </div>
-                <span class="badge">@agent.Model</span>
-                <div class="agent-body">
-                    <div class="instruction-container">
-                        <span>Instruction</span>
-                        <button @onclick="() => ShowInstruction(agent)" class="instruction-button">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                    </div>
-                    <div class="state-container">
-                        <span>State: @agent.State</span>
-                    </div>
-                </div>
+<div class="page-container">
+    <div class="content-container">
+        <div class="agents-flow-container">
+            <div class="back-button-container">
+                <button @onclick="GoBack" class="back-button">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
             </div>
-            }
+            <div class="agent-grid">
+                @foreach (var level in AgentLevels)
+                {
+                <div class="agent-level">
+                    @foreach (var agent in level)
+                    {
+                    <div class="agent-card @(agent.AgentDependencyId != null ? "has-dependency" : "") @GetProcessingClass(agent)"
+                         data-dependency-id="@agent.AgentDependencyId">
+                        <div class="agent-header">
+                            <h3>@agent.Name</h3>
+                        </div>
+                        <span class="badge">@agent.Model</span>
+                        <div class="agent-body">
+                            <div class="instruction-container">
+                                <span>Instruction</span>
+                                <button @onclick="() => ShowInstruction(agent)" class="instruction-button">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="state-container">
+                                <span>State: @agent.State</span>
+                            </div>
+                        </div>
+                    </div>
+                    }
+                </div>
+                }
+            </div>
         </div>
-        }
     </div>
-</div>
-            
-<div class="input-container">
-    <FluentInputFile Id="my-file-uploader"
-                     Mode="InputFileMode.SaveToTemporaryFolder"
-                     Multiple="true"
-                     MaximumFileCount="4"
-                     MaximumFileSize="@(10 * 1024 * 1024)"
-                     Accept=".csv, .json, .txt"
-                     ProgressPercent="@ProgressPercent"
-                     OnCompleted="@OnFileCompletedAsync"
-                     Style="background-color: transparent !important; width: 3rem">
-        <ChildContent>
-            <label for="my-file-uploader" class="attachment-btn ">
-                <FluentIcon Value="@(new Icons.Filled.Size32.Attach())"
-                            Color="@_filesAttachedClass" Style="margin-right: 5px; background-color: transparent">
-                </FluentIcon>
-            </label>
-        </ChildContent>
-    </FluentInputFile>
-    
-    <input @bind-value="_ask" @bind-value:event="oninput" placeholder="Enter your prompt here..." @onkeydown="CheckEnterKey" class="inp">
 
-    <FluentButton IconStart="@(new Icons.Filled.Size28.Send())" BackgroundColor="rgba(0, 0, 0, 0)" Style="margin-top: 5px; background-color: transparent"
-                  Appearance="Appearance.Lightweight"
-                  Loading="@IsLoading"
-                  OnClick="@(() => SendAsync(_ask))">
-    </FluentButton>
+    <div class="input-container">
+        <FluentInputFile Id="my-file-uploader"
+                         Mode="InputFileMode.SaveToTemporaryFolder"
+                         Multiple="true"
+                         MaximumFileCount="4"
+                         MaximumFileSize="@(10 * 1024 * 1024)"
+                         Accept=".csv, .json, .txt"
+                         ProgressPercent="@ProgressPercent"
+                         OnCompleted="@OnFileCompletedAsync"
+                         Style="background-color: transparent !important; width: 3rem">
+            <ChildContent>
+                <label for="my-file-uploader" class="attachment-btn">
+                    <FluentIcon Value="@(new Icons.Filled.Size32.Attach())"
+                                Color="@_filesAttachedClass" Style="margin-right: 5px; margin-top: 5px; background-color: transparent">
+                    </FluentIcon>
+                </label>
+            </ChildContent>
+        </FluentInputFile>
+
+        <input @bind-value="_ask" @bind-value:event="oninput" placeholder="Enter your prompt here..." @onkeydown="CheckEnterKey" class="inp">
+
+        <FluentButton IconStart="@(new Icons.Filled.Size28.Send())" BackgroundColor="rgba(0, 0, 0, 0)" Style="margin-top: 5px; background-color: transparent"
+                      Appearance="Appearance.Lightweight"
+                      Loading="@IsLoading"
+                      OnClick="@(() => SendAsync(_ask))">
+        </FluentButton>
+    </div>
+    <FluentProgress Visible="@(IsLoading)" style="width: 100%;"></FluentProgress>
 </div>
-<FluentProgress Visible="@(IsLoading)" style="width: 100%;"></FluentProgress>
 break;
 }
 
@@ -192,11 +196,11 @@ break;
     List<AgentFlowDto> flows = new();
     string _selectedModel = string.Empty;
     ChatDto _selectedChat = new() { Messages = new() };
+    AgentDto _entryAgent = new();
     AgentFlowDto selectedFlow = new();
     AgentsFlowPageMode _mode = AgentsFlowPageMode.List;
     bool _loading = false;
     private HubConnection? hubConnection;
-    
     
     //CHAT
     [Parameter] public ChatDto? Chat { get; set; }
@@ -225,40 +229,25 @@ break;
     
     private async Task SendAsync(string message)
     {
+        IsLoading = true;
         if (!string.IsNullOrWhiteSpace(message))
         {
-            IsLoading = true;
-            var newMsg = new Message { Role = Role.User.ToString(), Content = message };
-            Chat.Messages.Add(newMsg);
-            if (ExtensionMethods.IsVisionModel(SelectedModel) && Images.Any())
-            {
-                var file = await File.ReadAllBytesAsync(Images.First().LocalFile!.FullName);
-                newMsg.Images = [Convert.ToBase64String(file)];
-                Images = []; // Clear files
-            }
+            _selectedChat.Messages.Add(new Message { Role = Role.User.ToString(), Content = message });
+            _selectedChat.Model = _entryAgent.Model;
 
-            if(Files.Any())
-            {
-                newMsg.Files = Files.Select(x => new FileData()
-                {
-                    Content = File.ReadAllText(x.LocalFile!.FullName),
-                    Extension = x.Name.Split('.').Last(),
-                    Name = x.Name.Split('.').First()
-                }).ToArray();
-                _filesAttached = false;
-            }
-            Chat.Model = SelectedModel;
-
-            var apiResponse = await Http.PostAsJsonAsync($"{ExtensionMethods.GetApiUrl()}/api/chats/complete?translate={Translate}", Chat);
+            var apiResponse = await Http.PostAsJsonAsync($"{ExtensionMethods.GetApiUrl()}/api/agents/{_entryAgent.Id}/process", _selectedChat);
 
             if (apiResponse.IsSuccessStatusCode)
             {
-                await LoadChatAsync(Chat.Id);
+                var response = await apiResponse.Content.ReadFromJsonAsync<ChatDto>();
+                if (response != null)
+                {
+                    Chat = response;
+                }
             }
 
             IsLoading = false;
             _ask = string.Empty;
-            Files = []; // Clear files
         }
     }
     
@@ -270,29 +259,6 @@ break;
 
     protected override async Task OnInitializedAsync()
     {
-        newFlow = new()
-        {
-            Id = Guid.NewGuid().ToString()
-        };
-        
-        hubConnection = new HubConnectionBuilder()
-            .WithUrl($"{ExtensionMethods.GetApiUrl()}/diagnostics")
-            .Build();
-        
-        hubConnection!.On<JsonElement>("ReceiveAgentUpdate", (jsonElement) =>
-        {
-            var agentId = jsonElement.GetProperty("agentId").GetString();
-            var isProcessing = jsonElement.GetProperty("isProcessing").GetBoolean();
-
-            var agent = selectedFlow.Agents.FirstOrDefault(a => a.Id.ToString() == agentId);
-            if (agent != null)
-            {
-                agent.IsProcessing = isProcessing;
-                InvokeAsync(StateHasChanged); 
-            }
-        });
-
-        await hubConnection.StartAsync();
         Http.Timeout = TimeSpan.FromMinutes(10);
         await LoadFlowsAsync();
     }
@@ -396,7 +362,34 @@ break;
         selectedFlow = flows.FirstOrDefault(a => a.Id == agentId)!;
         CalculateAgentDependencies(selectedFlow.Agents);
         AgentLevels = OrganizeAgentsIntoLevels(selectedFlow.Agents);
+        _entryAgent = AgentLevels.First().First();
+        await LoadChatAsync(_entryAgent.Id);
         _mode = AgentsFlowPageMode.Details;
+        
+        newFlow = new()
+        {
+            Id = Guid.NewGuid().ToString()
+        };
+        
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl($"{ExtensionMethods.GetApiUrl()}/diagnostics")
+            .Build();
+        
+        hubConnection!.On<JsonElement>("ReceiveAgentUpdate", (jsonElement) =>
+        {
+            var agentId = jsonElement.GetProperty("agentId").GetString();
+            var isProcessing = jsonElement.GetProperty("isProcessing").GetBoolean();
+
+            var agent = selectedFlow.Agents.FirstOrDefault(a => a.Id.ToString() == agentId);
+            if (agent != null)
+            {
+                agent.IsProcessing = isProcessing;
+                agent.State = isProcessing ? AgentProcessingState.Running : AgentProcessingState.Idle;
+                InvokeAsync(StateHasChanged);
+            }
+        });
+
+        await hubConnection.StartAsync();
         //await LoadChatAsync(selectedAgent.Id); TODO fix this the way we can see real entrypoint for flow
     }
 

@@ -19,15 +19,22 @@ public class AgentService(
     IChatRepository chatRepository, 
     INotificationService notificationService) : IAgentService
 {
+    
     public async Task<Chat?> Process(Chat? chat, string agentId, bool translatePrompt = false)
     {
+        Func<string, string, Task> dispatchNotification = async (status, agentid) =>
+        {
+            var messageFinal = new Dictionary<string, string>
+            {
+                { "AgentId", agentid},
+                { "IsProcessing", status }
+            };
+            await notificationService.DispatchNotification(messageFinal);
+        };
+        
         // Fetch the agent details from the repository
         var agent = await agentRepository.GetAgentById(agentId);
-        await notificationService.DispatchNotification(new
-        {
-            AgnetId = agent!.Id,
-            IsProcessing = true
-        });
+        await dispatchNotification("true", agentId);
 
         // Ensure the agent and its context are valid
         if (agent == null)
@@ -41,18 +48,16 @@ public class AgentService(
             throw new ArgumentException("Agent context not found.");
         }
 
-        chat = await ProcessSteps(context, chat);
+        chat = await ProcessSteps(context, agentId, chat, dispatchNotification);
+        
+        await dispatchNotification("false", agentId);
 
-        await notificationService.DispatchNotification(new
-        {
-            AgnetId = agent!.Id,
-            IsProcessing = false
-        });
         // Return the processed chat
         return chat;
     }
 
-    private static async Task<Chat?> ProcessSteps(AgentContextDocument context, Chat? chat)
+    private static async Task<Chat?> ProcessSteps(AgentContextDocument context, string agentId, Chat? chat,
+        Func<string, string, Task> dispatchNotification)
     {
         // Process each step in the defined order
         foreach (var step in context.Steps)
@@ -73,6 +78,8 @@ public class AgentService(
                         SaveAs = Enum.Parse<OutputTypeOfRedirect>(stepParts[2])
                     };
 
+                    await dispatchNotification("false", agentId);
+                    
                     var message = await Actions.CallAsync("REDIRECT", redirectCommand) as Message;
                     if (redirectCommand.SaveAs == OutputTypeOfRedirect.AS_Filter)
                     {

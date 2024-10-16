@@ -34,6 +34,7 @@ builder.Services.AddCors(options =>
 
 builder.Services.ConfigureMaIN(builder.Configuration);
 builder.Services.ConfigureInfrastructure(builder.Configuration);
+builder.Services.AddSingleton<INotificationService, SignalRNotificationService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
