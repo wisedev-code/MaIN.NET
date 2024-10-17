@@ -27,6 +27,7 @@ public static class ChatMapper
             Content = message.Content,
             Role = message.Tool ? "system" : message.Role,
             Images = message.Images,
+            Time = message.Time,
             Files = message.Files?.Select(x => new FileInfoDto()
             {
                 Content = x.Content,
@@ -67,6 +68,7 @@ public static class ChatMapper
         {
             Content = message.Content,
             Role = message.Role,
+            Time = message.Time,
             Images = message.Images,
             Tool = message.Tool,
             Files = message.Files?.Select(x => x.Content).ToArray() ?? []
@@ -103,6 +105,7 @@ public static class ChatMapper
         {
             Content = message.Content,
             Tool = message.Tool,
+            Time = message.Time,
             Role = message.Role,
             Images = message.Images,
         };
