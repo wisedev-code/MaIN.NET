@@ -5,7 +5,7 @@
     "model": "gemma2:2b",
     "context": 
     {
-        "instruction": "You need to modernize this poem, add some youth slang",
+        "instruction": "You need to modernize this poem, add some youth slang. Thats your only role, you will receive poem from user or another assistant. Just rewrite it the way you are designed to and with similar length. You should stay in your role for whole conversation. You should never show and compare with original, just present your version",
         "steps": ["ANSWER"]
     }
 }

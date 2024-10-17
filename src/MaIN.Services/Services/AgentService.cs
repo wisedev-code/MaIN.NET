@@ -32,6 +32,11 @@ public class AgentService(
             await notificationService.DispatchNotification(messageFinal);
         };
         
+        Func<Chat, Task> updateChat = async (chatObj) =>
+        {
+            await chatRepository.UpdateChat(chatObj.Id, chatObj.ToDocument());
+        };
+        
         // Fetch the agent details from the repository
         var agent = await agentRepository.GetAgentById(agentId);
         await dispatchNotification("true", agentId);
@@ -48,7 +53,7 @@ public class AgentService(
             throw new ArgumentException("Agent context not found.");
         }
 
-        chat = await ProcessSteps(context, agentId, chat, dispatchNotification);
+        chat = await ProcessSteps(context, agentId, chat, dispatchNotification, updateChat);
         
         await dispatchNotification("false", agentId);
 
@@ -57,7 +62,7 @@ public class AgentService(
     }
 
     private static async Task<Chat?> ProcessSteps(AgentContextDocument context, string agentId, Chat? chat,
-        Func<string, string, Task> dispatchNotification)
+        Func<string, string, Task> dispatchNotification, Func<Chat, Task> updateChat)
     {
         // Process each step in the defined order
         foreach (var step in context.Steps)
@@ -92,7 +97,8 @@ public class AgentService(
                             chat?.Messages?.RemoveAt(chat.Messages.Count - 1);
                         }
 
-                        chat?.Messages?.Add(message!);
+                        message!.Time = DateTime.Now;
+                        chat?.Messages?.Add(message);
                     }
 
                     break;
@@ -145,12 +151,15 @@ public class AgentService(
                         chat?.Messages?.RemoveAt(chat.Messages.Count - 1);
                     }
 
+                    answerResponse.Time = DateTime.Now;
                     chat?.Messages?.Add(answerResponse);
                     break;
 
                 default:
                     throw new InvalidOperationException($"Unknown step: {stepName}");
             }
+            
+            await updateChat(chat!);
         }
 
         return chat;

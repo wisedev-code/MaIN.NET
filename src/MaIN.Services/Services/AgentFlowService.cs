@@ -26,5 +26,13 @@ public class AgentFlowService(IAgentFlowRepository flowRepository, IAgentService
     }
 
     public async Task DeleteFlow(string id)
-        => await flowRepository.DeleteFlow(id);
+    {
+        var flow = await flowRepository.GetFlowById(id);
+        foreach (var agent in flow.Agents)
+        {
+            await agentService.DeleteAgent(agent.Id);
+        }
+        
+        await flowRepository.DeleteFlow(id);
+    }
 }
