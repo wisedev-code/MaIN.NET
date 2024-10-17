@@ -21,6 +21,7 @@ public class ChatService(
     public async Task<ChatResult> Completions(Chat? chat, bool translate = false)
     {
         var newMsg = chat.Messages.Last();
+        newMsg.Time = DateTime.Now;
         var lng = await translatorService.DetectLanguage(newMsg.Content);
         if (newMsg.Files is not null && newMsg.Files.Count > 0)
         {
@@ -51,13 +52,15 @@ public class ChatService(
         if (translate)
         {
             result!.Message.Content = (await translatorService.Translate(result.Message.Content, lng));
+            result!.Message.Time = DateTime.Now;
         }
         
         originalMessages.Add(new Message()
         {
             Content = result!.Message.Content,
             Role = result.Message.Role,
-            Images = result.Message.Images
+            Images = result.Message.Images,
+            Time = result.Message.Time
         });
         chat.Messages = originalMessages;
 

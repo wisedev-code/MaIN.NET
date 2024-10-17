@@ -6,6 +6,8 @@
 @using Microsoft.AspNetCore.SignalR.Client
 @using Microsoft.FluentUI.AspNetCore.Components
 @using Message = MainFE.Components.Models.Message
+@using Markdig
+
 @inject HttpClient Http
 @inject NavigationManager Nav
 @rendermode InteractiveServer
@@ -119,37 +121,77 @@
 <div class="page-container">
     <div class="content-container">
         <div class="agents-flow-container">
-            <div class="back-button-container">
-                <button @onclick="GoBack" class="back-button">
+            <div class="button-container">
+                <button @onclick="GoBack" class="action-button back-button">
                     <i class="fas fa-arrow-left"></i>
+                </button>
+                <button @onclick="RestartFlow" class="action-button restart-button">
+                    <i class="fas fa-redo"></i>
                 </button>
             </div>
             <div class="agent-grid">
                 @foreach (var level in AgentLevels)
                 {
-                <div class="agent-level">
-                    @foreach (var agent in level)
-                    {
-                    <div class="agent-card @(agent.AgentDependencyId != null ? "has-dependency" : "") @GetProcessingClass(agent)"
-                         data-dependency-id="@agent.AgentDependencyId">
-                        <div class="agent-header">
-                            <h3>@agent.Name</h3>
-                        </div>
-                        <span class="badge">@agent.Model</span>
-                        <div class="agent-body">
-                            <div class="instruction-container">
-                                <span>Instruction</span>
-                                <button @onclick="() => ShowInstruction(agent)" class="instruction-button">
-                                    <i class="fas fa-eye"></i>
-                                </button>
+                    <div class="agent-level">
+                        @foreach (var agent in level)
+                        {
+                            <div class="agent-card @(agent.AgentDependencyId != null ? "has-dependency" : "") @GetProcessingClass(agent)"
+                                 data-dependency-id="@agent.AgentDependencyId">
+                                <div class="agent-header">
+                                    <h3>@agent.Name</h3>
+                                </div>
+                                <span class="badge">@agent.Model</span>
+                                <div class="agent-body">
+                                    <div class="instruction-container">
+                                        <span>Instruction</span>
+                                        <button @onclick="() => ShowInstruction(agent)" class="instruction-button">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                    <div class="state-container">
+                                        <span>State: @agent.State</span>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="state-container">
-                                <span>State: @agent.State</span>
-                            </div>
-                        </div>
+                        }
                     </div>
-                    }
-                </div>
+                }
+            </div>
+        </div>
+
+        <div class="output-container">
+            <div class="output-scroll-area">
+                @foreach (var output in ActorOutputs)
+                {
+                    <div class="output-card">
+                        <div class="output-header" @onclick="@(() => ToggleOutput(output.Id))">
+                            <div class="header-left">
+                                <span class="output-id">Artifact @output.Id</span>
+                                <span class="output-model">@output.Model</span>
+                            </div>
+                            <div class="header-right">
+                                <span class="output-time">@output.Time.ToString("yyyy-MM-dd HH:mm:ss")</span>
+                                <i class="fas @(output.IsExpanded ? "fa-chevron-up" : "fa-chevron-down")"></i>
+                            </div>
+                        </div>
+                        @if (output.IsExpanded)
+                        {
+                            <div class="output-content">
+                                <div class="user-message">
+                                    <strong>User:</strong> @output.UserMsg
+                                </div>
+                                <div class="actor-message">
+                                    <em><strong>Actor:</strong>
+                                        @((MarkupString)
+                                        Markdown.ToHtml(output.ActorMsg!,
+                                            new MarkdownPipelineBuilder()
+                                                .UseAdvancedExtensions()
+                                                .Build()))
+                                    </em>
+                                </div>
+                            </div>
+                        }
+                    </div>
                 }
             </div>
         </div>
@@ -219,6 +261,18 @@ break;
     private string _displayName => CustomName ?? SelectedModel;
     int ProgressPercent = 0;
     
+    private List<ActorOutput> ActorOutputs = new List<ActorOutput>();
+
+    private void ToggleOutput(int id)
+    {
+        var output = ActorOutputs.FirstOrDefault(o => o.Id == id);
+        if (output != null)
+        {
+            output.IsExpanded = !output.IsExpanded;
+            StateHasChanged();
+        }
+    }
+    
     private async Task CheckEnterKey(KeyboardEventArgs e)
     {
         if (e.Key == "Enter")
@@ -243,6 +297,26 @@ break;
                 if (response != null)
                 {
                     Chat = response;
+                    if (Chat.Messages.Count >= 2)
+                    {
+                        var userMsg = Chat.Messages.Last(x => x.Role == Role.User.ToString());
+                        var actorMsg = Chat.Messages.Last(x => x.Role != Role.Assistant.ToString());
+                    
+                        if (userMsg.Role == Role.User.ToString() && actorMsg.Role != Role.User.ToString())
+                        {
+                            var newOutput = new ActorOutput()
+                            {
+                                Id = ActorOutputs.Count + 1,
+                                UserMsg = userMsg.Content!,
+                                ActorMsg = actorMsg.Content!,
+                                Time = actorMsg.Time,
+                                Model = Chat.Model!,
+                                IsExpanded = true
+                            };
+                        
+                            ActorOutputs.Add(newOutput);
+                        }
+                    }
                 }
             }
 
@@ -364,6 +438,9 @@ break;
         AgentLevels = OrganizeAgentsIntoLevels(selectedFlow.Agents);
         _entryAgent = AgentLevels.First().First();
         await LoadChatAsync(_entryAgent.Id);
+
+        ActorOutputs = BuildActorOutputs(_selectedChat.Messages);
+        
         _mode = AgentsFlowPageMode.Details;
         
         newFlow = new()
@@ -390,7 +467,6 @@ break;
         });
 
         await hubConnection.StartAsync();
-        //await LoadChatAsync(selectedAgent.Id); TODO fix this the way we can see real entrypoint for flow
     }
 
     private async Task CreateFlow()
@@ -477,5 +553,45 @@ break;
         await Http.PostAsJsonAsync($"{ExtensionMethods.GetApiUrl()}/api/flows", newFlow);
         await LoadFlowsAsync();
         _loading = false;
+    }
+
+    private void RestartFlow()
+    {
+        throw new NotImplementedException();
+    }
+
+    private List<ActorOutput> BuildActorOutputs(List<Message> messages)
+    {
+        var actorOutputs = new List<ActorOutput>();
+        string currentUserMessage = null;
+        int outputId = 1;
+
+        for (int i = 0; i < messages.Count; i++)
+        {
+            var message = messages[i];
+
+            if (message.Role == Role.User.ToString())
+            {
+                // Start of a new user-assistant interaction
+                currentUserMessage = message.Content;
+            }
+            else if (message.Role != Role.User.ToString() && currentUserMessage != null)
+            {
+                // We have an assistant message following a user message
+                actorOutputs.Add(new ActorOutput
+                {
+                    Id = outputId++,
+                    UserMsg = currentUserMessage,
+                    ActorMsg = message.Content,
+                    Time = message.Time,
+                    Model = _selectedChat.Model,
+                    IsExpanded = false // You can set this to true if you want them expanded by default
+                });
+
+                currentUserMessage = null; // Reset for the next pair
+            }
+        }
+
+        return actorOutputs;
     }
 }
