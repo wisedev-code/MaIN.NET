@@ -7,6 +7,7 @@
 @using Microsoft.FluentUI.AspNetCore.Components
 @using Message = MainFE.Components.Models.Message
 @using Markdig
+@using MainFE.Components.Elements
 
 @inject HttpClient Http
 @inject NavigationManager Nav
@@ -22,7 +23,7 @@
     case AgentsFlowPageMode.List:
         <FluentGrid Class="flow-grid" Justify="JustifyContent.Center">
             <FluentGridItem lg="2"></FluentGridItem> 
-            <FluentGridItem lg="8" md="4" sm="6" xs="12" Style="">
+            <FluentGridItem lg="6" md="4" sm="6" xs="12" Style="">
                 <FluentInputFile Id="my-zip-uploader"
                                  Mode="InputFileMode.SaveToTemporaryFolder"
                                  Multiple="true"
@@ -36,9 +37,6 @@
                         <label for="my-zip-uploader" class="cleanup-button"
                                style="text-decoration: none !important; font-style: normal; width: 20rem; font-size: 20px !important; color: white">
                             <i class="fas fa-stream"></i> Import flow
-                            @* <button class="cleanup-button" style="width: 20rem; font-size: 20px !important;"> *@
-                            @*     <i class="fas fa-stream"></i> Import flow *@
-                            @* </button> *@
                         </label>
                     </ChildContent>
                 </FluentInputFile>
@@ -93,25 +91,6 @@
             <FluentGridItem lg="12"></FluentGridItem>
             <FluentGridItem lg="3"></FluentGridItem>
             <FluentGridItem lg="6" md="12" sm="12" xs="12" Style="margin: auto">
-                @* <FluentInputFile Id="my-zip-uploader" *@
-                @*                  Mode="InputFileMode.SaveToTemporaryFolder" *@
-                @*                  Multiple="true" *@
-                @*                  MaximumFileCount="4" *@
-                @*                  MaximumFileSize="@(10 * 1024 * 1024)" *@
-                @*                  Accept=".zip" *@
-                @*                  $1$ @bind-ProgressPercent="@ProgressPercent" #1# *@
-                @*                  OnCompleted="@OnCompletedAsync" *@
-                @*                  Style="background-color: transparent !important;"> *@
-                @*     <ChildContent> *@
-                @*         <label for="my-zip-uploader" class="cleanup-button" *@
-                @*                style="text-decoration: none !important; font-style: normal; width: 20rem; font-size: 20px !important;" > *@
-                @*             <i class="fas fa-stream"></i> Import flow *@
-                @*             $1$ <button class="cleanup-button" style="width: 20rem; font-size: 20px !important;"> #1# *@
-                @*             $1$     <i class="fas fa-stream"></i> Import flow #1# *@
-                @*             $1$ </button> #1# *@
-                @*         </label> *@
-                @*     </ChildContent> *@
-                @* </FluentInputFile> *@
             </FluentGridItem>
             <FluentGridItem lg="3"></FluentGridItem>
         </FluentGrid>
@@ -225,6 +204,10 @@
         </FluentButton>
     </div>
     <FluentProgress Visible="@(IsLoading)" style="width: 100%;"></FluentProgress>
+
+    <InstructionModal IsVisible="@isModalVisible" IsVisibleChanged="@((bool value) => isModalVisible = value)" Title="Agent Instruction">
+        <p>@selectedAgentInstruction</p>
+    </InstructionModal>
 </div>
 break;
 }
@@ -261,14 +244,14 @@ break;
     private string _displayName => CustomName ?? SelectedModel;
     int ProgressPercent = 0;
     
-    private List<ActorOutput> ActorOutputs = new List<ActorOutput>();
+    private List<ActorOutput> ActorOutputs = [];
 
     private void ToggleOutput(int id)
     {
-        var output = ActorOutputs.FirstOrDefault(o => o.Id == id);
-        if (output != null)
+        var outputToSet = ActorOutputs.FirstOrDefault(o => o.Id == id);
+        if (outputToSet != null)
         {
-            output.IsExpanded = !output.IsExpanded;
+            outputToSet.IsExpanded = !outputToSet.IsExpanded;
             StateHasChanged();
         }
     }
@@ -301,7 +284,12 @@ break;
                     {
                         var userMsg = Chat.Messages.Last(x => x.Role == Role.User.ToString());
                         var actorMsg = Chat.Messages.Last(x => x.Role != Role.Assistant.ToString());
-                    
+
+                        foreach (var output in ActorOutputs)
+                        {
+                            output.IsExpanded = false;
+                        }
+                        
                         if (userMsg.Role == Role.User.ToString() && actorMsg.Role != Role.User.ToString())
                         {
                             var newOutput = new ActorOutput()
@@ -416,10 +404,14 @@ break;
         await Http.PutAsync($"{ExtensionMethods.GetApiUrl()}/api/agents/{selectedAgentId}/chat/reset", default);
         await LoadChatAsync(selectedAgentId);
     }
+    
+    private bool isModalVisible = false;
+    private string selectedAgentInstruction = "";
 
     private void ShowInstruction(AgentDto agent)
     {
-        // Implement your instruction display logic here
+        selectedAgentInstruction = agent.Context.Instruction;
+        isModalVisible = true;
     }
     
     private async Task LoadFlowsAsync()
@@ -555,9 +547,12 @@ break;
         _loading = false;
     }
 
-    private void RestartFlow()
+    private async Task RestartFlow()
     {
-        throw new NotImplementedException();
+        foreach (var agent in selectedFlow.Agents)
+        {
+            await Http.PutAsync($"{ExtensionMethods.GetApiUrl()}/api/agents/{agent.Id}/chat/reset", default);
+        }
     }
 
     private List<ActorOutput> BuildActorOutputs(List<Message> messages)
