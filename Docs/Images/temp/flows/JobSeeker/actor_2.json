@@ -1,0 +1,22 @@
+{
+    "id": "0248fe87-0b28-4590-9afb-77eeb45d8bc3",
+    "name": "Amazon seeker",
+    "description": "2st in a flow",
+    "model": "phi3:mini",
+    "context": 
+    {
+        "source":
+        {
+            "type": 1, 
+            "details": 
+            {
+                "url": "https://www.amazon.pl/s?k={filter}",
+                "method": "Get",
+                "query": "",
+                "payload": ""
+            }
+        },
+        "instruction": "FETCH_DATA",
+        "steps": ["FETCH_DATA", "REDIRECT+f14cec0d-9acc-479f-bf39-b9a14d685af4+AS_Output+REPLACE"]
+    }
+}

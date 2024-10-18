@@ -279,11 +279,11 @@ break;
                 var response = await apiResponse.Content.ReadFromJsonAsync<ChatDto>();
                 if (response != null)
                 {
-                    Chat = response;
-                    if (Chat.Messages.Count >= 2)
+                    _selectedChat = response;
+                    if (_selectedChat.Messages.Count >= 2)
                     {
-                        var userMsg = Chat.Messages.Last(x => x.Role == Role.User.ToString());
-                        var actorMsg = Chat.Messages.Last(x => x.Role != Role.Assistant.ToString());
+                        var userMsg = _selectedChat.Messages.Last(x => x.Role == Role.User.ToString());
+                        var actorMsg = _selectedChat.Messages.Last(x => x.Role != Role.Assistant.ToString());
 
                         foreach (var output in ActorOutputs)
                         {
@@ -298,7 +298,7 @@ break;
                                 UserMsg = userMsg.Content!,
                                 ActorMsg = actorMsg.Content!,
                                 Time = actorMsg.Time,
-                                Model = Chat.Model!,
+                                Model = _selectedChat.Model!,
                                 IsExpanded = true
                             };
                         
@@ -553,12 +553,16 @@ break;
         {
             await Http.PutAsync($"{ExtensionMethods.GetApiUrl()}/api/agents/{agent.Id}/chat/reset", default);
         }
+
+        await LoadChatAsync(_entryAgent.Id);
+        ActorOutputs = BuildActorOutputs(_selectedChat.Messages);
     }
 
     private List<ActorOutput> BuildActorOutputs(List<Message> messages)
     {
         var actorOutputs = new List<ActorOutput>();
         string currentUserMessage = null;
+        string currentActorMessage = null;
         int outputId = 1;
 
         for (int i = 0; i < messages.Count; i++)
@@ -567,24 +571,43 @@ break;
 
             if (message.Role == Role.User.ToString())
             {
+                // If we have a complete pair, add it to the outputs
+                if (currentUserMessage != null && currentActorMessage != null)
+                {
+                    actorOutputs.Add(new ActorOutput
+                    {
+                        Id = outputId++,
+                        UserMsg = currentUserMessage,
+                        ActorMsg = currentActorMessage,
+                        Time = messages[i - 1].Time, // Time of the last assistant message
+                        Model = _selectedChat.Model,
+                        IsExpanded = false
+                    });
+                }
+
                 // Start of a new user-assistant interaction
                 currentUserMessage = message.Content;
+                currentActorMessage = null;
             }
-            else if (message.Role != Role.User.ToString() && currentUserMessage != null)
+            else if (message.Role != Role.User.ToString())
             {
-                // We have an assistant message following a user message
-                actorOutputs.Add(new ActorOutput
-                {
-                    Id = outputId++,
-                    UserMsg = currentUserMessage,
-                    ActorMsg = message.Content,
-                    Time = message.Time,
-                    Model = _selectedChat.Model,
-                    IsExpanded = false // You can set this to true if you want them expanded by default
-                });
-
-                currentUserMessage = null; // Reset for the next pair
+                // Update the current actor message (this will keep the last one before the next user message)
+                currentActorMessage = message.Content;
             }
+        }
+
+        // Handle the last pair if the conversation ends with an assistant message
+        if (currentUserMessage != null && currentActorMessage != null)
+        {
+            actorOutputs.Add(new ActorOutput
+            {
+                Id = outputId,
+                UserMsg = currentUserMessage,
+                ActorMsg = currentActorMessage,
+                Time = messages.Last().Time,
+                Model = _selectedChat.Model,
+                IsExpanded = false
+            });
         }
 
         return actorOutputs;

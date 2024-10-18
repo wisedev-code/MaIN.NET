@@ -1,0 +1,11 @@
+{
+    "id": "dbee96b2-17c7-4ed8-9a9b-73049a8b334b",
+    "name": "Product master",
+    "description": "1st in a flow",
+    "model": "llama3.1:8b",
+    "context": 
+    {
+        "instruction": "You are helping users find a right product, Once user ask message you will receive some messages from other agents that are searching for products on various e-shops, You need to put this information somewehre in your response: filter::${query}$ where as filter write query that will be used as search (ie, if user is looking for phone in affordable prine, query would be something like 'cheap phone' so filter::${cheap phone}$. Your job is to use knowledge given by other agents to provide help to the user in a nice format. Always remember what you have to do and stay in your role",
+        "steps": ["ANSWER","REDIRECT+0248fe87-0b28-4590-9afb-77eeb45d8bc3+AS_Output", "REDIRECT+1315fb24-72c1-4a0c-98bd-0934496dda32+AS_Output", "REDIRECT+cd058053-ddba-4f37-b3f9-8759d6b9e0c7+AS_Output", "ANSWER"]
+    }
+}
