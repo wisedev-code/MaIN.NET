@@ -1,0 +1,22 @@
+{
+    "id": "f14cec0d-9acc-479f-bf39-b9a14d685af4",
+    "name": "AliExpress seeker",
+    "description": "4st in a flow",
+    "model": "phi3:mini",
+    "context": 
+    {
+        "source":
+        {
+            "type": 1, 
+            "details": 
+            {
+                "url": "https://pl.aliexpress.com/w/wholesale-{filter}.html",
+                "method": "Get",
+                "query": "",
+                "payload": ""
+            }
+        },
+        "instruction": "FETCH_DATA",
+        "steps": ["ANSWER"]
+    }
+}

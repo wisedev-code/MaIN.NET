@@ -55,6 +55,7 @@ public static class ChatMapper
             Content = message.Content,
             Role = message.Role,
             Images = message.Images,
+            Time = message.Time,
             Files = message.Files?.Select(x => new FileInfo()
             {
                 Content = x.Content,
