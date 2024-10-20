@@ -16,7 +16,7 @@
                 "payload": ""
             }
         },
-        "instruction": "FETCH_DATA",
+        "instruction": "You are looking for product that user provided",
         "steps": ["FETCH_DATA", "REDIRECT+f14cec0d-9acc-479f-bf39-b9a14d685af4+AS_Output+REPLACE"]
     }
 }

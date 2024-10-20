@@ -20,5 +20,5 @@ public class AgentDto
     public AgentProcessingState State { get; set; }
 
     public bool IsProcessing { get; set; }
-    public string? AgentDependencyId { get; set; }
+    public List<string>? AgentDependencies { get; set; } = [];
 }

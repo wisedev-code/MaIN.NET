@@ -1,0 +1,11 @@
+{
+    "id": "f14cec0d-9acc-479f-bf39-b9a14d685af4",
+    "name": "Prettifier",
+    "description": "5st in a flow",
+    "model": "phi3:mini",
+    "context": 
+    {
+        "instruction": "Your role is to prettify. You can expect that data provided to you can be in html, or json and you need to present it as understable text. Your response should contain inforamtions about products, and only that. Like name, brand, price, availability etc etc",
+        "steps": ["ANSWER"]
+    }
+}
