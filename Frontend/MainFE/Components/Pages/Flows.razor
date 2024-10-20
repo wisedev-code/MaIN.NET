@@ -111,11 +111,11 @@
             <div class="agent-grid">
                 @foreach (var level in AgentLevels)
                 {
-                    <div class="agent-level">
+                    <div class="agent-level @(level.Any(x => x.AgentDependencies?.Count > 0) ? "has-dependency" : "")">
                         @foreach (var agent in level)
                         {
-                            <div class="agent-card @(agent.AgentDependencyId != null ? "has-dependency" : "") @GetProcessingClass(agent)"
-                                 data-dependency-id="@agent.AgentDependencyId">
+                            <div class="agent-card @GetProcessingClass(agent)"
+                                 data-dependency-id="@agent.AgentDependencies">
                                 <div class="agent-header">
                                     <h3>@agent.Name</h3>
                                 </div>
@@ -334,7 +334,7 @@ break;
 
         foreach (var agent in agents)
         {
-            if (currentLevel.Count >= 3 || (currentLevel.Count > 0 && agent.AgentDependencyId == null))
+            if (currentLevel.Count > 0 && agent.AgentDependencies?.Any(x => currentLevel.Any(y => y.Id == x)) == true)
             {
                 levels.Add(currentLevel);
                 currentLevel = new List<AgentDto>();
@@ -360,18 +360,12 @@ break;
             {
                 foreach (var step in agent.Context.Steps)
                 {
-                    if (step.StartsWith("REDIRECT", StringComparison.OrdinalIgnoreCase))
-                    {
-                        var parts = step.Split('+');
-                        if (parts.Length >= 2 )
-                        {
-                            if (agentDictionary.TryGetValue(parts[1], out var dependentAgent))
-                            {
-                                dependentAgent.AgentDependencyId = agent.Id;
-                                break;
-                            }
-                        }
-                    }
+                    if (!step.StartsWith("REDIRECT", StringComparison.OrdinalIgnoreCase)) continue;
+                    var parts = step.Split('+');
+                    if (parts.Length < 2) continue;
+                    if (!agentDictionary.TryGetValue(parts[1], out var dependentAgent)) continue;
+                    
+                    dependentAgent.AgentDependencies?.Add(agent.Id);
                 }
             }
         }

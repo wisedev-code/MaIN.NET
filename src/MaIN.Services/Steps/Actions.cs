@@ -47,8 +47,14 @@ public static class Actions
                     chat.Messages?.Add(new Message()
                     {
                         Role = "system",
-                        Content = redirectCommand.Message.Content //TODO: workaround to fake user input and make agent respond
+                        Content = redirectCommand.Message.Content
                     });
+
+                    if (string.IsNullOrEmpty(redirectCommand.Filter))
+                    {
+                        chat.Properties.Add("data_filter", redirectCommand.Filter!);
+                    }
+
                     var result = await agentService.Process(chat, redirectCommand.RelatedAgentId);
                     return result!.Messages?.Last();
                 })

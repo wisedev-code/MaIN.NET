@@ -1,7 +1,7 @@
 {
-    "id": "cd058053-ddba-4f37-b3f9-8759d6b9e0c7",
-    "name": "AliExpress seeker",
-    "description": "4st in a flow",
+    "id": "0248fe87-0b28-4590-9afb-77eeb45d8bc3",
+    "name": "Amazon seeker",
+    "description": "2st in a flow",
     "model": "phi3:mini",
     "context": 
     {
@@ -10,13 +10,13 @@
             "type": 1, 
             "details": 
             {
-                "url": "https://pl.aliexpress.com/w/wholesale-{filter}.html",
+                "url": "https://www.amazon.pl/s?k={filter}",
                 "method": "Get",
                 "query": "",
                 "payload": ""
             }
         },
-        "instruction": "FETCH_DATA",
+        "instruction": "You are looking for product that user provided",
         "steps": ["FETCH_DATA", "REDIRECT+f14cec0d-9acc-479f-bf39-b9a14d685af4+AS_Output+REPLACE"]
     }
 }

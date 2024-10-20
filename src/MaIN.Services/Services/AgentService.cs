@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Amazon.Runtime.Internal.Transform;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
@@ -80,7 +81,8 @@ public class AgentService(
                     {
                         Message = chat?.Messages?.Last()!,
                         RelatedAgentId = stepParts[1],
-                        SaveAs = Enum.Parse<OutputTypeOfRedirect>(stepParts[2])
+                        SaveAs = Enum.Parse<OutputTypeOfRedirect>(stepParts[2]),
+                        Filter = GetFilter(chat?.Messages?.Last()!.Content)
                     };
 
                     await dispatchNotification("false", agentId);
@@ -163,6 +165,13 @@ public class AgentService(
         }
 
         return chat;
+    }
+
+    private static string? GetFilter(string? content)
+    {
+        var pattern = @"filter::\$\{(.*?)\}\$";
+        var match = Regex.Match(content!, pattern);
+        return match.Success ? match.Groups[1].Value : null;
     }
 
     public async Task<Agent> CreateAgent(Agent agent)

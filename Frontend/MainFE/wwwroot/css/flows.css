@@ -312,6 +312,8 @@ fluent-badge span {
     padding: 20px;
     background-color: #121212;
     color: #ffffff;
+    display: flex;
+    flex-direction: column;
 }
 
 .back-button-container {
@@ -328,14 +330,26 @@ fluent-badge span {
 
 .agent-grid {
     display: flex;
-    flex-direction: column;
-    gap: 40px;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 110px;
 }
 
 .agent-level {
+    position: relative;
     display: flex;
-    justify-content: flex-start;
-    gap: 110px;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.agent-level:first-child,
+.agent-level:last-child {
+    justify-content: center;
+}
+
+.agent-level:not(:first-child):not(:last-child) {
+    align-items: flex-start;
 }
 
 .agent-card {
@@ -347,10 +361,10 @@ fluent-badge span {
     position: relative;
 }
 
-.agent-card.has-dependency::before {
+.agent-level.has-dependency::before {
     content: '';
     position: absolute;
-    top: 50%;
+    top: 80px;
     left: -90px;
     width: 70px;
     height: 2px;
