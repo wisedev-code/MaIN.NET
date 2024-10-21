@@ -10,13 +10,14 @@
             "type": 1, 
             "details": 
             {
-                "url": "https://pl.aliexpress.com/w/wholesale-{filter}.html",
+                "url": "https://pl.aliexpress.com/w/wholesale-@filter@.html",
                 "method": "Get",
                 "query": "",
-                "payload": ""
+                "payload": "",
+                "responseType": "HTML"
             }
         },
-        "instruction": "You are looking for product that user provided",
+        "instruction": "",
         "steps": ["FETCH_DATA", "REDIRECT+f14cec0d-9acc-479f-bf39-b9a14d685af4+AS_Output+REPLACE"]
     }
 }
