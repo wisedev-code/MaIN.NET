@@ -82,7 +82,7 @@ public class AgentService(
                         Message = chat?.Messages?.Last()!,
                         RelatedAgentId = stepParts[1],
                         SaveAs = Enum.Parse<OutputTypeOfRedirect>(stepParts[2]),
-                        Filter = GetFilter(chat?.Messages?.Last()!.Content)
+                        Filter = chat?.Properties.GetValueOrDefault("data_filter")
                     };
 
                     await dispatchNotification("false", agentId);
@@ -116,7 +116,7 @@ public class AgentService(
                         Context = context.ToDomain()
                     };
                     var fetchCommandResponse =
-                        (await Actions.CallAsync("FETCH_DATA_WITH_FILTER", fetchCommand) as Message)!;
+                        (await Actions.CallAsync("FETCH_DATA", fetchCommand) as Message)!;
                     chat.Messages?.Add(fetchCommandResponse);
                     break;
 
@@ -153,6 +153,11 @@ public class AgentService(
                         chat?.Messages?.RemoveAt(chat.Messages.Count - 1);
                     }
 
+                    var filterVal = GetFilter(answerResponse.Content);
+                    if (!string.IsNullOrEmpty(filterVal))
+                    {
+                        chat?.Properties.TryAdd("data_filter", filterVal);
+                    }
                     answerResponse.Time = DateTime.Now;
                     chat?.Messages?.Add(answerResponse);
                     break;
@@ -169,7 +174,7 @@ public class AgentService(
 
     private static string? GetFilter(string? content)
     {
-        var pattern = @"filter::\$\{(.*?)\}\$";
+        var pattern = @"filter::\{(.*?)\}";
         var match = Regex.Match(content!, pattern);
         return match.Success ? match.Groups[1].Value : null;
     }

@@ -43,16 +43,17 @@ public static class Actions
             {
                 "REDIRECT", new Func<RedirectCommand, Task<Message?>>(async redirectCommand =>
                 {
+                    var agentPostS = "~$~AGENT_INTERNAL~$~";
                     var chat = await agentService.GetChatByAgent(redirectCommand.RelatedAgentId);
                     chat.Messages?.Add(new Message()
                     {
-                        Role = "system",
-                        Content = redirectCommand.Message.Content
+                        Role = "user",
+                        Content = redirectCommand.Message.Content + agentPostS
                     });
 
-                    if (string.IsNullOrEmpty(redirectCommand.Filter))
+                    if (!string.IsNullOrEmpty(redirectCommand.Filter))
                     {
-                        chat.Properties.Add("data_filter", redirectCommand.Filter!);
+                        chat.Properties.TryAdd("data_filter", redirectCommand.Filter!);
                     }
 
                     var result = await agentService.Process(chat, redirectCommand.RelatedAgentId);
@@ -81,7 +82,7 @@ public static class Actions
                     var dataMsg = new Message()
                     {
                         Content =
-                            $"Here is data from internal data source, This is what you should use to answer questions: {data}",
+                            $"Process this data as described in your role: {data}",
                         Role = "system"
                     };
 
@@ -206,12 +207,13 @@ public static class Actions
         var result = await httpClient.SendAsync(
             new HttpRequestMessage(HttpMethod.Parse(apiDetails?.Method), apiDetails?.Url + apiDetails?.Query)
             {
-                Content = apiDetails?.Payload != null
+                Content = !string.IsNullOrEmpty(apiDetails?.Payload)
                     ? new StringContent(JsonSerializer.Serialize(apiDetails.Payload), Encoding.UTF8, "application/json")
                     : null
             });
 
-        return await result.Content.ReadAsStringAsync();
+        var data = await result.Content.ReadAsStringAsync();
+        return apiDetails?.ResponseType == "HTML" ? HtmlContentCleaner.CleanHtml(data) : data;
     }
 
     public static async Task<object?> CallAsync(string functionName, params object[] parameters)
