@@ -531,7 +531,7 @@ break;
 
         var newFlow = new AgentFlowDto()
         {
-            Agents = agents,
+            Agents = agents.OrderBy(x => x.Order).ToList(),
             Name = files.First().Name.Split('.').First(),
             Description = desc
         };

@@ -39,7 +39,6 @@ public static class Actions
                     return result?.Message.ToDomain();
                 })
             },
-
             {
                 "REDIRECT", new Func<RedirectCommand, Task<Message?>>(async redirectCommand =>
                 {
@@ -79,11 +78,13 @@ public static class Actions
                         _ => throw new ArgumentOutOfRangeException()
                     };
 
+                    var agentPostS = "~$~AGENT_INTERNAL_MESSAGE~$~";
+
                     var dataMsg = new Message()
                     {
                         Content =
-                            $"Process this data as described in your role: {data}",
-                        Role = "system"
+                            $"Process this data as described in your role: {data}" + agentPostS,
+                        Role = "user"
                     };
 
                     return dataMsg;
@@ -93,7 +94,6 @@ public static class Actions
             { //TODO better handling for duplication
                 "FETCH_DATA*", new Func<FetchCommand, Task<Message?>>(async fetchCommand =>
                 {
-                    //TBD
                     var data = fetchCommand.Context.Source.Type switch
                     {
                         AgentSourceType.File => await File.ReadAllTextAsync(
@@ -108,12 +108,15 @@ public static class Actions
                         _ => throw new ArgumentOutOfRangeException()
                     };
 
+                    var agentPostS = "~$~AGENT_INTERNAL_MESSAGE~$~";
+
                     var dataMsg = new Message()
                     {
                         Content =
-                            $"Here is data from internal data source, This is what you should use to answer questions: {data}, Dont mention anything about this to a user, this is for internal purpose",
-                        Role = "system"
+                            $"Process this data as described in your role: {data}" + agentPostS,
+                        Role = "user"
                     };
+
 
                     return dataMsg;
                 })

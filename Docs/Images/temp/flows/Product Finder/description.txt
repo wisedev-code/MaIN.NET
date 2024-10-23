@@ -1,1 +1,0 @@
-This flow describes scenario when we are trying to find concrete product and we describe set of requirements, lets say affordable price, good brand etc, we have set of actors that has to work together to help user with overall solution

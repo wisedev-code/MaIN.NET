@@ -54,15 +54,16 @@ public class AgentService(
             throw new ArgumentException("Agent context not found.");
         }
 
-        chat = await ProcessSteps(context, agentId, chat, dispatchNotification, updateChat);
-        
+        chat = await ProcessSteps(context, agent, chat, dispatchNotification, updateChat);
+
+        await agentRepository.UpdateAgent(agent.Id, agent);
         await dispatchNotification("false", agentId);
 
         // Return the processed chat
         return chat;
     }
 
-    private static async Task<Chat?> ProcessSteps(AgentContextDocument context, string agentId, Chat? chat,
+    private static async Task<Chat?> ProcessSteps(AgentContextDocument context, AgentDocument agent, Chat? chat,
         Func<string, string, Task> dispatchNotification, Func<Chat, Task> updateChat)
     {
         // Process each step in the defined order
@@ -85,7 +86,7 @@ public class AgentService(
                         Filter = chat?.Properties.GetValueOrDefault("data_filter")
                     };
 
-                    await dispatchNotification("false", agentId);
+                    await dispatchNotification("false", agent.Id);
                     
                     var message = await Actions.CallAsync("REDIRECT", redirectCommand) as Message;
                     if (redirectCommand.SaveAs == OutputTypeOfRedirect.AS_Filter)
@@ -161,6 +162,16 @@ public class AgentService(
                     answerResponse.Time = DateTime.Now;
                     chat?.Messages?.Add(answerResponse);
                     break;
+                
+                case "BECOME":
+                    agent.Context.Instruction = agent.Behaviours.GetValueOrDefault(stepParts[1]) ?? agent.Context.Instruction;
+                    agent.CurrentBehaviour = stepParts[1];
+                    chat!.Messages![0].Content = agent.Context.Instruction;
+                    break;
+                
+                case "CLEANUP":
+                    chat!.Messages = chat.Messages!.Take(1).ToList();
+                    break;
 
                 default:
                     throw new InvalidOperationException($"Unknown step: {stepName}");
@@ -200,7 +211,8 @@ public class AgentService(
         var result = await Actions.CallAsync("START", startCommand) as Message;
         result!.Role = "system";
         agent.Started = true;
-        //chat.Messages.Add(result!);
+        agent.Behaviours.Add("Default", agent.Context.Instruction);
+        agent.CurrentBehaviour = "Default";
         var agentDocument = agent.ToDocument();
         agentDocument!.ChatId = chat.Id;
         await chatRepository.AddChat(chat!.ToDocument());

@@ -11,10 +11,15 @@ public class AgentDto
     public string Name { get; set; }
     [JsonPropertyName("model")]
     public string Model { get; set; }
+    [JsonPropertyName("order")]
+    public int Order { get; set; }
     [JsonPropertyName("description")]
     public string? Description { get; set; }
+    [JsonPropertyName("behaviours")]
+    public Dictionary<string,string> Behaviours { get; set; }
     [JsonPropertyName("started")]
     public bool Started { get; set; }
+    
     [JsonPropertyName("context")]
     public AgentContextDto Context { get; set; }
     public AgentProcessingState State { get; set; }

@@ -1,0 +1,12 @@
+{
+    "id": "f14cec0d-9acc-479f-bf39-b9a14d685af4",
+    "order": 5,
+    "name": "Prettifier",
+    "description": "5st in a flow",
+    "model": "phi3.5",
+    "context": 
+    {
+        "instruction": "You will receive information about jobs (probably as a list) you need to prettify response and make sure that it contains all revelant information for a job seeker",
+        "steps": ["ANSWER"]
+    }
+}

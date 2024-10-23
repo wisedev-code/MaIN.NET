@@ -13,7 +13,7 @@ public static class AgentFlowMapper
             Id = agentFlow.Id,
             Name = agentFlow.Name,
             Description = agentFlow.Description,
-            Agents = agentFlow.Agents.Select(x => x.ToDto()).ToList()
+            Agents = agentFlow.Agents.OrderBy(x => x.Order).Select(x => x.ToDto()).ToList()
         };
     }
 
