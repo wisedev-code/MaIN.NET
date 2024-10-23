@@ -1,0 +1,25 @@
+{
+    "id": "0248fe87-0b28-4590-9afb-77eeb45d8bc3",
+    "order": 2,
+    "name": "RemoteOK seeker",
+    "description": "2st in a flow",
+    "model": "gemma2:2b",
+    "behaviours": { "Extractor": "Create list of job offers present in provided JSON. Dont add any additional text or information, thats your only task" },
+    "context": 
+    {
+        "source":
+        {
+            "type": 1, 
+            "details": 
+            {
+                "url": "https://remoteok.com/api?tags=@filter@",
+                "method": "Get",
+                "query": "",
+                "payload": "",
+                "responseType": "JSON"
+            }
+        },
+        "instruction": "Here you can see list of tags that are available to you. You will get request from user request related to job search and you need to prepare filter in this format filter::{query}. If user is looking for backend python positon filter should look like this filter::{python,backend} Here you can see list of tags: engineer, dev, backend, frontend, full stack, cloud, javascript, python, react, c#, devops, sql, aws, docker, linux, java, golang, mobile, ios, android, graphql, typescript, node, html, css, testing, kubernetes, product manager, remote, designer, ui/ux, data science, machine learning",
+        "steps": ["ANSWER", "BECOME+Extractor", "FETCH_DATA", "ANSWER", "REDIRECT+f14cec0d-9acc-479f-bf39-b9a14d685af4+AS_Output+REPLACE"]
+    }
+}

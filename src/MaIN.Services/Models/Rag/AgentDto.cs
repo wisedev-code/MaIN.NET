@@ -16,4 +16,10 @@ public class AgentDto
     public bool Started { get; set; }
     [JsonPropertyName("context")]
     public AgentContextDto Context { get; set; }
+
+    [JsonPropertyName("order")]
+    public int Order { get; set; }
+
+    [JsonPropertyName("behaviours")] public Dictionary<string, string> Behaviours { get; set; } = [];
+    [JsonPropertyName("currentBehaviour")] public string CurrentBehaviour { get; set; }
 }

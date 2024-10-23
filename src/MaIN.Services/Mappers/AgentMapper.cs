@@ -13,10 +13,13 @@ public static class AgentMapper
         => new()
         {
             Id = agent.Id,
+            Order = agent.Order,
             Name = agent.Name,
             Model = agent.Model,
             Started = agent.Started,
             Description = agent.Description,
+            Behaviours = agent.Behaviours,
+            CurrentBehaviour = agent.CurrentBehaviour,
             Context = agent.Context.ToDto()
         };
 
@@ -39,8 +42,11 @@ public static class AgentMapper
             Id = agent.Id,
             Name = agent.Name,
             Model = agent.Model,
+            Order = agent.Order,
             Started = agent.Started,
             Description = agent.Description,
+            Behaviours = agent.Behaviours,
+            CurrentBehaviour = agent.CurrentBehaviour,
             Context = agent.Context.ToDomain()
         };
 
@@ -88,8 +94,11 @@ public static class AgentMapper
             Id = agent.Id,
             Name = agent.Name,
             Model = agent.Model,
+            Order = agent.Order,
             Started = agent.Started,
             Description = agent.Description,
+            Behaviours = agent.Behaviours,
+            CurrentBehaviour = agent.CurrentBehaviour,
             Context = agent.Context.ToDocument()
         };
     
@@ -100,7 +109,10 @@ public static class AgentMapper
             Name = agent.Name,
             Model = agent.Model,
             Started = agent.Started,
+            Order = agent.Order,
             Description = agent.Description,
+            Behaviours = agent.Behaviours,
+            CurrentBehaviour = agent.CurrentBehaviour,
             Context = agent.Context.ToDomain()
         };
 
