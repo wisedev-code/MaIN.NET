@@ -1,10 +1,11 @@
 {
     "id": "cd058053-ddba-4f37-b3f9-8759d6b9e0c7",
     "order": 4,
-    "name": "BuldogJobs seeker",
+    "name": "4DaysWeek seeker",
     "description": "4st in a flow",
-    "model": "gemma2:2b",
-    "behaviours": { "Extractor": "Create list of job offers present in provided JSON. Dont add any additional text or information, thats your only task" },
+    "model": "llama3.2:3b",
+    "behaviours": { "Seeker": "Write summary of jobs offers included in json (title, position, salary, company, provide job link if possible)", 
+                    "Extractor": "Extract at least 5 best jobs postings (and mentione source: in your case its 4dayweek.io) from all summaries you created that fits user filter: @filter@" },
     "context": 
     {
         "source":
@@ -12,14 +13,15 @@
             "type": 1, 
             "details": 
             {
-                "url": "https://bulldogjob.com/_next/data/ZUqFnogsfGiTB-RSZaGY6/en/companies/jobs/s/skills%2C@filter@.json?slug=s&slug=skills%2C@filter@",
+                "url": "https://4dayweek.io/data/jobs/list.json?filter=@filter@&limit=10",
                 "method": "Get",
                 "query": "",
                 "payload": "",
+                "chunkLimit": 15,
                 "responseType": "JSON"
             }
         },
-        "instruction": "Here you can see list of tags that are available to you. You will get request from user request related to job search and you need to prepare filter in this format filter::{query}. If user is looking for python positon filter should look like this filter::{Python}. Here is the list: Java, JavaScript, Python, PHP, Ruby, Scala, Golang, TypeScript, HTML, CSS, Swift, Kotlin, Rust, C, C++, C%23, React, Angular, Vue.js, Node.js, Spring, Django, Laravel, Express.js, Next.js, NestJS, Flutter, React%20Native, .NET, MySQL, PostgreSQL, MongoDB, Redis, Elasticsearch, Oracle, MS%20SQL, Docker, Kubernetes, AWS, Azure, GCP, Linux, Git, Jenkins, Terraform, GraphQL, REST",
-        "steps": ["ANSWER", "BECOME+Extractor", "FETCH_DATA", "ANSWER", "REDIRECT+f14cec0d-9acc-479f-bf39-b9a14d685af4+AS_Output+REPLACE"]
+        "instruction": "Here you can see list of tags that are available to you. You will get request from user request related to job search and you need to prepare filter in this format filter::{query}. If user is looking for python positon filter should look like this filter::{Python}. Here is the list: engineer, dev, backend, frontend, full stack, cloud, javascript, python, react, net, devops, sql, aws, docker, linux, java, golang, mobile, ios, android, graphql, typescript, node, html, css, testing, kubernetes, product manager, remote, designer, ui/ux, data science, machine learning",
+        "steps": ["ANSWER", "BECOME+Seeker", "FETCH_DATA", "BECOME+Extractor", "ANSWER", "REDIRECT+f14cec0d-9acc-479f-bf39-b9a14d685af4+AS_Output+REPLACE"]
     }
 }

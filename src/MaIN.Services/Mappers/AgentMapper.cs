@@ -27,13 +27,14 @@ public static class AgentMapper
         => new()
         {
             Instruction = agentContext.Instruction,
-            Relations = agentContext?.Relations,
-            Steps = agentContext?.Steps.Select(x => x.Key).ToList() ?? [],
-            Source = new AgentSourceDto()
+            Relations = agentContext.Relations,
+            Steps = agentContext?.Steps ?? [],
+            Source = agentContext?.Source is not null ? new AgentSourceDto()
             {
-                Details = agentContext.Source.Details,
+                Details = agentContext?.Source?.Details,
+                AdditionalMessage = agentContext?.Source?.AdditionalMessage,
                 Type = Enum.Parse<AgentSourceTypeDto>(agentContext.Source.Type.ToString())
-            }
+            } : null
         };
 
     public static Agent ToDomain(this AgentDto agent)
@@ -58,9 +59,10 @@ public static class AgentMapper
             Source = agentContextDto?.Source is not null ? new AgentSource()
             {
                 Details = agentContextDto?.Source?.Details,
+                AdditionalMessage = agentContextDto?.Source?.AdditionalMessage,
                 Type = Enum.Parse<AgentSourceType>(agentContextDto?.Source?.Type.ToString()!)
             } : null,
-            Steps = agentContextDto!.Steps.ToLookup(x => x, y => Actions.Steps[y.Split('+').First()])
+            Steps = agentContextDto!.Steps
         };
 
     private static AgentSourceDetailsBase MapDetailsToType(object? details, AgentSourceTypeDto? sourceDetailsType)
@@ -80,10 +82,11 @@ public static class AgentMapper
         {
             Instruction = context.Instruction,
             Relations = context.Relations?.ToList(),
-            Steps = context.Steps.Select(x => x.Key).ToList(),
+            Steps = context.Steps.ToList(),
             Source = context.Source is not null ? new AgentSourceDocument()
             {
                 DetailsSerialized = JsonSerializer.Serialize(context.Source.Details),
+                AdditionalMessage = context.Source.AdditionalMessage,
                 Type = Enum.Parse<AgentSourceTypeDocument>(context.Source.Type.ToString())
             } : null
         };
@@ -123,9 +126,10 @@ public static class AgentMapper
             Relations = agentContextDocument?.Relations,
             Source = new AgentSource
             {
+                AdditionalMessage = agentContextDocument?.Source?.AdditionalMessage,
                 Details = agentContextDocument?.Source?.DetailsSerialized,
                 Type = Enum.Parse<AgentSourceType>(agentContextDocument?.Source?.Type.ToString() ?? AgentSourceType.Text.ToString())
             },
-            Steps = agentContextDocument!.Steps.ToLookup(x => x, y => Actions.Steps[y.Split('+').First()])
+            Steps = agentContextDocument!.Steps
         };
 }

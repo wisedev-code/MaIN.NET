@@ -42,7 +42,7 @@ public static class Actions
             {
                 "REDIRECT", new Func<RedirectCommand, Task<Message?>>(async redirectCommand =>
                 {
-                    var agentPostS = "~$~AGENT_INTERNAL~$~";
+                    var agentPostS = "~$~AGENT_INTERNAL_MESSAGE~$~";
                     var chat = await agentService.GetChatByAgent(redirectCommand.RelatedAgentId);
                     chat.Messages?.Add(new Message()
                     {
@@ -56,7 +56,11 @@ public static class Actions
                     }
 
                     var result = await agentService.Process(chat, redirectCommand.RelatedAgentId);
-                    return result!.Messages?.Last();
+                    return new Message()
+                    {
+                        Content = result?.Messages?.Last().Content! + agentPostS,
+                        Role = "user"
+                    };
                 })
             },
 
@@ -64,27 +68,26 @@ public static class Actions
                 "FETCH_DATA", new Func<FetchCommand, Task<Message?>>(async fetchCommand =>
                 {
                     //TBD
+                    var properties = new Dictionary<string, string>();
                     var data = fetchCommand.Context.Source.Type switch
                     {
                         AgentSourceType.File => await File.ReadAllTextAsync(
                             ((AgentFileSourceDetails)fetchCommand.Context.Source.Details!).Path),
                         AgentSourceType.Text => ((AgentTextSourceDetails)fetchCommand.Context.Source.Details!).Text,
                         AgentSourceType.API => await FetchApiData(fetchCommand.Context.Source.Details,
-                            fetchCommand.Filter, httpClientFactory),
+                            fetchCommand.Filter, httpClientFactory, properties),
                         AgentSourceType.SQL => await FetchSqlData(fetchCommand.Context.Source.Details,
-                            fetchCommand.Filter),
+                            fetchCommand.Filter, properties),
                         AgentSourceType.NoSQL => await FetchNoSqlData(fetchCommand.Context.Source.Details,
-                            fetchCommand.Filter),
+                            fetchCommand.Filter, properties),
                         _ => throw new ArgumentOutOfRangeException()
                     };
-
-                    var agentPostS = "~$~AGENT_INTERNAL_MESSAGE~$~";
-
+                    
                     var dataMsg = new Message()
                     {
-                        Content =
-                            $"Process this data as described in your role: {data}" + agentPostS,
-                        Role = "user"
+                        Content = data,
+                        Role = "user",
+                        Properties = properties
                     };
 
                     return dataMsg;
@@ -94,17 +97,18 @@ public static class Actions
             { //TODO better handling for duplication
                 "FETCH_DATA*", new Func<FetchCommand, Task<Message?>>(async fetchCommand =>
                 {
+                    var properties = new Dictionary<string, string>();
                     var data = fetchCommand.Context.Source.Type switch
                     {
                         AgentSourceType.File => await File.ReadAllTextAsync(
                             JsonSerializer.Deserialize<AgentFileSourceDetails>(fetchCommand.Context.Source.Details?.ToString()!)!.Path),
                         AgentSourceType.Text => fetchCommand.Context.Source.Details!.ToString(),
                         AgentSourceType.API => await FetchApiData(fetchCommand.Context.Source.Details,
-                            fetchCommand.Filter, httpClientFactory),
+                            fetchCommand.Filter, httpClientFactory, properties),
                         AgentSourceType.SQL => await FetchSqlData(fetchCommand.Context.Source.Details,
-                            fetchCommand.Filter),
+                            fetchCommand.Filter, properties),
                         AgentSourceType.NoSQL => await FetchNoSqlData(fetchCommand.Context.Source.Details,
-                            fetchCommand.Filter),
+                            fetchCommand.Filter, properties),
                         _ => throw new ArgumentOutOfRangeException()
                     };
 
@@ -114,7 +118,8 @@ public static class Actions
                     {
                         Content =
                             $"Process this data as described in your role: {data}" + agentPostS,
-                        Role = "user"
+                        Role = "user",
+                        Properties = properties
                     };
 
 
@@ -132,7 +137,8 @@ public static class Actions
         };
     }
 
-    private static async Task<string> FetchNoSqlData(object? sourceDetails, string? fetchCommandFilter)
+    private static async Task<string> FetchNoSqlData(object? sourceDetails, string? fetchCommandFilter,
+        Dictionary<string, string> properties)
     {
         var noSqlDetails = JsonSerializer.Deserialize<AgentNoSqlSourceDetails>(sourceDetails.ToString());
         noSqlDetails!.ConnectionString = noSqlDetails.ConnectionString.Replace("@filter@", fetchCommandFilter);
@@ -164,7 +170,8 @@ public static class Actions
         return jsonResult;
     }
 
-    private static async Task<string> FetchSqlData(object? sourceDetails, string? fetchCommandFilter)
+    private static async Task<string> FetchSqlData(object? sourceDetails, string? fetchCommandFilter,
+        Dictionary<string, string> properties)
     {
         var sqlDetails = JsonSerializer.Deserialize<AgentSqlSourceDetails>(sourceDetails.ToString());
         sqlDetails!.ConnectionString = sqlDetails.ConnectionString.Replace("@filter@", fetchCommandFilter);
@@ -197,7 +204,7 @@ public static class Actions
     }
 
     private static async Task<string> FetchApiData(object? details, string? filter,
-        IHttpClientFactory httpClientFactory)
+        IHttpClientFactory httpClientFactory, Dictionary<string, string> properties)
     {
         var apiDetails = JsonSerializer.Deserialize<AgentApiSourceDetails>(details.ToString(), new JsonSerializerOptions()
         {
@@ -216,6 +223,12 @@ public static class Actions
             });
 
         var data = await result.Content.ReadAsStringAsync();
+        properties.TryAdd("api_response_type", apiDetails?.ResponseType ?? "JSON");
+        if (apiDetails?.ChunkLimit != null)
+        {
+            properties.TryAdd("chunk_limit", apiDetails.ChunkLimit.ToString()!);
+        }
+            
         return apiDetails?.ResponseType == "HTML" ? HtmlContentCleaner.CleanHtml(data) : data;
     }
 

@@ -130,6 +130,15 @@
                                     <div class="state-container">
                                         <span>State: @agent.State</span>
                                     </div>
+                                    <div class="state-container">
+                                        <span>Behaviour: @agent.Behaviour</span>
+                                    </div>
+                                    @if (agent.ProgressMessage != null)
+                                    {
+                                        <div class="state-container">
+                                            <span>Progress: @agent.ProgressMessage</span>
+                                        </div>
+                                    }
                                 </div>
                             </div>
                         }
@@ -442,11 +451,15 @@ break;
         {
             var agentId = jsonElement.GetProperty("agentId").GetString();
             var isProcessing = jsonElement.GetProperty("isProcessing").GetBoolean();
+            jsonElement.TryGetProperty("progress", out var progress);
+            var behaviour = jsonElement.GetProperty("behaviour").GetString();
 
             var agent = selectedFlow.Agents.FirstOrDefault(a => a.Id.ToString() == agentId);
             if (agent != null)
             {
                 agent.IsProcessing = isProcessing;
+                agent.ProgressMessage = progress.GetString();
+                agent.Behaviour = behaviour;
                 agent.State = isProcessing ? AgentProcessingState.Running : AgentProcessingState.Idle;
                 InvokeAsync(StateHasChanged);
             }

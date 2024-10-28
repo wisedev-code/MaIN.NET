@@ -1,0 +1,11 @@
+{
+    "id": "01ed2b56-5007-440c-9e1a-f489e686b97d",
+    "name": "FLUX.1",
+    "description": "3st in a flow",
+    "model": "FLUX.1_Shnell",
+    "context": 
+    {
+        "instruction": "Generate image based on provided description",
+        "steps": ["ANSWER"]
+    }
+}

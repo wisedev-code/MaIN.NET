@@ -13,7 +13,9 @@ public class SignalRNotificationService(IHubContext<NotificationHub> hub) : INot
         var payload = new
         {
             agentId = msg!["AgentId"],
-            isProcessing = bool.Parse(msg!["IsProcessing"])
+            isProcessing = bool.Parse(msg!["IsProcessing"]),
+            behaviour = msg!["Behaviour"],
+            progress = msg!["Progress"]
         };
 
         // Send the payload to all clients

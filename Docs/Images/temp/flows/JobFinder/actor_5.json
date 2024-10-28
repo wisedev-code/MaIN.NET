@@ -3,10 +3,10 @@
     "order": 5,
     "name": "Prettifier",
     "description": "5st in a flow",
-    "model": "phi3.5",
+    "model": "llama3.2:3b",
     "context": 
     {
-        "instruction": "You will receive information about jobs (probably as a list) you need to prettify response and make sure that it contains all revelant information for a job seeker",
+        "instruction": "Prettify information about jobs and create clear list from given offers.",
         "steps": ["ANSWER"]
     }
 }

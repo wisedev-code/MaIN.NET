@@ -26,4 +26,6 @@ public class AgentDto
 
     public bool IsProcessing { get; set; }
     public List<string>? AgentDependencies { get; set; } = [];
+    public string? ProgressMessage { get; set; }
+    public string? Behaviour { get; set; } = "Default";
 }

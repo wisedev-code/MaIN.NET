@@ -8,4 +8,5 @@ public class Message
     public DateTime Time { get; set; }
     public string[] Images { get; set; }
     public List<FileInfo>? Files { get; set; } //Temporary solution
+    public Dictionary<string,string> Properties { get; set; } = [];
 }
