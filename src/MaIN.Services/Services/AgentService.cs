@@ -1,46 +1,46 @@
 using System.Text.RegularExpressions;
 using Amazon.Runtime.Internal.Transform;
+using Amazon.Runtime.Internal.Util;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
 using MaIN.Domain.Entities.Agents.Commands;
 using MaIN.Infrastructure.Models;
 using MaIN.Infrastructure.Repositories.Abstract;
-using MaIN.Models;
-using MaIN.Models.Rag;
 using MaIN.Services.Mappers;
-using MaIN.Services.Models.Ollama;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Steps;
-using MongoDB.Driver.Core.Events;
+using Microsoft.Extensions.Logging;
 
 namespace MaIN.Services.Services;
 
 public class AgentService(
     IAgentRepository agentRepository,
-    IChatRepository chatRepository, 
+    IChatRepository chatRepository,
+    ILogger<AgentService> logger,
     INotificationService notificationService) : IAgentService
 {
-    
     public async Task<Chat?> Process(Chat? chat, string agentId, bool translatePrompt = false)
     {
-        Func<string, string, Task> dispatchNotification = async (status, agentid) =>
+        Func<string, string, string?, string, Task> dispatchNotification = async (status, agentid, progress, behaviour ) =>
         {
             var messageFinal = new Dictionary<string, string>
             {
-                { "AgentId", agentid},
-                { "IsProcessing", status }
+                { "AgentId", agentid },
+                { "IsProcessing", status },
+                { "Progress", progress },
+                { "Behaviour", behaviour }
             };
             await notificationService.DispatchNotification(messageFinal);
         };
-        
+
         Func<Chat, Task> updateChat = async (chatObj) =>
         {
             await chatRepository.UpdateChat(chatObj.Id, chatObj.ToDocument());
         };
-        
+
         // Fetch the agent details from the repository
         var agent = await agentRepository.GetAgentById(agentId);
-        await dispatchNotification("true", agentId);
+        await dispatchNotification("true", agentId, null, agent?.CurrentBehaviour!);
 
         // Ensure the agent and its context are valid
         if (agent == null)
@@ -54,21 +54,34 @@ public class AgentService(
             throw new ArgumentException("Agent context not found.");
         }
 
-        chat = await ProcessSteps(context, agent, chat, dispatchNotification, updateChat);
+        chat = await ProcessSteps(
+            context,
+            agent,
+            chat,
+            dispatchNotification,
+            updateChat,
+            logger);
 
         await agentRepository.UpdateAgent(agent.Id, agent);
-        await dispatchNotification("false", agentId);
+        await dispatchNotification("false", agentId, "DONE", agent.CurrentBehaviour);
 
         // Return the processed chat
         return chat;
     }
 
-    private static async Task<Chat?> ProcessSteps(AgentContextDocument context, AgentDocument agent, Chat? chat,
-        Func<string, string, Task> dispatchNotification, Func<Chat, Task> updateChat)
+    private static async Task<Chat?> ProcessSteps(
+        AgentContextDocument context,
+        AgentDocument agent,
+        Chat? chat,
+        Func<string, string, string?, string, Task> dispatchNotification,
+        Func<Chat, Task> updateChat,
+        ILogger<AgentService> logger)
     {
+        Message redirectMessage = chat?.Messages?.Last()!;
         // Process each step in the defined order
         foreach (var step in context.Steps)
         {
+            logger.LogInformation("Processing step: {Step} on agent {agent}", step, agent.Name);
             // provide arguments
             var stepParts = step.Split('+');
             var stepName = stepParts[0];
@@ -80,14 +93,14 @@ public class AgentService(
                 case "REDIRECT":
                     var redirectCommand = new RedirectCommand
                     {
-                        Message = chat?.Messages?.Last()!,
+                        Message = redirectMessage,
                         RelatedAgentId = stepParts[1],
                         SaveAs = Enum.Parse<OutputTypeOfRedirect>(stepParts[2]),
                         Filter = chat?.Properties.GetValueOrDefault("data_filter")
                     };
 
-                    await dispatchNotification("false", agent.Id);
-                    
+                    await dispatchNotification("false", agent.Id, null, agent.CurrentBehaviour);
+
                     var message = await Actions.CallAsync("REDIRECT", redirectCommand) as Message;
                     if (redirectCommand.SaveAs == OutputTypeOfRedirect.AS_Filter)
                     {
@@ -118,7 +131,52 @@ public class AgentService(
                     };
                     var fetchCommandResponse =
                         (await Actions.CallAsync("FETCH_DATA", fetchCommand) as Message)!;
-                    chat.Messages?.Add(fetchCommandResponse);
+
+                    if (fetchCommandResponse.Properties.ContainsValue("JSON"))
+                    {
+                        var data = fetchCommandResponse.Content;
+                        var splitter = new JsonChunker(maxTokens: 2000);
+                        var chunks = splitter.ChunkJson(data).ToList();
+                        if (fetchCommandResponse.Properties.ContainsKey("chunk_limit"))
+                        {
+                            chunks = chunks.Take(int.Parse(fetchCommandResponse.Properties.GetValueOrDefault("chunk_limit")!)).ToList();
+                        }
+                        int index = 0;
+                        foreach (var chunk in chunks)
+                        {
+                            await dispatchNotification("true", agent.Id, $"{index + 1}/{chunks.Count}",
+                                agent.CurrentBehaviour);
+
+                            logger.LogDebug("Processing chunk: {chunk} out of {chunks}", index, chunks.Count);
+                            var addition = chunks.Count == index + 1
+                                ? "Remember it"
+                                : "Remember it and wait for the next message";
+                            chat.Messages?
+                                .Add(new Message
+                                {
+                                    Role = "user",
+                                    Content = $"[Chunk {index + 1}/{chunks.Count}] {chunk} - {addition}"
+                                });
+
+                            var newMessage = await Actions.CallAsync("ANSWER", new AnswerCommand()
+                            {
+                                Chat = chat,
+                            }) as Message;
+
+                            chat.Messages?.Add(newMessage!);
+                            index++;
+                        }
+                    }
+                    else
+                    {
+                        chat.Messages?
+                            .Add(new Message
+                            {
+                                Role = "user",
+                                Content = $"Remember this data: {fetchCommandResponse.Content}"
+                            });
+                    }
+
                     break;
 
                 case "FETCH_DATA*":
@@ -137,38 +195,92 @@ public class AgentService(
                         Filter = filterExists ? filterData : string.Empty
                     };
                     var response = (await Actions.CallAsync("FETCH_DATA", fetchCommandOnce) as Message)!;
-                    chat.Messages?.Add(response);
+                    if (response.Properties.ContainsValue("JSON"))
+                    {
+                        var data = response.Content;
+                        var splitter = new JsonChunker(maxTokens: 2000);
+                        var chunks = splitter.ChunkJson(data).ToList();
+                        if (response.Properties.ContainsKey("chunk_limit"))
+                        {
+                            chunks = chunks.Take(int.Parse(response.Properties.GetValueOrDefault("chunk_limit")!)).ToList();
+                        }
+                        int index = 0;
+                        foreach (var chunk in chunks)
+                        {
+                            await dispatchNotification("true", agent.Id, $"{index + 1}/{chunks.Count}",
+                                agent.CurrentBehaviour);
 
+                            logger.LogDebug("Processing chunk: {chunk} out of {chunks}", index, chunks.Count);
+                            var addition = chunks.Count == index + 1
+                                ? "Remember it"
+                                : "Remember it and wait for the next message";
+                            chat.Messages?
+                                .Add(new Message
+                                {
+                                    Role = "user",
+                                    Content = $"[Chunk {index + 1}/{chunks.Count}] {chunk} - {addition}"
+                                });
+
+                            var newMessage = await Actions.CallAsync("ANSWER", new AnswerCommand()
+                            {
+                                Chat = chat,
+                            }) as Message;
+
+                            chat.Messages?.Add(newMessage!);
+                            index++;
+                        }
+                    }
+                    else
+                    {
+                        chat.Messages?
+                            .Add(new Message
+                            {
+                                Role = "user",
+                                Content = $"Remember this data: {response.Content}"
+                            });
+                    }
                     chat.Properties.Add("FETCH_DATA*", string.Empty);
                     break;
 
                 case "ANSWER":
+                    await dispatchNotification("true", agent.Id, null, agent.CurrentBehaviour);
+
                     var answerCommand = new AnswerCommand
                     {
                         Chat = chat
                     };
                     var answerResponse = (await Actions.CallAsync("ANSWER", answerCommand) as Message)!;
 
-                    if (shouldReplaceLastMessage)
-                    {
-                        chat?.Messages?.RemoveAt(chat.Messages.Count - 1);
-                    }
-
                     var filterVal = GetFilter(answerResponse.Content);
                     if (!string.IsNullOrEmpty(filterVal))
                     {
                         chat?.Properties.TryAdd("data_filter", filterVal);
                     }
+                    
                     answerResponse.Time = DateTime.Now;
+                    redirectMessage = answerResponse;
                     chat?.Messages?.Add(answerResponse);
                     break;
-                
+
                 case "BECOME":
-                    agent.Context.Instruction = agent.Behaviours.GetValueOrDefault(stepParts[1]) ?? agent.Context.Instruction;
+                    var messageFilter = agent.Behaviours.GetValueOrDefault(stepParts[1]) ?? agent.Context.Instruction;
+                    if (chat!.Properties.TryGetValue("data_filter", out var filterQuery))
+                    {
+                        messageFilter = agent.Behaviours.GetValueOrDefault(stepParts[1])!.Replace("@filter@", filterQuery);
+                    }
+
+                    agent.Context.Instruction = messageFilter;
                     agent.CurrentBehaviour = stepParts[1];
                     chat!.Messages![0].Content = agent.Context.Instruction;
+                    await dispatchNotification("true", agent.Id, null, agent.CurrentBehaviour);
+
+                    chat.Messages?.Add(new Message()
+                    {
+                        Role = "user",
+                        Content = $"Now - {agent.Context.Instruction}"
+                    });
                     break;
-                
+
                 case "CLEANUP":
                     chat!.Messages = chat.Messages!.Take(1).ToList();
                     break;
@@ -176,7 +288,7 @@ public class AgentService(
                 default:
                     throw new InvalidOperationException($"Unknown step: {stepName}");
             }
-            
+
             await updateChat(chat!);
         }
 
@@ -185,7 +297,7 @@ public class AgentService(
 
     private static string? GetFilter(string? content)
     {
-        var pattern = @"filter::\{(.*?)\}";
+        var pattern = @"filter:?:?\{(.*?)\}";        
         var match = Regex.Match(content!, pattern);
         return match.Success ? match.Groups[1].Value : null;
     }
@@ -211,6 +323,7 @@ public class AgentService(
         var result = await Actions.CallAsync("START", startCommand) as Message;
         result!.Role = "system";
         agent.Started = true;
+        agent.Behaviours ??= new Dictionary<string, string>();
         agent.Behaviours.Add("Default", agent.Context.Instruction);
         agent.CurrentBehaviour = "Default";
         var agentDocument = agent.ToDocument();
@@ -231,6 +344,7 @@ public class AgentService(
     {
         var agent = await agentRepository.GetAgentById(agentId);
         var chat = await chatRepository.GetChatById(agent?.ChatId!);
+        agent!.CurrentBehaviour = "Default";
         chat.Messages = chat.Messages.Take(1).ToList(); //Takes only system message and initial prompt
         await chatRepository.UpdateChat(chat.Id, chat);
 

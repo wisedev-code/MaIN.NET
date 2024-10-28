@@ -3,8 +3,9 @@
     "order": 2,
     "name": "RemoteOK seeker",
     "description": "2st in a flow",
-    "model": "gemma2:2b",
-    "behaviours": { "Extractor": "Create list of job offers present in provided JSON. Dont add any additional text or information, thats your only task" },
+    "model": "llama3.2:3b",
+    "behaviours": { "Seeker": "Write summary of jobs offers included in json (title, position, salary, company, provide job link if possible) ", 
+                    "Extractor": "Extract at least 5 best jobs postings (and mentione source: in your remoteok.com) from all summaries you created that fits user filter: @filter@" },
     "context": 
     {
         "source":
@@ -16,10 +17,11 @@
                 "method": "Get",
                 "query": "",
                 "payload": "",
+                "chunkLimit": 15,
                 "responseType": "JSON"
             }
         },
-        "instruction": "Here you can see list of tags that are available to you. You will get request from user request related to job search and you need to prepare filter in this format filter::{query}. If user is looking for backend python positon filter should look like this filter::{python,backend} Here you can see list of tags: engineer, dev, backend, frontend, full stack, cloud, javascript, python, react, c#, devops, sql, aws, docker, linux, java, golang, mobile, ios, android, graphql, typescript, node, html, css, testing, kubernetes, product manager, remote, designer, ui/ux, data science, machine learning",
-        "steps": ["ANSWER", "BECOME+Extractor", "FETCH_DATA", "ANSWER", "REDIRECT+f14cec0d-9acc-479f-bf39-b9a14d685af4+AS_Output+REPLACE"]
+        "instruction": "Here you can see list of tags that are available to you. You will get request from user request related to job search and you need to prepare filter in this format filter::{query}. If user is looking for backend python positon filter should look like this filter::{python,backend}. Plese focus on filter format it has to be correct. Its very important filter::{something}. Write filter only once in order to be properly replaced. Also be carefull with tags, you cannot use anything that its not present on the list. Here you can see list of tags: engineer, dev, backend, frontend, full stack, cloud, javascript, python, react, net, devops, sql, aws, docker, linux, java, golang, mobile, ios, android, graphql, typescript, node, html, css, testing, kubernetes, product manager, remote, designer, ui/ux, data science, machine learning",
+        "steps": ["ANSWER", "BECOME+Seeker", "FETCH_DATA", "BECOME+Extractor", "ANSWER", "REDIRECT+f14cec0d-9acc-479f-bf39-b9a14d685af4+AS_Output+REPLACE"]
     }
 }

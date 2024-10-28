@@ -20,6 +20,11 @@ public class ChatService(
 
     public async Task<ChatResult> Completions(Chat? chat, bool translate = false)
     {
+        if (chat?.Model == ImageGenService.Models.FLUX)
+        {
+            chat.Visual = true;
+        }
+        
         var newMsg = chat.Messages.Last();
         newMsg.Time = DateTime.Now;
         var lng = await translatorService.DetectLanguage(newMsg.Content);
