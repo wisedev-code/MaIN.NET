@@ -22,7 +22,7 @@
 {
     case AgentsFlowPageMode.List:
         <FluentGrid Class="flow-grid" Justify="JustifyContent.Center">
-            <FluentGridItem lg="2"></FluentGridItem> 
+            <FluentGridItem lg="2"></FluentGridItem>
             <FluentGridItem lg="6" md="4" sm="6" xs="12" Style="">
                 <FluentInputFile Id="my-zip-uploader"
                                  Mode="InputFileMode.SaveToTemporaryFolder"
@@ -95,130 +95,147 @@
             <FluentGridItem lg="3"></FluentGridItem>
         </FluentGrid>
         break;
-        
+
     case AgentsFlowPageMode.Details:
-<div class="page-container">
-    <div class="content-container">
-        <div class="agents-flow-container">
-            <div class="button-container">
-                <button @onclick="GoBack" class="action-button back-button">
-                    <i class="fas fa-arrow-left"></i>
-                </button>
-                <button @onclick="RestartFlow" class="action-button restart-button">
-                    <i class="fas fa-redo"></i>
-                </button>
-            </div>
-            <div class="agent-grid">
-                @foreach (var level in AgentLevels)
-                {
-                    <div class="agent-level @(level.Any(x => x.AgentDependencies?.Count > 0) ? "has-dependency" : "")">
-                        @foreach (var agent in level)
+        <div class="page-container">
+            <div class="content-container">
+                <div class="agents-flow-container">
+                    <div class="button-container">
+                        <button @onclick="GoBack" class="action-button back-button">
+                            <i class="fas fa-arrow-left"></i>
+                        </button>
+                        <button @onclick="RestartFlow" class="action-button restart-button">
+                            <i class="fas fa-redo"></i>
+                        </button>
+                    </div>
+                    <div class="agent-grid">
+                        @foreach (var level in AgentLevels)
                         {
-                            <div class="agent-card @GetProcessingClass(agent)"
-                                 data-dependency-id="@agent.AgentDependencies">
-                                <div class="agent-header">
-                                    <h3>@agent.Name</h3>
-                                </div>
-                                <span class="badge">@agent.Model</span>
-                                <div class="agent-body">
-                                    <div class="instruction-container">
-                                        <span>Instruction</span>
-                                        <button @onclick="() => ShowInstruction(agent)" class="instruction-button">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                    </div>
-                                    <div class="state-container">
-                                        <span>State: @agent.State</span>
-                                    </div>
-                                    <div class="state-container">
-                                        <span>Behaviour: @agent.Behaviour</span>
-                                    </div>
-                                    @if (agent.ProgressMessage != null)
-                                    {
-                                        <div class="state-container">
-                                            <span>Progress: @agent.ProgressMessage</span>
+                            <div class="agent-level @(level.Any(x => x.AgentDependencies?.Count > 0) ? "has-dependency" : "")">
+                                @foreach (var agent in level)
+                                {
+                                    <div class="agent-card @GetProcessingClass(agent)"
+                                         data-dependency-id="@agent.AgentDependencies">
+                                        <div class="agent-header">
+                                            <h3>@agent.Name</h3>
                                         </div>
-                                    }
-                                </div>
+                                        <span class="badge">@agent.Model</span>
+                                        <div class="agent-body">
+                                            <div class="instruction-container">
+                                                <span>Instruction</span>
+                                                <button @onclick="() => ShowInstruction(agent)" class="instruction-button">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                            </div>
+                                            <div class="state-container">
+                                                <span>State: @agent.State</span>
+                                            </div>
+                                            <div class="state-container">
+                                                <span>Behaviour: @agent.Behaviour</span>
+                                            </div>
+                                            @if (agent.ProgressMessage != null)
+                                            {
+                                                <div class="state-container">
+                                                    <span>Progress: @agent.ProgressMessage</span>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                }
                             </div>
                         }
                     </div>
-                }
-            </div>
-        </div>
+                </div>
 
-        <div class="output-container">
-            <div class="output-scroll-area">
-                @foreach (var output in ActorOutputs)
-                {
-                    <div class="output-card">
-                        <div class="output-header" @onclick="@(() => ToggleOutput(output.Id))">
-                            <div class="header-left">
-                                <span class="output-id">Artifact @output.Id</span>
-                                <span class="output-model">@output.Model</span>
-                            </div>
-                            <div class="header-right">
-                                <span class="output-time">@output.Time.ToString("yyyy-MM-dd HH:mm:ss")</span>
-                                <i class="fas @(output.IsExpanded ? "fa-chevron-up" : "fa-chevron-down")"></i>
-                            </div>
-                        </div>
-                        @if (output.IsExpanded)
+                <div class="output-container">
+                    <div class="output-scroll-area">
+                        @foreach (var output in ActorOutputs)
                         {
-                            <div class="output-content">
-                                <div class="user-message">
-                                    <strong>User:</strong> @output.UserMsg
+                            <div class="output-card">
+                                <div class="output-header" @onclick="@(() => ToggleOutput(output.Id))">
+                                    <div class="header-left">
+                                        <span class="output-id">Artifact @output.Id</span>
+                                        <span class="output-model">@output.Model</span>
+                                    </div>
+                                    <div class="header-right">
+                                        <span class="output-time">@output.Time.ToString("yyyy-MM-dd HH:mm:ss")</span>
+                                        <i class="fas @(output.IsExpanded ? "fa-chevron-up" : "fa-chevron-down")"></i>
+                                    </div>
                                 </div>
-                                <div class="actor-message">
-                                    <em><strong>Actor:</strong>
-                                        @((MarkupString)
-                                        Markdown.ToHtml(output.ActorMsg!,
-                                            new MarkdownPipelineBuilder()
-                                                .UseAdvancedExtensions()
-                                                .Build()))
-                                    </em>
-                                </div>
+                                @if (output.IsExpanded)
+                                {
+                                    <div class="output-content">
+                                        <div class="user-message-inp">
+                                            <strong>User:</strong> @output.UserMsg
+                                        </div>
+                                        <div class="actor-message">
+                                            <em>
+                                                <strong>Actor:</strong>
+                                                @if (output.Image != null)
+                                                {
+                                                    <FluentCard class="message-card-img bot-message" Style="height: 30rem !important; width: 30rem !important; ">
+                                                        <div>
+                                                            <a href="data:image/png;base64,@output.Image"
+                                                               style="cursor: -webkit-zoom-in; cursor: zoom-in;" target="_blank">
+                                                                <img src="data:image/png;base64,@output.Image"
+                                                                     style="object-fit: fill; width:100%; height:100%;"
+                                                                     alt="imageResponse"/>
+                                                            </a>
+                                                        </div>
+                                                    </FluentCard>
+                                                }
+                                                else
+                                                {
+                                                    @((MarkupString)
+                                                    Markdown.ToHtml(output.ActorMsg!,
+                                                        new MarkdownPipelineBuilder()
+                                                            .UseAdvancedExtensions()
+                                                            .Build()))
+                                                }
+                                            </em>
+                                        </div>
+                                    </div>
+                                }
                             </div>
                         }
                     </div>
-                }
+                </div>
             </div>
+
+            <div class="input-container">
+                <FluentInputFile Id="my-file-uploader"
+                                 Mode="InputFileMode.SaveToTemporaryFolder"
+                                 Multiple="true"
+                                 MaximumFileCount="4"
+                                 MaximumFileSize="@(10 * 1024 * 1024)"
+                                 Accept=".csv, .json, .txt"
+                                 ProgressPercent="@ProgressPercent"
+                                 OnCompleted="@OnFileCompletedAsync"
+                                 Style="background-color: transparent !important; width: 3rem">
+                    <ChildContent>
+                        <label for="my-file-uploader" class="attachment-btn">
+                            <FluentIcon Value="@(new Icons.Filled.Size32.Attach())"
+                                        Color="@_filesAttachedClass" Style="margin-right: 5px; margin-top: 5px; background-color: transparent">
+                            </FluentIcon>
+                        </label>
+                    </ChildContent>
+                </FluentInputFile>
+
+                <input @bind-value="_ask" @bind-value:event="oninput" placeholder="Enter your prompt here..." @onkeydown="CheckEnterKey" class="inp">
+
+                <FluentButton IconStart="@(new Icons.Filled.Size28.Send())" BackgroundColor="rgba(0, 0, 0, 0)" Style="margin-top: 5px; background-color: transparent"
+                              Appearance="Appearance.Lightweight"
+                              Loading="@IsLoading"
+                              OnClick="@(() => SendAsync(_ask))">
+                </FluentButton>
+            </div>
+            <FluentProgress Visible="@(IsLoading)" style="width: 100%;"></FluentProgress>
+
+            <InstructionModal IsVisible="@isModalVisible" IsVisibleChanged="@((bool value) => isModalVisible = value)" Title="Agent Instruction">
+                <p>@selectedAgentInstruction</p>
+            </InstructionModal>
         </div>
-    </div>
-
-    <div class="input-container">
-        <FluentInputFile Id="my-file-uploader"
-                         Mode="InputFileMode.SaveToTemporaryFolder"
-                         Multiple="true"
-                         MaximumFileCount="4"
-                         MaximumFileSize="@(10 * 1024 * 1024)"
-                         Accept=".csv, .json, .txt"
-                         ProgressPercent="@ProgressPercent"
-                         OnCompleted="@OnFileCompletedAsync"
-                         Style="background-color: transparent !important; width: 3rem">
-            <ChildContent>
-                <label for="my-file-uploader" class="attachment-btn">
-                    <FluentIcon Value="@(new Icons.Filled.Size32.Attach())"
-                                Color="@_filesAttachedClass" Style="margin-right: 5px; margin-top: 5px; background-color: transparent">
-                    </FluentIcon>
-                </label>
-            </ChildContent>
-        </FluentInputFile>
-
-        <input @bind-value="_ask" @bind-value:event="oninput" placeholder="Enter your prompt here..." @onkeydown="CheckEnterKey" class="inp">
-
-        <FluentButton IconStart="@(new Icons.Filled.Size28.Send())" BackgroundColor="rgba(0, 0, 0, 0)" Style="margin-top: 5px; background-color: transparent"
-                      Appearance="Appearance.Lightweight"
-                      Loading="@IsLoading"
-                      OnClick="@(() => SendAsync(_ask))">
-        </FluentButton>
-    </div>
-    <FluentProgress Visible="@(IsLoading)" style="width: 100%;"></FluentProgress>
-
-    <InstructionModal IsVisible="@isModalVisible" IsVisibleChanged="@((bool value) => isModalVisible = value)" Title="Agent Instruction">
-        <p>@selectedAgentInstruction</p>
-    </InstructionModal>
-</div>
-break;
+        break;
 }
 
 @code {
@@ -235,7 +252,7 @@ break;
     AgentsFlowPageMode _mode = AgentsFlowPageMode.List;
     bool _loading = false;
     private HubConnection? hubConnection;
-    
+
     //CHAT
     [Parameter] public ChatDto? Chat { get; set; }
     [Parameter] public string SelectedModel { get; set; }
@@ -252,7 +269,7 @@ break;
     private string _ask = string.Empty;
     private string _displayName => CustomName ?? SelectedModel;
     int ProgressPercent = 0;
-    
+
     private List<ActorOutput> ActorOutputs = [];
 
     private void ToggleOutput(int id)
@@ -264,7 +281,7 @@ break;
             StateHasChanged();
         }
     }
-    
+
     private async Task CheckEnterKey(KeyboardEventArgs e)
     {
         if (e.Key == "Enter")
@@ -272,7 +289,7 @@ break;
             await SendAsync(_ask);
         }
     }
-    
+
     private async Task SendAsync(string message)
     {
         IsLoading = true;
@@ -293,12 +310,13 @@ break;
                     {
                         var userMsg = _selectedChat.Messages.Last(x => x.Role == Role.User.ToString());
                         var actorMsg = _selectedChat.Messages.Last(x => x.Role != Role.Assistant.ToString());
+                        var image = actorMsg.Images?.FirstOrDefault();
 
                         foreach (var output in ActorOutputs)
                         {
                             output.IsExpanded = false;
                         }
-                        
+
                         if (userMsg.Role == Role.User.ToString() && actorMsg.Role != Role.User.ToString())
                         {
                             var newOutput = new ActorOutput()
@@ -306,11 +324,12 @@ break;
                                 Id = ActorOutputs.Count + 1,
                                 UserMsg = userMsg.Content!,
                                 ActorMsg = actorMsg.Content!,
+                                Image = image,
                                 Time = actorMsg.Time,
                                 Model = _selectedChat.Model!,
                                 IsExpanded = true
                             };
-                        
+
                             ActorOutputs.Add(newOutput);
                         }
                     }
@@ -321,7 +340,7 @@ break;
             _ask = string.Empty;
         }
     }
-    
+
     private async Task OnFileCompletedAsync(IEnumerable<FluentInputFileEventArgs> files)
     {
         Files = files.ToArray();
@@ -348,6 +367,7 @@ break;
                 levels.Add(currentLevel);
                 currentLevel = new List<AgentDto>();
             }
+
             currentLevel.Add(agent);
         }
 
@@ -373,13 +393,13 @@ break;
                     var parts = step.Split('+');
                     if (parts.Length < 2) continue;
                     if (!agentDictionary.TryGetValue(parts[1], out var dependentAgent)) continue;
-                    
+
                     dependentAgent.AgentDependencies?.Add(agent.Id);
                 }
             }
         }
     }
-    
+
     private async Task LoadChatAsync(string agentId)
     {
         var response = await Http.GetFromJsonAsync<ChatDto>($"{ExtensionMethods.GetApiUrl()}/api/agents/{agentId}/chat");
@@ -389,25 +409,18 @@ break;
             _selectedModel = response.Model;
         }
     }
-    
+
     private string GetProcessingClass(AgentDto agent)
     {
         return agent.IsProcessing ? "loading-border" : string.Empty;
     }
 
-    private string GetAgentId(AgentDto agent) => $"agent-{agent.Id}";
     private async Task RemoveFlow(string flowId)
     {
         await Http.DeleteAsync($"{ExtensionMethods.GetApiUrl()}/api/flows/{flowId}");
         await LoadFlowsAsync();
     }
 
-    private async Task Cleanup(string selectedAgentId) //Is it still valid?
-    {
-        await Http.PutAsync($"{ExtensionMethods.GetApiUrl()}/api/agents/{selectedAgentId}/chat/reset", default);
-        await LoadChatAsync(selectedAgentId);
-    }
-    
     private bool isModalVisible = false;
     private string selectedAgentInstruction = "";
 
@@ -416,7 +429,7 @@ break;
         selectedAgentInstruction = agent.Context.Instruction;
         isModalVisible = true;
     }
-    
+
     private async Task LoadFlowsAsync()
     {
         var response = await Http.GetFromJsonAsync<List<AgentFlowDto>>($"{ExtensionMethods.GetApiUrl()}/api/flows");
@@ -435,18 +448,18 @@ break;
         await LoadChatAsync(_entryAgent.Id);
 
         ActorOutputs = BuildActorOutputs(_selectedChat.Messages);
-        
+
         _mode = AgentsFlowPageMode.Details;
-        
+
         newFlow = new()
         {
             Id = Guid.NewGuid().ToString()
         };
-        
+
         hubConnection = new HubConnectionBuilder()
             .WithUrl($"{ExtensionMethods.GetApiUrl()}/diagnostics")
             .Build();
-        
+
         hubConnection!.On<JsonElement>("ReceiveAgentUpdate", (jsonElement) =>
         {
             var agentId = jsonElement.GetProperty("agentId").GetString();
@@ -468,21 +481,6 @@ break;
         await hubConnection.StartAsync();
     }
 
-    private async Task CreateFlow()
-    {
-        _loading = true;
-        //  newFlow.Context.Steps = ["START"];
-        newFlow.Id = Guid.NewGuid().ToString();
-        var response = await Http.PostAsJsonAsync($"{ExtensionMethods.GetApiUrl()}/api/flows", newFlow);
-        if (response.IsSuccessStatusCode)
-        {
-            newFlow = new(); // Reset the form
-            await LoadFlowsAsync(); // Refresh the agents list
-            _loading = false;
-            _mode = AgentsFlowPageMode.List; // Switch back to list mode
-        }
-    }
-    
     private void GoBack()
     {
         _mode = AgentsFlowPageMode.List;
@@ -496,11 +494,6 @@ break;
     private bool IsExitPoint(AgentDto agent)
     {
         return !agent.Context.Steps.Any(step => step.StartsWith("REDIRECT")) || agent.Context.Steps.Count == 1;
-    }
-    
-    private void SwitchToCreate()
-    {
-        _mode = AgentsFlowPageMode.Create;
     }
 
     private async Task OnCompletedAsync(IEnumerable<FluentInputFileEventArgs> files)
@@ -561,7 +554,8 @@ break;
             await Http.PutAsync($"{ExtensionMethods.GetApiUrl()}/api/agents/{agent.Id}/chat/reset", default);
         }
 
-        await LoadChatAsync(_entryAgent.Id);
+        await LoadFlowsAsync();
+        await ViewFlowDetails(selectedFlow.Id);
         ActorOutputs = BuildActorOutputs(_selectedChat.Messages);
     }
 
@@ -570,6 +564,7 @@ break;
         var actorOutputs = new List<ActorOutput>();
         string currentUserMessage = null;
         string currentActorMessage = null;
+        string? image = null;
         int outputId = 1;
 
         for (int i = 0; i < messages.Count; i++)
@@ -586,6 +581,7 @@ break;
                         Id = outputId++,
                         UserMsg = currentUserMessage,
                         ActorMsg = currentActorMessage,
+                        Image = image,
                         Time = messages[i - 1].Time, // Time of the last assistant message
                         Model = _selectedChat.Model,
                         IsExpanded = false
@@ -600,6 +596,7 @@ break;
             {
                 // Update the current actor message (this will keep the last one before the next user message)
                 currentActorMessage = message.Content;
+                image = message.Images?[0] ?? null;
             }
         }
 
@@ -612,6 +609,7 @@ break;
                 UserMsg = currentUserMessage,
                 ActorMsg = currentActorMessage,
                 Time = messages.Last().Time,
+                Image = image,
                 Model = _selectedChat.Model,
                 IsExpanded = false
             });
@@ -619,4 +617,5 @@ break;
 
         return actorOutputs;
     }
+
 }

@@ -78,6 +78,7 @@ public class AgentService(
         ILogger<AgentService> logger)
     {
         Message redirectMessage = chat?.Messages?.Last()!;
+        var tagsToReplaceWithFilter = new List<string>();
         // Process each step in the defined order
         foreach (var step in context.Steps)
         {
@@ -267,17 +268,17 @@ public class AgentService(
                     if (chat!.Properties.TryGetValue("data_filter", out var filterQuery))
                     {
                         messageFilter = agent.Behaviours.GetValueOrDefault(stepParts[1])!.Replace("@filter@", filterQuery);
+                        tagsToReplaceWithFilter.Add(filterQuery);
                     }
 
-                    agent.Context.Instruction = messageFilter;
                     agent.CurrentBehaviour = stepParts[1];
-                    chat!.Messages![0].Content = agent.Context.Instruction;
+                    chat.Messages![0].Content = messageFilter;
                     await dispatchNotification("true", agent.Id, null, agent.CurrentBehaviour);
 
                     chat.Messages?.Add(new Message()
                     {
                         Role = "user",
-                        Content = $"Now - {agent.Context.Instruction}"
+                        Content = $"Now - {messageFilter}"
                     });
                     break;
 
@@ -292,6 +293,14 @@ public class AgentService(
             await updateChat(chat!);
         }
 
+        //rollback behaviour to default
+        foreach (var key in agent.Behaviours.Keys.ToList())
+        {
+            agent.Behaviours[key] = tagsToReplaceWithFilter.Aggregate(
+                agent.Behaviours[key], 
+                (current, tag) => current.Replace(tag, "@filter@"));
+        }
+        
         return chat;
     }
 
@@ -302,16 +311,17 @@ public class AgentService(
         return match.Success ? match.Groups[1].Value : null;
     }
 
-    public async Task<Agent> CreateAgent(Agent agent)
+    public async Task<Agent> CreateAgent(Agent agent, bool flow = false)
     {
         var chat = new Chat()
         {
             Id = Guid.NewGuid().ToString(),
             Model = agent.Model,
             Name = agent.Name,
+            Visual = agent.Model == ImageGenService.Models.FLUX,
             Stream = false,
             Messages = new List<Message>(),
-            Type = ChatType.Rag,
+            Type = flow ? ChatType.Flow : ChatType.Rag,
         };
 
         var startCommand = new StartCommand()
@@ -320,9 +330,9 @@ public class AgentService(
             InitialPrompt = agent.Context.Instruction,
         };
 
-        var result = await Actions.CallAsync("START", startCommand) as Message;
-        result!.Role = "system";
+        await Actions.CallAsync("START", startCommand);
         agent.Started = true;
+        agent.Flow = flow;
         agent.Behaviours ??= new Dictionary<string, string>();
         agent.Behaviours.Add("Default", agent.Context.Instruction);
         agent.CurrentBehaviour = "Default";
@@ -345,7 +355,18 @@ public class AgentService(
         var agent = await agentRepository.GetAgentById(agentId);
         var chat = await chatRepository.GetChatById(agent?.ChatId!);
         agent!.CurrentBehaviour = "Default";
-        chat.Messages = chat.Messages.Take(1).ToList(); //Takes only system message and initial prompt
+        
+        if (chat.Model == ImageGenService.Models.FLUX)
+        {
+            chat.Messages = [];
+        }
+        else
+        {
+            //Takes only system message and initial prompt
+            chat.Messages[0].Content = agent.Context.Instruction;
+            chat.Messages = chat.Messages.Take(1).ToList();
+        }
+        
         await chatRepository.UpdateChat(chat.Id, chat);
 
         return chat.ToDomain();

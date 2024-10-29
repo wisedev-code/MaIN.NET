@@ -19,7 +19,7 @@ public class AgentFlowService(IAgentFlowRepository flowRepository, IAgentService
         await flowRepository.AddFlow(flow.ToDocument());
         foreach (var agent in flow.Agents)
         {
-            await agentService.CreateAgent(agent);
+            await agentService.CreateAgent(agent, true);
         }
         
         return flow;

@@ -4,8 +4,8 @@ using System.Text.Json;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents.AgentSource;
 using MaIN.Domain.Entities.Agents.Commands;
-using MaIN.Infrastructure.Repositories.Abstract;
 using MaIN.Services.Mappers;
+using MaIN.Services.Services;
 using MaIN.Services.Services.Abstract;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Bson;
@@ -20,6 +20,7 @@ public static class Actions
     public static void InitializeAgents(this IServiceProvider serviceProvider)
     {
         var ollamaService = serviceProvider.GetRequiredService<IOllamaService>();
+        var imageGenService = serviceProvider.GetRequiredService<IImageGenService>();
         var agentService = serviceProvider.GetRequiredService<IAgentService>();
         var httpClientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>();
 
@@ -28,6 +29,11 @@ public static class Actions
             {
                 "START", new Func<StartCommand, Task<Message?>>(async startCommand =>
                 {
+                    if (startCommand.Chat?.Visual == true)
+                    {
+                        return null;
+                    }
+                    
                     var message = new Message()
                     {
                         Content = startCommand.InitialPrompt,
@@ -59,6 +65,7 @@ public static class Actions
                     return new Message()
                     {
                         Content = result?.Messages?.Last().Content! + agentPostS,
+                        Images = result?.Messages?.Last().Images!,
                         Role = "user"
                     };
                 })
@@ -130,7 +137,7 @@ public static class Actions
             {
                 "ANSWER", new Func<AnswerCommand, Task<Message?>>(async answerCommand =>
                 {
-                    var result = await ollamaService.Send(answerCommand.Chat);
+                    var result = answerCommand.Chat!.Visual ? await imageGenService.Send(answerCommand.Chat): await ollamaService.Send(answerCommand.Chat);
                     return result!.Message.ToDomain();
                 })
             },

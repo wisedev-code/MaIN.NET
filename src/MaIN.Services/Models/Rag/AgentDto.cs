@@ -22,4 +22,5 @@ public class AgentDto
 
     [JsonPropertyName("behaviours")] public Dictionary<string, string> Behaviours { get; set; } = [];
     [JsonPropertyName("currentBehaviour")] public string CurrentBehaviour { get; set; }
+    [JsonPropertyName("flow")]  public bool Flow { get; set; }
 }
