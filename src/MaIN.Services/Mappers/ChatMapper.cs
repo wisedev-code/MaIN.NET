@@ -2,6 +2,7 @@ using MaIN.Domain.Entities;
 using MaIN.Infrastructure.Models;
 using MaIN.Models;
 using MaIN.Services.Models;
+using MaIN.Services.Services;
 using FileInfo = MaIN.Domain.Entities.FileInfo;
 
 namespace MaIN.Services.Mappers;
@@ -43,7 +44,7 @@ public static class ChatMapper
             Name = chat.Name,
             Model = chat.Model,
             Messages = chat.Messages?.Select(m => m.ToDomain()).ToList(),
-            Visual = chat.Visual,
+            Visual = chat.Model == ImageGenService.Models.FLUX,
             Stream = chat.Stream,
             Type = Enum.Parse<ChatType>(chat.Type.ToString()),
             Properties = chat.Properties

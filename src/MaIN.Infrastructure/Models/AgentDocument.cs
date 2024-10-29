@@ -15,4 +15,5 @@ public class AgentDocument
     public int Order { get; set; }
     public Dictionary<string, string> Behaviours { get; set; }
     public string CurrentBehaviour { get; set; }
+    public bool Flow { get; set; }
 }

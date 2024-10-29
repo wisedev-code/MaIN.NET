@@ -498,8 +498,8 @@ fluent-badge span {
     color: #333;
 }
 
-.user-message {
-    background-color: #e6f3ff;
+.user-message-inp {
+    background-color: #58a7f1;
     padding: 10px;
     border-radius: 8px;
     margin-bottom: 10px;
@@ -507,6 +507,19 @@ fluent-badge span {
 
 .actor-message {
     padding: 10px;
+}
+
+.bot-message {
+    align-self: flex-start;
+    background-color: #0c0c0c;
+}
+
+.message-card-img {
+    margin-bottom: 15px;
+    width: 80%;
+    height: fit-content;
+    padding: 1px !important;
+    color: #fff;
 }
 
 .actor-message em {

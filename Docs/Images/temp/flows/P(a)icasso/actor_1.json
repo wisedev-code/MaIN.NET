@@ -1,6 +1,7 @@
 {
     "id": "5c06c6b2-df06-4482-b220-ff7d8b8febc4",
     "name": "Descriptor",
+    "order": 1,
     "description": "1st in a flow",
     "model": "gemma2:2b",
     "context": 

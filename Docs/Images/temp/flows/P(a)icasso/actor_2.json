@@ -1,11 +1,12 @@
 {
     "id": "ea054673-6ed5-452f-9cff-50752bceeb6a",
     "name": "Artist",
+    "order": 2,
     "description": "2st in a flow",
-    "model": "phi3.5",
+    "model": "llama3.2:3b",
     "context": 
     {
-        "instruction": "Make more artistic version of this description, focus on details",
+        "instruction": "Make more artistic version of this description, focus on details. Your description should be short and concrete, 20 words at max. Output only data and focus on length its very important",
         "steps": ["ANSWER", "REDIRECT+01ed2b56-5007-440c-9e1a-f489e686b97d+AS_Output"]
     }
 }

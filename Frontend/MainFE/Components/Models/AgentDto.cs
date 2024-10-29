@@ -19,7 +19,8 @@ public class AgentDto
     public Dictionary<string,string> Behaviours { get; set; }
     [JsonPropertyName("started")]
     public bool Started { get; set; }
-    
+    [JsonPropertyName("flow")]
+    public bool Flow { get; set; }
     [JsonPropertyName("context")]
     public AgentContextDto Context { get; set; }
     public AgentProcessingState State { get; set; }
