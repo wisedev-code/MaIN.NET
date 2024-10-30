@@ -283,7 +283,7 @@ public class AgentService(
                     break;
 
                 case "CLEANUP":
-                    chat!.Messages = chat.Messages!.Take(1).ToList();
+                    ClearAgentState(agent, chat);
                     break;
 
                 default:
@@ -353,9 +353,19 @@ public class AgentService(
     public async Task<Chat> Restart(string agentId)
     {
         var agent = await agentRepository.GetAgentById(agentId);
-        var chat = await chatRepository.GetChatById(agent?.ChatId!);
+        var chat = (await chatRepository.GetChatById(agent?.ChatId!)).ToDomain();
+        ClearAgentState(agent, chat);
+
+        await chatRepository.UpdateChat(chat.Id, chat.ToDocument());
+        await agentRepository.UpdateAgent(agent!.Id, agent);
+
+        return chat;
+    }
+
+    private static void ClearAgentState(AgentDocument? agent, Chat chat)
+    {
         agent!.CurrentBehaviour = "Default";
-        
+        chat.Properties.Clear();
         if (chat.Model == ImageGenService.Models.FLUX)
         {
             chat.Messages = [];
@@ -363,13 +373,9 @@ public class AgentService(
         else
         {
             //Takes only system message and initial prompt
-            chat.Messages[0].Content = agent.Context.Instruction;
+            chat.Messages![0].Content = agent.Context.Instruction;
             chat.Messages = chat.Messages.Take(1).ToList();
         }
-        
-        await chatRepository.UpdateChat(chat.Id, chat);
-
-        return chat.ToDomain();
     }
 
     public async Task<List<Agent>> GetAgents()
