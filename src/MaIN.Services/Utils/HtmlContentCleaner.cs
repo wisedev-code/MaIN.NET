@@ -1,7 +1,7 @@
 using System.Text.RegularExpressions;
 using HtmlAgilityPack;
 
-namespace MaIN.Services;
+namespace MaIN.Services.Utils;
 
 public static class HtmlContentCleaner
 {

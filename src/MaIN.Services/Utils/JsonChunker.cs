@@ -1,9 +1,6 @@
-namespace MaIN.Services;
-
-using System;
-using System.Collections.Generic;
 using System.Text.Json;
-using System.Linq;
+
+namespace MaIN.Services.Utils;
 
 public class JsonChunker(
     int maxTokens = 4000,

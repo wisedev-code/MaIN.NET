@@ -25,7 +25,7 @@ public static class ChatMapper
     public static MessageDto ToDto(this Message message)
         => new MessageDto()
         {
-            Content = message.Content,
+            Content = message.Content.Replace("~$~AGENT_INTERNAL_MESSAGE~$~", string.Empty),
             Role = message.Tool ? "system" : message.Role,
             Images = message.Images,
             Time = message.Time,
