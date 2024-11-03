@@ -49,12 +49,15 @@ public static class Actions
             {
                 "REDIRECT", new Func<RedirectCommand, Task<Message?>>(async redirectCommand =>
                 {
-                    var agentPostS = "~$~AGENT_INTERNAL_MESSAGE~$~";
                     var chat = await agentService.GetChatByAgent(redirectCommand.RelatedAgentId);
                     chat.Messages?.Add(new Message()
                     {
                         Role = "user",
-                        Content = redirectCommand.Message.Content + agentPostS
+                        Content = redirectCommand.Message.Content,
+                        Properties = new Dictionary<string, string>()
+                        {
+                            {"agent_internal", "true"}
+                        }
                     });
 
                     if (!string.IsNullOrEmpty(redirectCommand.Filter))
@@ -65,9 +68,13 @@ public static class Actions
                     var result = await agentService.Process(chat, redirectCommand.RelatedAgentId);
                     return new Message()
                     {
-                        Content = result?.Messages?.Last().Content! + agentPostS,
+                        Content = result?.Messages?.Last().Content!,
                         Images = result?.Messages?.Last().Images!,
-                        Role = "user"
+                        Role = "user",
+                        Properties = new Dictionary<string, string>()
+                        {
+                            {"agent_internal", "true"}
+                        }
                     };
                 })
             },
@@ -91,6 +98,7 @@ public static class Actions
                         _ => throw new ArgumentOutOfRangeException()
                     };
                     
+                    properties.Add("agent_internal", "true");
                     var dataMsg = new Message()
                     {
                         Content = data,
@@ -119,15 +127,14 @@ public static class Actions
                             fetchCommand.Filter, properties),
                         _ => throw new ArgumentOutOfRangeException()
                     };
-
-                    var agentPostS = "~$~AGENT_INTERNAL_MESSAGE~$~";
-
+                    
+                    properties.Add("agent_internal", "true");
                     var dataMsg = new Message()
                     {
                         Content =
-                            $"Process this data as described in your role: {data}" + agentPostS,
+                            $"Process this data as described in your role: {data}",
                         Role = "user",
-                        Properties = properties
+                        Properties = properties,
                     };
 
 

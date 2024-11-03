@@ -18,7 +18,7 @@
                 "payload": ""
             }
         },
-        "steps": ["FETCH_DATA*","ANSWER", "REDIRECT+f29211e9-9xe8-45f4-bdbb-054cb835d0d6+AS_Output+REPLACE"],
+        "steps": ["FETCH_DATA*", "REDIRECT+f29211e9-9xe8-45f4-bdbb-054cb835d0d6+AS_Output+REPLACE"],
         "relations":
         [
             "ac243657-5ab1-4727-b4be-1ea5ae2e76d3",
