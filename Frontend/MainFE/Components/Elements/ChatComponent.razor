@@ -8,6 +8,11 @@
 <div class="messages-container">
     @foreach (var message in Chat?.Messages ?? [])
     {
+        @if (message.IsInternal)
+        {
+            continue;
+        }
+        
         @if (message.Role != Role.System.ToString().ToLowerInvariant())
         {
             @if (Chat!.Visual)
@@ -168,7 +173,6 @@
                 var response = await apiResponse.Content.ReadFromJsonAsync<ChatDto>();
                 if (response != null)
                 {
-                    response.Messages = response.Messages.Where(x => !x.Properties.ContainsKey("agent_internal")).ToList();
                     Chat = response;
                 }
             }
@@ -183,7 +187,6 @@
         var response = await Http.GetFromJsonAsync<ChatDto>($"{ExtensionMethods.GetApiUrl()}/api/chats/{chatId}");
         if (response != null)
         {
-            response.Messages = response.Messages.Where(x => !x.Properties.ContainsKey("agent_internal")).ToList();
             Chat = response;
             SelectedModel = response.Model!;
         }

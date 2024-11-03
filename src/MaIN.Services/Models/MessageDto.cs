@@ -16,5 +16,5 @@ public class MessageDto
     [JsonPropertyName("files")] 
     public FileInfoDto[]? Files { get; set; }
     [JsonPropertyName("properties")]
-    public Dictionary<string, string> Properties { get; set; }
+    public Dictionary<string, string> Properties { get; set; } = [];
 }
