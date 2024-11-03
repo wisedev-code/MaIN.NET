@@ -7,9 +7,16 @@ namespace MaIN.Services.Services.Steps;
 public class BecomeStepHandler : IStepHandler
 {
     public string StepName => "BECOME";
+    public string[] SupportedSteps => ["BECOME", "BECOME*"];
+
 
     public async Task<StepResult> Handle(StepContext context)
     {
+        if (context.StepName == "BECOME*" && context.Chat!.Properties.ContainsKey("BECOME*"))
+        {
+            return new StepResult { Chat = context.Chat };
+        }
+        
         var newBehaviour = context.Arguments[0];
         var messageFilter = context.Agent.Behaviours.GetValueOrDefault(newBehaviour) ?? 
                             context.Agent.Context.Instruction;
@@ -26,12 +33,18 @@ public class BecomeStepHandler : IStepHandler
         
         await context.NotifyProgress("true", context.Agent.Id, null, context.Agent.CurrentBehaviour);
 
-        context.Chat.Messages?.Add(new Message
+        context.Chat.Messages?.Add(new()
         {
             Role = "user",
-            Content = $"Now - {messageFilter}"
+            Content = $"Now - {messageFilter}",
+            Properties = new() {{"agent_internal", "true"}}
         });
-
-        return new StepResult { Chat = context.Chat };
+        
+        if (context.StepName == "BECOME*")
+        {
+            context.Chat.Properties.Add("BECOME*", string.Empty);
+        }
+        
+        return new() { Chat = context.Chat };
     }
 }

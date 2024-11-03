@@ -50,7 +50,7 @@ public class FetchDataStepHandler : IStepHandler
             context.Chat.Properties.Add("FETCH_DATA*", string.Empty);
         }
 
-        return new StepResult { Chat = context.Chat };
+        return new StepResult { Chat = context.Chat, RedirectMessage = context.Chat!.Messages!.Last() };
     }
 
     private static async Task ProcessJsonResponse(Message response, StepContext context)
@@ -89,6 +89,7 @@ public class FetchDataStepHandler : IStepHandler
             Chat = context.Chat
         }) as Message;
 
-        context.Chat.Messages?.Add(newMessage!);
+        newMessage!.Properties = new() { { "agent_internal", "true" } };
+        context.Chat.Messages?.Add(newMessage);
     }
 }
