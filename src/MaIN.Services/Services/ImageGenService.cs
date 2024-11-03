@@ -18,8 +18,8 @@ public class ImageGenService(
         client.Timeout = TimeSpan.FromMinutes(5);
         var constructedMessage = (chat?.Messages != null
             ? chat.Messages
-                .Select((msg, index) => index == 0 ? msg.Content.Replace("~$~AGENT_INTERNAL_MESSAGE~$~", string.Empty)
-                    : $"&& {msg.Content.Replace("~$~AGENT_INTERNAL_MESSAGE~$~", string.Empty)}")
+                .Select((msg, index) => index == 0 ? msg.Content
+                    : $"&& {msg.Content}")
                 .Aggregate((current, next) => $"{current} {next}")
             : string.Empty)!;
         var response = await client.PostAsync($"{options.Value.ImageGenUrl}/generate/{constructedMessage}", null);

@@ -25,10 +25,11 @@ public static class ChatMapper
     public static MessageDto ToDto(this Message message)
         => new MessageDto()
         {
-            Content = message.Content.Replace("~$~AGENT_INTERNAL_MESSAGE~$~", string.Empty),
+            Content = message.Content,
             Role = message.Tool ? "system" : message.Role,
             Images = message.Images,
             Time = message.Time,
+            Properties = message.Properties,
             Files = message.Files?.Select(x => new FileInfoDto()
             {
                 Content = x.Content,
@@ -57,6 +58,7 @@ public static class ChatMapper
             Role = message.Role,
             Images = message.Images,
             Time = message.Time,
+            Properties = message.Properties,
             Files = message.Files?.Select(x => new FileInfo()
             {
                 Content = x.Content,
@@ -72,6 +74,7 @@ public static class ChatMapper
             Role = message.Role,
             Time = message.Time,
             Images = message.Images,
+            Properties = message.Properties,
             Tool = message.Tool,
             Files = message.Files?.Select(x => x.Content).ToArray() ?? []
         };
@@ -110,5 +113,6 @@ public static class ChatMapper
             Time = message.Time,
             Role = message.Role,
             Images = message.Images,
+            Properties = message.Properties,
         };
 }

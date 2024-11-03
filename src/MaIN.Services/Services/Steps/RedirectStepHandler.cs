@@ -33,6 +33,8 @@ public class RedirectStepHandler : IStepHandler
         {
             if (shouldReplaceLastMessage)
             {
+                var msgprops = context.Chat?.Messages![^1].Properties;
+                message!.Properties = msgprops ?? [];
                 context.Chat?.Messages?.RemoveAt(context.Chat.Messages.Count - 1);
             }
 

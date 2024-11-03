@@ -40,7 +40,8 @@ public class FetchDataStepHandler : IStepHandler
             context.Chat.Messages?.Add(new Message
             {
                 Role = "user",
-                Content = $"Remember this data: {response.Content}"
+                Content = $"Remember this data: {response.Content}",
+                Properties = response.Properties
             });
         }
 
@@ -64,11 +65,12 @@ public class FetchDataStepHandler : IStepHandler
 
         for (var index = 0; index < chunks.Count; index++)
         {
-            await ProcessChunk(chunks[index], index, chunks.Count, context);
+            await ProcessChunk(chunks[index], index, chunks.Count, context, response.Properties);
         }
     }
 
-    private static async Task ProcessChunk(string chunk, int index, int total, StepContext context)
+    private static async Task ProcessChunk(string chunk, int index, int total, StepContext context,
+        Dictionary<string, string> responseProperties)
     {
         await context.NotifyProgress("true", context.Agent.Id, $"{index + 1}/{total}",
             context.Agent.CurrentBehaviour);
@@ -78,7 +80,8 @@ public class FetchDataStepHandler : IStepHandler
         context.Chat!.Messages?.Add(new Message
         {
             Role = "user",
-            Content = $"[Chunk {index + 1}/{total}] {chunk} - {addition}"
+            Content = $"[Chunk {index + 1}/{total}] {chunk} - {addition}",
+            Properties = responseProperties,
         });
 
         var newMessage = await Actions.CallAsync("ANSWER", new AnswerCommand

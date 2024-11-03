@@ -8,4 +8,5 @@ public class MessageDocument
     public string[] Images { get; set; }
     public string[] Files { get; set; }
     public bool Tool { get; set; }
+    public Dictionary<string, string> Properties { get; set; }
 }
