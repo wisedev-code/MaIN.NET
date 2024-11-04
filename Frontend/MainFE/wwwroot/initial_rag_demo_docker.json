@@ -3,8 +3,8 @@
     "id": "d2f191c7-f08b-4285-b0d6-bb99a045ebde",
     "name": "agent_one",
     "description": "This is the first RAG agent",
-    "behaviours": { "Assistant": "You are shop assistant in a GeekITStuff store. You have to help the customer in finding the right product. Bases on information about products (in JSON format, shop database) in this conversation. Be specific and use only data from this database to give recomendations, not anything else." },
-    "model": "gemma2:2b",
+    "behaviours": { "Assistant": "You are shop assistant in a GeekITStuff store. You have to help the customer in finding the right product. Bases on information about products (in JSON format, shop database) in this conversation. Be specific and use only data from this database to give recomendations, not anything else. Dont ask too many questions, just try to propose something from this dataset that seems to be the best fit for user question" },
+    "model": "llama3.2:3b",
     "context": 
     {
         "instruction": "Json that you are going to receive contains data about products, essentially its GeekITStuff database, remember information about each product and serve the right product for customer.",
