@@ -1,4 +1,5 @@
 using System.Text.Json;
+using MaIN;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Infrastructure;
@@ -19,6 +20,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddHttpClient();
+builder.Services.AddSignalR();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFE",
@@ -32,6 +34,7 @@ builder.Services.AddCors(options =>
 
 builder.Services.ConfigureMaIN(builder.Configuration);
 builder.Services.ConfigureInfrastructure(builder.Configuration);
+builder.Services.AddSingleton<INotificationService, SignalRNotificationService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -43,6 +46,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors("AllowFE");
+app.MapHub<NotificationHub>("/diagnostics");
+
 
 //Initialize agents flow
 app.Services.InitializeAgents();
@@ -116,6 +121,38 @@ app.MapGet("/api/agents/{id}", async (HttpContext context,
     var agent = await agentService.GetAgentById(id);
     context.Response.ContentType = "application/json";
     await context.Response.WriteAsync(JsonSerializer.Serialize(agent.ToDto()));
+});
+
+app.MapGet("/api/flows/{id}", async (HttpContext context,
+    [FromServices] IAgentFlowService agentFlowService, string id) =>
+{
+    var flow = await agentFlowService.GetFlowById(id);
+    context.Response.ContentType = "application/json";
+    await context.Response.WriteAsync(JsonSerializer.Serialize(flow.ToDto()));
+});
+
+app.MapGet("/api/flows/", async (HttpContext context,
+    [FromServices] IAgentFlowService agentFlowService) =>
+{
+    var flows = await agentFlowService.GetAllFlows();
+    context.Response.ContentType = "application/json";
+    await context.Response.WriteAsync(JsonSerializer.Serialize(flows.Select(x => x.ToDto())));
+});
+
+app.MapPost("/api/flows/", async (HttpContext context,
+    [FromServices] IAgentFlowService agentFlowService, AgentFlowDto request) =>
+{
+    var flow = await agentFlowService.CreateFlow(request.ToDomain());
+    context.Response.ContentType = "application/json";
+    await context.Response.WriteAsync(JsonSerializer.Serialize(flow.ToDto()));
+});
+
+app.MapDelete("/api/flows/{id}", async (HttpContext context,
+    [FromServices] IAgentFlowService agentFlowService, string id) =>
+{
+    await agentFlowService.DeleteFlow(id);
+    context.Response.ContentType = "application/json";
+    return Results.NoContent();
 });
 
 app.MapDelete("/api/agents/{id}", async ([FromServices] IAgentService agentService,

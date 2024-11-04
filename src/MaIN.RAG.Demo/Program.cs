@@ -19,7 +19,6 @@ var serializeOptions = new JsonSerializerOptions
     WriteIndented = true
 };
 
-
 app.MapGet("/items/", () => Results.Ok(
         JsonSerializer.Deserialize<List<Hardware>>(
             File.ReadAllText("json/items.json"), serializeOptions)))

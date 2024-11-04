@@ -3,7 +3,6 @@ using MaIN.Domain.Entities.Agents;
 using MaIN.Domain.Entities.Agents.AgentSource;
 using MaIN.Infrastructure.Models;
 using MaIN.Models.Rag;
-using MaIN.Services.Steps;
 
 namespace MaIN.Services.Mappers;
 
@@ -13,10 +12,14 @@ public static class AgentMapper
         => new()
         {
             Id = agent.Id,
+            Order = agent.Order,
             Name = agent.Name,
             Model = agent.Model,
             Started = agent.Started,
+            Flow = agent.Flow,
             Description = agent.Description,
+            Behaviours = agent.Behaviours,
+            CurrentBehaviour = agent.CurrentBehaviour,
             Context = agent.Context.ToDto()
         };
 
@@ -25,12 +28,13 @@ public static class AgentMapper
         {
             Instruction = agentContext.Instruction,
             Relations = agentContext.Relations,
-            Steps = new List<string>(),
-            Source = new AgentSourceDto()
+            Steps = agentContext?.Steps ?? [],
+            Source = agentContext?.Source is not null ? new AgentSourceDto()
             {
-                Details = agentContext.Source.Details,
+                Details = agentContext?.Source?.Details,
+                AdditionalMessage = agentContext?.Source?.AdditionalMessage,
                 Type = Enum.Parse<AgentSourceTypeDto>(agentContext.Source.Type.ToString())
-            }
+            } : null
         };
 
     public static Agent ToDomain(this AgentDto agent)
@@ -39,8 +43,12 @@ public static class AgentMapper
             Id = agent.Id,
             Name = agent.Name,
             Model = agent.Model,
+            Order = agent.Order,
             Started = agent.Started,
+            Flow = agent.Flow,
             Description = agent.Description,
+            Behaviours = agent.Behaviours,
+            CurrentBehaviour = agent.CurrentBehaviour,
             Context = agent.Context.ToDomain()
         };
 
@@ -52,9 +60,10 @@ public static class AgentMapper
             Source = agentContextDto?.Source is not null ? new AgentSource()
             {
                 Details = agentContextDto?.Source?.Details,
+                AdditionalMessage = agentContextDto?.Source?.AdditionalMessage,
                 Type = Enum.Parse<AgentSourceType>(agentContextDto?.Source?.Type.ToString()!)
             } : null,
-            Steps = agentContextDto!.Steps.ToLookup(x => x, y => Actions.Steps[y.Split('+').First()])
+            Steps = agentContextDto!.Steps
         };
 
     private static AgentSourceDetailsBase MapDetailsToType(object? details, AgentSourceTypeDto? sourceDetailsType)
@@ -74,10 +83,11 @@ public static class AgentMapper
         {
             Instruction = context.Instruction,
             Relations = context.Relations?.ToList(),
-            Steps = context.Steps.Select(x => x.Key).ToList(),
+            Steps = context.Steps.ToList(),
             Source = context.Source is not null ? new AgentSourceDocument()
             {
                 DetailsSerialized = JsonSerializer.Serialize(context.Source.Details),
+                AdditionalMessage = context.Source.AdditionalMessage,
                 Type = Enum.Parse<AgentSourceTypeDocument>(context.Source.Type.ToString())
             } : null
         };
@@ -88,8 +98,12 @@ public static class AgentMapper
             Id = agent.Id,
             Name = agent.Name,
             Model = agent.Model,
+            Order = agent.Order,
             Started = agent.Started,
+            Flow = agent.Flow,
             Description = agent.Description,
+            Behaviours = agent.Behaviours,
+            CurrentBehaviour = agent.CurrentBehaviour,
             Context = agent.Context.ToDocument()
         };
     
@@ -100,7 +114,11 @@ public static class AgentMapper
             Name = agent.Name,
             Model = agent.Model,
             Started = agent.Started,
+            Order = agent.Order,
+            Flow = agent.Flow,
             Description = agent.Description,
+            Behaviours = agent.Behaviours,
+            CurrentBehaviour = agent.CurrentBehaviour,
             Context = agent.Context.ToDomain()
         };
 
@@ -111,9 +129,10 @@ public static class AgentMapper
             Relations = agentContextDocument?.Relations,
             Source = new AgentSource
             {
+                AdditionalMessage = agentContextDocument?.Source?.AdditionalMessage,
                 Details = agentContextDocument?.Source?.DetailsSerialized,
                 Type = Enum.Parse<AgentSourceType>(agentContextDocument?.Source?.Type.ToString() ?? AgentSourceType.Text.ToString())
             },
-            Steps = agentContextDocument!.Steps.ToLookup(x => x, y => Actions.Steps[y.Split('+').First()])
+            Steps = agentContextDocument!.Steps
         };
 }
