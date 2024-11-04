@@ -6,4 +6,6 @@ public class AgentApiSourceDetails : AgentSourceDetailsBase
     public string Method { get; set; }
     public string? Payload { get; set; }
     public string? Query { get; set; }
+    public string ResponseType { get; set; }
+    public int? ChunkLimit { get; set; }
 }

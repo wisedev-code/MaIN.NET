@@ -227,7 +227,7 @@
         var response = await Http.GetFromJsonAsync<List<AgentDto>>($"{ExtensionMethods.GetApiUrl()}/api/agents");
         if (response != null)
         {
-            agents = response;
+            agents = response.Where(x => !x.Flow).ToList();
         }
     }
 

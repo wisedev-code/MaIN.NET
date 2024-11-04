@@ -8,6 +8,11 @@
 <div class="messages-container">
     @foreach (var message in Chat?.Messages ?? [])
     {
+        @if (message.IsInternal ?? false)
+        {
+            continue;
+        }
+        
         @if (message.Role != Role.System.ToString().ToLowerInvariant())
         {
             @if (Chat!.Visual)
