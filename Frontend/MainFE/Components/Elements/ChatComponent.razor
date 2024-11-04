@@ -8,7 +8,7 @@
 <div class="messages-container">
     @foreach (var message in Chat?.Messages ?? [])
     {
-        @if (message.IsInternal)
+        @if (message.IsInternal ?? false)
         {
             continue;
         }
