@@ -1,0 +1,1 @@
+This flow describes scenario when we are trying to find IT Job and we describe set of requirements, lets say location, technology etc, we have set of actors that has to work together to help user with overall solution

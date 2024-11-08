@@ -140,7 +140,9 @@ else
     bool _loading = false;
     bool _globalLoading = true;
     AgentDto _selectedAgent;
-    string _designatedAgent = "agent_one";
+    AgentDto _prettifierAgent;
+    string _designatedAgentName = "agent_one";
+    string _prettifierAgentName = "agent_three";
 
     HardwareItemDto selectedItem = new();
     private List<HardwareItemDto> _items = new();
@@ -183,7 +185,8 @@ else
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             });
 
-        _selectedAgent = agents?.FirstOrDefault(x => x.Name == _designatedAgent)!;
+        _selectedAgent = agents?.FirstOrDefault(x => x.Name == _designatedAgentName)!;
+        _prettifierAgent = agents?.FirstOrDefault(x => x.Name == _prettifierAgentName)!;
         foreach (var agent in agents!)
         {
             await Http.PostAsJsonAsync($"{ExtensionMethods.GetApiUrl()}/api/agents", agent);
@@ -195,6 +198,7 @@ else
     private async Task Cleanup(string selectedAgentId)
     {
         await Http.PutAsync($"{ExtensionMethods.GetApiUrl()}/api/agents/{selectedAgentId}/chat/reset", default);
+        await Http.PutAsync($"{ExtensionMethods.GetApiUrl()}/api/agents/{_prettifierAgent.Id}/chat/reset", default);
         _selectedChat.Properties.Clear();
         _selectedChat.Messages = _selectedChat.Messages.Take(1).ToList();
     }

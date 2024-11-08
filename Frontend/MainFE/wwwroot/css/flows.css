@@ -1,0 +1,614 @@
+/* Global Styles */
+body {
+    background-color: #121212;
+    color: #ffffff;
+    font-family: Arial, sans-serif;
+}
+
+/* Layout */
+.main-container {
+    padding: 0 20px;
+}
+
+.flows-grid {
+    padding: 20px;
+    justify-content: center;
+    height: 45rem;
+}
+
+/* Buttons */
+/* Button container */
+.button-container {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+/* Shared styles for action buttons */
+.action-button {
+    background-color: transparent;
+    border: none;
+    color: #00ffff;
+    font-size: 2rem;
+    cursor: pointer;
+    transition: color 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+}
+
+.action-button:hover {
+    color: #5ff158;
+}
+
+/* Specific styles for back button */
+.back-button {
+    /* Your existing back-button styles */
+}
+
+/* Specific styles for restart button */
+.restart-button {
+    color: #00dcaa;
+}
+
+.restart-button:hover {
+    color: #5ff158;
+}
+
+.remove-btn {
+    position: absolute;
+    top: 1px;
+    background: transparent;
+    border: none;
+    right: 1px;
+    color: #fff6a3;
+}
+
+.remove-btn:hover {
+    color: #ea7373;
+}
+
+.instruction-button {
+    color: #00ffff;
+    margin-left: 8px;
+    font-size: 1.2em;
+}
+
+.cleanup-button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 13px;
+    border-radius: 8px;
+    transition-duration: 0.4s;
+}
+
+.cleanup-button:hover {
+    background-color: white;
+    color: black;
+    border: 2px solid #4CAF50;
+}
+
+.cleanup-button i {
+    margin-right: 8px;
+}
+
+.create-button {
+    background-color: #7aeda3;
+    color: #3a3232;
+    border: none;
+    cursor: pointer;
+    padding: 10px 20px;
+    border-radius: 4px;
+    width: 15rem;
+    transition: background-color 0.2s;
+    display: block;
+    margin: auto;
+}
+
+.create-button:hover {
+    background-color: #005a9e;
+}
+
+/* Flow Tiles */
+.flow-tile-container {
+    padding: 8px;
+}
+
+.flow-tile {
+    background-color: #1e1e1e;
+    border-radius: 8px;
+    padding: 16px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    transition: transform 0.2s, background-color 0.2s, box-shadow 0.2s;
+}
+
+.flow-tile:hover {
+    transform: translateY(-5px);
+    background-color: #383838;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+}
+
+.flow-header {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 12px;
+    position: relative;
+}
+
+.flow-name-badge {
+    font-size: 1.3em;
+    padding: 6px 12px;
+    background-color: transparent;
+    width: 200px;
+}
+
+.flow-icon {
+    margin-left: 6px;
+}
+
+.flow-description-box,
+.flow-agents {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 12px;
+    flex-grow: 1;
+}
+
+.flow-description-box p {
+    font-size: 0.85em;
+    color: #a0a0a0;
+    margin: 0;
+    line-height: 1.4;
+}
+
+/* Agent Cards */
+.agent-card {
+    background-color: #2a2a2a;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, border 0.3s ease;
+}
+
+.agent-card:hover {
+    transform: translateY(-5px);
+    border-color: #0078d4;
+}
+
+.agent-card h3 {
+    margin-top: 0;
+    margin-bottom: 8px;
+    color: #00ffff;
+}
+
+.loading-border {
+    border-style: solid;
+    border-width: medium;
+    border-color: #0078d4;
+    animation: borderBlink 1.5s infinite;
+}
+
+@keyframes borderBlink {
+    0%, 100% { border-color: transparent; }
+    50% { border-color: #0078d4; }
+}
+
+/* Badges */
+.badge-flow-model,
+.model-badge,
+.steps-badge {
+    padding: 5px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.badge-flow-model {
+    background-color: #8df18d;
+    color: #4c4c4c;
+}
+
+.model-badge,
+.steps-badge {
+    background-color: #5d8e59;
+    margin-right: 4px;
+    font-size: 0.8em;
+    padding: 2px 6px;
+}
+
+/* Agent List */
+.agent-item {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    max-width: 400px;
+    margin-bottom: 8px;
+}
+
+.agent-number {
+    font-weight: bold;
+    margin-right: 8px;
+    color: #ffffff;
+    min-width: 25px;
+}
+
+.agent-name {
+    font-weight: 500;
+    color: #ffffff;
+    margin-right: 8px;
+    min-width: 120px;
+}
+
+.agent-badges {
+    display: flex;
+    margin-right: 8px;
+}
+
+.entry-icon,
+.exit-icon {
+    font-size: 1.4em;
+    margin-left: auto;
+}
+
+.entry-icon {
+    color: #4CAF50;
+}
+
+.exit-icon {
+    color: #f44336;
+}
+
+/* Forms */
+.create-form-container {
+    max-width: 600px;
+    margin: auto;
+    padding: 20px;
+    background-color: #2b2b2b;
+    border: 1px solid #3c3c3c;
+    border-radius: 8px;
+}
+
+.create-form-container label {
+    color: #cccccc;
+    margin-bottom: -10px;
+}
+
+.create-form-container .form-group {
+    margin-bottom: 15px;
+}
+
+.create-form-container input,
+.create-form-container textarea {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    border: 1px solid #333;
+    border-radius: 4px;
+    background-color: #121212;
+    color: #ffffff;
+}
+
+.create-form-container input:focus,
+.create-form-container textarea:focus {
+    border-color: #af6bff;
+}
+
+/* Fluent UI Overrides */
+fluent-badge span {
+    height: 30px;
+}
+
+.agents-flow-container {
+    padding: 20px;
+    background-color: #121212;
+    color: #ffffff;
+    display: flex;
+    flex-direction: column;
+}
+
+.back-button-container {
+    margin-bottom: 20px;
+}
+
+.back-button {
+    background-color: transparent;
+    border: none;
+    color: #00ffff;
+    font-size: 2rem;
+    cursor: pointer;
+}
+
+.agent-grid {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 110px;
+}
+
+.agent-level {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.agent-level:first-child,
+.agent-level:last-child {
+    justify-content: center;
+}
+
+.agent-level:not(:first-child):not(:last-child) {
+    align-items: flex-start;
+}
+
+.agent-card {
+    background-color: #1e1e1e;
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    width: 250px;
+    position: relative;
+}
+
+.agent-level.has-dependency::before {
+    content: '';
+    position: absolute;
+    top: 80px;
+    left: -90px;
+    width: 70px;
+    height: 2px;
+    background-color: #00ffff;
+}
+
+.agent-header h3 {
+    margin: 0 0 8px 0;
+    color: #00ffff;
+    font-size: 1.5em;
+}
+
+.badge {
+    display: inline-block;
+    background-color: #2a2a2a;
+    color: #ffffff;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    margin-bottom: 16px;
+}
+
+.agent-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.instruction-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.instruction-button {
+    background: none;
+    border: none;
+    color: #00ffff;
+    cursor: pointer;
+    font-size: 1.2em;
+}
+
+.state-container {
+    font-style: italic;
+    color: #cccccc;
+}
+
+.page-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 90vh;
+}
+
+.content-container {
+    display: flex;
+    flex: 1;
+    overflow-y: hidden;
+}
+
+.agents-flow-container {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.output-container {
+    width: 40rem; /* Adjust as needed */
+    padding: 10px;
+    background-color: transparent;
+    overflow-y: auto;
+    margin-left: 50px;
+    border-left: 1px solid #333;
+}
+
+.output-card {
+    background-color: #0078d4;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    overflow: hidden;
+}
+
+.output-scroll-area {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 10px;
+    max-height: 80vh;
+}
+
+.output-header {
+    padding: 10px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: white;
+    background-color: #005a9e;
+}
+
+.header-left, .header-right {
+    display: flex;
+    align-items: center;
+}
+
+.header-left {
+    gap: 10px;
+}
+
+.header-right {
+    gap: 15px;
+}
+
+.output-id {
+    font-weight: bold;
+}
+
+.output-model {
+    font-size: 0.9em;
+    background-color: #003c6c;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.output-time {
+    font-size: 0.8em;
+    color: #b3e0ff;
+}
+
+.output-content {
+    padding: 15px;
+    background-color: #f0f8ff;
+    color: #333;
+}
+
+.user-message-inp {
+    background-color: #58a7f1;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.actor-message {
+    padding: 10px;
+}
+
+.bot-message {
+    align-self: flex-start;
+    background-color: #0c0c0c;
+}
+
+.message-card-img {
+    margin-bottom: 15px;
+    width: 80%;
+    height: fit-content;
+    padding: 1px !important;
+    color: #fff;
+}
+
+.actor-message em {
+    color: #0056b3;
+}
+
+.fas {
+    font-size: 0.8em;
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background-color: #1e1e1e;
+    border-radius: 8px;
+    width: 80%;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    border-bottom: 1px solid #333;
+}
+
+.modal-header h4 {
+    margin: 0;
+    color: #00ffff;
+}
+
+.close-button {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #00ffff;
+    cursor: pointer;
+}
+
+.modal-body {
+    padding: 15px;
+    color: #ffffff;
+}
+
+.input-container {
+    /* Existing styles */
+    position: sticky;
+    bottom: 0;
+    background-color: #121212;
+    padding: 10px;
+    border-top: 1px solid #333;
+}
+
+.inp {
+    flex: 1;
+    background-color: #1e1e1e;
+    color: #ffffff;
+    border: none;
+    padding: 10px;
+    margin: 0 10px;
+    border-radius: 4px;
+}
+
+.attachment-btn,
+.fluent-button {
+    background-color: transparent;
+    border: none;
+    color: #00ffff;
+    cursor: pointer;
+}
+
+.fluent-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+}

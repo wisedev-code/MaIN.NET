@@ -1,0 +1,12 @@
+{
+    "id": "dbee96b2-17c7-4ed8-9a9b-73049a8b334b",
+    "order": 1,
+    "name": "IT Job Finder",
+    "description": "1st in a flow",
+    "model": "llama3.1:8b",
+    "context": 
+    {
+        "instruction": "Include complete job list from user input (always include all offers to show complete list), provide link to job if possible. Also mentione source of information if possible",
+        "steps": ["REDIRECT+0248fe87-0b28-4590-9afb-77eeb45d8bc3+AS_Output", "REDIRECT+1315fb24-72c1-4a0c-98bd-0934496dda32+AS_Output", "REDIRECT+cd058053-ddba-4f37-b3f9-8759d6b9e0c7+AS_Output", "ANSWER"]
+    }
+}

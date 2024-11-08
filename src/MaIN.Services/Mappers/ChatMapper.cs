@@ -2,6 +2,7 @@ using MaIN.Domain.Entities;
 using MaIN.Infrastructure.Models;
 using MaIN.Models;
 using MaIN.Services.Models;
+using MaIN.Services.Services;
 using FileInfo = MaIN.Domain.Entities.FileInfo;
 
 namespace MaIN.Services.Mappers;
@@ -27,6 +28,8 @@ public static class ChatMapper
             Content = message.Content,
             Role = message.Tool ? "system" : message.Role,
             Images = message.Images,
+            Time = message.Time,
+            Properties = message.Properties,
             Files = message.Files?.Select(x => new FileInfoDto()
             {
                 Content = x.Content,
@@ -42,7 +45,7 @@ public static class ChatMapper
             Name = chat.Name,
             Model = chat.Model,
             Messages = chat.Messages?.Select(m => m.ToDomain()).ToList(),
-            Visual = chat.Visual,
+            Visual = chat.Model == ImageGenService.Models.FLUX,
             Stream = chat.Stream,
             Type = Enum.Parse<ChatType>(chat.Type.ToString()),
             Properties = chat.Properties
@@ -54,6 +57,8 @@ public static class ChatMapper
             Content = message.Content,
             Role = message.Role,
             Images = message.Images,
+            Time = message.Time,
+            Properties = message.Properties,
             Files = message.Files?.Select(x => new FileInfo()
             {
                 Content = x.Content,
@@ -67,7 +72,9 @@ public static class ChatMapper
         {
             Content = message.Content,
             Role = message.Role,
+            Time = message.Time,
             Images = message.Images,
+            Properties = message.Properties,
             Tool = message.Tool,
             Files = message.Files?.Select(x => x.Content).ToArray() ?? []
         };
@@ -103,7 +110,9 @@ public static class ChatMapper
         {
             Content = message.Content,
             Tool = message.Tool,
+            Time = message.Time,
             Role = message.Role,
             Images = message.Images,
+            Properties = message.Properties,
         };
 }
