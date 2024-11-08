@@ -9,6 +9,8 @@
     <ItemGroup>
         <PackageReference Include="Markdig" Version="0.37.0" />
         <PackageReference Include="Markdown.ColorCode" Version="2.2.2" />
+        <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.8" />
+        <PackageReference Include="Microsoft.AspNetCore.SignalR.Client.Core" Version="8.0.8" />
         <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.*-* " />
         <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.*-* " />
         <PackageReference Include="NAssetNameGenerator" Version="0.1.0" />    </ItemGroup>

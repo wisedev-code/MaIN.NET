@@ -1,0 +1,12 @@
+{
+    "id": "5c06c6b2-df06-4482-b220-ff7d8b8febc4",
+    "name": "Descriptor",
+    "order": 1,
+    "description": "1st in a flow",
+    "model": "gemma2:2b",
+    "context": 
+    {
+        "instruction": "Write description of image related with topic that user gives you. It should contain at least 100 words",
+        "steps": ["ANSWER", "REDIRECT+ea054673-6ed5-452f-9cff-50752bceeb6a+AS_Output"]
+    }
+}

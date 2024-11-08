@@ -8,7 +8,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 builder.Services.AddFluentUIComponents();
-builder.Services.AddHttpClient();
+builder.Services.AddHttpClient("HttpClient", client =>
+{
+    client.Timeout = TimeSpan.FromMinutes(5); // Set timeout to 5 minutes
+});
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

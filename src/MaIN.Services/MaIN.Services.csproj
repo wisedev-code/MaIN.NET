@@ -13,6 +13,7 @@
 
     <ItemGroup>
       <PackageReference Include="GTranslate" Version="2.2.0" />
+      <PackageReference Include="HtmlAgilityPack" Version="1.11.67" />
       <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.0-preview.5.24306.7" />
       <PackageReference Include="System.Data.SqlClient" Version="4.8.6" />
     </ItemGroup>
