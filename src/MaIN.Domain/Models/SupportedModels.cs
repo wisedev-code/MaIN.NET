@@ -1,0 +1,71 @@
+namespace MaIN.Domain.Models;
+
+public struct Model
+{
+    public string Name { get; set; }
+    public string FileName { get; set; }
+    public string DownloadUrl { get; set; }
+    public string Description { get; set; }
+    public string Path { get; set; }
+}
+
+public struct KnownModels
+{
+    internal static Dictionary<string, Model> Models => new Dictionary<string, Model>()
+    {
+        {
+            KnownModelNames.Gemma2_2b, new Model()
+            {
+                Description = string.Empty,
+                Name = KnownModelNames.Gemma2_2b,
+                FileName = "gemma2-2b-maIN.gguf",
+                DownloadUrl = "https://huggingface.co/TheBloke/gemma2-2b-quantized/resolve/main/gemma2-2b-quantized.bin",
+            }
+        }
+    };
+
+    public static Model GetModel(string path, string name)
+    {
+        var isPresent = Models.TryGetValue(name, out var model);
+        if (!isPresent)
+        {
+            //todo support domain specific exceptions
+            throw new Exception($"Model {name} is not supported");
+        }
+
+        if (File.Exists($"{path}/{model.FileName}.gguf"))
+        {
+            return Models[name];  
+        }
+
+        throw new Exception($"Model {name} is not downloaded");
+    } 
+    
+    public static Model GetModelByFileName(string path, string fileName)
+    {
+        var models = Models.Values.ToList();
+        var isPresent = models.Exists(x => x.FileName == fileName);
+        if (!isPresent)
+        {
+            //todo support domain specific exceptions
+            throw new Exception($"Model {fileName} is not supported");
+        }
+
+        if (File.Exists($"{path}/{fileName}.gguf"))
+        {
+            return models.First(x => x.FileName == fileName);  
+        }
+
+        throw new Exception($"Model {fileName} is not downloaded");
+    } 
+}
+
+public struct KnownModelNames
+{
+    public const string Gemma2_2b = "gemma2:2b";
+    public const string Llama3_1_8b = "llama3.1:8b";
+    public const string Llama3_2_3b = "llama3.2:3b";
+    public const string Phi_mini = "phi:mini";
+    public const string Llava_7b = "llava:7b";
+    public const string Qwen2_5_0_5b = "qwen2.5:0.5b";
+}

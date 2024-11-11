@@ -1,4 +1,5 @@
 using MaIN.Domain.Configuration;
+using MaIN.Services.Configuration;
 using MaIN.Services.Services;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Steps;
@@ -11,7 +12,7 @@ public static class Bootstrapper
 {
     public static IServiceCollection ConfigureMaIN(this IServiceCollection serviceCollection, IConfiguration configuration)
     {
-        serviceCollection.Configure<MainSettings>(configuration.GetSection(MainSectionName));
+        serviceCollection.Configure<MaINSettings>(configuration.GetSection(MainSectionName));
         
         serviceCollection.AddSingleton<IChatService, ChatService>();
         serviceCollection.AddSingleton<IAgentService, AgentService>();
