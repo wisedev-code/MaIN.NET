@@ -1,7 +1,7 @@
 using MaIN.Domain.Configuration;
-using MaIN.Infrastructure.Configuration;
 using MaIN.Infrastructure.Repositories;
 using MaIN.Infrastructure.Repositories.Abstract;
+using MaIN.Services.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
@@ -13,7 +13,7 @@ public static class Bootstrapper
     public static IServiceCollection ConfigureInfrastructure(this IServiceCollection services,
         ConfigurationManager configuration)
     {
-        var settings = new MainSettings();
+        var settings = new MaINSettings();
         configuration.GetSection("MaIN").Bind(settings);
         services.AddSingleton<IMongoClient, MongoClient>(sp =>
                 new MongoClient(settings.MongoDbSettings?.ConnectionString));

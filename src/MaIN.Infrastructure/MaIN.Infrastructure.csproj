@@ -18,4 +18,8 @@
       <ProjectReference Include="..\MaIN.Domain\MaIN.Domain.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Configuration\" />
+    </ItemGroup>
+
 </Project>

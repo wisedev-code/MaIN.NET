@@ -1,11 +1,4 @@
-namespace MaIN.Domain.Configuration;
-
-public class MainSettings
-{
-    public MongoDbSettings? MongoDbSettings { get; set; }
-    public string? OllamaUrl { get; set; }
-    public string? ImageGenUrl { get; set; }
-}
+namespace MaIN.Services.Configuration;
 
 public class MongoDbSettings
 {

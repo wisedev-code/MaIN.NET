@@ -5,6 +5,7 @@ using MaIN.Domain.Entities;
 using MaIN.Infrastructure;
 using MaIN.Models.Rag;
 using MaIN.Services;
+using MaIN.Services.Configuration;
 using MaIN.Services.Mappers;
 using MaIN.Services.Models;
 using MaIN.Services.Services;
@@ -195,7 +196,7 @@ app.MapGet("/api/chats/{id}", async (HttpContext context,
 app.MapGet("/api/chats/models", async (HttpContext context,
     [FromServices] IOllamaService ollamaService, 
     [FromServices] IHttpClientFactory httpClientFactory,
-    [FromServices] IOptions<MainSettings> options) =>
+    [FromServices] IOptions<MaINSettings> options) =>
 {
     var models = await ollamaService.GetCurrentModels();
     //add flux support
