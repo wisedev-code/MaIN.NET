@@ -39,7 +39,7 @@ public class ImageGenService(
             Message = new MessageDto()
             {
                 Content = "Generated Image:",
-                Role = "assistant",
+                Role = "Assistant",
                 Images = [base64String]
             },
             Model = Models.FLUX,

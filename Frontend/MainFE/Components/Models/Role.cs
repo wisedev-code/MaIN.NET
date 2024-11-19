@@ -4,7 +4,7 @@ namespace MainFE.Components.Models;
 
 public enum Role
 {
-    [EnumMember(Value = "system")] System = 1,
-    [EnumMember(Value = "assistant")] Assistant = 2,
-    [EnumMember(Value = "user")] User = 3,
+    [EnumMember(Value = "System")] System = 1,
+    [EnumMember(Value = "Assistant")] Assistant = 2,
+    [EnumMember(Value = "User")] User = 3,
 }

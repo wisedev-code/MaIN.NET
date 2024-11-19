@@ -19,7 +19,7 @@ public static class Bootstrapper
         serviceCollection.AddSingleton<INotificationService, NotificationService>();
         serviceCollection.AddSingleton<IAgentFlowService, AgentFlowService>();
         serviceCollection.AddSingleton<ITranslatorService, TranslatorService>();
-        serviceCollection.AddSingleton<IOllamaService, OllamaService>();
+        serviceCollection.AddSingleton<ILLMService, LLMService>();
         serviceCollection.AddSingleton<IImageGenService, ImageGenService>();
         
         // Register all step handlers
