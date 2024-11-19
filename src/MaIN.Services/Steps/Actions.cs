@@ -20,7 +20,7 @@ public static class Actions
 
     public static void InitializeAgents(this IServiceProvider serviceProvider)
     {
-        var ollamaService = serviceProvider.GetRequiredService<IOllamaService>();
+        var llmService = serviceProvider.GetRequiredService<ILLMService>();
         var imageGenService = serviceProvider.GetRequiredService<IImageGenService>();
         var agentService = serviceProvider.GetRequiredService<IAgentService>();
         var httpClientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>();
@@ -38,11 +38,11 @@ public static class Actions
                     var message = new Message()
                     {
                         Content = startCommand.InitialPrompt,
-                        Role = "system"
+                        Role = "System"
                     };
                     startCommand.Chat?.Messages?.Add(message);
                     
-                    var result = await ollamaService.Send(startCommand.Chat);
+                    var result = await llmService.Send(startCommand.Chat);
                     return result?.Message.ToDomain();
                 })
             },
@@ -52,7 +52,7 @@ public static class Actions
                     var chat = await agentService.GetChatByAgent(redirectCommand.RelatedAgentId);
                     chat.Messages?.Add(new Message()
                     {
-                        Role = "user",
+                        Role = "User",
                         Content = redirectCommand.Message.Content,
                         Properties = new Dictionary<string, string>()
                         {
@@ -70,7 +70,7 @@ public static class Actions
                     {
                         Content = result?.Messages?.Last().Content!,
                         Images = result?.Messages?.Last().Images!,
-                        Role = "user",
+                        Role = "User",
                         Properties = new Dictionary<string, string>()
                         {
                             {"agent_internal", "true"}
@@ -102,7 +102,7 @@ public static class Actions
                     var dataMsg = new Message()
                     {
                         Content = data,
-                        Role = "user",
+                        Role = "User",
                         Properties = properties
                     };
 
@@ -133,7 +133,7 @@ public static class Actions
                     {
                         Content =
                             $"Process this data as described in your role: {data}",
-                        Role = "user",
+                        Role = "User",
                         Properties = properties,
                     };
 
@@ -145,7 +145,7 @@ public static class Actions
             {
                 "ANSWER", new Func<AnswerCommand, Task<Message?>>(async answerCommand =>
                 {
-                    var result = answerCommand.Chat!.Visual ? await imageGenService.Send(answerCommand.Chat): await ollamaService.Send(answerCommand.Chat);
+                    var result = answerCommand.Chat!.Visual ? await imageGenService.Send(answerCommand.Chat): await llmService.Send(answerCommand.Chat);
                     return result!.Message.ToDomain();
                 })
             },

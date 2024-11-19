@@ -39,7 +39,7 @@ public class FetchDataStepHandler : IStepHandler
         {
             context.Chat.Messages?.Add(new Message
             {
-                Role = "user",
+                Role = "User",
                 Content = $"Remember this data: {response.Content}",
                 Properties = response.Properties
             });
@@ -79,7 +79,7 @@ public class FetchDataStepHandler : IStepHandler
 
         context.Chat!.Messages?.Add(new Message
         {
-            Role = "user",
+            Role = "User",
             Content = $"[Chunk {index + 1}/{total}] {chunk} - {addition}",
             Properties = responseProperties,
         });
