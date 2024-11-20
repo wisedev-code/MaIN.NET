@@ -35,10 +35,10 @@
 
 @code
 {
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         Http.Timeout = TimeSpan.FromMinutes(10);
-        Task.Run(async () => await Http.PostAsync($"{ExtensionMethods.GetApiUrl()}/api/agents/init", new StringContent(string.Empty), new CancellationToken()));
+        await Task.Run(async () => await Http.PostAsync($"{ExtensionMethods.GetApiUrl()}/api/agents/init", null));
+        await base.OnInitializedAsync();
     }
-
 }
