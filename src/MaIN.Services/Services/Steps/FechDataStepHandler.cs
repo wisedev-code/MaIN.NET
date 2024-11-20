@@ -84,6 +84,7 @@ public class FetchDataStepHandler : IStepHandler
             Properties = responseProperties,
         });
 
+        //Todo create temp chat to not overload context of existing one
         var newMessage = await Actions.CallAsync("ANSWER", new AnswerCommand
         {
             Chat = context.Chat

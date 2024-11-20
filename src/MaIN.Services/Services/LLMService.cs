@@ -31,8 +31,8 @@ public class LLMService(IOptions<MaINSettings> options) : ILLMService
         // Set up execution parameters.
         var parameters = new ModelParams(Path.Combine(path, modelKey))
         {
-            ContextSize = 10024,
-            GpuLayerCount = 100,
+            ContextSize = 20000,
+            GpuLayerCount = 40,
         };
 
         using var context = llmModel.CreateContext(parameters);
