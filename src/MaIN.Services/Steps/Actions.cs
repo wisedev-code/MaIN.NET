@@ -41,9 +41,12 @@ public static class Actions
                         Role = "System"
                     };
                     startCommand.Chat?.Messages?.Add(message);
-                    
-                    var result = await llmService.Send(startCommand.Chat);
-                    return result?.Message.ToDomain();
+                    return new Message()
+                   {
+                       Content = "STARTED",
+                       Role = "System",
+                       Time = DateTime.UtcNow
+                   };
                 })
             },
             {
@@ -52,7 +55,7 @@ public static class Actions
                     var chat = await agentService.GetChatByAgent(redirectCommand.RelatedAgentId);
                     chat.Messages?.Add(new Message()
                     {
-                        Role = "User",
+                        Role = "System",
                         Content = redirectCommand.Message.Content,
                         Properties = new Dictionary<string, string>()
                         {
@@ -70,7 +73,7 @@ public static class Actions
                     {
                         Content = result?.Messages?.Last().Content!,
                         Images = result?.Messages?.Last().Images!,
-                        Role = "User",
+                        Role = "System",
                         Properties = new Dictionary<string, string>()
                         {
                             {"agent_internal", "true"}
@@ -102,7 +105,7 @@ public static class Actions
                     var dataMsg = new Message()
                     {
                         Content = data,
-                        Role = "User",
+                        Role = "System",
                         Properties = properties
                     };
 
@@ -133,7 +136,7 @@ public static class Actions
                     {
                         Content =
                             $"Process this data as described in your role: {data}",
-                        Role = "User",
+                        Role = "System",
                         Properties = properties,
                     };
 
