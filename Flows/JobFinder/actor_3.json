@@ -4,7 +4,7 @@
     "name": "TheMuse seeker",
     "description": "3st in a flow",
     "model": "llama3.2:3b",
-    "behaviours": { "Seeker": "Write summary of jobs offers included in json (title, position, salary, company, provide job link if possible)", 
+    "behaviours": { "Seeker": "Write summary of jobs offers included in json (title, position, salary, company).  Keep it short and concrete dont add more details than needed", 
                     "Extractor": "Extract at least 5 best jobs postings (and mentione source: in your case its themuse.com) from all summaries you created that fits user filter: @filter@" },
     "context": 
     {
@@ -17,7 +17,7 @@
                 "method": "Get",
                 "query": "",
                 "payload": "",
-                "chunkLimit": 15,
+                "chunkLimit": 10,
                 "responseType": "JSON"
             }
         },
