@@ -11,8 +11,9 @@ namespace MaIN.Services.Services.Steps;
 public class FetchDataStepHandler : IStepHandler
 {
     public string StepName => "FETCH_DATA";
-    
+
     public string[] SupportedSteps => ["FETCH_DATA", "FETCH_DATA*"];
+    private static string _temporaryChatId = Guid.NewGuid().ToString();
 
     public async Task<StepResult> Handle(StepContext context)
     {
@@ -55,7 +56,7 @@ public class FetchDataStepHandler : IStepHandler
 
     private static async Task ProcessJsonResponse(Message response, StepContext context)
     {
-        var splitter = new JsonChunker(maxTokens: 2000);
+        var splitter = new JsonChunker(maxTokens: 1000);
         var chunks = splitter.ChunkJson(response.Content).ToList();
 
         if (response.Properties.TryGetValue("chunk_limit", out var property))
@@ -75,19 +76,31 @@ public class FetchDataStepHandler : IStepHandler
         await context.NotifyProgress("true", context.Agent.Id, $"{index + 1}/{total}",
             context.Agent.CurrentBehaviour);
 
-        var addition = total == index + 1 ? "Remember it" : "Remember it and wait for the next message";
-
+        var addition = total == index + 1 ? "Process it" : "Process it and wait for next message";
+        var message = $"{chunk} - {addition}";
         context.Chat!.Messages?.Add(new Message
         {
-            Role = "System",
-            Content = $"[Chunk {index + 1}/{total}] {chunk} - {addition}",
+            Role = "User",
+            Content = message,
             Properties = responseProperties,
         });
 
-        //Todo create temp chat to not overload context of existing one
+        var temporaryChat = new Chat
+        {
+            Id = _temporaryChatId,
+            Model = context.Chat.Model,
+            Messages = new List<Message>
+            {
+                context.Chat.Messages!.First(),
+                new() { Role = "User", Content = message }
+            }
+        };
+        
         var newMessage = await Actions.CallAsync("ANSWER", new AnswerCommand
         {
-            Chat = context.Chat
+            Chat = temporaryChat,
+            LastChunk = index == total - 1,
+            TemporaryChat = true
         }) as Message;
 
         newMessage!.Properties = new() { { "agent_internal", "true" } };

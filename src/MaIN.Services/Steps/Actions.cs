@@ -55,7 +55,7 @@ public static class Actions
                     var chat = await agentService.GetChatByAgent(redirectCommand.RelatedAgentId);
                     chat.Messages?.Add(new Message()
                     {
-                        Role = "System",
+                        Role = "User",
                         Content = redirectCommand.Message.Content,
                         Properties = new Dictionary<string, string>()
                         {
@@ -73,7 +73,7 @@ public static class Actions
                     {
                         Content = result?.Messages?.Last().Content!,
                         Images = result?.Messages?.Last().Images!,
-                        Role = "System",
+                        Role = "User",
                         Properties = new Dictionary<string, string>()
                         {
                             {"agent_internal", "true"}
@@ -105,7 +105,7 @@ public static class Actions
                     var dataMsg = new Message()
                     {
                         Content = data,
-                        Role = "System",
+                        Role = "User",
                         Properties = properties
                     };
 
@@ -136,7 +136,7 @@ public static class Actions
                     {
                         Content =
                             $"Process this data as described in your role: {data}",
-                        Role = "System",
+                        Role = "User",
                         Properties = properties,
                     };
 
@@ -148,7 +148,8 @@ public static class Actions
             {
                 "ANSWER", new Func<AnswerCommand, Task<Message?>>(async answerCommand =>
                 {
-                    var result = answerCommand.Chat!.Visual ? await imageGenService.Send(answerCommand.Chat): await llmService.Send(answerCommand.Chat);
+                    var result = answerCommand.Chat!.Visual ? await imageGenService.Send(answerCommand.Chat): 
+                        await llmService.Send(answerCommand.Chat, removeSession: answerCommand.LastChunk, temporaryChat: answerCommand.TemporaryChat);
                     return result!.Message.ToDomain();
                 })
             },

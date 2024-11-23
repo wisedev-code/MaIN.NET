@@ -7,91 +7,110 @@ using LLama.Transformers;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Models;
+using MaIN.Services;
 using MaIN.Services.Models;
 using MaIN.Services.Models.Ollama;
-using MaIN.Services.Utils;
 using Microsoft.Extensions.Options;
-using ChatHistory = LLama.Common.ChatHistory;
-
-namespace MaIN.Services.Services;
 
 public class LLMService(IOptions<MaINSettings> options) : ILLMService
 {
     private static readonly ConcurrentDictionary<string, LLamaWeights> modelCache = new();
+    private static readonly ConcurrentDictionary<string, ChatSession> sessionCache = new(); // Cache for chat sessions
 
-    public async Task<ChatResult?> Send(Chat? chat)
+    public async Task<ChatResult?> Send(Chat? chat, bool removeSession = false, bool temporaryChat = false)
     {
+        var messageAlreadyAdded = false;
         var path = options.Value.ModelsPath;
         var model = KnownModels.GetModel(path, chat!.Model);
-
         var modelKey = model.FileName; // Use the model file name as a cache key.
 
         // Lazy load the model if it's not in the cache.
         var llmModel = await GetOrLoadModelAsync(path, modelKey);
-        // Set up execution parameters.
-        var parameters = new ModelParams(Path.Combine(path, modelKey))
+        InferenceParams inferenceParams = new InferenceParams()
         {
-            ContextSize = 20000,
-            GpuLayerCount = 40,
+            SamplingPipeline = new DefaultSamplingPipeline()
+            {
+                Temperature = 0.6f,
+            },
+            MaxTokens = 1024,
+            AntiPrompts = [llmModel.Tokens.EndOfTurnToken ?? "User:"]
         };
+        // Try to get a cached session for this model, create one if not found.
+        if (!sessionCache.TryGetValue(chat.Id, out var cachedSession))
+        {
+            var parameters = new ModelParams(Path.Combine(path, modelKey))
+            {
+                ContextSize = 20000,
+                GpuLayerCount = 40,
+            };
 
-        using var context = llmModel.CreateContext(parameters);
-        var history = new ChatHistory();
-        var ex = new InteractiveExecutor(context);
-     //   var completion = new LLamaSharpChatCompletion(ex);
+            var context = llmModel.CreateContext(parameters);
+            var historyTemp = new ChatHistory();
+            var exTemp = new InteractiveExecutor(context);
+
+            // Create and cache the session.
+            cachedSession = new ChatSession(exTemp, historyTemp);
+            sessionCache[chat.Id] = cachedSession;
+        }
+
+        // Get the current session
+        var session = cachedSession;
+
+        if (temporaryChat)
+        {
+            var userMsg = session.History.Messages.LastOrDefault(x => x.AuthorRole == AuthorRole.User);
+            if (userMsg != null)
+            {
+                session.ReplaceUserMessage(userMsg, new ChatHistory.Message(AuthorRole.User, chat.Messages!.Last().Content));
+                var quickResult = new StringBuilder();
+                await foreach (var text in session.RegenerateAssistantMessageAsync(inferenceParams))
+                {
+                    Console.Write(text);
+                    quickResult.Append(text);
+                };
+                
+                var chatResultQuick = new ChatResult()
+                {
+                    Done = true,
+                    CreatedAt = DateTime.Now,
+                    Model = chat.Model,
+                    Message = new MessageDto()
+                    {
+                        Content = quickResult.ToString(),
+                        Role = AuthorRole.Assistant.ToString()
+                    }
+                };
+
+                if (removeSession)
+                {
+                    sessionCache.Remove(chat.Id, out _);
+                }
         
+                return chatResultQuick;
+            }
+        }
         // Add messages to history, skipping duplicates.
         foreach (var message in chat.Messages!.SkipLast(1))
         {
-            if (history.Messages.Any(x => x.AuthorRole.ToString() == message.Role && x.Content == message.Content)) continue;
-            history.AddMessage(Enum.Parse<AuthorRole>(message.Role), message.Content);
+            if (session.History.Messages.Any(x => x.AuthorRole.ToString() == message.Role && x.Content == message.Content)) continue;
+            await session.AddAndProcessMessage(new ChatHistory.Message(Enum.Parse<AuthorRole>(message.Role), message.Content));
         }
-
-        InferenceParams inferenceParams = new InferenceParams()
-        {
-            SamplingPipeline = new DefaultSamplingPipeline
-            {
-                Temperature = 0.6f
-            },
-            MaxTokens = -1, // keep generating tokens until the anti prompt is encountered
-            AntiPrompts = [llmModel.Tokens.EndOfTurnToken ?? "User:"] // model specific end of turn string (or default)
-        };
-        
         // Generate a response.
         Console.WriteLine("Generated Response:");
-        ChatSession session = new(ex, history);
-        session.WithHistoryTransform(new PromptTemplateTransformer(llmModel, withAssistant: true)); 
+        session.WithHistoryTransform(new PromptTemplateTransformer(llmModel, withAssistant: true));
 
-        // Add a transformer to eliminate printing the end of turn tokens, llama 3 specifically has an odd LF that gets printed sometimes
+        // Add a transformer to eliminate printing the end of turn tokens
         session.WithOutputTransform(new LLamaTransforms.KeywordTextOutputStreamTransform(
             [llmModel.Tokens.EndOfTurnToken ?? "User:", "�"],
             redundancyLength: 5));
 
         var result = new StringBuilder();
-        await foreach ( // Generate the response streamingly.
-                       var text
-                       in session.ChatAsync(
-                           new ChatHistory.Message(AuthorRole.User, chat.Messages!.Last().Content),
-                           inferenceParams))
+        await foreach (var text in session.ChatAsync(new ChatHistory.Message(AuthorRole.User, chat.Messages!.Last().Content), inferenceParams))
         {
             Console.Write(text);
             result.Append(text);
         };
-        
-        // var finalResult = result.ToString().EndsWith("User:") 
-        //     ? result.ToString()[..^5] 
-        //     : result.ToString();
-        //
-        var finalResult = result.Replace("Assistant:", string.Empty)
-            .Replace("Response:", string.Empty)
-            .Replace("<|endoftext|>", string.Empty)
-            .Replace("<|im_end|>", string.Empty)
-            .Replace("<|im_start|>", string.Empty)
-            .Replace("Ċ", string.Empty) //dont ask why
-            .ToString(); 
-        
-        finalResult = finalResult.StartsWith("assistant:") ? finalResult[8..] : finalResult;
-        
+
         var chatResult = new ChatResult()
         {
             Done = true,
@@ -104,23 +123,23 @@ public class LLMService(IOptions<MaINSettings> options) : ILLMService
             }
         };
 
+        if (removeSession)
+        {
+            sessionCache.Remove(chat.Id, out _);
+        }
+        
         return chatResult;
     }
 
-// Method to get or load model asynchronously.
     private async Task<LLamaWeights> GetOrLoadModelAsync(string path, string modelKey)
     {
-        // If the model is already loaded in the cache, return it.
         if (modelCache.TryGetValue(modelKey, out var cachedModel))
         {
             return cachedModel;
         }
 
-        // Load the model and cache it.
         var parameters = new ModelParams(Path.Combine(path, modelKey));
         var loadedModel = await LLamaWeights.LoadFromFileAsync(parameters);
-
-        // Cache the model if it's not already present, ensuring thread safety.
         return modelCache.GetOrAdd(modelKey, loadedModel);
     }
 
