@@ -73,7 +73,7 @@ public static class Actions
                     {
                         Content = result?.Messages?.Last().Content!,
                         Images = result?.Messages?.Last().Images!,
-                        Role = "User",
+                        Role = "System",
                         Properties = new Dictionary<string, string>()
                         {
                             {"agent_internal", "true"}

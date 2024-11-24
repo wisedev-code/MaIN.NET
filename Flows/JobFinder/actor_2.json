@@ -4,8 +4,8 @@
     "name": "RemoteOK seeker",
     "description": "2st in a flow",
     "model": "llama3.2:3b",
-    "behaviours": { "Seeker": "Write summary of jobs offers included in json (title, position, salary, company, location). Keep it short and concrete dont add more details than needed", 
-                    "Extractor": "Extract at least 5 best jobs postings (and mentione source: in your remoteok.com) from all summaries you created that fits user filter: @filter@" },
+    "behaviours": { "Seeker": "Write summary of jobs offers included in json (title, position, salary, company, location). Keep it short and concrete dont add more details than needed. If you cannot extract job information output nothing.", 
+                    "Extractor": "Extract at least 5 best jobs postings (and mentione source: in your remoteok.com) from all summaries you created that fits user filter: @filter@. Do it based only on current conversation" },
     "context": 
     {
         "source":
@@ -17,7 +17,7 @@
                 "method": "Get",
                 "query": "",
                 "payload": "",
-                "chunkLimit": 10,
+                "chunkLimit": 5,
                 "responseType": "JSON"
             }
         },
