@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Text;
 using LLama;
+using LLama.Abstractions;
 using LLama.Common;
 using LLama.Sampling;
 using LLama.Transformers;
@@ -48,6 +49,7 @@ public class LLMService(IOptions<MaINSettings> options) : ILLMService
             var historyTemp = new ChatHistory();
             var exTemp = new InteractiveExecutor(context);
 
+            exTemp.AsChatClient().; //TODO
             // Create and cache the session.
             cachedSession = new ChatSession(exTemp, historyTemp);
             sessionCache[chat.Id] = cachedSession;
@@ -55,45 +57,12 @@ public class LLMService(IOptions<MaINSettings> options) : ILLMService
 
         // Get the current session
         var session = cachedSession;
-
-        if (temporaryChat)
-        {
-            var userMsg = session.History.Messages.LastOrDefault(x => x.AuthorRole == AuthorRole.User);
-            if (userMsg != null)
-            {
-                session.ReplaceUserMessage(userMsg, new ChatHistory.Message(AuthorRole.User, chat.Messages!.Last().Content));
-                var quickResult = new StringBuilder();
-                await foreach (var text in session.RegenerateAssistantMessageAsync(inferenceParams))
-                {
-                    Console.Write(text);
-                    quickResult.Append(text);
-                };
-                
-                var chatResultQuick = new ChatResult()
-                {
-                    Done = true,
-                    CreatedAt = DateTime.Now,
-                    Model = chat.Model,
-                    Message = new MessageDto()
-                    {
-                        Content = quickResult.ToString(),
-                        Role = AuthorRole.Assistant.ToString()
-                    }
-                };
-
-                if (removeSession)
-                {
-                    sessionCache.Remove(chat.Id, out _);
-                }
         
-                return chatResultQuick;
-            }
-        }
         // Add messages to history, skipping duplicates.
         foreach (var message in chat.Messages!.SkipLast(1))
         {
             if (session.History.Messages.Any(x => x.AuthorRole.ToString() == message.Role && x.Content == message.Content)) continue;
-            await session.AddAndProcessMessage(new ChatHistory.Message(Enum.Parse<AuthorRole>(message.Role), message.Content));
+            session.History.AddMessage(Enum.Parse<AuthorRole>(message.Role), message.Content);
         }
         // Generate a response.
         Console.WriteLine("Generated Response:");
