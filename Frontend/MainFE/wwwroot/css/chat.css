@@ -1,5 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Tiny5&display=swap'); /* Importing a coding font */
 
+:root {
+    --neutral-foreground-rest: wheat; /* Set the default value for the custom property */
+}
 
 .fancy-text {
     font-family: "Tiny5", sans-serif;
@@ -140,11 +143,16 @@
 .containerToggle {
     display: flex;
     align-items: center;
+    padding: 10px;
 }
 
 .text {
     color: white; /* Make the text white */
     margin-right: 10px; /* Space between text and label */
+}
+
+.label {
+    color: white !important;
 }
 
 .toggleSwitch {
@@ -184,10 +192,23 @@
     transition-duration: .2s;
 }
 
+#checkboxInputx:checked+.toggleSwitch::after {
+    transform: translateX(200%);
+    transition-duration: .2s;
+    background-color: white;
+}
+/* Switch background change */
+#checkboxInputx:checked+.toggleSwitch {
+    background-color: rgb(148, 118, 255);
+    transition-duration: .2s;
+}
+
 .user-message {
     align-self: flex-end;
     background-color: #0d1820;
 }
+
+
 
 .bot-message {
     align-self: flex-start;

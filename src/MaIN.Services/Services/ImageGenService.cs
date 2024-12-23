@@ -32,7 +32,6 @@ public class ImageGenService(
         }
 
         byte[] imageBytes = await response.Content.ReadAsByteArrayAsync();
-        string base64String = Convert.ToBase64String(imageBytes);
         var result = new ChatResult()
         {
             Done = true,
@@ -40,7 +39,7 @@ public class ImageGenService(
             {
                 Content = "Generated Image:",
                 Role = "Assistant",
-                Images = [base64String]
+                Images = imageBytes
             },
             Model = Models.FLUX,
             CreatedAt = DateTime.Now

@@ -5,6 +5,9 @@
 @using NAssetNameGenerator
 @using Message = MainFE.Components.Models.Message
 @using MainFE.Components.Elements
+@using Microsoft.FluentUI.AspNetCore.Components.Icons.Filled
+@using Size48 = Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size48
+@using Size32 = Microsoft.FluentUI.AspNetCore.Components.Icons.Light.Size32
 @inject HttpClient Http
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 
@@ -13,7 +16,7 @@
 <FluentGrid Class="containerbox" Spacing="1" Justify="JustifyContent.FlexStart">
     <FluentGridItem lg="3" sm="12" xs="12" Class="sidebar">
         <FluentButton OnClick="@NewChatAsync"
-                      IconStart="@(new Icons.Regular.Size24.Add())" BackgroundColor="rgba(0, 0, 0, 0.53)" Appearance="Appearance.Accent"
+                      IconStart="@(new Size32.Add())" BackgroundColor="rgba(0, 0, 0, 0.53)" Appearance="Appearance.Accent"
                       Style="margin-bottom: 10px;">
             New Chat
         </FluentButton>
@@ -25,25 +28,24 @@
                     Chat - @chat.Name
                 </FluentCard>
                 <FluentButton OnClick="() => DeleteChatAsync(chat.Id)"
-                              IconStart="@(new Icons.Filled.Size16.Delete())" BackgroundColor="rgba(0,0,0,0)" Appearance="Appearance.Accent"
+                              IconStart="@(new Size20.Delete())" BackgroundColor="rgba(0,0,0,0)" Appearance="Appearance.Accent"
                               Class="delete-button">
                 </FluentButton>
             </div>
         }
     </FluentGridItem>
     <FluentGridItem lg="6" xs="12" Class="chat-container">
-        <ChatComponent Chat="@_selectedChat" Translate="@_translate" SelectedModel="@_selectedModel" IsLoading="@_loading" Images="@Files"/>
+        <ChatComponent Chat="@_selectedChat" Translate="@_translate" Stream="@_stream" SelectedModel="@_selectedModel" IsLoading="@_loading" Images="@Files"/>
     </FluentGridItem>
     <FluentGridItem lg="2" xs="12" Style="padding: 10px">
         <h3 style="color: #3dd5f3">Select a Model</h3>
         <TileSelect TItem="string" Items="_models" SelectedItem="_selectedModel" SelectedItemChanged="OnModelSelected"/>
 
         <br/>
-        <h3 style="color: #3dd5f3">Multilingual</h3>
-        <div class="containerToggle">
-            <span class="text">Improve translations</span>
-            <input type="checkbox" @bind="_translate" id="checkboxInput">
-            <label for="checkboxInput" class="toggleSwitch"></label>
+        <h3 style="color: #3dd5f3">Extensions</h3>
+        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <FluentSwitch @bind-Value=@_translate Style="--neutral-foreground-rest: #506283; padding-right: 5px" Label="Improve translations"/>
+            <FluentSwitch @bind-Value=@_stream Style="--neutral-foreground-rest: #506283; padding-right: 5px" Label="Interactive chat    "/>
         </div>
 
         <br/>
@@ -62,7 +64,7 @@
                 <ChildContent>
                     <br/>
                     <label for="my-image-uploader">
-                        <FluentIcon Value="@(new @Icons.Regular.Size24.ArrowUpload())"/>
+                        <FluentIcon Value="@(new Size20.ArrowUpload())"/>
                     </label>
 
                     <div style="color: #7aeda3">
@@ -76,7 +78,7 @@
                     </div>
                 </ChildContent>
             </FluentInputFile>
-            
+
             @if (Files.Any())
             {
                 <h6 style="color: #7aeda3">File(s) uploaded:</h6>
@@ -101,10 +103,11 @@
 
     // Models
     bool _translate = false;
+    bool _stream = true;
     List<string> _models = [];
     string _selectedModel = string.Empty;
     bool _loading = false;
-    
+
     // Data
     List<ChatDto> _chats = new();
 
@@ -112,13 +115,12 @@
     {
         Messages = []
     };
-    
+
     private void OnModelSelected(string model)
     {
         _selectedModel = model;
         _selectedChat.Model = model;
         _selectedChat.Visual = ExtensionMethods.IsImageModel(model);
-        
     }
 
     int ProgressPercent = 0;
@@ -131,7 +133,7 @@
         await Task.Delay(3000);
         ProgressPercent = 0;
     }
-    
+
     protected override async Task OnInitializedAsync()
     {
         await LoadChatsAsync();

@@ -172,9 +172,10 @@ app.MapDelete("/api/agents/{id}", async ([FromServices] IAgentService agentServi
 app.MapPost("/api/chats/complete", async (HttpContext context,
     [FromServices] IChatService chatService,
     ChatDto request,
-    [FromQuery] bool translate = false) =>
+    [FromQuery] bool translate = false,
+        [FromQuery] bool interactiveUpdates = true) =>
 {
-    var chat = await chatService.Completions(request.ToDomain(), translate);
+    var chat = await chatService.Completions(request.ToDomain(), translate, interactiveUpdates);
     context.Response.ContentType = "application/json";
     await context.Response.WriteAsync(JsonSerializer.Serialize(chat));
 });

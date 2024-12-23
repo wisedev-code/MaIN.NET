@@ -6,7 +6,7 @@
     "model": "llama3.2:3b",
     "context": 
     {
-        "instruction": "Prettify information about jobs and create clear list from given offers.",
+        "instruction": "Prettify information about jobs and create clear list from given offers. Dont mentione that its prettified list, try to be professional with description",
         "steps": ["ANSWER"]
     }
 }

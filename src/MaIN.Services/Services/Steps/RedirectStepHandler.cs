@@ -13,6 +13,7 @@ public class RedirectStepHandler : IStepHandler
     public async Task<StepResult> Handle(StepContext context)
     {
         var shouldReplaceLastMessage = context.Arguments.Contains("REPLACE");
+        var useMemory = context.Arguments.Contains("MEMORY");
         var redirectCommand = new RedirectCommand
         {
             Message = context.RedirectMessage,
@@ -24,6 +25,11 @@ public class RedirectStepHandler : IStepHandler
         await context.NotifyProgress("false", context.Agent.Id, null, context.Agent.CurrentBehaviour);
 
         var message = await Actions.CallAsync("REDIRECT", redirectCommand) as Message;
+
+        if (useMemory)
+        {
+            context.Chat?.Memory.Add(message!.Content);
+        }
         
         if (redirectCommand.SaveAs == OutputTypeOfRedirect.AS_Filter)
         {
@@ -33,8 +39,9 @@ public class RedirectStepHandler : IStepHandler
         {
             if (shouldReplaceLastMessage)
             {
-                var msgprops = context.Chat?.Messages![^1].Properties;
-                message!.Properties = msgprops ?? [];
+                var lastMsg = context.Chat?.Messages![^1];
+                message!.Properties = lastMsg!.Properties ?? [];
+                message.Role = lastMsg.Role;
                 context.Chat?.Messages?.RemoveAt(context.Chat.Messages.Count - 1);
             }
 

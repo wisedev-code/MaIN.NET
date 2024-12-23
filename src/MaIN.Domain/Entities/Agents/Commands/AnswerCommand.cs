@@ -6,4 +6,5 @@ public class AnswerCommand : BaseCommand
 {
     public bool LastChunk { get; set; }
     public bool TemporaryChat { get; set; }
+    public bool UseMemory { get; set; }
 }

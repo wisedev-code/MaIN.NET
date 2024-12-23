@@ -5,6 +5,7 @@ using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents.AgentSource;
 using MaIN.Domain.Entities.Agents.Commands;
 using MaIN.Services.Mappers;
+using MaIN.Services.Models.Ollama;
 using MaIN.Services.Services;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Utils;
@@ -34,7 +35,7 @@ public static class Actions
                     {
                         return null;
                     }
-                    
+
                     var message = new Message()
                     {
                         Content = startCommand.InitialPrompt,
@@ -42,11 +43,11 @@ public static class Actions
                     };
                     startCommand.Chat?.Messages?.Add(message);
                     return new Message()
-                   {
-                       Content = "STARTED",
-                       Role = "System",
-                       Time = DateTime.UtcNow
-                   };
+                    {
+                        Content = "STARTED",
+                        Role = "System",
+                        Time = DateTime.UtcNow
+                    };
                 })
             },
             {
@@ -59,7 +60,7 @@ public static class Actions
                         Content = redirectCommand.Message.Content,
                         Properties = new Dictionary<string, string>()
                         {
-                            {"agent_internal", "true"}
+                            { "agent_internal", "true" }
                         }
                     });
 
@@ -76,7 +77,7 @@ public static class Actions
                         Role = "System",
                         Properties = new Dictionary<string, string>()
                         {
-                            {"agent_internal", "true"}
+                            { "agent_internal", "true" }
                         }
                     };
                 })
@@ -100,7 +101,7 @@ public static class Actions
                             fetchCommand.Filter, properties),
                         _ => throw new ArgumentOutOfRangeException()
                     };
-                    
+
                     properties.Add("agent_internal", "true");
                     var dataMsg = new Message()
                     {
@@ -112,15 +113,17 @@ public static class Actions
                     return dataMsg;
                 })
             },
-            
-            { //TODO better handling for duplication
+
+            {
+                //TODO better handling for duplication
                 "FETCH_DATA*", new Func<FetchCommand, Task<Message?>>(async fetchCommand =>
                 {
                     var properties = new Dictionary<string, string>();
                     var data = fetchCommand.Context.Source.Type switch
                     {
                         AgentSourceType.File => await File.ReadAllTextAsync(
-                            JsonSerializer.Deserialize<AgentFileSourceDetails>(fetchCommand.Context.Source.Details?.ToString()!)!.Path),
+                            JsonSerializer.Deserialize<AgentFileSourceDetails>(fetchCommand.Context.Source.Details
+                                ?.ToString()!)!.Path),
                         AgentSourceType.Text => fetchCommand.Context.Source.Details!.ToString(),
                         AgentSourceType.API => await FetchApiData(fetchCommand.Context.Source.Details,
                             fetchCommand.Filter, httpClientFactory, properties),
@@ -130,7 +133,7 @@ public static class Actions
                             fetchCommand.Filter, properties),
                         _ => throw new ArgumentOutOfRangeException()
                     };
-                    
+
                     properties.Add("agent_internal", "true");
                     var dataMsg = new Message()
                     {
@@ -148,8 +151,18 @@ public static class Actions
             {
                 "ANSWER", new Func<AnswerCommand, Task<Message?>>(async answerCommand =>
                 {
-                    var result = answerCommand.Chat!.Visual ? await imageGenService.Send(answerCommand.Chat): 
-                        await llmService.Send(answerCommand.Chat, removeSession: answerCommand.LastChunk, temporaryChat: answerCommand.TemporaryChat);
+                    ChatResult? result;
+                    if (answerCommand.UseMemory)
+                    {
+                        result = await llmService.AskMemory(answerCommand.Chat, memory: answerCommand.Chat?.Memory);
+                    }
+                    else
+                    {
+                        result = answerCommand.Chat!.Visual
+                            ? await imageGenService.Send(answerCommand.Chat)
+                            : await llmService.Send(answerCommand.Chat);
+                    }
+
                     return result!.Message.ToDomain();
                 })
             },
@@ -225,10 +238,11 @@ public static class Actions
     private static async Task<string> FetchApiData(object? details, string? filter,
         IHttpClientFactory httpClientFactory, Dictionary<string, string> properties)
     {
-        var apiDetails = JsonSerializer.Deserialize<AgentApiSourceDetails>(details.ToString(), new JsonSerializerOptions()
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        });
+        var apiDetails = JsonSerializer.Deserialize<AgentApiSourceDetails>(details.ToString(),
+            new JsonSerializerOptions()
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            });
         var httpClient = httpClientFactory.CreateClient();
         apiDetails!.Payload = apiDetails.Payload?.Replace("@filter@", filter);
         apiDetails.Query = apiDetails.Query?.Replace("@filter@", filter);
@@ -247,7 +261,7 @@ public static class Actions
         {
             properties.TryAdd("chunk_limit", apiDetails.ChunkLimit.ToString()!);
         }
-            
+
         return apiDetails?.ResponseType == "HTML" ? HtmlContentCleaner.CleanHtml(data) : data;
     }
 

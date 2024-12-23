@@ -7,18 +7,33 @@ namespace MaIN.Services.Services;
 
 public class SignalRNotificationService(IHubContext<NotificationHub> hub) : INotificationService
 {
-    public async Task DispatchNotification(object message)
+    public async Task DispatchNotification(object message, string messageType)
     {
         var msg = message as Dictionary<string,string>;
-        var payload = new
+        object? payload = null;
+
+        switch (messageType)
         {
-            agentId = msg!["AgentId"],
-            isProcessing = bool.Parse(msg!["IsProcessing"]),
-            behaviour = msg!["Behaviour"],
-            progress = msg!["Progress"]
-        };
+            case "ReceiveAgentUpdate":
+                payload = new
+                {
+                    agentId = msg!["AgentId"],
+                    isProcessing = bool.Parse(msg!["IsProcessing"]),
+                    behaviour = msg!["Behaviour"],
+                    progress = msg!["Progress"]
+                };
+                break;
+            case "ReceiveMessageUpdate":
+                payload = new
+                {
+                    content = msg!["Content"],
+                    done = bool.Parse(msg["Done"]),
+                    chatId = msg["ChatId"]
+                };
+                break;
+        }
 
         // Send the payload to all clients
-        await hub.Clients.All.SendAsync("ReceiveAgentUpdate", payload);
+        await hub.Clients.All.SendAsync(messageType, payload);
     }
 }

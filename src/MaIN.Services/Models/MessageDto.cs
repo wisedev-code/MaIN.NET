@@ -12,7 +12,7 @@ public class MessageDto
     [JsonPropertyName("time")]
     public DateTime Time { get; set; }
     [JsonPropertyName("images")] 
-    public string[] Images { get; set; }
+    public byte[] Images { get; set; }
     [JsonPropertyName("files")] 
     public FileInfoDto[]? Files { get; set; }
     [JsonPropertyName("properties")]
