@@ -21,6 +21,7 @@ public class AgentService : IAgentService
     private readonly ILogger<AgentService> _logger;
     private readonly INotificationService _notificationService;
     private readonly IStepProcessor _stepProcessor;
+    private readonly ILLMService _llmService;
 
     public AgentService(
         IAgentRepository agentRepository,
@@ -43,7 +44,7 @@ public class AgentService : IAgentService
         if (agent.Context == null) throw new ArgumentException("Agent context not found.");
 
         await _notificationService.DispatchNotification(
-            NotificationMessageBuilder.ProcessingStarted(agentId, agent.CurrentBehaviour!));
+            NotificationMessageBuilder.ProcessingStarted(agentId, agent.CurrentBehaviour!), "ReceiveAgentUpdate");
 
         try
         {
@@ -54,7 +55,7 @@ public class AgentService : IAgentService
                 async (status, id, progress, behaviour) =>
                 {
                     await _notificationService.DispatchNotification(
-                        NotificationMessageBuilder.Create(id, status, progress, behaviour));
+                        NotificationMessageBuilder.CreateActorProgress(id, status, progress, behaviour), "ReceiveAgentUpdate");
                 },
                 async c => await _chatRepository.UpdateChat(c.Id, c.ToDocument()),
                 _logger
@@ -63,14 +64,14 @@ public class AgentService : IAgentService
             await _agentRepository.UpdateAgent(agent.Id, agent);
 
             await _notificationService.DispatchNotification(
-                NotificationMessageBuilder.ProcessingComplete(agentId, agent.CurrentBehaviour!));
+                NotificationMessageBuilder.ProcessingComplete(agentId, agent.CurrentBehaviour!), "ReceiveAgentUpdate");
 
             return chat;
         }
         catch (Exception)
         {
             await _notificationService.DispatchNotification(
-                NotificationMessageBuilder.ProcessingFailed(agentId, agent.CurrentBehaviour!));
+                NotificationMessageBuilder.ProcessingFailed(agentId, agent.CurrentBehaviour!), "ReceiveAgentUpdate");
             throw;
         }
     }
@@ -122,7 +123,7 @@ public class AgentService : IAgentService
     {
         var agent = await _agentRepository.GetAgentById(agentId);
         var chat = (await _chatRepository.GetChatById(agent?.ChatId!)).ToDomain();
-
+        await _llmService.CleanSessionCache(chat.Id);
         AgentStateManager.ClearState(agent, chat);
 
         await _chatRepository.UpdateChat(chat.Id, chat.ToDocument());
@@ -142,6 +143,7 @@ public class AgentService : IAgentService
     public async Task DeleteAgent(string id)
     {
         var chat = await GetChatByAgent(id);
+        await _llmService.CleanSessionCache(chat.Id);
         await _chatRepository.DeleteChat(chat.Id);
         await _agentRepository.DeleteAgent(id);
     }

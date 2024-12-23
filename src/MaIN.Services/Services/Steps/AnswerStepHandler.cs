@@ -14,8 +14,10 @@ public class AnswerStepHandler : IStepHandler
     public async Task<StepResult> Handle(StepContext context)
     {
         await context.NotifyProgress("true", context.Agent.Id, null, context.Agent.CurrentBehaviour);
-
-        var answerCommand = new AnswerCommand { Chat = context.Chat };
+        var useMemory = context.Arguments.Contains("USE_MEMORY");
+        
+        var answerCommand = new AnswerCommand { Chat = context.Chat, UseMemory = useMemory };
+        
         var answerResponse = (await Actions.CallAsync("ANSWER", answerCommand) as Message)!;
 
         var filterVal = GetFilter(answerResponse.Content);

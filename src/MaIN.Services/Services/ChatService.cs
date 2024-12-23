@@ -9,7 +9,7 @@ namespace MaIN.Services.Services;
 public class ChatService(
     ITranslatorService translatorService,
     IChatRepository chatProvider,
-    ILLMService ollamaService,
+    ILLMService llmService,
     IImageGenService imageGenService) : IChatService
 {
     public async Task Create(Chat? chat)
@@ -18,7 +18,7 @@ public class ChatService(
         await chatProvider.AddChat(chat.ToDocument());
     }
 
-    public async Task<ChatResult> Completions(Chat? chat, bool translate = false)
+    public async Task<ChatResult> Completions(Chat? chat, bool translate = false, bool interactiveUpdates = false)
     {
         if (chat?.Model == ImageGenService.Models.FLUX)
         {
@@ -52,7 +52,7 @@ public class ChatService(
 
         var result = chat.Visual 
             ? await imageGenService.Send(chat) 
-            : await ollamaService.Send(chat);
+            : await llmService.Send(chat, interactiveUpdates, true);
     
         if (translate)
         {
@@ -74,8 +74,11 @@ public class ChatService(
     }
 
     public async Task Delete(string id)
-        => await chatProvider.DeleteChat(id);
-
+    {
+        await llmService.CleanSessionCache(id);
+        await chatProvider.DeleteChat(id);
+    }
+    
     public async Task<Chat> GetById(string id)
     {
         var chatDocument = await chatProvider.GetChatById(id);

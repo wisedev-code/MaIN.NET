@@ -8,6 +8,7 @@
 @using Message = MainFE.Components.Models.Message
 @using Markdig
 @using MainFE.Components.Elements
+@using Microsoft.FluentUI.AspNetCore.Components.Icons.Filled
 
 @inject HttpClient Http
 @inject NavigationManager Nav
@@ -32,7 +33,7 @@
                                  Accept=".zip"
                                  @* @bind-ProgressPercent="@ProgressPercent" *@
                                  OnCompleted="@OnCompletedAsync"
-                                 Style="background-color: transparent !important; color: whitesmoke !important;">
+                                 Style="background-color: transparent !important; color: whitesmoke !important; border-style: none !important;">
                     <ChildContent>
                         <label for="my-zip-uploader" class="cleanup-button"
                                style="text-decoration: none !important; font-style: normal; width: 20rem; font-size: 20px !important; color: white">
@@ -175,7 +176,7 @@
                                                 {
                                                     <FluentCard class="message-card-img bot-message" Style="height: 30rem !important; width: 30rem !important; ">
                                                         <div>
-                                                            <a href="data:image/png;base64,@output.Image"
+                                                            <a href="data:image/png;base64,@Convert.ToBase64String(output.Image)"
                                                                style="cursor: -webkit-zoom-in; cursor: zoom-in;" target="_blank">
                                                                 <img src="data:image/png;base64,@output.Image"
                                                                      style="object-fit: fill; width:100%; height:100%;"
@@ -211,10 +212,10 @@
                                  Accept=".csv, .json, .txt"
                                  ProgressPercent="@ProgressPercent"
                                  OnCompleted="@OnFileCompletedAsync"
-                                 Style="background-color: transparent !important; width: 3rem">
+                                 Style="background-color: transparent !important; width: 3rem; border-style: none !important;">
                     <ChildContent>
                         <label for="my-file-uploader" class="attachment-btn">
-                            <FluentIcon Value="@(new Icons.Filled.Size32.Attach())"
+                            <FluentIcon Value="@(new Size32.Attach())"
                                         Color="@_filesAttachedClass" Style="margin-right: 5px; margin-top: 5px; background-color: transparent">
                             </FluentIcon>
                         </label>
@@ -223,7 +224,7 @@
 
                 <input @bind-value="_ask" @bind-value:event="oninput" placeholder="Enter your prompt here..." @onkeydown="CheckEnterKey" class="inp">
 
-                <FluentButton IconStart="@(new Icons.Filled.Size28.Send())" BackgroundColor="rgba(0, 0, 0, 0)" Style="margin-top: 5px; background-color: transparent"
+                <FluentButton IconStart="@(new Size24.Send())" BackgroundColor="rgba(0, 0, 0, 0)" Style="margin-top: 5px; background-color: transparent"
                               Appearance="Appearance.Lightweight"
                               Loading="@IsLoading"
                               OnClick="@(() => SendAsync(_ask))">
@@ -242,10 +243,7 @@
 
     // Models
     public List<List<AgentDto>> AgentLevels { get; set; } = [];
-    AgentFlowDto newFlow;
-    List<string> models = new();
     List<AgentFlowDto> flows = new();
-    string _selectedModel = string.Empty;
     ChatDto _selectedChat = new() { Messages = new() };
     AgentDto _entryAgent = new();
     AgentFlowDto selectedFlow = new();
@@ -309,15 +307,15 @@
                     if (_selectedChat.Messages.Count >= 2)
                     {
                         var userMsg = _selectedChat.Messages.Last(x => x.Role == Role.User.ToString());
-                        var actorMsg = _selectedChat.Messages.Last(x => x.Role != Role.Assistant.ToString());
-                        var image = actorMsg.Images?.FirstOrDefault();
+                        var actorMsg = _selectedChat.Messages.Last(x => x.Role == Role.Assistant.ToString());
+                        var image = actorMsg.Images;
 
                         foreach (var output in ActorOutputs)
                         {
                             output.IsExpanded = false;
                         }
 
-                        if (userMsg.Role == Role.User.ToString() && actorMsg.Role != Role.User.ToString())
+                        if (userMsg.Role == Role.User.ToString() && actorMsg.Role == Role.Assistant.ToString())
                         {
                             var newOutput = new ActorOutput()
                             {
@@ -406,7 +404,6 @@
         if (response != null)
         {
             _selectedChat = response;
-            _selectedModel = response.Model;
         }
     }
 
@@ -450,11 +447,6 @@
         ActorOutputs = BuildActorOutputs(_selectedChat.Messages);
 
         _mode = AgentsFlowPageMode.Details;
-
-        newFlow = new()
-        {
-            Id = Guid.NewGuid().ToString()
-        };
 
         hubConnection = new HubConnectionBuilder()
             .WithUrl($"{ExtensionMethods.GetApiUrl()}/diagnostics")
@@ -564,7 +556,7 @@
         var actorOutputs = new List<ActorOutput>();
         string currentUserMessage = null;
         string currentActorMessage = null;
-        string? image = null;
+        byte[]? image = null;
         int outputId = 1;
 
         for (int i = 0; i < messages.Count; i++)
@@ -592,11 +584,11 @@
                 currentUserMessage = message.Content;
                 currentActorMessage = null;
             }
-            else if (message.Role != Role.User.ToString())
+            else if (message.Role == Role.Assistant.ToString())
             {
                 // Update the current actor message (this will keep the last one before the next user message)
                 currentActorMessage = message.Content;
-                image = message.Images?[0] ?? null;
+                image = message.Images ?? null;
             }
         }
 

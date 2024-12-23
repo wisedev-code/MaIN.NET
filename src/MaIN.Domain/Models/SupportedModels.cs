@@ -69,6 +69,15 @@ public struct KnownModels
         }
     };
 
+    public static Model GetEmbeddingModel() =>
+        new()
+        {
+            Name = KnownModelNames.Nomic_Embedding,
+            FileName = "nomic-maIN.gguf",
+            Description = "Model used to generate embeddings.",
+            DownloadUrl = string.Empty,
+        };
+
     public static Model GetModel(string path, string name)
     {
         var isPresent = Models.TryGetValue(name, out var model);
@@ -108,6 +117,7 @@ public struct KnownModels
 
 public struct KnownModelNames
 {
+    public const string Nomic_Embedding = "nomic";
     public const string Gemma2_2b = "gemma2:2b";
     public const string Llama3_1_8b = "llama3.1:8b";
     public const string Llama3_2_3b = "llama3.2:3b";

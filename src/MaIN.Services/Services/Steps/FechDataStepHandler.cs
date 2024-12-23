@@ -8,7 +8,7 @@ using MaIN.Services.Utils;
 
 namespace MaIN.Services.Services.Steps;
 
-public class FetchDataStepHandler : IStepHandler
+public class FetchDataStepHandler(ILLMService llmService) : IStepHandler
 {
     public string StepName => "FETCH_DATA";
 
@@ -54,20 +54,37 @@ public class FetchDataStepHandler : IStepHandler
         return new StepResult { Chat = context.Chat, RedirectMessage = context.Chat!.Messages!.Last() };
     }
 
-    private static async Task ProcessJsonResponse(Message response, StepContext context)
+    private async Task ProcessJsonResponse(Message response, StepContext context)
     {
-        var splitter = new JsonChunker(maxTokens: 1000);
-        var chunks = splitter.ChunkJson(response.Content).ToList();
-
-        if (response.Properties.TryGetValue("chunk_limit", out var property))
+        context.Chat!.Messages?.Add(new Message
         {
-            chunks = chunks.Take(int.Parse(property!)).ToList();
-        }
+            Role = "User",
+            Content = "Process this data {....}",
+            Properties = response.Properties,
+        });
 
-        for (var index = 0; index < chunks.Count; index++)
+        context.Chat!.Properties.TryGetValue("data_filter", out var filterVal);
+        var memoryChat = new Chat()
         {
-            await ProcessChunk(chunks[index], index, chunks.Count, context, response.Properties);
-        }
+            Messages = new List<Message>
+            {
+                new()
+                {
+                    Content = context.Agent.Behaviours[context.Agent.CurrentBehaviour].Replace("@filter@", filterVal),
+                    Role = "User"
+                }
+            },
+            Model = context.Chat.Model,
+            Properties = context.Chat.Properties,
+            Id = Guid.NewGuid().ToString()
+        };
+        
+        var chunker = new JsonChunker();
+        var chunks = chunker.ChunkJson(response.Content).ToList();
+        var result = await llmService.AskMemory(memoryChat, chunks);
+        var newMessage = result!.Message;
+        newMessage!.Properties = new() { { "agent_internal", "true" } };
+        context.Chat.Messages?.Add(newMessage.ToDomain());
     }
 
     private static async Task ProcessChunk(string chunk, int index, int total, StepContext context,
@@ -76,7 +93,7 @@ public class FetchDataStepHandler : IStepHandler
         await context.NotifyProgress("true", context.Agent.Id, $"{index + 1}/{total}",
             context.Agent.CurrentBehaviour);
 
-        var addition = total == index + 1 ? "Process it" : "Process it and wait for next message";
+        var addition = total == index + 1 ? "Process it" : "Process it, and output processed data";
         var message = $"{chunk} - {addition}";
         context.Chat!.Messages?.Add(new Message
         {
@@ -87,7 +104,7 @@ public class FetchDataStepHandler : IStepHandler
 
         var temporaryChat = new Chat
         {
-            Id = _temporaryChatId,
+            Id = Guid.NewGuid().ToString(),
             Model = context.Chat.Model,
             Messages = new List<Message>
             {

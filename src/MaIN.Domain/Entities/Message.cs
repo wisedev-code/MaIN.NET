@@ -6,7 +6,7 @@ public class Message
     public string Content { get; set; }
     public bool Tool { get; set; }
     public DateTime Time { get; set; }
-    public string[] Images { get; set; }
+    public byte[] Images { get; set; }
     public List<FileInfo>? Files { get; set; } //Temporary solution
     public Dictionary<string,string> Properties { get; set; } = [];
 }

@@ -6,7 +6,7 @@ public class ActorOutput
     public string UserMsg { get; set; }
     public string ActorMsg { get; set; }
     
-    public string? Image { get; set; }
+    public byte[]? Image { get; set; }
     public bool IsExpanded { get; set; } = true;
     public DateTime Time { get; set; }
     public string Model { get; set; }
