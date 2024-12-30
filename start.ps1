@@ -44,9 +44,6 @@ if (-not $noInfra -or $infraOnly) {
         ollama pull $model
     }
 
-    Start-Sleep -Seconds 10
-    Write-Host "Running the Ollama serve."
-    Start-Sleep -Seconds 5
 
     # Install Python and run Image Gen API if --no-image-gen is not provided
     if (-not $noImageGen) {
