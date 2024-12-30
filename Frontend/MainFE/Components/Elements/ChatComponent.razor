@@ -1,6 +1,10 @@
+@using System.Text
+@using System.Text.Json
 @using MainFE.Components.Models
 @using Markdig
+@using Microsoft.AspNetCore.SignalR.Client
 @using Microsoft.FluentUI.AspNetCore.Components
+@using Microsoft.FluentUI.AspNetCore.Components.Icons.Filled
 @using Message = MainFE.Components.Models.Message
 @inject HttpClient Http
 <link rel="stylesheet" href="css/chat.css">
@@ -12,8 +16,8 @@
         {
             continue;
         }
-        
-        @if (message.Role != Role.System.ToString().ToLowerInvariant())
+
+        @if (message.Role != Role.System.ToString())
         {
             @if (Chat!.Visual)
             {
@@ -28,10 +32,12 @@
                 {
                     <FluentCard class="message-card-img bot-message" Style="height: 30rem !important; width: 30rem !important; ">
                         <div>
-                            <a href="data:image/png;base64,@message.Images![0]"
-                               style="cursor: -webkit-zoom-in; cursor: zoom-in;" target="_blank"> <img src="data:image/png;base64,@message.Images![0]"
-                             style="object-fit: fill; width:100%; height:100%;"
-                             alt="imageResponse"/> </a>
+                            <a href="data:image/png;base64,@Convert.ToBase64String(message.Images!)"
+                               style="cursor: -webkit-zoom-in; cursor: zoom-in;" target="_blank">
+                                <img src="data:image/png;base64,@Convert.ToBase64String(message.Images!)"
+                                     style="object-fit: fill; width:100%; height:100%;"
+                                     alt="imageResponse"/>
+                            </a>
                         </div>
                     </FluentCard>
                 }
@@ -52,20 +58,30 @@
     }
     @if (IsLoading)
     {
-        <span class="message-role-bot">@_displayName</span>
         @if (Chat.Visual)
         {
+            <span class="message-role-bot">@_displayName</span>
             <span class="message-role-bot" style="font-style: italic; font-size: small">This might take a while...</span>
             <FluentProgressRing Visible="IsLoading" Color="#afffab"></FluentProgressRing>
         }
         else
         {
-            <FluentProgressRing Visible="IsLoading"></FluentProgressRing>
+            <FluentStack>
+    <span Class="message-role-bot">@_displayName</span>
+            <FluentProgressRing Width="20px" Visible="IsLoading"></FluentProgressRing>
+            </FluentStack>
+            @if (_incomingMessage != null)
+            {
+                <FluentCard class="message-card bot-message">
+                    @((MarkupString)Markdown.ToHtml(_incomingMessage.ToString()!,
+                        new MarkdownPipelineBuilder()
+                            .UseAdvancedExtensions()
+                            .Build()))
+                </FluentCard>
+            }
         }
-
-       
     }
-</div>
+</div >
 <div class="input-container">
     <FluentInputFile Id="my-file-uploader"
                      Mode="InputFileMode.SaveToTemporaryFolder"
@@ -75,25 +91,23 @@
                      Accept=".csv, .json, .txt"
                      ProgressPercent="@ProgressPercent"
                      OnCompleted="@OnFileCompletedAsync"
-                     Style="background-color: transparent !important; width: 3rem">
-        <ChildContent>
+                     Style="background-color: transparent !important; width: 3rem; border-style: none !important;">
+        <ChildContent >
             <label for="my-file-uploader" class="attachment-btn ">
-                <FluentIcon Value="@(new Icons.Filled.Size32.Attach())"
-                             Color="@_filesAttachedClass" Style="margin-right: 5px; background-color: transparent">
-                </FluentIcon>
-            </label>
-        </ChildContent>
-    </FluentInputFile>
-    
+                <FluentIcon Value="@(new Size32.Attach())"
+                            Color="@_filesAttachedClass" Style="margin-right: 5px; background-color: transparent">
+                </FluentIcon >
+            </label >
+        </ChildContent >
+    </FluentInputFile >
     <input @bind-value="_ask" @bind-value:event="oninput" placeholder="Enter your prompt here..." @onkeydown="CheckEnterKey" class="inp">
-
-    <FluentButton IconStart="@(new Icons.Filled.Size28.Send())" BackgroundColor="rgba(0, 0, 0, 0)" Style="margin-top: 5px; background-color: transparent"
+    <FluentButton IconStart="@(new Size28.Send())" BackgroundColor="rgba(0, 0, 0, 0)" Style="margin-top: 5px; background-color: transparent"
                   Appearance="Appearance.Lightweight"
                   Loading="@IsLoading"
                   OnClick="@(() => SendAsync(_ask))">
-    </FluentButton>
-</div>
-<FluentProgress Visible="@(IsLoading)" style="width: 100%;"></FluentProgress>
+    </FluentButton >
+</div >
+<FluentProgress Visible="@(IsLoading)" style="width: 100%;"></FluentProgress >
 
 @code
 {
@@ -105,13 +119,43 @@
     [Parameter] public string? AgentId { get; set; }
     [Parameter] public FluentInputFileEventArgs[] Images { get; set; }
     [Parameter] public bool Translate { get; set; }
+    [Parameter] public bool Stream { get; set; } = true;
 
     public FluentInputFileEventArgs[] Files = [];
     private bool _filesAttached = false;
     private Color _filesAttachedClass => _filesAttached ? Color.Success : Color.Accent;
     private string _ask = string.Empty;
     private string _displayName => CustomName ?? SelectedModel;
+    private StringBuilder? _incomingMessage = null;
     int ProgressPercent = 0;
+    private HubConnection hubConnection;
+
+    protected override async Task OnInitializedAsync()
+    {
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl($"{ExtensionMethods.GetApiUrl()}/diagnostics")
+            .Build();
+
+        hubConnection.On<JsonElement>("ReceiveMessageUpdate", (jsonElement) =>
+        {
+            _incomingMessage ??= new StringBuilder();
+            var chatId = jsonElement.GetProperty("chatId").GetString();
+            if (Chat?.Id != chatId) return;
+
+            var content = jsonElement.GetProperty("content").GetString();
+            var done = jsonElement.GetProperty("done").GetBoolean();
+            _incomingMessage = _incomingMessage.Append(content);
+
+            if (done)
+            {
+                _incomingMessage = null;
+            }
+            
+            InvokeAsync(StateHasChanged);
+        });
+
+        await hubConnection.StartAsync();
+    }
 
     private async Task SendAsync(string message)
     {
@@ -129,11 +173,11 @@
             if (ExtensionMethods.IsVisionModel(SelectedModel) && Images.Any())
             {
                 var file = await File.ReadAllBytesAsync(Images.First().LocalFile!.FullName);
-                newMsg.Images = [Convert.ToBase64String(file)];
+                newMsg.Images = file;
                 Images = []; // Clear files
             }
 
-            if(Files.Any())
+            if (Files.Any())
             {
                 newMsg.Files = Files.Select(x => new FileData()
                 {
@@ -143,9 +187,10 @@
                 }).ToArray();
                 _filesAttached = false;
             }
+
             Chat.Model = SelectedModel;
 
-            var apiResponse = await Http.PostAsJsonAsync($"{ExtensionMethods.GetApiUrl()}/api/chats/complete?translate={Translate}", Chat);
+            var apiResponse = await Http.PostAsJsonAsync($"{ExtensionMethods.GetApiUrl()}/api/chats/complete?translate={Translate}&interactiveUpdates={Stream}", Chat);
 
             if (apiResponse.IsSuccessStatusCode)
             {
@@ -191,7 +236,7 @@
             SelectedModel = response.Model!;
         }
     }
-    
+
     private async Task OnFileCompletedAsync(IEnumerable<FluentInputFileEventArgs> files)
     {
         Files = files.ToArray();
@@ -208,4 +253,3 @@
 
     private string GetRoleLabel(string role) => role == Role.User.ToString() ? "( ͡° ͜ʖ ͡°) User" : $"{_displayName}";
 }
-

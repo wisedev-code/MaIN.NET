@@ -35,7 +35,7 @@ public class BecomeStepHandler : IStepHandler
 
         context.Chat.Messages?.Add(new()
         {
-            Role = "user",
+            Role = "System",
             Content = $"Now - {messageFilter}",
             Properties = new() {{"agent_internal", "true"}}
         });

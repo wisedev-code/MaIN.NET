@@ -10,4 +10,5 @@ public class Chat
     public bool Visual { get; set; }
     public bool Stream { get; set; } = false;
     public Dictionary<string, string> Properties { get; set; } = new();
+    public List<string> Memory { get; set; } = [];
 }

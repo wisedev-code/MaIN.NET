@@ -1,6 +1,7 @@
 using System.Text.Json;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
+using MaIN.Services.Configuration;
 using MaIN.Services.Models;
 using MaIN.Services.Models.Ollama;
 using MaIN.Services.Services.Abstract;
@@ -10,7 +11,7 @@ namespace MaIN.Services.Services;
 
 public class ImageGenService(
     IHttpClientFactory httpClientFactory,
-    IOptions<MainSettings> options) : IImageGenService
+    IOptions<MaINSettings> options) : IImageGenService
 {
     public async Task<ChatResult?> Send(Chat? chat)
     {
@@ -31,15 +32,14 @@ public class ImageGenService(
         }
 
         byte[] imageBytes = await response.Content.ReadAsByteArrayAsync();
-        string base64String = Convert.ToBase64String(imageBytes);
         var result = new ChatResult()
         {
             Done = true,
             Message = new MessageDto()
             {
                 Content = "Generated Image:",
-                Role = "assistant",
-                Images = [base64String]
+                Role = "Assistant",
+                Images = imageBytes
             },
             Model = Models.FLUX,
             CreatedAt = DateTime.Now

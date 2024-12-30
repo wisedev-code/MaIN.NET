@@ -3,7 +3,7 @@ using System.Text.Json;
 namespace MaIN.Services.Utils;
 
 public class JsonChunker(
-    int maxTokens = 4000,
+    int maxTokens = 10000,
     int chunkOverlap = 200,
     int estimatedCharsPerToken = 4)
 {
