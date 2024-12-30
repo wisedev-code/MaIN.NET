@@ -33,7 +33,7 @@ public class StepProcessor : IStepProcessor
     {
         Message redirectMessage = chat?.Messages?.Last()!;
         var tagsToReplaceWithFilter = new List<string>();
-
+        var index = 0;
         foreach (var step in context.Steps)
         {
             logger.LogInformation("Processing step: {Step} on agent {agent}", step, agent.Name);
@@ -54,11 +54,16 @@ public class StepProcessor : IStepProcessor
             };
 
             var result = await handler.Handle(stepContext);
+
+            if (stepName != "REDIRECT")
+            {
+                redirectMessage = result.RedirectMessage ?? redirectMessage;
+            }
             
-            redirectMessage = result.RedirectMessage ?? redirectMessage;
             chat = result.Chat;
 
             await updateChat(chat!);
+            index++;
         }
 
         await CleanupBehaviors(agent, tagsToReplaceWithFilter);

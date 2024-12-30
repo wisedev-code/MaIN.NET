@@ -18,6 +18,14 @@ services:
       - mongodb
     environment:
       ASPNETCORE_ENVIRONMENT: Docker
+      MaIN__ModelsPath: /app/Models
+    volumes:
+      - C:\MAIN.Models:/app/Models  # Mount the directory into the container
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
 
   blazor:
     image: inza124/main-blazor:latest

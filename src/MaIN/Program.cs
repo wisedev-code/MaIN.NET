@@ -5,6 +5,7 @@ using MaIN.Domain.Entities;
 using MaIN.Infrastructure;
 using MaIN.Models.Rag;
 using MaIN.Services;
+using MaIN.Services.Configuration;
 using MaIN.Services.Mappers;
 using MaIN.Services.Models;
 using MaIN.Services.Services;
@@ -53,22 +54,10 @@ app.MapHub<NotificationHub>("/diagnostics");
 app.Services.InitializeAgents();
 
 //load initial agents configuration
-var agentService = app.Services.GetRequiredService<IAgentService>();
 var agents = JsonSerializer.Deserialize<List<AgentDto>>(File.ReadAllText("./initial_agents.json"), new JsonSerializerOptions()
 {
     PropertyNamingPolicy = JsonNamingPolicy.CamelCase
 });
-
-foreach (var agent in agents!)
-{
-    var existingAgent = await agentService.GetAgentById(agent.Id);
-    if(existingAgent != null) continue;
-    var models = await app.Services.GetRequiredService<IOllamaService>().GetCurrentModels();
-    if(models.Contains(agent.Model))
-    {
-        await agentService.CreateAgent(agent.ToDomain());
-    }
-}
 
 
 app.MapPost("/api/agents/{agentId}/process", async (HttpContext context,
@@ -92,6 +81,24 @@ app.MapPost("/api/agents", async (HttpContext context,
     context.Response.ContentType = "application/json";
     return Results.Ok(chat.ToDto());
 });
+
+app.MapPost("/api/agents/init", async (HttpContext context,
+    [FromServices] ILLMService llmService,
+    [FromServices] IAgentService agentService) =>
+{
+    foreach (var agent in agents!)
+    {
+        var existingAgent = await agentService.GetAgentById(agent.Id);
+        if(existingAgent != null) continue;
+        var models = await llmService.GetCurrentModels();
+        if(models.Contains(agent.Model))
+        {
+            await agentService.CreateAgent(agent.ToDomain());
+        }
+    }
+    return Results.Ok();
+});
+
 
 app.MapGet("/api/agents", async (HttpContext context, 
     [FromServices] IAgentService agentService) =>
@@ -165,9 +172,10 @@ app.MapDelete("/api/agents/{id}", async ([FromServices] IAgentService agentServi
 app.MapPost("/api/chats/complete", async (HttpContext context,
     [FromServices] IChatService chatService,
     ChatDto request,
-    [FromQuery] bool translate = false) =>
+    [FromQuery] bool translate = false,
+        [FromQuery] bool interactiveUpdates = true) =>
 {
-    var chat = await chatService.Completions(request.ToDomain(), translate);
+    var chat = await chatService.Completions(request.ToDomain(), translate, interactiveUpdates);
     context.Response.ContentType = "application/json";
     await context.Response.WriteAsync(JsonSerializer.Serialize(chat));
 });
@@ -193,9 +201,9 @@ app.MapGet("/api/chats/{id}", async (HttpContext context,
     Results.Ok((await chatService.GetById(id)).ToDto()));
 
 app.MapGet("/api/chats/models", async (HttpContext context,
-    [FromServices] IOllamaService ollamaService, 
+    [FromServices] ILLMService ollamaService, 
     [FromServices] IHttpClientFactory httpClientFactory,
-    [FromServices] IOptions<MainSettings> options) =>
+    [FromServices] IOptions<MaINSettings> options) =>
 {
     var models = await ollamaService.GetCurrentModels();
     //add flux support

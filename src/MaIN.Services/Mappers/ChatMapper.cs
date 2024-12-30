@@ -26,7 +26,7 @@ public static class ChatMapper
         => new MessageDto()
         {
             Content = message.Content,
-            Role = message.Tool ? "system" : message.Role,
+            Role = message.Tool ? "System" : message.Role,
             Images = message.Images,
             Time = message.Time,
             Properties = message.Properties,

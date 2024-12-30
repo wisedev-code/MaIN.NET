@@ -6,7 +6,7 @@ namespace MaIN.Services.Services;
 
 public class NotificationService : INotificationService
 {
-    public Task DispatchNotification(object message)
+    public Task DispatchNotification(object message, string messageType)
     {
         var msg = JsonSerializer.Serialize(message);
         var originalColor = Console.ForegroundColor;

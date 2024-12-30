@@ -24,9 +24,16 @@ public class AgentDto
     [JsonPropertyName("context")]
     public AgentContextDto Context { get; set; }
     public AgentProcessingState State { get; set; }
-
     public bool IsProcessing { get; set; }
     public List<string>? AgentDependencies { get; set; } = [];
-    public string? ProgressMessage { get; set; }
     public string? Behaviour { get; set; } = "Default";
+
+    public string ProgressMessage 
+    {
+        get => string.IsNullOrEmpty(_progressMessage)
+            ? (IsProcessing ? "Thinking" : "Waiting")
+            : _progressMessage;
+        set => _progressMessage = value;
+    }
+    private string? _progressMessage;
 }

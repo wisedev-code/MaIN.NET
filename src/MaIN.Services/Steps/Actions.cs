@@ -5,6 +5,7 @@ using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents.AgentSource;
 using MaIN.Domain.Entities.Agents.Commands;
 using MaIN.Services.Mappers;
+using MaIN.Services.Models.Ollama;
 using MaIN.Services.Services;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Utils;
@@ -20,7 +21,7 @@ public static class Actions
 
     public static void InitializeAgents(this IServiceProvider serviceProvider)
     {
-        var ollamaService = serviceProvider.GetRequiredService<IOllamaService>();
+        var llmService = serviceProvider.GetRequiredService<ILLMService>();
         var imageGenService = serviceProvider.GetRequiredService<IImageGenService>();
         var agentService = serviceProvider.GetRequiredService<IAgentService>();
         var httpClientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>();
@@ -34,16 +35,19 @@ public static class Actions
                     {
                         return null;
                     }
-                    
+
                     var message = new Message()
                     {
                         Content = startCommand.InitialPrompt,
-                        Role = "system"
+                        Role = "System"
                     };
                     startCommand.Chat?.Messages?.Add(message);
-                    
-                    var result = await ollamaService.Send(startCommand.Chat);
-                    return result?.Message.ToDomain();
+                    return new Message()
+                    {
+                        Content = "STARTED",
+                        Role = "System",
+                        Time = DateTime.UtcNow
+                    };
                 })
             },
             {
@@ -52,11 +56,11 @@ public static class Actions
                     var chat = await agentService.GetChatByAgent(redirectCommand.RelatedAgentId);
                     chat.Messages?.Add(new Message()
                     {
-                        Role = "user",
+                        Role = "User",
                         Content = redirectCommand.Message.Content,
                         Properties = new Dictionary<string, string>()
                         {
-                            {"agent_internal", "true"}
+                            { "agent_internal", "true" }
                         }
                     });
 
@@ -70,10 +74,10 @@ public static class Actions
                     {
                         Content = result?.Messages?.Last().Content!,
                         Images = result?.Messages?.Last().Images!,
-                        Role = "user",
+                        Role = "System",
                         Properties = new Dictionary<string, string>()
                         {
-                            {"agent_internal", "true"}
+                            { "agent_internal", "true" }
                         }
                     };
                 })
@@ -97,27 +101,29 @@ public static class Actions
                             fetchCommand.Filter, properties),
                         _ => throw new ArgumentOutOfRangeException()
                     };
-                    
+
                     properties.Add("agent_internal", "true");
                     var dataMsg = new Message()
                     {
                         Content = data,
-                        Role = "user",
+                        Role = "User",
                         Properties = properties
                     };
 
                     return dataMsg;
                 })
             },
-            
-            { //TODO better handling for duplication
+
+            {
+                //TODO better handling for duplication
                 "FETCH_DATA*", new Func<FetchCommand, Task<Message?>>(async fetchCommand =>
                 {
                     var properties = new Dictionary<string, string>();
                     var data = fetchCommand.Context.Source.Type switch
                     {
                         AgentSourceType.File => await File.ReadAllTextAsync(
-                            JsonSerializer.Deserialize<AgentFileSourceDetails>(fetchCommand.Context.Source.Details?.ToString()!)!.Path),
+                            JsonSerializer.Deserialize<AgentFileSourceDetails>(fetchCommand.Context.Source.Details
+                                ?.ToString()!)!.Path),
                         AgentSourceType.Text => fetchCommand.Context.Source.Details!.ToString(),
                         AgentSourceType.API => await FetchApiData(fetchCommand.Context.Source.Details,
                             fetchCommand.Filter, httpClientFactory, properties),
@@ -127,13 +133,13 @@ public static class Actions
                             fetchCommand.Filter, properties),
                         _ => throw new ArgumentOutOfRangeException()
                     };
-                    
+
                     properties.Add("agent_internal", "true");
                     var dataMsg = new Message()
                     {
                         Content =
                             $"Process this data as described in your role: {data}",
-                        Role = "user",
+                        Role = "User",
                         Properties = properties,
                     };
 
@@ -145,7 +151,18 @@ public static class Actions
             {
                 "ANSWER", new Func<AnswerCommand, Task<Message?>>(async answerCommand =>
                 {
-                    var result = answerCommand.Chat!.Visual ? await imageGenService.Send(answerCommand.Chat): await ollamaService.Send(answerCommand.Chat);
+                    ChatResult? result;
+                    if (answerCommand.UseMemory)
+                    {
+                        result = await llmService.AskMemory(answerCommand.Chat, memory: answerCommand.Chat?.Memory);
+                    }
+                    else
+                    {
+                        result = answerCommand.Chat!.Visual
+                            ? await imageGenService.Send(answerCommand.Chat)
+                            : await llmService.Send(answerCommand.Chat);
+                    }
+
                     return result!.Message.ToDomain();
                 })
             },
@@ -221,10 +238,11 @@ public static class Actions
     private static async Task<string> FetchApiData(object? details, string? filter,
         IHttpClientFactory httpClientFactory, Dictionary<string, string> properties)
     {
-        var apiDetails = JsonSerializer.Deserialize<AgentApiSourceDetails>(details.ToString(), new JsonSerializerOptions()
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        });
+        var apiDetails = JsonSerializer.Deserialize<AgentApiSourceDetails>(details.ToString(),
+            new JsonSerializerOptions()
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            });
         var httpClient = httpClientFactory.CreateClient();
         apiDetails!.Payload = apiDetails.Payload?.Replace("@filter@", filter);
         apiDetails.Query = apiDetails.Query?.Replace("@filter@", filter);
@@ -243,7 +261,7 @@ public static class Actions
         {
             properties.TryAdd("chunk_limit", apiDetails.ChunkLimit.ToString()!);
         }
-            
+
         return apiDetails?.ResponseType == "HTML" ? HtmlContentCleaner.CleanHtml(data) : data;
     }
 
