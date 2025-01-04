@@ -4,7 +4,7 @@ using MongoDB.Driver;
 
 namespace MaIN.Infrastructure.Repositories;
 
-public class AgentRepository(IMongoDatabase database, string collectionName) : IAgentRepository
+public class MongoAgentRepository(IMongoDatabase database, string collectionName) : IAgentRepository
 {
     private readonly IMongoCollection<AgentDocument?> _agents = database.GetCollection<AgentDocument>(collectionName)!;
 

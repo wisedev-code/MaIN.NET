@@ -11,33 +11,42 @@ namespace MaIN.Infrastructure;
 public static class Bootstrapper
 {
     public static IServiceCollection ConfigureInfrastructure(this IServiceCollection services,
-        ConfigurationManager configuration)
+        IConfiguration configuration)
     {
         var settings = new MaINSettings();
         configuration.GetSection("MaIN").Bind(settings);
-        services.AddSingleton<IMongoClient, MongoClient>(sp =>
+        if (settings.MongoDbSettings != null)
+        {
+            services.AddSingleton<IMongoClient, MongoClient>(sp =>
                 new MongoClient(settings.MongoDbSettings?.ConnectionString));
-        
-        services.AddSingleton<IChatRepository, ChatRepository>(sp =>
+
+            services.AddSingleton<IChatRepository, MongoChatRepository>(sp =>
+            {
+                var mongoClient = sp.GetRequiredService<IMongoClient>();
+                var database = mongoClient.GetDatabase(settings.MongoDbSettings?.DatabaseName!);
+                return new MongoChatRepository(database, settings.MongoDbSettings?.ChatsCollection!);
+            });
+
+            services.AddSingleton<IAgentRepository, MongoAgentRepository>(sp =>
+            {
+                var mongoClient = sp.GetRequiredService<IMongoClient>();
+                var database = mongoClient.GetDatabase(settings.MongoDbSettings?.DatabaseName!);
+                return new MongoAgentRepository(database, settings.MongoDbSettings?.AgentsCollection!);
+            });
+
+            services.AddSingleton<IAgentFlowRepository, MongoAgentFlowRepository>(sp =>
+            {
+                var mongoClient = sp.GetRequiredService<IMongoClient>();
+                var database = mongoClient.GetDatabase(settings.MongoDbSettings?.DatabaseName!);
+                return new MongoAgentFlowRepository(database, settings.MongoDbSettings?.FlowsCollection!);
+            });
+        }
+        else
         {
-            var mongoClient = sp.GetRequiredService<IMongoClient>();
-            var database = mongoClient.GetDatabase(settings.MongoDbSettings?.DatabaseName!);
-            return new ChatRepository(database, settings.MongoDbSettings?.ChatsCollection!);
-        });
-        
-        services.AddSingleton<IAgentRepository, AgentRepository>(sp =>
-        {
-            var mongoClient = sp.GetRequiredService<IMongoClient>();
-            var database = mongoClient.GetDatabase(settings.MongoDbSettings?.DatabaseName!);
-            return new AgentRepository(database, settings.MongoDbSettings?.AgentsCollection!);
-        });
-        
-        services.AddSingleton<IAgentFlowRepository, AgentFlowRepository>(sp =>
-        {
-            var mongoClient = sp.GetRequiredService<IMongoClient>();
-            var database = mongoClient.GetDatabase(settings.MongoDbSettings?.DatabaseName!);
-            return new AgentFlowRepository(database, settings.MongoDbSettings?.FlowsCollection!);
-        });
+            services.AddSingleton<IAgentFlowRepository, DefaultAgentFlowRepository>();
+            services.AddSingleton<IAgentRepository, DefaultAgentRepository>();
+            services.AddSingleton<IChatRepository, DefaultChatRepository>();
+        }
 
         return services;
     }

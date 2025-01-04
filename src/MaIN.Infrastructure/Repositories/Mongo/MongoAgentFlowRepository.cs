@@ -4,7 +4,7 @@ using MongoDB.Driver;
 
 namespace MaIN.Infrastructure.Repositories;
 
-public class AgentFlowRepository(IMongoDatabase database, string collectionName) : IAgentFlowRepository
+public class MongoAgentFlowRepository(IMongoDatabase database, string collectionName) : IAgentFlowRepository
 {
     private readonly IMongoCollection<AgentFlowDocument> _flows = database.GetCollection<AgentFlowDocument>(collectionName);
 

@@ -4,7 +4,7 @@ using MongoDB.Driver;
 
 namespace MaIN.Infrastructure.Repositories;
 
-public class ChatRepository(IMongoDatabase database, string collectionName) : IChatRepository
+public class MongoChatRepository(IMongoDatabase database, string collectionName) : IChatRepository
 {
     private readonly IMongoCollection<ChatDocument> _chats = database.GetCollection<ChatDocument>(collectionName);
 
