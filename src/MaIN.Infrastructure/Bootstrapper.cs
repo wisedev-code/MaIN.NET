@@ -1,6 +1,8 @@
 using MaIN.Domain.Configuration;
+using MaIN.Infrastructure.Configuration;
 using MaIN.Infrastructure.Repositories;
 using MaIN.Infrastructure.Repositories.Abstract;
+using MaIN.Infrastructure.Repositories.FileSystem;
 using MaIN.Services.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -40,6 +42,25 @@ public static class Bootstrapper
                 var database = mongoClient.GetDatabase(settings.MongoDbSettings?.DatabaseName!);
                 return new MongoAgentFlowRepository(database, settings.MongoDbSettings?.FlowsCollection!);
             });
+        }
+        else if (settings.FileSystemSettings != null)
+        {
+            services.AddSingleton<IChatRepository, FileSystemChatRepository>((_) =>
+                new FileSystemChatRepository(settings.FileSystemSettings.Path!));
+
+            services.AddSingleton<IAgentRepository, FileSystemAgentRepository>((_) =>
+                new FileSystemAgentRepository(settings.FileSystemSettings.Path!));
+            
+            services.AddSingleton<IAgentFlowRepository, FileSystemAgentFlowRepository>((_) =>
+                new FileSystemAgentFlowRepository(settings.FileSystemSettings.Path!));
+        }
+        else if (settings.SqliteSettings != null)
+        {
+            services.AddSqliteRepositories(settings.SqliteSettings.ConnectionString!);
+        }
+        else if (settings.SqlSettings != null)
+        {
+            services.AddSqlRepositories(settings.SqlSettings.ConnectionString!);
         }
         else
         {
