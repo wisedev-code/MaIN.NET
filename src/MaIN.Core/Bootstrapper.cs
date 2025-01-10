@@ -1,9 +1,12 @@
+using MaIN.Core.Interfaces;
+using MaIN.Core.Services;
 using MaIN.Services;
+using MaIN.Services.Services;
+using MaIN.Services.Services.Abstract;
 using MaIN.Services.Steps;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
 
 namespace MaIN.Core;
 
@@ -27,5 +30,24 @@ public static class Bootstrapper
     {
         app.Services.InitializeAgents();
         return app;
+    }
+    
+    public static IServiceCollection AddAIHub(this IServiceCollection services)
+    {
+        //services.Configure(configureOptions);
+        
+        // Register core services
+        services.AddSingleton<IChatService, ChatService>();
+        services.AddSingleton<IAgentService, AgentService>();
+        services.AddSingleton<IAgentFlowService, AgentFlowService>();
+        
+        // Register service provider for AIHub
+        services.AddSingleton<IAIHubServices>(sp => new AIHubServices(
+            sp.GetRequiredService<IChatService>(),
+            sp.GetRequiredService<IAgentService>(),
+            sp.GetRequiredService<IAgentFlowService>()
+        ));
+
+        return services;
     }
 }
