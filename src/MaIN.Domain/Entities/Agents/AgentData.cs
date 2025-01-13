@@ -1,6 +1,6 @@
 namespace MaIN.Domain.Entities.Agents;
 
-public class AgentContext
+public class AgentData
 {
     public string Instruction { get; set; }
     public AgentSource.AgentSource? Source { get; set; }
