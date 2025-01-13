@@ -1,3 +1,4 @@
+using MaIN.Core.Hub.Contexts;
 using MaIN.Core.Interfaces;
 
 namespace MaIN.Core.Hub;
@@ -17,9 +18,9 @@ public static class AIHub
             "AIHub has not been initialized. Make sure to call AddAIHub() in your service configuration.");
 
     // Static entry points
-    public static ChatBuilder Chat() => new ChatBuilder(Services.ChatService);
-    public static AgentBuilder Agent() => new AgentBuilder(Services.AgentService);
-    public static FlowBuilder Flow() => new FlowBuilder(Services.FlowService);
+    public static ChatContext Chat() => new ChatContext(Services.ChatService);
+    public static AgentContext Agent() => new AgentContext(Services.AgentService);
+    public static FlowContext Flow() => new FlowContext(Services.FlowService);
 }
 
 // Builders remain mostly the same but are now public
