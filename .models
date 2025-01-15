@@ -1,3 +1,9 @@
-
+gemma2-2b-maIN
+Nomic-maIN
+phi3.5-maIN
+Llama3.2-maIN
+Llava-maIN
+Llama3.1-maIN
+Qwen2.5-maIN
 #Place any new model here and it will be downloaded during start command
 
