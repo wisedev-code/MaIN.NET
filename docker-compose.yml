@@ -8,24 +8,25 @@ services:
     volumes:
       - mongo-data:/data/db
 
-  backend:
-    image: inza124/main-backend:latest
-    container_name: backend
-    restart: always
-    ports:
-      - "5000:8080"
-    depends_on:
-      - mongodb
-    environment:
-      ASPNETCORE_ENVIRONMENT: Docker
-      MaIN__ModelsPath: /app/Models
-    volumes:
-      - C:\MAIN.Models:/app/Models  # Mount the directory into the container
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - capabilities: [gpu]
+#TBD, how to make that work..
+  # backend:
+  #   image: inza124/main-backend:latest
+  #   container_name: backend
+  #   restart: always
+  #   ports:
+  #     - "5000:8080"
+  #   depends_on:
+  #     - mongodb
+  #   environment:
+  #     ASPNETCORE_ENVIRONMENT: Docker
+  #     MaIN__ModelsPath: /app/Models
+  #   volumes:
+  #     - C:\MAIN.Models:/app/Models  # Mount the directory into the container
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - capabilities: [gpu]
 
   blazor:
     image: inza124/main-blazor:latest
@@ -33,11 +34,9 @@ services:
     restart: always
     ports:
       - "5001:8080"
-    depends_on:
-      - backend
     environment:
       ASPNETCORE_ENVIRONMENT: Docker
-      API_URL: http://backend:8080
+      API_URL: http://host.docker.internal:5243
       DEMO_API_URL: http://demo:8080
 
   demo:
@@ -49,7 +48,6 @@ services:
     depends_on:
       - blazor
     environment:
-      ASPNETCORE_ENVIRONMENT: Docker
       LocalHost: http://host.docker.internal
 
 volumes:
