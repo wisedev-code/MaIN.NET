@@ -14,7 +14,6 @@ if (-not $modelsPath) {
         Write-Host "The provided path does not exist. Creating the directory..."
         New-Item -ItemType Directory -Path $modelsPath | Out-Null
     }
-    # Set the MODELS_PATH environment variable for the current session
     [System.Environment]::SetEnvironmentVariable("MODELS_PATH", $modelsPath, "Process")
     Write-Host "Using provided path: $modelsPath"
 }
@@ -25,80 +24,64 @@ if (-not (Test-Path $modelsPath)) {
     Write-Host "Created models directory at $modelsPath"
 }
 
-# Read the models map file for name-to-URL mapping
-$modelsMapFile = "$PSScriptRoot\models_map.txt"
-if (-not (Test-Path $modelsMapFile)) {
-    Write-Host "Models map file not found at $modelsMapFile. Please provide a valid file."
-    exit 1
+# Check if .NET is installed
+$dotnet = Get-Command dotnet -ErrorAction SilentlyContinue
+if (-not $dotnet) {
+    Write-Host ".NET is not installed. Installing .NET 8..."
+
+    # URL for .NET 8 installer
+    $dotnetInstallerUrl = "https://download.visualstudio.microsoft.com/download/pr/89a5ff62-7f4f-4931-896d-2c3e0b3db248/7a97ec4977e245b29d42db9de48c9db1/dotnet-sdk-8.0.100-win-x64.exe"
+    $installerPath = "$env:TEMP\dotnet-sdk-8.0.100-win-x64.exe"
+
+    # Download the .NET installer
+    Invoke-WebRequest -Uri $dotnetInstallerUrl -OutFile $installerPath
+    Write-Host "Installing .NET 8 SDK..."
+
+    # Install .NET silently
+    Start-Process -FilePath $installerPath -ArgumentList "/quiet", "/norestart" -Wait
+
+    # Cleanup installer
+    Remove-Item $installerPath
+
+    # Verify installation
+    $dotnet = Get-Command dotnet -ErrorAction SilentlyContinue
+    if (-not $dotnet) {
+        Write-Host "Failed to install .NET 8. Please install it manually and try again."
+        exit 1
+    }
+} else {
+    Write-Host ".NET is already installed."
 }
 
-# Load models map as a hashtable
-$modelsMap = @{}
-Get-Content $modelsMapFile | ForEach-Object {
-    # Match key=value pairs and trim spaces
-    if ($_ -match '^\s*(\S+)\s*=\s*(\S+)\s*$') {
-        $key = $matches[1].Trim()
-        $value = $matches[2].Trim()
-        $modelsMap[$key] = $value
+# Ensure the installed version is .NET 8
+$dotnetVersion = &dotnet --version
+if ($dotnetVersion -notlike "8.*") {
+    Write-Host ".NET version $dotnetVersion detected. Installing .NET 8..."
+
+    # URL for .NET 8 installer
+    $dotnetInstallerUrl = "https://download.visualstudio.microsoft.com/download/pr/89a5ff62-7f4f-4931-896d-2c3e0b3db248/7a97ec4977e245b29d42db9de48c9db1/dotnet-sdk-8.0.100-win-x64.exe"
+    $installerPath = "$env:TEMP\dotnet-sdk-8.0.100-win-x64.exe"
+
+    # Download the .NET installer
+    Invoke-WebRequest -Uri $dotnetInstallerUrl -OutFile $installerPath
+    Write-Host "Installing .NET 8 SDK..."
+
+    # Install .NET silently
+    Start-Process -FilePath $installerPath -ArgumentList "/quiet", "/norestart" -Wait
+
+    # Cleanup installer
+    Remove-Item $installerPath
+
+    # Verify installation
+    $dotnetVersion = &dotnet --version
+    if ($dotnetVersion -notlike "8.*") {
+        Write-Host "Failed to install .NET 8. Please install it manually and try again."
+        exit 1
     }
 }
 
-# Initialize variables
-$hard = $false
-$models = @()
-$noInfra = $false
-$infraOnly = $false
-$noImageGen = $false
+Write-Host "Using .NET version $dotnetVersion"
 
-# Check for the MODELS_PATH environment variable
-$modelsPath = $env:MODELS_PATH
-if (-not $modelsPath) {
-    Write-Host "MODELS_PATH environment variable is not set."
-    $modelsPath = Read-Host "Please provide the local path where models will be stored"
-    if (-not (Test-Path $modelsPath)) {
-        Write-Host "The provided path does not exist. Creating the directory..."
-        New-Item -ItemType Directory -Path $modelsPath | Out-Null
-    }
-    [System.Environment]::SetEnvironmentVariable("MODELS_PATH", $modelsPath, "Process")
-    Write-Host "Using provided path: $modelsPath"
-}
-
-if (-not (Test-Path $modelsPath)) {
-    New-Item -ItemType Directory -Path $modelsPath | Out-Null
-    Write-Host "Created models directory at $modelsPath"
-}
-
-# Read models map file
-$modelsMapFile = "$PSScriptRoot\models_map.txt"
-if (-not (Test-Path $modelsMapFile)) {
-    Write-Host "Models map file not found at $modelsMapFile. Please provide a valid file."
-    exit 1
-}
-
-# Load models map as a hashtable (simple CSV parsing)
-$modelsMap = @{}
-Get-Content $modelsMapFile | ForEach-Object {
-    # Skip empty lines or comments
-    if ($_ -match '^\s*$' -or $_ -match '^\s*#') {
-        return
-    }
-
-    # Split by comma and map key-value pair
-    $parts = $_ -split ','
-    if ($parts.Length -eq 2) {
-        $key = $parts[0].Trim()
-        $value = $parts[1].Trim()
-        $modelsMap[$key] = $value
-    } else {
-        Write-Host "Skipping invalid entry in models_map.txt: $_"
-    }
-}
-
-# DEBUG: Print loaded models map for verification
-Write-Host "Loaded models map:"
-$modelsMap.GetEnumerator() | ForEach-Object {
-    Write-Host "$($_.Key) = $($_.Value)"
-}
 # Parse command-line arguments
 foreach ($arg in $args) {
     if ($arg -eq '--hard') {

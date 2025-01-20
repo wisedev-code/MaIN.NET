@@ -3,6 +3,7 @@ using MaIN.Infrastructure;
 using MaIN.Services.Configuration;
 using MaIN.Services.Services;
 using MaIN.Services.Services.Abstract;
+using MaIN.Services.Services.LLMService;
 using MaIN.Services.Services.Steps;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,6 +23,16 @@ public static class Bootstrapper
         serviceCollection.AddSingleton<ITranslatorService, TranslatorService>();
         serviceCollection.AddSingleton<ILLMService, LLMService>();
         serviceCollection.AddSingleton<IImageGenService, ImageGenService>();
+        
+        
+        var remoteServerUrl = configuration.GetValue<string>("MaIN:RemoteServerUrl");
+        if (remoteServerUrl is not null)
+        {
+            serviceCollection.AddHttpClient<ILLMService, RemoteLLMService>(client =>
+            {
+                client.BaseAddress = new Uri(remoteServerUrl);
+            });
+        }
         
         // Register all step handlers
         serviceCollection.AddSingleton<IStepHandler, RedirectStepHandler>();

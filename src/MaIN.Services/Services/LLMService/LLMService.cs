@@ -1,21 +1,15 @@
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
-using System.Xml.Linq;
-using Azure.Core;
-using DocumentFormat.OpenXml.InkML;
 using LLama;
-using LLama.Abstractions;
 using LLama.Common;
 using LLama.Native;
 using LLama.Sampling;
 using LLama.Transformers;
 using LLamaSharp.KernelMemory;
-using LLamaSharp.SemanticKernel.TextEmbedding;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Models;
-using MaIN.Services;
 using MaIN.Services.Models;
 using MaIN.Services.Models.Ollama;
 using MaIN.Services.Services.Abstract;
@@ -23,7 +17,8 @@ using MaIN.Services.Utils;
 using Microsoft.Extensions.Options;
 using Microsoft.KernelMemory;
 using Microsoft.KernelMemory.Configuration;
-using Microsoft.SemanticKernel.Memory;
+
+namespace MaIN.Services.Services.LLMService;
 
 public class LLMService(IOptions<MaINSettings> options, INotificationService notificationService) : ILLMService
 {
