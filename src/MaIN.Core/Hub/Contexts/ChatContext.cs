@@ -32,7 +32,7 @@ public class ChatContext
         return this;
     }
 
-    public ChatContext WithContent(string content)
+    public ChatContext WithMessage(string content)
     {
         var message = new Message
         {

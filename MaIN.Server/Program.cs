@@ -57,7 +57,12 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseRouting();
-
+app.UseSwagger();
+app.UseSwaggerUI(options =>
+{
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "LLM Service API v1");
+    options.RoutePrefix = "swagger"; 
+});
 app.Run();
 
 // Request DTOs
