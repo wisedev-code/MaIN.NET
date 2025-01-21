@@ -1,3 +1,4 @@
+using MaIN.Core.Hub;
 using MaIN.Core.Interfaces;
 using MaIN.Core.Services;
 using MaIN.Services;
@@ -17,6 +18,7 @@ public static class Bootstrapper
         IConfiguration configuration)
     {
         services.ConfigureMaIN(configuration);
+        services.AddAIHub();
         return services;
     }
 
@@ -42,11 +44,19 @@ public static class Bootstrapper
         services.AddSingleton<IAgentFlowService, AgentFlowService>();
         
         // Register service provider for AIHub
-        services.AddSingleton<IAIHubServices>(sp => new AIHubServices(
-            sp.GetRequiredService<IChatService>(),
-            sp.GetRequiredService<IAgentService>(),
-            sp.GetRequiredService<IAgentFlowService>()
-        ));
+        services.AddSingleton<IAIHubServices>(sp =>
+            {
+                var aiServices = new AIHubServices(
+                    sp.GetRequiredService<IChatService>(),
+                    sp.GetRequiredService<IAgentService>(),
+                    sp.GetRequiredService<IAgentFlowService>()
+                );
+            
+                // Initialize AIHub with the services
+                AIHub.Initialize(aiServices);
+                return aiServices;
+            }
+        );
 
         return services;
     }
