@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Examples.Test;
 using MaIN.Core;
+using MaIN.Core.Interfaces;
 
 var services = new ServiceCollection();
 
@@ -13,11 +14,9 @@ services.AddSingleton<IConfiguration>(configuration);
 services.AddMaIN(configuration);
 services.AddTransient<IExample, Example>();
 
-// Build the service provider
 var serviceProvider = services.BuildServiceProvider();
-
-// Resolve and run the service using ActivatorUtilities
+serviceProvider.UseMaIN();    
+    
 var example = serviceProvider.GetRequiredService<IExample>();
 await example.Start();
 
-// Example service interface and implementation

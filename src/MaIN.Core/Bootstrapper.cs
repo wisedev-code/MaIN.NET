@@ -28,6 +28,12 @@ public static class Bootstrapper
         return services;
     }
 
+    public static IServiceProvider UseMaIN(this IServiceProvider sp)
+    {
+        _ = sp.GetRequiredService<IAIHubServices>();
+        return sp;
+    }
+
     public static WebApplication UseMaINAgentFramework(this WebApplication app)
     {
         app.Services.InitializeAgents();
@@ -57,6 +63,12 @@ public static class Bootstrapper
                 return aiServices;
             }
         );
+        
+        // Ensure IHttpClientFactory is registered
+        if (services.All(sd => sd.ServiceType != typeof(IHttpClientFactory)))
+        {
+            services.AddHttpClient(); // Register the default HttpClientFactory
+        }
 
         return services;
     }
