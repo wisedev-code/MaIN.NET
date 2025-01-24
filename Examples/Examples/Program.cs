@@ -1,8 +1,7 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Examples;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Examples.Test;
 using MaIN.Core;
-using MaIN.Core.Interfaces;
 
 var services = new ServiceCollection();
 
@@ -12,7 +11,7 @@ var configuration = new ConfigurationBuilder()
 services.AddSingleton<IConfiguration>(configuration);
 
 services.AddMaIN(configuration);
-services.AddTransient<IExample, Example>();
+services.AddTransient<IExample, ChatExample>();
 
 var serviceProvider = services.BuildServiceProvider();
 serviceProvider.UseMaIN();    

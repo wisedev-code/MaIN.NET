@@ -6,7 +6,8 @@ namespace MaIN.Services;
 public interface ILLMService
 {
     Task<ChatResult?> Send(Chat? chat, bool interactiveUpdates = false, bool createSession = false);
-    Task<ChatResult?> AskMemory(Chat? chat, List<string>? json = null, string? filePath = null, List<string>? memory = null);
+    Task<ChatResult?> AskMemory(Chat? chat, Dictionary<string, string>? textData = null, string? filePath = null,
+        List<string>? memory = null);
     Task<List<string>> GetCurrentModels();
     Task CleanSessionCache(string id);
 }

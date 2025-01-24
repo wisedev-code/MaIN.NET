@@ -1,12 +1,12 @@
 using MaIN.Core.Hub;
 
-namespace Examples.Test;
+namespace Examples;
 
-public class Example : IExample
+public class ChatExample : IExample
 {
     public async Task Start()
     {
-        Console.WriteLine("TestExample is running!");
+        Console.WriteLine("ChatExample is running!");
         
         var context = AIHub.Chat().WithModel("gemma2:2b");
         

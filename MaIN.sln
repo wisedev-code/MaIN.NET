@@ -14,7 +14,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MaIN.Core", "src\MaIN.Core\
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples", "Examples", "{28851935-517F-438D-BF7C-02FEB1A37A68}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Examples.Test", "Examples\Examples.Test\Examples.Test.csproj", "{781BDD20-65BA-4C5D-815B-D8A15931570A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Examples", "Examples\Examples\Examples.csproj", "{781BDD20-65BA-4C5D-815B-D8A15931570A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MaIN.Server", "MaIN.Server\MaIN.Server.csproj", "{F29916C3-3A0E-49D7-BCC6-D918EFBF0CE4}"
 EndProject
