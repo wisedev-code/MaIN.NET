@@ -80,7 +80,10 @@ public class FetchDataStepHandler(ILLMService llmService) : IStepHandler
         };
         
         var chunker = new JsonChunker();
-        var chunks = chunker.ChunkJson(response.Content).ToList();
+        var chunksAsList = chunker.ChunkJson(response.Content).ToList();
+        var chunks = chunksAsList
+            .Select((chunk, index) => new { Key = $"CHUNK {index + 1}/{chunksAsList.Count}", Value = chunk })
+            .ToDictionary(item => item.Key, item => item.Value);
         var result = await llmService.AskMemory(memoryChat, chunks);
         var newMessage = result!.Message;
         newMessage!.Properties = new() { { "agent_internal", "true" } };

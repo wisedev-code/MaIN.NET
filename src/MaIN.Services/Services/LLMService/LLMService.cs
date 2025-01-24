@@ -76,21 +76,32 @@ public class LLMService(IOptions<MaINSettings> options, INotificationService not
 
         var resultBuilder = new StringBuilder();
 
-        await foreach (var text in session.ChatAsync(
-                           new ChatHistory.Message(AuthorRole.User, chat.Messages.Last().Content),
-                           inferenceParams))
+        var lastMessage = chat.Messages.Last();
+
+        if (lastMessage.Files?.Any() ?? false)
         {
-            if (interactiveUpdates)
+#pragma warning disable SKEXP0001
+            var result = await AskMemory(chat, lastMessage.Files.ToDictionary(x => x.Name, x => x.Content));
+            resultBuilder.Append(result!.Message.Content);
+#pragma warning restore SKEXP0001
+        }
+        else
+        {
+            await foreach (var text in session.ChatAsync(
+                               new ChatHistory.Message(AuthorRole.User, chat.Messages.Last().Content),
+                               inferenceParams))
             {
-                await notificationService.DispatchNotification(
-                    NotificationMessageBuilder.CreateChatCompletion(
-                        chat.Id,
-                        text,
-                        false),
-                    "ReceiveMessageUpdate");
+                if (interactiveUpdates)
+                {
+                    await notificationService.DispatchNotification(
+                        NotificationMessageBuilder.CreateChatCompletion(
+                            chat.Id,
+                            text,
+                            false),
+                        "ReceiveMessageUpdate");
+                }
+                resultBuilder.Append(text);
             }
-            resultBuilder.Append(text);
-            Console.Write(text);
         }
 
         if (interactiveUpdates)
@@ -185,7 +196,7 @@ public class LLMService(IOptions<MaINSettings> options, INotificationService not
     }
 
     [Experimental("SKEXP0001")]
-    public async Task<ChatResult?> AskMemory(Chat? chat, List<string>? jsons = null,
+    public async Task<ChatResult?> AskMemory(Chat? chat, Dictionary<string,string>? textData = null,
         string? filePath = null, List<string>? memory = null)
     {
         var path = options.Value.ModelsPath;
@@ -194,12 +205,11 @@ public class LLMService(IOptions<MaINSettings> options, INotificationService not
 
         var kernelMemory = CreateMemory(modelKey, path);
 
-        if (jsons != null)
+        if (textData != null)
         {
-            for (var index = 0; index < jsons.Count; index++)
+            foreach (var item in textData)
             {
-                await kernelMemory.ImportTextAsync(jsons[index], $"JSON_CHUNK_{index + 1}-{jsons.Count}");
-
+                await kernelMemory.ImportTextAsync(item.Value, item.Key);
             }
         }
 
