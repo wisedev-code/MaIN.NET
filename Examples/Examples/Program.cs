@@ -11,7 +11,8 @@ var configuration = new ConfigurationBuilder()
 services.AddSingleton<IConfiguration>(configuration);
 
 services.AddMaIN(configuration);
-services.AddTransient<IExample, ChatExample>();
+//services.AddTransient<IExample, ChatExample>();
+services.AddTransient<IExample, ChatWithFilesExample>();
 
 var serviceProvider = services.BuildServiceProvider();
 serviceProvider.UseMaIN();    
