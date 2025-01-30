@@ -74,7 +74,7 @@ public class ChatContext
         var files = filePaths.Select(p => new FileInfo()
         {
             Name = Path.GetFileName(p),
-            Content = File.ReadAllText(p),
+            Path = p,
             Extension = Path.GetExtension(p)
         }).ToList();
         

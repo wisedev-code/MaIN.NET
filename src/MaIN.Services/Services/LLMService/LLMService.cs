@@ -81,7 +81,9 @@ public class LLMService(IOptions<MaINSettings> options, INotificationService not
         if (lastMessage.Files?.Any() ?? false)
         {
 #pragma warning disable SKEXP0001
-            var result = await AskMemory(chat, lastMessage.Files.ToDictionary(x => x.Name, x => x.Content));
+            var textData = lastMessage.Files.Where(x => x.Content is not null).ToDictionary(x => x.Name, x => x.Content);
+            var fileData = lastMessage.Files.Where(x => x.Path is not null).ToDictionary(x => x.Name, x => x.Path);  //shity coode TODO
+            var result = await AskMemory(chat, textData!, fileData!);
             resultBuilder.Append(result!.Message.Content);
 #pragma warning restore SKEXP0001
         }
@@ -196,8 +198,10 @@ public class LLMService(IOptions<MaINSettings> options, INotificationService not
     }
 
     [Experimental("SKEXP0001")]
-    public async Task<ChatResult?> AskMemory(Chat? chat, Dictionary<string,string>? textData = null,
-        string? filePath = null, List<string>? memory = null)
+    public async Task<ChatResult?> AskMemory(Chat? chat, 
+        Dictionary<string, string>? textData = null,
+        Dictionary<string, string>? fileData = null,
+        List<string>? memory = null)
     {
         var path = options.Value.ModelsPath;
         var model = KnownModels.GetModel(path, chat!.Model);
@@ -210,6 +214,14 @@ public class LLMService(IOptions<MaINSettings> options, INotificationService not
             foreach (var item in textData)
             {
                 await kernelMemory.ImportTextAsync(item.Value, item.Key);
+            }
+        }
+
+        if (fileData != null)
+        {
+            foreach (var item in fileData)
+            {
+                await kernelMemory.ImportDocumentAsync(item.Value, item.Key);
             }
         }
 
@@ -233,7 +245,7 @@ public class LLMService(IOptions<MaINSettings> options, INotificationService not
             Model = chat.Model,
             Message = new MessageDto()
             {
-                Content = result.Result,
+                Content = result.Result.Replace("Question:", string.Empty).Replace("Assistant:", string.Empty),
                 Role = AuthorRole.Assistant.ToString()
             }
         };
@@ -245,7 +257,7 @@ public class LLMService(IOptions<MaINSettings> options, INotificationService not
     [Experimental("KMEXP01")]
     private static IKernelMemory CreateMemory(string modelName, string path)
     {
-        InferenceParams infParams = new() { AntiPrompts = ["INFO"] };
+        InferenceParams infParams = new() { AntiPrompts = ["INFO", "<|im_end|>", "Question:"] };
 
         LLamaSharpConfig lsConfig = new(Path.Combine(path, KnownModels.GetEmbeddingModel().FileName))
             { DefaultInferenceParams = infParams };
@@ -253,6 +265,8 @@ public class LLMService(IOptions<MaINSettings> options, INotificationService not
         SearchClientConfig searchClientConfig = new()
         {
             MaxMatchesCount = 5,
+            FrequencyPenalty = 1,
+            Temperature = 0.6f,
             AnswerTokens = 500,
         };
 
@@ -265,6 +279,7 @@ public class LLMService(IOptions<MaINSettings> options, INotificationService not
         return new KernelMemoryBuilder()
             .WithLLamaSharpMaINTemp(lsConfig, Path.Combine(path, modelName))
             .WithSearchClientConfig(searchClientConfig)
+            .WithCustomImageOcr(new OcrWrapper())
             .With(parseOptions)
             .Build();
     }

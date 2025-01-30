@@ -53,8 +53,10 @@ public class RemoteLLMService : ILLMService
         return result;
     }
 
-    public async Task<ChatResult?> AskMemory(Chat? chat, Dictionary<string, string>? jsons = null,
-        string? filePath = null, List<string>? memory = null)
+    public async Task<ChatResult?> AskMemory(Chat? chat, 
+        Dictionary<string, string>? textData = null,
+        Dictionary<string, string>? fileData = null,
+        List<string>? memory = null)
     {
         if (chat == null || chat.Messages == null || !chat.Messages.Any())
             return null;
@@ -62,8 +64,8 @@ public class RemoteLLMService : ILLMService
         var requestPayload = new
         {
             chat,
-            jsons,
-            filePath,
+            textData,
+            fileData,
             memory
         };
 

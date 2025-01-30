@@ -9,10 +9,11 @@ public class ChatWithFilesExample : IExample
         Console.WriteLine("ChatExample with files is running!");
 
         List<string> files = ["./Files/Nicolaus_Copernicus.pdf", "./Files/Galileo_Galilei.pdf"];
-        var context = AIHub.Chat().WithModel("phi3:mini").WithFiles(files);
         
-        var result = await context
+        var result = await AIHub.Chat()
+            .WithModel("llama3.1:8b")
             .WithMessage("You have 2 documents in memory. What is the difference between them?")
+            .WithFiles(files)
             .CompleteAsync();
         
         Console.WriteLine(result.Message.Content);

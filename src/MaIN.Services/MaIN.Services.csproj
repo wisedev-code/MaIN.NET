@@ -23,6 +23,8 @@
       <PackageReference Include="Microsoft.SemanticKernel" Version="1.30.0" />
       <PackageReference Include="Microsoft.SemanticKernel.Plugins.Memory" Version="1.30.0-alpha" />
       <PackageReference Include="System.Data.SqlClient" Version="4.8.6" />
+      <PackageReference Include="Tesseract" Version="5.2.0" />
+      <PackageReference Include="Tesseract.Data.English" Version="4.0.0" />
     </ItemGroup>
 
     <ItemGroup>
