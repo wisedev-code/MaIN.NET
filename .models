@@ -5,5 +5,6 @@ Llama3.2-maIN
 Llava-maIN
 Llama3.1-maIN
 Qwen2.5-maIN
+DeepSeekR1-8b-maIN
 #Place any new model here and it will be downloaded during start command
 

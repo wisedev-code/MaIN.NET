@@ -66,6 +66,15 @@ public struct KnownModels
                 FileName = "Qwen2.5-maIN.gguf",
                 DownloadUrl = string.Empty
             }
+        },
+        {
+            KnownModelNames.DeekSeek_R1_8b, new Model()
+            {
+                Description = string.Empty,
+                Name = KnownModelNames.DeekSeek_R1_8b,
+                FileName = "DeepSeekR1-8b-maIN.gguf",
+                DownloadUrl = string.Empty
+            }
         }
     };
 
@@ -124,4 +133,5 @@ public struct KnownModelNames
     public const string Phi_mini = "phi3:mini";
     public const string Llava_7b = "llava:7b";
     public const string Qwen2_5_0_5b = "qwen2.5:0.5b";
+    public const string DeekSeek_R1_8b = "deekseek:r1.8b";
 }
