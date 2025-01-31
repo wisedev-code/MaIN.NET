@@ -13,7 +13,10 @@ services.AddSingleton<IConfiguration>(configuration);
 services.AddMaIN(configuration);
 //services.AddTransient<IExample, ChatExample>();
 //services.AddTransient<IExample, ChatWithFilesExample>();
-services.AddTransient<IExample, ChatWithVisionExample>();
+//services.AddTransient<IExample, ChatWithVisionExample>();
+//services.AddTransient<IExample, ChatWithImageGenExample>();
+services.AddTransient<IExample, ChatFromExistingExample>();
+
 
 var serviceProvider = services.BuildServiceProvider();
 serviceProvider.UseMaIN();    
