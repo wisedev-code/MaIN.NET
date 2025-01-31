@@ -91,6 +91,8 @@ public class ChatContext
         _chat.Visual = true;
         return this;
     }
+    
+    public string GetChatId() => _chat.Id;
 
     public async Task<ChatResult> CompleteAsync(bool translate = false, bool interactive = false)
     {
@@ -136,9 +138,19 @@ public class ChatContext
     }
 
     // Static methods to create builder from existing chat
-    public static async Task<ChatContext> FromExisting(IChatService chatService, string chatId)
+    public async Task<ChatContext> FromExisting(string chatId)
     {
-        var existingChat = await chatService.GetById(chatId);
-        return new ChatContext(chatService, existingChat);
+        var existingChat = await _chatService.GetById(chatId);
+        return new ChatContext(_chatService, existingChat);
+    }
+
+    public List<MessageShort> GetChatHistory()
+    {
+        return _chat.Messages!.Select(x => new MessageShort()
+        {
+            Content = x.Content,
+            Role = x.Role,
+            Time = x.Time
+        }).ToList();
     }
 }

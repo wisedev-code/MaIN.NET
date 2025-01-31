@@ -136,55 +136,16 @@ if (-not $noInfra -or $infraOnly) {
         Write-Host "Downloaded and saved to $modelFilePath"
     }
 
-    # Continue with other infrastructure tasks
+  # Run infrastructure-related tasks
+if (-not $noInfra -or $infraOnly) {
+    # ... (existing model download code remains the same)
+
+    # Image Generation API handling
     if (-not $noImageGen) {
-        $pythonVersion = "3.9.13"
-        $pythonInstallerUrl = "https://www.python.org/ftp/python/$pythonVersion/python-$pythonVersion-amd64.exe"
-        $installerPath = "$env:TEMP\python-$pythonVersion-installer.exe"
-
-        # Check if Python 3.9 is already installed
-        $python = Get-Command python -ErrorAction SilentlyContinue
-        if (-not $python) {
-            Write-Host "Downloading Python $pythonVersion..."
-            Invoke-WebRequest $pythonInstallerUrl -OutFile $installerPath
-
-            Write-Host "Installing Python $pythonVersion..."
-            Start-Process $installerPath -ArgumentList '/quiet InstallAllUsers=1 PrependPath=1 Include_pip=1' -Wait
-            Remove-Item $installerPath
-
-            $pythonPath = [System.IO.Path]::Combine("C:\Program Files\Python39", "python.exe")
-            if (-not (Test-Path $pythonPath)) {
-                $pythonPath = [System.IO.Path]::Combine("C:\Program Files (x86)\Python39", "python.exe")
-            }
-
-            if (-not (Test-Path $pythonPath)) {
-                Write-Host "Python installation path not found. Please check the installation."
-                exit 1
-            }
-
-            $currentPath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
-            if ($currentPath -notlike "*Python39*") {
-                [System.Environment]::SetEnvironmentVariable("Path", "$currentPath;$($pythonPath -replace 'python.exe', '')", "Machine")
-            }
-
-            $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
-        } else {
-            Write-Host "Python is already installed."
-        }
-
-        Write-Host "Verifying Python installation..."
-        python --version
-        pip --version
-
-        Write-Host "Installing dependencies from requirements.txt..."
-        pip install --default-timeout=900 -r "./ImageGen/requirements.txt"
-
-        Start-Sleep -Seconds 5
-
-        Write-Host "Running image gen API"
-        Start-Process -FilePath "python" -ArgumentList "./ImageGen/main.py" -NoNewWindow -PassThru
-        Start-Sleep -Seconds 100
-    } else {
+        Write-Host "Starting Image Generation API..."
+        & "$PSScriptRoot\Start-ImageGen.ps1"
+    }
+    else {
         Write-Host "--no-image-gen flag provided, skipping image generation API..."
     }
 }
