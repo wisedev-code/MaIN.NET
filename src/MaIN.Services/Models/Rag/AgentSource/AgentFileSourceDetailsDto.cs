@@ -1,6 +1,6 @@
 using MaIN.Domain.Entities.Agents.AgentSource;
 
-namespace MaIN.Models.Rag;
+namespace MaIN.Services.Models.Rag.AgentSource;
 
 public class AgentFileSourceDetailsDto : AgentSourceDetailsBase
 {

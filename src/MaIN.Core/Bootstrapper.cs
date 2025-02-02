@@ -22,7 +22,7 @@ public static class Bootstrapper
         return services;
     }
 
-    public static IServiceProvider UseMaINAgentFramework(IServiceProvider services)
+    public static IServiceProvider UseMaINAgentFramework(this IServiceProvider services)
     {
         services.InitializeAgents();
         return services;

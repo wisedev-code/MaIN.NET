@@ -8,6 +8,7 @@ using MaIN.Services;
 using MaIN.Services.Configuration;
 using MaIN.Services.Mappers;
 using MaIN.Services.Models;
+using MaIN.Services.Models.Rag;
 using MaIN.Services.Services;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Steps;
