@@ -1,5 +1,9 @@
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
+using MaIN.Domain.Entities.Agents.AgentSource;
+using MaIN.Services.Mappers;
+using MaIN.Services.Models;
+using MaIN.Services.Models.Ollama;
 using MaIN.Services.Services.Abstract;
 
 namespace MaIN.Core.Hub.Contexts;
@@ -15,7 +19,17 @@ public class AgentContext
         _agent = new Agent
         {
             Id = Guid.NewGuid().ToString(),
-            Behaviours = new Dictionary<string, string>()
+            Behaviours = new Dictionary<string, string>(),
+            Name = $"Agent-{Guid.NewGuid()}",
+            Description = "Agent created by MaIN",
+            Flow = false,
+            Context = new AgentData()
+            {
+                Instruction = "Hello, I'm your personal assistant. How can I assist you today?",
+                Relations = [],
+                Source = null,
+                Steps = ["ANSWER"]
+            }
         };
     }
 
@@ -28,6 +42,16 @@ public class AgentContext
     public AgentContext WithId(string id)
     {
         _agent.Id = id;
+        return this;
+    }
+
+    public AgentContext WithSource(IAgentSource source, AgentSourceType type)
+    {
+        _agent.Context.Source = new AgentSource()
+        {
+            Details = source,
+            Type = type
+        };
         return this;
     }
 
@@ -58,14 +82,64 @@ public class AgentContext
     }
 
     // Creation and Processing
-    public async Task<Agent> CreateAsync(bool flow = false)
+    public async Task<AgentContext> CreateAsync(bool flow = false)
     {
-        return await _agentService.CreateAgent(_agent, flow);
+        await _agentService.CreateAgent(_agent, flow);
+        return this;
     }
-
-    public async Task<Chat> ProcessAsync(Chat chat, bool translate = false)
+    
+    public AgentContext Create(bool flow = false)
     {
-        return (await _agentService.Process(chat, _agent.Id, translate))!;
+        _ = _agentService.CreateAgent(_agent, flow).Result;
+        return this;
+    }
+    
+    public async Task<ChatResult> ProcessAsync(Chat chat, bool translate = false)
+    {
+        var result = await _agentService.Process(chat, _agent.Id, translate);
+        var message = result!.Messages!.LastOrDefault()!.ToDto();
+        return new ChatResult()
+        {
+            Done = true,
+            Model = result!.Model,
+            Message = message,
+            CreatedAt = DateTime.Now
+        };
+    }
+    
+    public async Task<ChatResult> ProcessAsync(string message, bool translate = false)
+    {
+        var chat = await _agentService.GetChatByAgent(_agent.Id);
+        chat.Messages?.Add(new Message()
+        {
+            Content = message,
+            Role = "User",
+            Time = DateTime.Now
+        });
+        var result = await _agentService.Process(chat, _agent.Id, translate);
+        var messageResult = result!.Messages!.LastOrDefault()!.ToDto();
+        return new ChatResult()
+        {
+            Done = true,
+            Model = result!.Model,
+            Message = messageResult,
+            CreatedAt = DateTime.Now
+        };
+    }
+    
+    public async Task<ChatResult> ProcessAsync(Message message, bool translate = false)
+    {
+        var chat = await _agentService.GetChatByAgent(_agent.Id);
+        chat.Messages?.Add(message);
+        var result = await _agentService.Process(chat, _agent.Id, translate);
+        var messageResult = result!.Messages!.LastOrDefault()!.ToDto();
+        return new ChatResult()
+        {
+            Done = true,
+            Model = result!.Model,
+            Message = messageResult,
+            CreatedAt = DateTime.Now
+        };
     }
 
     // Chat Operations

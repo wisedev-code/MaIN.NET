@@ -1,4 +1,5 @@
 using MaIN.Domain.Entities;
+using MaIN.Services.Models;
 using MaIN.Services.Models.Ollama;
 using MaIN.Services.Services.Abstract;
 using FileInfo = MaIN.Domain.Entities.FileInfo;

@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using MaIN.Domain.Entities;
+using MaIN.Services.Models;
 using MaIN.Services.Models.Ollama;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Utils;
