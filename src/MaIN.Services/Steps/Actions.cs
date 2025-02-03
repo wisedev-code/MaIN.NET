@@ -161,7 +161,7 @@ public static class Actions
                     {
                         result = answerCommand.Chat!.Visual
                             ? await imageGenService.Send(answerCommand.Chat)
-                            : await llmService.Send(answerCommand.Chat);
+                            : await llmService.Send(answerCommand.Chat, interactiveUpdates: answerCommand.Chat.Interactive);
                     }
 
                     return result!.Message.ToDomain();

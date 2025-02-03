@@ -13,4 +13,6 @@ public class ChatDocument
     public Dictionary<string, string> Properties { get; set; }
     public bool Stream { get; set; } = false;
     public bool Visual { get; set; }
+    public bool Interactive { get; set; }
+    public bool Translate { get; set; }
 }

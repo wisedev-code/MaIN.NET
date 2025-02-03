@@ -26,19 +26,12 @@ public class ChatService(
             chat.Visual = true;
         }
         
-        var newMsg = chat.Messages.Last();
+        translate = chat!.Translate;
+        interactiveUpdates = chat.Interactive;
+        var newMsg = chat.Messages!.Last();
         newMsg.Time = DateTime.Now;
         var lng = await translatorService.DetectLanguage(newMsg.Content);
-        // if (newMsg.Files is not null && newMsg.Files.Count > 0) //Perhaps not needed anymore? TODO
-        // {
-        //     chat.Messages.AddRange(newMsg.Files.Select(
-        //         (file) => new Message()
-        //         {
-        //             Role = "User",
-        //             Tool = true,
-        //             Content = $"This is content of attached file. You can see its name and extension, by that you also should be able guess its purpose. You should know its content and provide answers to users questions. Attached File {file.Name} with extension: {file.Extension} and content: {file.Content}"
-        //         }));
-        // }
+
         var originalMessages = chat.Messages;
 
         if (translate)

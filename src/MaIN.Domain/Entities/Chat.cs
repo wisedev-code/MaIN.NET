@@ -11,4 +11,7 @@ public class Chat
     public bool Stream { get; set; } = false;
     public Dictionary<string, string> Properties { get; set; } = [];
     public List<string> Memory { get; set; } = [];
+
+    public bool Interactive = false;
+    public bool Translate = false;
 }

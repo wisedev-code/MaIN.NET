@@ -1,6 +1,7 @@
 using MaIN.Core.Hub;
 using MaIN.Core.Hub.Utils;
 
+///Require update also on AgentContext the way that we can set agents current behaviour
 namespace Examples.Agents;
 
 public class AgentWithRedirectExample : IExample

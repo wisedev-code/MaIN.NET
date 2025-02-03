@@ -2,40 +2,40 @@ namespace MaIN.Core.Hub.Utils;
 
 public class StepBuilder
 {
-    public static List<string> Steps = new();
+    public List<string> Steps = new();
     public static StepBuilder Instance => new();
 
-    public static StepBuilder Answer()
+    public StepBuilder Answer()
     {
         Steps.Add("ANSWER");
-        return new StepBuilder();
+        return this;
     }
 
-    public static StepBuilder AnswerUseMemory()
+    public StepBuilder AnswerUseMemory()
     {
         Steps.Add("ANSWER+USE_MEMORY");
-        return new StepBuilder();
+        return this;
     }
 
-    public static StepBuilder Become(string role)
+    public StepBuilder Become(string role)
     {
         Steps.Add($"BECOME+{role}");
-        return new StepBuilder();
+        return this;
     }
 
-    public static StepBuilder FetchData()
+    public StepBuilder FetchData()
     {
         Steps.Add("FETCH_DATA");
-        return new StepBuilder();
+        return this;
     }
 
-    public static StepBuilder Redirect(Guid agentId, string output = "AS_Output", string mode = "REPLACE")
+    public StepBuilder Redirect(string agentId, string output = "AS_Output", string mode = "REPLACE")
     {
         Steps.Add($"REDIRECT+{agentId}+{output}+{mode}");
-        return new StepBuilder();
+        return this;
     }
 
-    public static List<string> Build()
+    public List<string> Build()
     {
         return Steps;
     }
