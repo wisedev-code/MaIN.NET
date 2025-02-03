@@ -18,7 +18,9 @@ services.AddMaIN(configuration);
 //services.AddTransient<IExample, ChatWithVisionExample>();
 //services.AddTransient<IExample, ChatWithImageGenExample>();
 //services.AddTransient<IExample, ChatFromExistingExample>();
-services.AddTransient<IExample, AgentExample>();
+//services.AddTransient<IExample, AgentExample>();
+services.AddTransient<IExample, AgentWithRedirectExample>();
+
 
 var serviceProvider = services.BuildServiceProvider();
 serviceProvider.UseMaIN();

@@ -76,7 +76,7 @@ public class AgentService : IAgentService
         }
     }
 
-    public async Task<Agent> CreateAgent(Agent agent, bool flow = false)
+    public async Task<Agent> CreateAgent(Agent agent, bool flow = false, bool interactiveResponse = false)
     {
         var chat = new Chat
         {
@@ -86,6 +86,7 @@ public class AgentService : IAgentService
             Visual = agent.Model == ImageGenService.Models.FLUX,
             Stream = false,
             Messages = new List<Message>(),
+            Interactive = interactiveResponse,
             Type = flow ? ChatType.Flow : ChatType.Rag,
         };
 

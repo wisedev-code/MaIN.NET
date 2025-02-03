@@ -45,6 +45,8 @@ public class AgentContext
         return this;
     }
 
+    public string GetAgentId() => _agent.Id;
+    
     public AgentContext WithSource(IAgentSource source, AgentSourceType type)
     {
         _agent.Context.Source = new AgentSource()
@@ -73,6 +75,12 @@ public class AgentContext
         return this;
     }
 
+    public AgentContext WithSteps(List<string> steps)
+    {
+        _agent.Context.Steps = steps;
+        return this;
+    }
+    
     public AgentContext WithBehaviour(string name, string instruction)
     {
         _agent.Behaviours ??= new Dictionary<string, string>();
@@ -82,15 +90,15 @@ public class AgentContext
     }
 
     // Creation and Processing
-    public async Task<AgentContext> CreateAsync(bool flow = false)
+    public async Task<AgentContext> CreateAsync(bool flow = false, bool interactiveResponse = false)
     {
-        await _agentService.CreateAgent(_agent, flow);
+        await _agentService.CreateAgent(_agent, flow, interactiveResponse);
         return this;
     }
     
-    public AgentContext Create(bool flow = false)
+    public AgentContext Create(bool flow = false, bool interactiveResponse = false)
     {
-        _ = _agentService.CreateAgent(_agent, flow).Result;
+        _ = _agentService.CreateAgent(_agent, flow, interactiveResponse).Result;
         return this;
     }
     

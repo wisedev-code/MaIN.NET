@@ -89,6 +89,8 @@ public static class ChatMapper
             Visual = chat.Visual,
             Properties = chat.Properties,
             Stream = chat.Stream,
+            Interactive = chat.Interactive,
+            Translate = chat.Translate,
             Type = Enum.Parse<ChatTypeDocument>(chat.Type.ToString())
         };
 
@@ -102,6 +104,8 @@ public static class ChatMapper
             Visual = chat.Visual,
             Stream = chat.Stream,
             Properties = chat.Properties,
+            Interactive = chat.Interactive,
+            Translate = chat.Translate,
             Type = Enum.Parse<ChatType>(chat.Type.ToString())
         };
 
