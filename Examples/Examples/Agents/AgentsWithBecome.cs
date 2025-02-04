@@ -1,46 +1,35 @@
 using MaIN.Core.Hub;
 using MaIN.Core.Hub.Utils;
 
-///Require update also on AgentContext the way that we can set agents current behaviour
 namespace Examples.Agents;
 
-public class AgentWithRedirectExample : IExample
+public class AgentWithBecomeExample : IExample
 {
     public async Task Start()
     {
-        Console.WriteLine("Basic agent&friends example is running!");
-
-        var systemPrompt =
-            """
-            You are a refined poet with a mastery of elegant English. Your verses should be lyrical,
-            evocative, and rich in imagery. Maintain a graceful rhythm, sophisticated vocabulary,
-            and a touch of timeless beauty in every poem you compose.
-            """;
         
-        var systemPromptSecond =
-            """
-            You are a modern rap lyricist with a sharp, streetwise flow. Take the given poem and transform
-            it into raw, rhythmic bars filled with swagger, energy, and contemporary slang. 
-            Maintain the core meaning but make it hit hard like a track that bumps in the streets. Try to use slang like "yo yo", "gimmie", and "pull up".
-            You need to use a lot of it. Imagine you are the voice of youth.
-            """;
-
-        var contextSecond = AIHub.Agent()
+        var becomeAgent = AIHub.Agent()
             .WithModel("gemma2:2b")
-            .WithInitialPrompt(systemPromptSecond)
+            .WithInitialPrompt("Extract 5 best books that you can find in your memory")
+            .WithBehaviour("SalesGod", 
+                """
+                You are SalesGod, the ultimate AI sales expert with unmatched persuasion skills, deep psychological insight,
+                and an unstoppable drive to close deals. Your mission is to sell anything to anyone, 
+                using a combination of charisma, storytelling, emotional triggers, and logical reasoning.
+                Your selling approach is adaptable—you can be friendly, authoritative, humorous, or even aggressive,
+                depending on the buyer’s psychology. You master every sales technique, from scarcity and urgency to social proof and objection handling.
+                
+                No hesitation. No doubts. Every conversation is an opportunity to seal the deal. You never give up,
+                always finding a way to turn ‘no’ into ‘yes.’ Now, go out there and SELL!
+                """)
+            .WithSteps(StepBuilder.Instance
+                .FetchData()
+                .Become("SalesGod")
+                .Build())
             .Create(interactiveResponse: true);
         
-        var context = AIHub.Agent()
-            .WithModel("llama3.2:3b")
-            .WithInitialPrompt(systemPrompt)
-            .WithSteps(StepBuilder.Instance
-                .Answer()
-                .Redirect(agentId: contextSecond.GetAgentId())
-                .Build())
-            .Create();
-        
-        await context
-            .ProcessAsync("Write a poem about distant future");
+        await becomeAgent
+            .ProcessAsync("I am looking for good fantasy book to buy");
 
     }
 }

@@ -1,45 +1,53 @@
 using MaIN.Core.Hub;
 using MaIN.Core.Hub.Utils;
+using MaIN.Domain.Entities;
+using FileInfo = MaIN.Domain.Entities.FileInfo;
 
 namespace Examples.Agents;
 
-public class AgentWithRedirectExample : IExample
+public class AgentWithRedirectImageExample : IExample
 {
     public async Task Start()
     {
-        Console.WriteLine("Basic agent&friends example is running!");
+        Console.WriteLine("Basic agent&friends with images example is running!");
 
         var systemPrompt =
             """
-            You are a refined poet with a mastery of elegant English. Your verses should be lyrical,
-            evocative, and rich in imagery. Maintain a graceful rhythm, sophisticated vocabulary,
-            and a touch of timeless beauty in every poem you compose.
+            You analyze a stored PDF and generate an image prompt. Your output must be a single prompt with a maximum of 10 words.
+            Do not include any explanations, context, or extra text—only the prompt itself.
+            Avoid mentioning specific characters or names; focus on the topic and context.
             """;
         
         var systemPromptSecond =
             """
-            You are a modern rap lyricist with a sharp, streetwise flow. Take the given poem and transform
-            it into raw, rhythmic bars filled with swagger, energy, and contemporary slang. 
-            Maintain the core meaning but make it hit hard like a track that bumps in the streets. Try to use slang like "yo yo", "gimmie", and "pull up".
-            You need to use a lot of it. Imagine you are the voice of youth.
+            Generate image based on given prompt
             """;
 
         var contextSecond = AIHub.Agent()
-            .WithModel("gemma2:2b")
+            .WithModel("FLUX.1_Shnell")
             .WithInitialPrompt(systemPromptSecond)
-            .Create(interactiveResponse: true);
+            .Create();
         
         var context = AIHub.Agent()
-            .WithModel("llama3.2:3b")
+            .WithModel("llama3.1:8b")
             .WithInitialPrompt(systemPrompt)
             .WithSteps(StepBuilder.Instance
                 .Answer()
                 .Redirect(agentId: contextSecond.GetAgentId())
                 .Build())
-            .Create();
+            .Create(interactiveResponse: true);
         
         await context
-            .ProcessAsync("Write a poem about distant future");
-
+            .ProcessAsync(new Message()
+            {
+                Content = "Describe image based on document in your memory",
+                Role = "User",
+                Files = [new FileInfo()
+                {
+                    Name = "Nicolaus_Copernicus",
+                    Extension = "pdf",
+                    Path = "./Files/Nicolaus_Copernicus.pdf"
+                }]
+            });
     }
 }
