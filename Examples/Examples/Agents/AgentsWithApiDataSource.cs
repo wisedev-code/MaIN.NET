@@ -1,45 +1,32 @@
 using MaIN.Core.Hub;
 using MaIN.Core.Hub.Utils;
+using MaIN.Domain.Entities.Agents.AgentSource;
 
 namespace Examples.Agents;
 
-public class AgentWithRedirectExample : IExample
+public class AgentWithApiDataSourceExample : IExample
 {
     public async Task Start()
     {
-        Console.WriteLine("Basic agent&friends example is running!");
-
-        var systemPrompt =
-            """
-            You are a refined poet with a mastery of elegant English. Your verses should be lyrical,
-            evocative, and rich in imagery. Maintain a graceful rhythm, sophisticated vocabulary,
-            and a touch of timeless beauty in every poem you compose.
-            """;
-        
-        var systemPromptSecond =
-            """
-            You are a modern rap lyricist with a sharp, streetwise flow. Take the given poem and transform
-            it into raw, rhythmic bars filled with swagger, energy, and contemporary slang. 
-            Maintain the core meaning but make it hit hard like a track that bumps in the streets. Try to use slang like "yo yo", "gimmie", and "pull up".
-            You need to use a lot of it. Imagine you are the voice of youth.
-            """;
-
-        var contextSecond = AIHub.Agent()
-            .WithModel("gemma2:2b")
-            .WithInitialPrompt(systemPromptSecond)
-            .Create(interactiveResponse: true);
+        Console.WriteLine("Agent with api source");
         
         var context = AIHub.Agent()
             .WithModel("llama3.2:3b")
-            .WithInitialPrompt(systemPrompt)
+            .WithInitialPrompt("Extract at least 4 jobs offers (try to include title, company name, salary and location if possible)")
+            .WithSource(new AgentApiSourceDetails()
+            {
+                Method = "Get",
+                Query = "https://remoteok.com/api?tags=javascript",
+                ResponseType = "JSON"
+            }, AgentSourceType.API)
             .WithSteps(StepBuilder.Instance
+                .FetchData()
                 .Answer()
-                .Redirect(agentId: contextSecond.GetAgentId())
                 .Build())
-            .Create();
+            .Create(interactiveResponse: true);
         
         await context
-            .ProcessAsync("Write a poem about distant future");
+            .ProcessAsync("I am looking for work as javascript developer");
 
     }
 }

@@ -13,6 +13,7 @@ public class RedirectStepHandler : IStepHandler
     public async Task<StepResult> Handle(StepContext context)
     {
         var shouldReplaceLastMessage = context.Arguments.Contains("REPLACE");
+        var shouldWorkAsUserMessage = context.Arguments.Contains("USER");
         var useMemory = context.Arguments.Contains("MEMORY");
         var redirectCommand = new RedirectCommand
         {
@@ -45,6 +46,10 @@ public class RedirectStepHandler : IStepHandler
                 context.Chat?.Messages?.RemoveAt(context.Chat.Messages.Count - 1);
             }
 
+            if (shouldWorkAsUserMessage)
+            {
+                message!.Role = "User";
+            }
             message!.Time = DateTime.Now;
             context.Chat?.Messages?.Add(message);
         }
