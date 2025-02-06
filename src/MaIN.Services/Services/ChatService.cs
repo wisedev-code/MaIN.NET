@@ -13,21 +13,21 @@ public class ChatService(
     ILLMService llmService,
     IImageGenService imageGenService) : IChatService
 {
-    public async Task Create(Chat? chat)
+    public async Task Create(Chat chat)
     {
         chat.Type = ChatType.Conversation;
         await chatProvider.AddChat(chat.ToDocument());
     }
 
-    public async Task<ChatResult> Completions(Chat? chat, bool translate = false, bool interactiveUpdates = false)
+    public async Task<ChatResult> Completions(Chat chat, bool translate = false, bool interactiveUpdates = false)
     {
-        if (chat?.Model == ImageGenService.Models.FLUX)
+        if (chat.Model == ImageGenService.Models.FLUX)
         {
             chat.Visual = true;
         }
         
-        translate = chat!.Translate;
-        interactiveUpdates = chat.Interactive;
+        translate = translate || chat.Translate;
+        interactiveUpdates = interactiveUpdates || chat.Interactive;
         var newMsg = chat.Messages!.Last();
         newMsg.Time = DateTime.Now;
         var lng = await translatorService.DetectLanguage(newMsg.Content);

@@ -1,3 +1,4 @@
+using Examples.Utils;
 using MaIN.Core.Hub;
 using MaIN.Core.Hub.Utils;
 using MaIN.Domain.Entities;
@@ -29,7 +30,7 @@ public class AgentWithRedirectImageExample : IExample
             .Create();
         
         var context = AIHub.Agent()
-            .WithModel("llama3.1:8b")
+            .WithModel("llama3.2:3b")
             .WithInitialPrompt(systemPrompt)
             .WithSteps(StepBuilder.Instance
                 .Answer()
@@ -37,10 +38,10 @@ public class AgentWithRedirectImageExample : IExample
                 .Build())
             .Create(interactiveResponse: true);
         
-        await context
+        var result = await context
             .ProcessAsync(new Message()
             {
-                Content = "Describe image based on document in your memory",
+                Content = "Prepare short image description about Nicolaus Copernicus. Dont mention name, try to focus on topic and context",
                 Role = "User",
                 Files = [new FileInfo()
                 {
@@ -49,5 +50,7 @@ public class AgentWithRedirectImageExample : IExample
                     Path = "./Files/Nicolaus_Copernicus.pdf"
                 }]
             });
+        
+        ImagePreviewer.ShowImage(result.Message.Images);
     }
 }

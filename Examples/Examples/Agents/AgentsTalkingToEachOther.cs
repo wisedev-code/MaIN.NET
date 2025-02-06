@@ -35,14 +35,14 @@ public class AgentTalkingToEachOtherExample : IExample
             .Create(interactiveResponse: true);
         
         var context = AIHub.Agent()
-            .WithModel("gemma2:2b")
+            .WithModel("llama3.2:3b")
             .WithId(idFirst)
             .WithInitialPrompt(systemPrompt)
             .WithSteps(StepBuilder.Instance
                 .Answer()
                 .Redirect(agentId: contextSecond.GetAgentId(), mode: "USER")
                 .Build())
-            .Create();
+            .Create(interactiveResponse: true);
         
         await context
             .ProcessAsync("Introduce yourself, and start conversation!");
