@@ -18,7 +18,7 @@ public class RemoteLLMService : ILLMService
         _notificationService = notificationService;
     }
 
-    public async Task<ChatResult?> Send(Chat? chat, bool interactiveUpdates = false, bool newSession = false)
+    public async Task<ChatResult?> Send(Chat chat, bool interactiveUpdates = false, bool newSession = false)
     {
         if (chat == null || chat.Messages == null || !chat.Messages.Any())
             return null;
@@ -54,7 +54,7 @@ public class RemoteLLMService : ILLMService
         return result;
     }
 
-    public async Task<ChatResult?> AskMemory(Chat? chat, 
+    public async Task<ChatResult?> AskMemory(Chat chat, 
         Dictionary<string, string>? textData = null,
         Dictionary<string, string>? fileData = null,
         List<string>? memory = null)

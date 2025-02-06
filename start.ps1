@@ -5,17 +5,25 @@ $noInfra = $false
 $infraOnly = $false
 $noImageGen = $false  # New variable for --no-image-gen
 
-# Check for the MODELS_PATH environment variable
-$modelsPath = $env:MODELS_PATH
+$modelsPath = $env:MaIN_ModelsPath
 if (-not $modelsPath) {
-    Write-Host "MODELS_PATH environment variable is not set."
+    Write-Host "Models path environment variable is not set."
     $modelsPath = Read-Host "Please provide the local path where models will be stored"
+
     if (-not (Test-Path $modelsPath)) {
         Write-Host "The provided path does not exist. Creating the directory..."
         New-Item -ItemType Directory -Path $modelsPath | Out-Null
     }
-    [System.Environment]::SetEnvironmentVariable("MODELS_PATH", $modelsPath, "Process")
-    Write-Host "Using provided path: $modelsPath"
+
+    # Set environment variable for the user (persist)
+    [System.Environment]::SetEnvironmentVariable("MaIN_ModelsPath", $modelsPath, "User")
+
+    # Reload the environment variable in the current session
+    $env:MaIN_ModelsPath = [System.Environment]::GetEnvironmentVariable("MaIN_ModelsPath", "User")
+
+    Write-Host "MODELS_PATH set to: $env:MaIN_ModelsPath"
+} else {
+    Write-Host "MODELS_PATH is already set: $modelsPath"
 }
 
 # Ensure the models path exists
@@ -119,10 +127,10 @@ if (-not $noInfra -or $infraOnly) {
         $modelFileName = "$model.gguf"
         $modelFilePath = Join-Path $modelsPath $modelFileName
 
-        if (-not $modelsMap.ContainsKey($model)) {
-            Write-Host "Model '$model' not found in models map. Skipping..."
-            continue
-        }
+        # if (-not $modelsMap.ContainsKey($model)) {
+        #     Write-Host "Model '$model' not found in models map. Skipping..."
+        #     continue
+        # }  //how to do it
 
         if (Test-Path (Join-Path $modelsPath $modelFileName)) {
             Write-Host "Model '$model' already exists at $modelsPath. Skipping download..."
@@ -135,16 +143,16 @@ if (-not $noInfra -or $infraOnly) {
         Invoke-WebRequest -Uri $modelUrl -OutFile $modelFilePath
         Write-Host "Downloaded and saved to $modelFilePath"
     }
+        # Image Generation API handling
+  if (-not $noImageGen) {
+    Write-Host "Starting Image Generation API as a background job..."
+    
+    # Start the image generation script as a background job
+    Start-Process -FilePath "powershell.exe" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSScriptRoot\start-image-gen.ps1`"" -NoNewWindow
 
-  # Run infrastructure-related tasks
-if (-not $noInfra -or $infraOnly) {
-    # ... (existing model download code remains the same)
-
-    # Image Generation API handling
-    if (-not $noImageGen) {
-        Write-Host "Starting Image Generation API..."
-        & "$PSScriptRoot\Start-ImageGen.ps1"
-    }
+    # Optionally, monitor the job in real-time and log its status
+    Write-Host "Image Generation API running in the background (Job ID: $($job.Id))"
+}
     else {
         Write-Host "--no-image-gen flag provided, skipping image generation API..."
     }
@@ -161,7 +169,7 @@ if (-not $infraOnly) {
 
     Write-Host "Starting Infra & Containers in detached mode..."
     Start-Process -FilePath "dotnet" -ArgumentList "run --project ./src/MaIN/MaIN.csproj" -NoNewWindow 
+    Start-Sleep -Seconds 10
     docker-compose up -d
-    Start-Sleep -Seconds 5
     Write-Host "Listening on http://localhost:5001 - happy travels"
 }

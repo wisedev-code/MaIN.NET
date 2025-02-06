@@ -37,7 +37,7 @@ public class AgentService : IAgentService
         _stepProcessor = stepProcessor;
     }
 
-    public async Task<Chat?> Process(Chat? chat, string agentId, bool translatePrompt = false)
+    public async Task<Chat> Process(Chat chat, string agentId, bool translatePrompt = false)
     {
         var agent = await _agentRepository.GetAgentById(agentId);
         if (agent == null) throw new ArgumentException("Agent not found.");

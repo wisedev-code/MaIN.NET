@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using LLama;
+using LLama.Abstractions;
 using LLama.Common;
 using LLama.Native;
 using LLama.Sampling;
@@ -16,6 +17,7 @@ using MaIN.Services.Services.Abstract;
 using MaIN.Services.Utils;
 using Microsoft.Extensions.Options;
 using Microsoft.KernelMemory;
+using Microsoft.KernelMemory.AI;
 using Microsoft.KernelMemory.Configuration;
 
 namespace MaIN.Services.Services.LLMService;
@@ -25,7 +27,7 @@ public class LLMService(IOptions<MaINSettings> options, INotificationService not
     private static readonly ConcurrentDictionary<string, LLamaWeights> modelCache = new();
     private static readonly ConcurrentDictionary<string, ChatSession> sessionCache = new(); // Cache for chat sessions
 
-    public async Task<ChatResult?> Send(Chat? chat, bool interactiveUpdates = false, bool newSession = false)
+    public async Task<ChatResult?> Send(Chat chat, bool interactiveUpdates = false, bool newSession = false)
     {
         if (chat == null || chat.Messages == null || !chat.Messages.Any())
             return null;
@@ -48,7 +50,7 @@ public class LLMService(IOptions<MaINSettings> options, INotificationService not
                 Temperature = 0.6f
             },
             MaxTokens = 1024,
-            AntiPrompts = new[] { llmModel.Tokens.EndOfTurnToken ?? "User:" }
+            AntiPrompts = new[] { llmModel.Vocab.EOT?.ToString() ?? "User:" }
         };
 
         var parameters = new ModelParams(Path.Combine(path, modelKey))
@@ -71,7 +73,7 @@ public class LLMService(IOptions<MaINSettings> options, INotificationService not
         // Generate a response.
         session.WithHistoryTransform(new PromptTemplateTransformer(llmModel, withAssistant: true));
         session.WithOutputTransform(new LLamaTransforms.KeywordTextOutputStreamTransform(
-            new[] { llmModel.Tokens.EndOfTurnToken ?? "User:", "�" },
+            new[] { llmModel.Vocab.EOT.ToString() ?? "User:", "�" },
             redundancyLength: 5));
 
         var resultBuilder = new StringBuilder();
@@ -141,7 +143,7 @@ public class LLMService(IOptions<MaINSettings> options, INotificationService not
         using var context = model.CreateContext(parameters);
 
         // Llava Init
-        var inferenceParams = new InferenceParams() { AntiPrompts = new[] { model.Tokens.EndOfTurnToken ?? "User:" }};
+        var inferenceParams = new InferenceParams() { AntiPrompts = new[] { model.Vocab.EOT.ToString() ?? "User:" }};
         var ex = new InteractiveExecutor(context);
         ex.Context.NativeHandle.KvCacheRemove( LLamaSeqId.Zero, -1, -1 );
         ex.Images.Add(chat.Messages!.Last().Images);
@@ -198,7 +200,7 @@ public class LLMService(IOptions<MaINSettings> options, INotificationService not
     }
 
     [Experimental("SKEXP0001")]
-    public async Task<ChatResult?> AskMemory(Chat? chat, 
+    public async Task<ChatResult?> AskMemory(Chat chat, 
         Dictionary<string, string>? textData = null,
         Dictionary<string, string>? fileData = null,
         List<string>? memory = null)
@@ -277,6 +279,7 @@ public class LLMService(IOptions<MaINSettings> options, INotificationService not
         };
 
         return new KernelMemoryBuilder()
+            //.WithLLamaSharpDefaults2(lsConfig)
             .WithLLamaSharpMaINTemp(lsConfig, Path.Combine(path, modelName))
             .WithSearchClientConfig(searchClientConfig)
             .WithCustomImageOcr(new OcrWrapper())
@@ -323,7 +326,145 @@ public class LLMService(IOptions<MaINSettings> options, INotificationService not
 }
 
 file static class KernelMemFix
-{
+{ 
+    [Experimental("KMEXP00")]
+    public sealed class LlamaSharpTextGenerator2 : ITextGenerator, ITextTokenizer, IDisposable
+  {
+    private readonly StatelessExecutor _executor;
+    private readonly LLamaWeights _weights;
+    private readonly bool _ownsWeights;
+    private readonly LLamaContext _context;
+    private readonly bool _ownsContext;
+    private readonly InferenceParams? _defaultInferenceParams;
+
+    public int MaxTokenTotal { get; }
+
+    public LlamaSharpTextGenerator2(LLamaSharpConfig config)
+    {
+      ModelParams @params = new ModelParams(config.ModelPath)
+      {
+        ContextSize = new uint?(config.ContextSize.GetValueOrDefault(2048U)),
+        GpuLayerCount = config.GpuLayerCount.GetValueOrDefault(20)
+      };
+      this._weights = LLamaWeights.LoadFromFile((IModelParams) @params);
+      this._context = this._weights.CreateContext((IContextParams) @params);
+      this._executor = new StatelessExecutor(this._weights, (IContextParams) @params);
+      this._defaultInferenceParams = config.DefaultInferenceParams;
+      this._ownsWeights = this._ownsContext = true;
+      this.MaxTokenTotal = (int) @params.ContextSize.Value;
+    }
+
+    public LlamaSharpTextGenerator2(
+      LLamaWeights weights,
+      LLamaContext context,
+      StatelessExecutor? executor = null,
+      InferenceParams? inferenceParams = null)
+    {
+      this._weights = weights;
+      this._context = context;
+      this._executor = executor ?? new StatelessExecutor(this._weights, this._context.Params);
+      this._defaultInferenceParams = inferenceParams;
+      this.MaxTokenTotal = (int) this._context.ContextSize;
+    }
+
+    public void Dispose()
+    {
+      if (this._ownsWeights)
+        this._weights.Dispose();
+      if (!this._ownsContext)
+        return;
+      this._context.Dispose();
+    }
+
+    public IAsyncEnumerable<GeneratedTextContent> GenerateTextAsync(string prompt, TextGenerationOptions options,
+      CancellationToken cancellationToken = default)
+    {
+      return _executor
+        .InferAsync(prompt, OptionsToParams(options, _defaultInferenceParams), cancellationToken: cancellationToken)
+        .Select(a => new GeneratedTextContent(a));
+    }
+
+    private static InferenceParams OptionsToParams(
+      TextGenerationOptions options,
+      InferenceParams? defaultParams)
+    {
+      if (defaultParams != (InferenceParams) null)
+        return defaultParams with
+        {
+          AntiPrompts = (IReadOnlyList<string>) defaultParams.AntiPrompts.Concat<string>((IEnumerable<string>) options.StopSequences).ToList<string>().AsReadOnly(),
+          MaxTokens = options.MaxTokens ?? defaultParams.MaxTokens,
+          SamplingPipeline = (ISamplingPipeline) new DefaultSamplingPipeline()
+          {
+            Temperature = (float) options.Temperature,
+            FrequencyPenalty = (float) options.FrequencyPenalty,
+            PresencePenalty = (float) options.PresencePenalty,
+            TopP = (float) options.NucleusSampling
+          }
+        };
+      return new InferenceParams()
+      {
+        AntiPrompts = (IReadOnlyList<string>) options.StopSequences.ToList<string>().AsReadOnly(),
+        MaxTokens = options.MaxTokens.GetValueOrDefault(1024),
+        SamplingPipeline = (ISamplingPipeline) new DefaultSamplingPipeline()
+        {
+          Temperature = (float) options.Temperature,
+          FrequencyPenalty = (float) options.FrequencyPenalty,
+          PresencePenalty = (float) options.PresencePenalty,
+          TopP = (float) options.NucleusSampling
+        }
+      };
+    }
+
+    public int CountTokens(string text) => this._context.Tokenize(text, special: true).Length;
+
+    public IReadOnlyList<string> GetTokens(string text)
+    {
+      LLamaToken[] source = this._context.Tokenize(text, special: true);
+      StreamingTokenDecoder decoder = new StreamingTokenDecoder(this._context);
+      Func<LLamaToken, string> selector = (Func<LLamaToken, string>) (x =>
+      {
+        decoder.Add(x);
+        return decoder.Read();
+      });
+      return (IReadOnlyList<string>) ((IEnumerable<LLamaToken>) source).Select<LLamaToken, string>(selector).ToList<string>();
+    }
+  }
+
+    [Experimental("KMEXP00")]
+    public static IKernelMemoryBuilder WithLLamaSharpTextGeneration2(
+        this IKernelMemoryBuilder builder,
+        LlamaSharpTextGenerator2 textGenerator)
+    {
+        builder.AddSingleton<ITextGenerator>((ITextGenerator) textGenerator);
+        return builder;
+    }
+    
+    [Experimental("KMEXP00")]
+    public static IKernelMemoryBuilder WithLLamaSharpDefaults2(
+        this IKernelMemoryBuilder builder,
+        LLamaSharpConfig config,
+        LLamaWeights? weights = null,
+        LLamaContext? context = null)
+    {
+        ModelParams @params = new ModelParams(config.ModelPath)
+        {
+            ContextSize = new uint?(config.ContextSize.GetValueOrDefault(2048U)),
+            GpuLayerCount = config.GpuLayerCount.GetValueOrDefault(20),
+            MainGpu = config.MainGpu,
+            SplitMode = new GPUSplitMode?(config.SplitMode)
+        };
+        if (weights == null || context == null)
+        {
+            weights = LLamaWeights.LoadFromFile((IModelParams) @params);
+            context = weights.CreateContext((IContextParams) @params);
+        }
+        StatelessExecutor executor = new StatelessExecutor(weights, (IContextParams) @params);
+        builder.WithLLamaSharpTextEmbeddingGeneration(new LLamaSharpTextEmbeddingGenerator(config, weights));
+        builder.WithLLamaSharpTextGeneration2(new LlamaSharpTextGenerator2(weights, context, executor,
+            config.DefaultInferenceParams));
+        return builder;
+    }
+    
     private static readonly ConcurrentDictionary<string, LLamaWeights> ModelCache = new();
 
     [Experimental("KMEXP01")]
@@ -345,9 +486,9 @@ file static class KernelMemFix
         {
             ContextSize = new uint?(config.ContextSize.GetValueOrDefault(2048U)),
             GpuLayerCount = config.GpuLayerCount.GetValueOrDefault(20),
-            Embeddings = false,
+            //Embeddings = true,
             MainGpu = config.MainGpu,
-            SplitMode = config.SplitMode,
+            SplitMode = new GPUSplitMode?(config.SplitMode)
         };
 
         // Load the second model with caching.
@@ -357,7 +498,7 @@ file static class KernelMemFix
 
         StatelessExecutor executor = new StatelessExecutor(model, parameters2);
         builder.WithLLamaSharpTextEmbeddingGeneration(new LLamaSharpTextEmbeddingGenerator(config, weights));
-        builder.WithLLamaSharpTextGeneration(new LlamaSharpTextGenerator(model, context, executor,
+        builder.WithLLamaSharpTextGeneration2(new LlamaSharpTextGenerator2(model, context, executor,
             config.DefaultInferenceParams));
         return builder;
     }

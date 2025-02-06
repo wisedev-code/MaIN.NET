@@ -11,8 +11,8 @@ public class ChatWithFilesExample : IExample
         List<string> files = ["./Files/Nicolaus_Copernicus.pdf", "./Files/Galileo_Galilei.pdf"];
         
         var result = await AIHub.Chat()
-            .WithModel("llama3.1:8b")
-            .WithMessage("You have 2 documents in memory. What is the difference between them?")
+            .WithModel("gemma2:2b")
+            .WithMessage("You have 2 documents in memory. Whats the difference of work between Galileo and Copernicus?. Give answer based on the documents.")
             .WithFiles(files)
             .CompleteAsync();
         
