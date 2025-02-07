@@ -36,10 +36,34 @@ public class FlowContext
         _flow.Name = name;
         return this;
     }
+    
+    public FlowContext WithDescription(string description)
+    {
+        _flow.Name = description;
+        return this;
+    }
+    
+    public FlowContext Save(string path)
+    {
+        //TODO
+        return this;
+    }
+
+    public FlowContext Load(string path)
+    {
+        //TODO
+        return this;
+    }
 
     public FlowContext AddAgent(Agent agent)
     {
         _flow.Agents.Add(agent);
+        return this;
+    }
+    
+    public FlowContext AddAgents(IEnumerable<Agent> agents)
+    {
+        _flow.Agents.AddRange(agents);
         return this;
     }
     

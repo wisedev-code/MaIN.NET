@@ -13,14 +13,16 @@ var configuration = new ConfigurationBuilder()
 services.AddSingleton<IConfiguration>(configuration);
 
 services.AddMaIN(configuration);
-//services.AddTransient<IExample, ChatExample>();
-services.AddTransient<IExample, ChatWithFilesExample>();
+services.AddTransient<IExample, ChatExample>();
+//services.AddTransient<IExample, ChatWithFilesExample>();
 //services.AddTransient<IExample, ChatWithVisionExample>();
 //services.AddTransient<IExample, ChatWithImageGenExample>();
 //services.AddTransient<IExample, ChatFromExistingExample>();
 //services.AddTransient<IExample, AgentExample>();
 //services.AddTransient<IExample, AgentWithRedirectExample>();
 //services.AddTransient<IExample, AgentWithRedirectImageExample>();
+//services.AddTransient<IExample, AgentWithBecomeExample>();
+//services.AddTransient<IExample, AgentWithApiDataSourceExample>();
 //services.AddTransient<IExample, AgentTalkingToEachOtherExample>();
 
 

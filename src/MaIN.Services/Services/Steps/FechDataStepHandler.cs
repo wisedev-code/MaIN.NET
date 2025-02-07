@@ -1,4 +1,6 @@
+using System.Text.Json;
 using MaIN.Domain.Entities;
+using MaIN.Domain.Entities.Agents.AgentSource;
 using MaIN.Domain.Entities.Agents.Commands;
 using MaIN.Services.Mappers;
 using MaIN.Services.Services.Abstract;
@@ -29,6 +31,17 @@ public class FetchDataStepHandler(ILLMService llmService) : IStepHandler
             Filter = filterExists ? filter : string.Empty,
             Context = context.Agent.Context.ToDomain()
         };
+
+        if (fetchCommand.Context.Source!.Type == AgentSourceType.File)
+        {
+            var data = JsonSerializer.Deserialize<AgentFileSourceDetails>(fetchCommand.Context.Source.Details?.ToString()!);
+            var memoryChat = GetMemoryChat(context, filter);
+            var result = await llmService.AskMemory(memoryChat, fileData: new Dictionary<string, string>() { { data!.Name, data.Path } });
+            var newMessage = result!.Message;
+            newMessage!.Properties = new() { { "agent_internal", "true" } };
+            context.Chat.Messages?.Add(newMessage.ToDomain());
+            return new StepResult { Chat = context.Chat, RedirectMessage = context.Chat!.Messages!.Last() };
+        }
 
         var response = (await Actions.CallAsync("FETCH_DATA", fetchCommand) as Message)!;
 
@@ -64,6 +77,21 @@ public class FetchDataStepHandler(ILLMService llmService) : IStepHandler
         });
 
         context.Chat!.Properties.TryGetValue("data_filter", out var filterVal);
+        var memoryChat = GetMemoryChat(context, filterVal);
+        
+        var chunker = new JsonChunker();
+        var chunksAsList = chunker.ChunkJson(response.Content).ToList();
+        var chunks = chunksAsList
+            .Select((chunk, index) => new { Key = $"CHUNK_{index + 1}-{chunksAsList.Count}", Value = chunk })
+            .ToDictionary(item => item.Key, item => item.Value);
+        var result = await llmService.AskMemory(memoryChat, chunks);
+        var newMessage = result!.Message;
+        newMessage!.Properties = new() { { "agent_internal", "true" } };
+        context.Chat.Messages?.Add(newMessage.ToDomain());
+    }
+
+    private static Chat GetMemoryChat(StepContext context, string? filterVal)
+    {
         var memoryChat = new Chat()
         {
             Messages = new List<Message>
@@ -78,16 +106,7 @@ public class FetchDataStepHandler(ILLMService llmService) : IStepHandler
             Properties = context.Chat.Properties,
             Id = Guid.NewGuid().ToString()
         };
-        
-        var chunker = new JsonChunker();
-        var chunksAsList = chunker.ChunkJson(response.Content).ToList();
-        var chunks = chunksAsList
-            .Select((chunk, index) => new { Key = $"CHUNK_{index + 1}-{chunksAsList.Count}", Value = chunk })
-            .ToDictionary(item => item.Key, item => item.Value);
-        var result = await llmService.AskMemory(memoryChat, chunks);
-        var newMessage = result!.Message;
-        newMessage!.Properties = new() { { "agent_internal", "true" } };
-        context.Chat.Messages?.Add(newMessage.ToDomain());
+        return memoryChat;
     }
 
     private static async Task ProcessChunk(string chunk, int index, int total, StepContext context,

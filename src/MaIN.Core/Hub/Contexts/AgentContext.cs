@@ -47,6 +47,13 @@ public class AgentContext
 
     public string GetAgentId() => _agent.Id;
     
+    public Agent GetAgent() => _agent;
+    
+    public AgentContext WithOrder(int order)
+    {
+        _agent.Order = order;
+        return this;
+    }
     public AgentContext WithSource(IAgentSource source, AgentSourceType type)
     {
         _agent.Context.Source = new AgentSource()
