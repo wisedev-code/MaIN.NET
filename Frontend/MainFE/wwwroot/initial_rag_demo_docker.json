@@ -13,7 +13,7 @@
             "type": 1, 
             "details": 
             {
-                "url": "http://demo:8080/items",
+                "url": "http://localhost:5002/items",
                 "method": "Get",
                 "query": "",
                 "payload": ""

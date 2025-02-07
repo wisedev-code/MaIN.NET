@@ -1,5 +1,6 @@
 using MaIN.Core.Hub;
 using MaIN.Core.Hub.Utils;
+using MaIN.Domain.Entities.Agents.AgentSource;
 
 namespace Examples.Agents;
 
@@ -7,10 +8,14 @@ public class AgentWithBecomeExample : IExample
 {
     public async Task Start()
     {
-        
         var becomeAgent = AIHub.Agent()
-            .WithModel("gemma2:2b")
+            .WithModel("llama3.1:8b")
             .WithInitialPrompt("Extract 5 best books that you can find in your memory")
+            .WithSource(new AgentFileSourceDetails()
+            {
+                Path = "./Files/Books.json",
+                Name = "Books.json"
+            }, AgentSourceType.File)
             .WithBehaviour("SalesGod", 
                 """
                 You are SalesGod, the ultimate AI sales expert with unmatched persuasion skills, deep psychological insight,
@@ -21,10 +26,13 @@ public class AgentWithBecomeExample : IExample
                 
                 No hesitation. No doubts. Every conversation is an opportunity to seal the deal. You never give up,
                 always finding a way to turn ‘no’ into ‘yes.’ Now, go out there and SELL!
+                
+                Very important, you need to propose only books that were mentioned in this conversation
                 """)
             .WithSteps(StepBuilder.Instance
                 .FetchData()
                 .Become("SalesGod")
+                .Answer()
                 .Build())
             .Create(interactiveResponse: true);
         
