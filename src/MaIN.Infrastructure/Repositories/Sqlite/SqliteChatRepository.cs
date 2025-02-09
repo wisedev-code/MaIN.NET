@@ -45,9 +45,7 @@ public class SqliteChatRepository(IDbConnection connection) : IChatRepository
             Properties = chat.Properties != null ? 
                 JsonSerializer.Serialize(chat.Properties, _jsonOptions) : null,
             Stream = chat.Stream ? 1 : 0,
-            Visual = chat.Visual ? 1 : 0,
-            CreatedAt = DateTime.UtcNow.ToString("O"),
-            UpdatedAt = DateTime.UtcNow.ToString("O")
+            Visual = chat.Visual ? 1 : 0
         };
     }
 
@@ -70,13 +68,9 @@ public class SqliteChatRepository(IDbConnection connection) : IChatRepository
     {
         var parameters = MapChatToParameters(chat);
         await connection.ExecuteAsync(@"
-            INSERT INTO Chats (
-                Id, Name, Model, Messages, Type, Properties, 
-                Stream, Visual, CreatedAt, UpdatedAt
-            ) VALUES (
-                @Id, @Name, @Model, @Messages, @Type, @Properties, 
-                @Stream, @Visual, @CreatedAt, @UpdatedAt
-            )", parameters);
+            INSERT INTO Chats (Id, Name, Model, Messages, [Type], Properties, 
+                Stream, Visual) VALUES (@Id, @Name, @Model, @Messages, @Type, @Properties, 
+                @Stream, @Visual)", parameters);
     }
 
     public async Task UpdateChat(string id, ChatDocument chat)
@@ -90,8 +84,7 @@ public class SqliteChatRepository(IDbConnection connection) : IChatRepository
                 Type = @Type,
                 Properties = @Properties,
                 Stream = @Stream,
-                Visual = @Visual,
-                UpdatedAt = @UpdatedAt
+                Visual = @Visual
             WHERE Id = @Id", parameters);
     }
 

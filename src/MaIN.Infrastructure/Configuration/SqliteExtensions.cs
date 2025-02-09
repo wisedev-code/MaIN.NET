@@ -67,7 +67,7 @@ public static class SqliteRegistrationExtensions
             [Order] INTEGER NOT NULL DEFAULT 0,
             Behaviours TEXT,        -- Stored as JSON
             CurrentBehaviour TEXT,
-            Flow INTEGER NOT NULL DEFAULT 0
+            Flow INTEGER NOT NULL DEFAULT 0,
             FOREIGN KEY (ChatId) REFERENCES Chats(Id)
         );
     ");

@@ -16,6 +16,7 @@ public class ChatContext
         _chatService = chatService;
         _chat = new Chat
         {
+            Name = "New Chat",
             Id = Guid.NewGuid().ToString(),
             Messages = new List<Message>()
         };

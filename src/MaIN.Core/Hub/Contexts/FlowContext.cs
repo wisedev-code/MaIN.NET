@@ -48,13 +48,12 @@ public class FlowContext
     
     public FlowContext WithDescription(string description)
     {
-        _flow.Name = description;
+        _flow.Description = description;
         return this;
     }
     
     public FlowContext Save(string path)
     {
-// Ensure the directory exists
         Directory.CreateDirectory(Path.GetDirectoryName(path));
 
         using (var fileStream = new FileStream(path, FileMode.Create))
@@ -92,7 +91,6 @@ public class FlowContext
         using (var fileStream = new FileStream(path, FileMode.Open))
         using (var archive = new ZipArchive(fileStream, ZipArchiveMode.Read))
         {
-            // Read description from description.txt
             var descriptionEntry = archive.GetEntry("description.txt");
             if (descriptionEntry != null)
             {
@@ -103,7 +101,6 @@ public class FlowContext
                 }
             }
 
-            // Read agents from JSON files
             foreach (var entry in archive.Entries)
             {
                 if (entry.FullName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
@@ -131,7 +128,6 @@ public class FlowContext
             Agents = agents
         };
 
-        return this;
         return this;
     }
 
@@ -192,7 +188,12 @@ public class FlowContext
     
     public FlowContext AddAgents(IEnumerable<Agent> agents)
     {
-        _flow.Agents.AddRange(agents);
+        foreach (var agent in agents)
+        {
+            agent.Flow = true;
+            _flow.Agents.Add(agent);
+        }
+        
         return this;
     }
     
