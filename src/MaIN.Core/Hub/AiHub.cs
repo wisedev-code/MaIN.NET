@@ -19,6 +19,6 @@ public static class AIHub
 
     public static ChatContext Chat() => new ChatContext(Services.ChatService);
     public static AgentContext Agent() => new AgentContext(Services.AgentService);
-    public static FlowContext Flow() => new FlowContext(Services.FlowService);
+    public static FlowContext Flow() => new FlowContext(Services.FlowService, Services.AgentService);
 }
 
