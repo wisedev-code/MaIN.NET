@@ -1,8 +1,10 @@
 using MaIN.Core.Hub;
-using MaIN.Core.Hub.Utils;
 
-namespace Examples.Agents;
+namespace Examples.Agents.Flows;
 
+/// <summary>
+/// To run this example uncomment SqliteSettings in appsettings.json as we need persistence for agents and chats
+/// </summary>
 public class AgentsFlowLoadedExample : IExample
 {
     public async Task Start()

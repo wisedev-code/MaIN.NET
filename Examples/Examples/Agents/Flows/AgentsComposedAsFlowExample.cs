@@ -5,6 +5,9 @@ namespace Examples.Agents;
 
 public class AgentsComposedAsFlowExample : IExample
 {
+    /// <summary>
+    /// To run this example uncomment SqliteSettings in appsettings.json as we need persistence for agents and chats
+    /// </summary>
     public async Task Start()
     {
         Console.WriteLine("Basic agents flow example");

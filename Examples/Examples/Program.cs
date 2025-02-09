@@ -1,5 +1,6 @@
 ﻿using Examples;
 using Examples.Agents;
+using Examples.Agents.Flows;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MaIN.Core;
@@ -13,7 +14,7 @@ var configuration = new ConfigurationBuilder()
 services.AddSingleton<IConfiguration>(configuration);
 
 services.AddMaIN(configuration);
-services.AddTransient<IExample, ChatExample>();
+//services.AddTransient<IExample, ChatExample>();
 //services.AddTransient<IExample, ChatWithFilesExample>();
 //services.AddTransient<IExample, ChatWithVisionExample>();
 //services.AddTransient<IExample, ChatWithImageGenExample>();
@@ -24,7 +25,8 @@ services.AddTransient<IExample, ChatExample>();
 //services.AddTransient<IExample, AgentWithBecomeExample>();
 //services.AddTransient<IExample, AgentWithApiDataSourceExample>();
 //services.AddTransient<IExample, AgentTalkingToEachOtherExample>();
-
+//services.AddTransient<IExample, AgentsComposedAsFlowExample>();
+services.AddTransient<IExample, AgentsFlowLoadedExample>();
 
 var serviceProvider = services.BuildServiceProvider();
 serviceProvider.UseMaIN();

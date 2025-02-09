@@ -10,10 +10,8 @@ public class ChatExample : IExample
         
         var context = AIHub.Chat().WithModel("gemma2:2b");
         
-        var result = await context
+        await context
             .WithMessage("Where the hedgehog goes at night?")
-            .CompleteAsync();
-        
-        Console.WriteLine(result.Message.Content);
+            .CompleteAsync(interactive: true);
     }
 }

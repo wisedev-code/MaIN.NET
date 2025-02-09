@@ -21,17 +21,17 @@ public class SqliteAgentRepository(IDbConnection connection) : IAgentRepository
             Name = row.Name,
             Model = row.Model,
             Description = row.Description,
-            Started = Convert.ToBoolean(row.Started),
+            Started = Convert.ToBoolean((int)row.Started),
             Context = row.Context != null ? 
                 JsonSerializer.Deserialize<AgentContextDocument>(row.Context, _jsonOptions) : 
                 null,
             ChatId = row.ChatId,
-            Order = row.Order,
+            Order = (int)row.Order,
             Behaviours = row.Behaviours != null ? 
                 JsonSerializer.Deserialize<Dictionary<string, string>>(row.Behaviours, _jsonOptions) : 
                 new Dictionary<string, string>(),
             CurrentBehaviour = row.CurrentBehaviour,
-            Flow = Convert.ToBoolean(row.Flow)
+            Flow = Convert.ToBoolean((int)row.Flow)
         };
         return agent;
     }
@@ -55,9 +55,7 @@ public class SqliteAgentRepository(IDbConnection connection) : IAgentRepository
             Behaviours = agent.Behaviours != null ? 
                 JsonSerializer.Serialize(agent.Behaviours, _jsonOptions) : null,
             agent.CurrentBehaviour,
-            Flow = agent.Flow ? 1 : 0,
-            CreatedAt = DateTime.UtcNow.ToString("O"),
-            UpdatedAt = DateTime.UtcNow.ToString("O")
+            Flow = agent.Flow ? 1 : 0
         };
     }
 
@@ -85,12 +83,10 @@ public class SqliteAgentRepository(IDbConnection connection) : IAgentRepository
         await connection.ExecuteAsync(@"
             INSERT INTO Agents (
                 Id, Name, Model, Description, Started, Context, 
-                ChatId, [Order], Behaviours, CurrentBehaviour, Flow,
-                CreatedAt, UpdatedAt
+                ChatId, [Order], Behaviours, CurrentBehaviour, Flow
             ) VALUES (
                 @Id, @Name, @Model, @Description, @Started, @Context,
-                @ChatId, @Order, @Behaviours, @CurrentBehaviour, @Flow,
-                @CreatedAt, @UpdatedAt
+                @ChatId, @Order, @Behaviours, @CurrentBehaviour, @Flow
             )", parameters);
     }
 
@@ -111,8 +107,7 @@ public class SqliteAgentRepository(IDbConnection connection) : IAgentRepository
                 [Order] = @Order,
                 Behaviours = @Behaviours,
                 CurrentBehaviour = @CurrentBehaviour,
-                Flow = @Flow,
-                UpdatedAt = @UpdatedAt
+                Flow = @Flow
             WHERE Id = @Id", parameters);
     }
 
