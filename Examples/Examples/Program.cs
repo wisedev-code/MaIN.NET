@@ -26,7 +26,7 @@ services.AddMaIN(configuration);
 //services.AddTransient<IExample, AgentWithApiDataSourceExample>();
 //services.AddTransient<IExample, AgentTalkingToEachOtherExample>();
 //services.AddTransient<IExample, AgentsComposedAsFlowExample>();
-services.AddTransient<IExample, AgentsFlowLoadedExample>();
+//services.AddTransient<IExample, AgentsFlowLoadedExample>();
 
 var serviceProvider = services.BuildServiceProvider();
 serviceProvider.UseMaIN();
