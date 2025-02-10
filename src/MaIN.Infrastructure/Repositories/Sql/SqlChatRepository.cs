@@ -30,7 +30,8 @@ public class SqlChatRepository(IDbConnection connection) : IChatRepository
                 JsonSerializer.Deserialize<Dictionary<string, string>>(row.Properties.ToString(), _jsonOptions) : 
                 new Dictionary<string, string>(),
             Stream = row.Stream,
-            Visual = row.Visual
+            Visual = row.Visual,
+            Interactive = row.Interactive
         };
         return chat;
     }
@@ -51,8 +52,7 @@ public class SqlChatRepository(IDbConnection connection) : IChatRepository
                 JsonSerializer.Serialize(chat.Properties, _jsonOptions) : null,
             chat.Stream,
             chat.Visual,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            chat.Interactive
         };
     }
 
@@ -80,10 +80,10 @@ public class SqlChatRepository(IDbConnection connection) : IChatRepository
         await connection.ExecuteAsync(@"
             INSERT INTO Chats (
                 Id, Name, Model, Messages, Type, Properties, 
-                Stream, Visual, CreatedAt, UpdatedAt
+                Stream, Visual, Interactive
             ) VALUES (
                 @Id, @Name, @Model, @Messages, @Type, @Properties, 
-                @Stream, @Visual, @CreatedAt, @UpdatedAt)", 
+                @Stream, @Visual, @Interactive)", 
             parameters);
     }
 
@@ -101,8 +101,7 @@ public class SqlChatRepository(IDbConnection connection) : IChatRepository
                 Type = @Type,
                 Properties = @Properties,
                 Stream = @Stream,
-                Visual = @Visual,
-                UpdatedAt = @UpdatedAt
+                Visual = @Visual
             WHERE Id = @Id",
             parameters);
     }

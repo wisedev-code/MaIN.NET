@@ -46,7 +46,8 @@ public static class SqliteRegistrationExtensions
             Type TEXT NOT NULL,      -- Stored as JSON
             Properties TEXT,         -- Stored as JSON
             Stream INTEGER NOT NULL DEFAULT 0,
-            Visual INTEGER NOT NULL DEFAULT 0
+            Visual INTEGER NOT NULL DEFAULT 0,
+            Interactive INTEGER NOT NULL DEFAULT 0
         );
 
         CREATE TABLE IF NOT EXISTS AgentFlows (
