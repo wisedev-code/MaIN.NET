@@ -76,15 +76,6 @@ public struct KnownModels
                 DownloadUrl = string.Empty
             }
         },
-        {
-            KnownModelNames.DeepSeek_R1_1_5b, new Model()
-            {
-                Description = string.Empty,
-                Name = KnownModelNames.DeepSeek_R1_1_5b,
-                FileName = "DeepSeekR1-1.5b-maIN.gguf",
-                DownloadUrl = string.Empty
-            }
-        }
     };
 
     public static Model GetEmbeddingModel() =>
@@ -143,5 +134,4 @@ public struct KnownModelNames
     public const string Llava_7b = "llava:7b";
     public const string Qwen2_5_0_5b = "qwen2.5:0.5b";
     public const string DeepSeek_R1_8b = "deepseek:r1_8b";
-    public const string DeepSeek_R1_1_5b = "deepseek:r1_1.5b";
 }

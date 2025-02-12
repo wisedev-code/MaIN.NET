@@ -36,7 +36,7 @@ services:
       - "5001:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Docker
-      API_URL: http://host.docker.internal:5243
+      API_URL: http://host.docker.internal:5000
       DEMO_API_URL: http://demo:8080
 
   demo:
