@@ -239,7 +239,10 @@ public static class Actions
     private static async Task<string> FetchApiData(object? details, string? filter,
         IHttpClientFactory httpClientFactory, Dictionary<string, string> properties)
     {
-        var apiDetails = JsonSerializer.Deserialize<AgentApiSourceDetails>(details.ToString());
+        var apiDetails = JsonSerializer.Deserialize<AgentApiSourceDetails>(details.ToString(), new JsonSerializerOptions()
+        {
+            PropertyNameCaseInsensitive = true,
+        });
         var httpClient = httpClientFactory.CreateClient();
         apiDetails!.Payload = apiDetails.Payload?.Replace("@filter@", filter);
         apiDetails.Query = apiDetails.Query?.Replace("@filter@", filter);

@@ -1,39 +1,136 @@
 ﻿using Examples;
 using Examples.Agents;
 using Examples.Agents.Flows;
+using MaIN.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using MaIN.Core;
-using MaIN.Services.Steps;
 
-var services = new ServiceCollection();
+
+var Banner = @"
+███╗   ███╗ █████╗ ██╗███╗   ██╗    ███████╗██╗  ██╗ █████╗ ███╗   ███╗██████╗ ██╗     ███████╗███████╗
+████╗ ████║██╔══██╗██║████╗  ██║    ██╔════╝╚██╗██╔╝██╔══██╗████╗ ████║██╔══██╗██║     ██╔════╝██╔════╝
+██╔████╔██║███████║██║██╔██╗ ██║    █████╗   ╚███╔╝ ███████║██╔████╔██║██████╔╝██║     █████╗  ███████╗
+██║╚██╔╝██║██╔══██║██║██║╚██╗██║    ██╔══╝   ██╔██╗ ██╔══██║██║╚██╔╝██║██╔═══╝ ██║     ██╔══╝  ╚════██║
+██║ ╚═╝ ██║██║  ██║██║██║ ╚████║    ███████╗██╔╝ ██╗██║  ██║██║ ╚═╝ ██║██║     ███████╗███████╗███████║
+╚═╝     ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝    ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝     ╚══════╝╚══════╝╚══════╝
+                                                                                                
+╔══════════════════════════════════════════════════════════════════════════════════════════════════════╗
+                                    Interactive Example Runner v1.0                                     ";
+
+
+Console.ForegroundColor = ConsoleColor.Cyan;
+Console.WriteLine(Banner);
+Console.ResetColor();
 
 var configuration = new ConfigurationBuilder()
     .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
     .Build();
-services.AddSingleton<IConfiguration>(configuration);
 
+var services = new ServiceCollection();
+services.AddSingleton<IConfiguration>(configuration);
 services.AddMaIN(configuration);
-//services.AddTransient<IExample, ChatExample>();
-//services.AddTransient<IExample, ChatWithFilesExample>();
-//services.AddTransient<IExample, ChatWithVisionExample>();
-//services.AddTransient<IExample, ChatWithImageGenExample>();
-//services.AddTransient<IExample, ChatFromExistingExample>();
-//services.AddTransient<IExample, AgentExample>();
-//services.AddTransient<IExample, AgentWithRedirectExample>();
-//services.AddTransient<IExample, AgentWithRedirectImageExample>();
-//services.AddTransient<IExample, AgentWithBecomeExample>();
-//services.AddTransient<IExample, AgentWithApiDataSourceExample>();
-//services.AddTransient<IExample, AgentTalkingToEachOtherExample>();
-//services.AddTransient<IExample, AgentsComposedAsFlowExample>();
-//services.AddTransient<IExample, AgentsFlowLoadedExample>();
+
+RegisterExamples(services);
 
 var serviceProvider = services.BuildServiceProvider();
 serviceProvider.UseMaIN();
-
-//Required for AgentContext examples
 serviceProvider.UseMaINAgentFramework();
-    
-var example = serviceProvider.GetRequiredService<IExample>();
-await example.Start();
 
+await RunSelectedExample(serviceProvider);
+
+
+static void RegisterExamples(IServiceCollection services)
+{
+    services.AddTransient<ExampleRegistry>();
+    services.AddTransient<ChatExample>();
+    services.AddTransient<ChatWithFilesExample>();
+    services.AddTransient<ChatWithVisionExample>();
+    services.AddTransient<ChatWithImageGenExample>();
+    services.AddTransient<ChatFromExistingExample>();
+    services.AddTransient<AgentExample>();
+    services.AddTransient<AgentWithRedirectExample>();
+    services.AddTransient<AgentWithRedirectImageExample>();
+    services.AddTransient<AgentWithBecomeExample>();
+    services.AddTransient<AgentWithApiDataSourceExample>();
+    services.AddTransient<AgentTalkingToEachOtherExample>();
+    services.AddTransient<AgentsComposedAsFlowExample>();
+    services.AddTransient<AgentsFlowLoadedExample>();
+}
+
+async Task RunSelectedExample(IServiceProvider serviceProvider)
+{
+    var registry = serviceProvider.GetRequiredService<ExampleRegistry>();
+    var examples = registry.GetAvailableExamples();
+
+    Console.ForegroundColor = ConsoleColor.Green;
+    Console.WriteLine("\n┌─────────────────────────────────────────────┐");
+    Console.WriteLine("│             Available Examples              │");
+    Console.WriteLine("└─────────────────────────────────────────────┘");
+    Console.ResetColor();
+
+    for (int i = 0; i < examples.Count; i++)
+    {
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        Console.Write($"\n [{i + 1}] ");
+        Console.ForegroundColor = ConsoleColor.White;
+        Console.Write(examples[i].Name);
+    }
+
+    Console.ForegroundColor = ConsoleColor.Green;
+    Console.WriteLine("\n┌─────────────────────────────────────────────┐");
+    Console.Write($"│ >> Select example (1-{examples.Count}): ");
+    Console.CursorLeft = 45;
+    Console.WriteLine("│");
+    Console.WriteLine("└─────────────────────────────────────────────┘");
+    Console.ForegroundColor = ConsoleColor.White;
+
+    if (int.TryParse(Console.ReadLine(), out int selection) && selection > 0 && selection <= examples.Count)
+    {
+        Console.Clear();
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine(Banner);
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine($"\n>> Running: {examples[selection - 1].Name}");
+        Console.WriteLine("╔════════════════════════════════════════════════════════════════════╗");
+        Console.WriteLine("║                          Output Below                              ║");
+        Console.WriteLine("╚════════════════════════════════════════════════════════════════════╝");
+        Console.ResetColor();
+
+        var selectedExample = examples[selection - 1].Instance;
+        await selectedExample.Start();
+    }
+    else
+    {
+        Console.ForegroundColor = ConsoleColor.Red;
+        Console.WriteLine("\n╔════════════════════════════════════════════════════╗");
+        Console.WriteLine("║  [X] Error: Invalid selection. Please try again.     ║");
+        Console.WriteLine("╚════════════════════════════════════════════════════╝");
+        Console.ResetColor();
+    }
+}
+
+
+public class ExampleRegistry(IServiceProvider serviceProvider)
+{
+    private readonly IServiceProvider _serviceProvider = serviceProvider;
+
+    public List<(string Name, IExample Instance)> GetAvailableExamples()
+    {
+        return new List<(string, IExample)>
+        {
+            ("\u25a0 Basic Chat", _serviceProvider.GetRequiredService<ChatExample>()),
+            ("\u25a0 Chat with Files", _serviceProvider.GetRequiredService<ChatWithFilesExample>()),
+            ("\u25a0 Chat with Vision", _serviceProvider.GetRequiredService<ChatWithVisionExample>()),
+            ("\u25a0 Chat with Image Generation", _serviceProvider.GetRequiredService<ChatWithImageGenExample>()),
+            ("\u25a0 Chat from Existing", _serviceProvider.GetRequiredService<ChatFromExistingExample>()),
+            ("\u25a0 Basic Agent", _serviceProvider.GetRequiredService<AgentExample>()),
+            ("\u25a0 Agent with Redirect", _serviceProvider.GetRequiredService<AgentWithRedirectExample>()),
+            ("\u25a0 Agent with Redirect Image", _serviceProvider.GetRequiredService<AgentWithRedirectImageExample>()),
+            ("\u25a0 Agent with Become", _serviceProvider.GetRequiredService<AgentWithBecomeExample>()),
+            ("\u25a0 Agent with API Data Source", _serviceProvider.GetRequiredService<AgentWithApiDataSourceExample>()),
+            ("\u25a0 Agents Talking to Each Other", _serviceProvider.GetRequiredService<AgentTalkingToEachOtherExample>()),
+            ("\u25a0 Agents Composed as Flow", _serviceProvider.GetRequiredService<AgentsComposedAsFlowExample>()),
+            ("\u25a0 Agents Flow Loaded", _serviceProvider.GetRequiredService<AgentsFlowLoadedExample>())
+        };
+    }
+}

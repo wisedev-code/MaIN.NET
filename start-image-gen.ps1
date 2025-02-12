@@ -1,5 +1,11 @@
 # Image Generation API Setup Script
+$installRoot = if ($global:MCLI_ROOT) {
+    $global:MCLI_ROOT
+} else {
+    $PSScriptRoot
+}
 
+Push-Location $installRoot
 # Python configuration
 $pythonVersion = "3.9.13"
 $pythonInstallerUrl = "https://www.python.org/ftp/python/$pythonVersion/python-$pythonVersion-amd64.exe"
