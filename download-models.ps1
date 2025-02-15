@@ -39,6 +39,25 @@ function Download-Model {
         [string]$modelsPath
     )
 
+    # Read the models map file for name-to-URL mapping
+    $modelsMapFile = "$PSScriptRoot\models_map.txt"
+
+    if (-not (Test-Path $modelsMapFile)) {    
+        Write-Host "Models map file not found at $modelsMapFile. Please provide a valid file."    
+        exit 1
+    }
+    # Load models map as a hashtable
+    $modelsMap = @{}
+
+    Get-Content $modelsMapFile | ForEach-Object {    
+        # Match     key=value pairs and trim spaces    
+        $split = $_.Split("|")
+
+        $key = $split[0].Trim()
+        $value = $split[1].Trim()  
+        $modelsMap[$key] = $value
+    }
+
     $model = $model.Trim()
     $modelFileName = "$model.gguf"
     $modelFilePath = Join-Path $modelsPath $modelFileName
