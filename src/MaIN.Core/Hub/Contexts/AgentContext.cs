@@ -194,3 +194,15 @@ public class AgentContext
         return new AgentContext(agentService, existingAgent);
     }
 }
+
+public static class AgentExtensions
+{
+    public static async Task<ChatResult> ProcessAsync(
+        this Task<AgentContext> agentTask, 
+        string message, 
+        bool translate = false)
+    {
+        var agent = await agentTask;
+        return await agent.ProcessAsync(message, translate);
+    }
+}
