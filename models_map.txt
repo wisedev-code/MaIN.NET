@@ -6,4 +6,4 @@ Llava-maIN|https://huggingface.co/Inza124/Llava/resolve/main/Llava-maIN.gguf?dow
 Llama3.1-maIN|https://huggingface.co/Inza124/Llama3.1_8b/resolve/main/Llama3.1-maIN.gguf?download=true
 Qwen2.5-maIN|https://huggingface.co/Inza124/Qwen2.5/resolve/main/Qwen2.5-maIN.gguf?download=true
 DeepSeekR1-8b-maIN|https://huggingface.co/Inza124/DeepseekR1-8b/resolve/main/DeepSeekR1-8b-maIN.gguf?download=true
-Fox-1.6b-maIN|https://huggingface.co/Inza124/Granite/resolve/main/Granite-3b-maIN.gguf?download=true
+Fox-1.6b-maIN|https://huggingface.co/Inza124/Fox/resolve/main/Fox-1.6b-maIN.gguf?download=true
