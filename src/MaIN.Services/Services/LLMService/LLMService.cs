@@ -12,7 +12,6 @@ using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Models;
 using MaIN.Services.Models;
-using MaIN.Services.Models.Ollama;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Utils;
 using Microsoft.Extensions.Options;
@@ -24,6 +23,7 @@ namespace MaIN.Services.Services.LLMService;
 
 public class LLMService(IOptions<MaINSettings> options, INotificationService notificationService) : ILLMService
 {
+    private const string DefaultModelEnvPath = "MaIN_ModelsPath";
     private static readonly ConcurrentDictionary<string, LLamaWeights> modelCache = new();
     private static readonly ConcurrentDictionary<string, ChatSession> sessionCache = new(); // Cache for chat sessions
 
@@ -37,7 +37,7 @@ public class LLMService(IOptions<MaINSettings> options, INotificationService not
             return await HandleImageInterpreter(chat)!;
         }
 
-        var path = options.Value.ModelsPath;
+        var path = options.Value.ModelsPath ?? Environment.GetEnvironmentVariable(DefaultModelEnvPath);
         var model = KnownModels.GetModel(path, chat.Model);
         var modelKey = model.FileName;
 
@@ -133,7 +133,7 @@ public class LLMService(IOptions<MaINSettings> options, INotificationService not
 
     private async Task<ChatResult>? HandleImageInterpreter(Chat chat)
     {
-        var path = options.Value.ModelsPath;
+        var path = options.Value.ModelsPath ?? Environment.GetEnvironmentVariable(DefaultModelEnvPath);
         var modelConfig = KnownModels.GetModel(path, chat.Model);
         var modelKey = modelConfig.FileName;
 
@@ -205,7 +205,7 @@ public class LLMService(IOptions<MaINSettings> options, INotificationService not
         Dictionary<string, string>? fileData = null,
         List<string>? memory = null)
     {
-        var path = options.Value.ModelsPath;
+        var path = options.Value.ModelsPath ?? Environment.GetEnvironmentVariable(DefaultModelEnvPath);
         var model = KnownModels.GetModel(path, chat!.Model);
         var modelKey = model.FileName;
 
@@ -301,7 +301,7 @@ public class LLMService(IOptions<MaINSettings> options, INotificationService not
 
     public Task<List<string>> GetCurrentModels()
     {
-        var path = options.Value.ModelsPath;
+        var path = options.Value.ModelsPath ?? Environment.GetEnvironmentVariable(DefaultModelEnvPath);
         var files = Directory.GetFiles(path, "*.gguf", SearchOption.AllDirectories).ToList();
         var models = new List<string>();
         foreach (var file in files)
@@ -435,7 +435,7 @@ file static class KernelMemFix
         this IKernelMemoryBuilder builder,
         LlamaSharpTextGenerator2 textGenerator)
     {
-        builder.AddSingleton<ITextGenerator>((ITextGenerator) textGenerator);
+        builder.AddSingleton((ITextGenerator) textGenerator);
         return builder;
     }
     

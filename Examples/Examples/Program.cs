@@ -34,7 +34,6 @@ RegisterExamples(services);
 
 var serviceProvider = services.BuildServiceProvider();
 serviceProvider.UseMaIN();
-serviceProvider.UseMaINAgentFramework();
 
 await RunSelectedExample(serviceProvider);
 

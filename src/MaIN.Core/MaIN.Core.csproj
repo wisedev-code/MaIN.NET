@@ -3,22 +3,9 @@
         <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        
+        <NuspecFile>.nuspec</NuspecFile>
     </PropertyGroup>
-<!-- 
-    <PropertyGroup>
-        <PackageId>MaIN</PackageId>
-        <Version>0.0.1</Version>
-        <Authors>Wisedev</Authors>
-        <Company>Wisedev</Company>
-        <Description>Pihotron12</Description>
-        <PackageLicenseExpression>MIT</PackageLicenseExpression>
-        <PackageProjectUrl>https://github.com/wisedev-code/M.A.I.N</PackageProjectUrl>
-        <RepositoryUrl>https://github.com/wisedev-code/M.A.I.N</RepositoryUrl>
-        <RepositoryType>git</RepositoryType>
-    </PropertyGroup> -->
 
-    <!-- Include all packages that MaIN.Services needs -->
     <ItemGroup>
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.1" />
         <PackageReference Include="GTranslate" Version="2.2.0" />
@@ -36,12 +23,14 @@
     </ItemGroup>
 
     <ItemGroup>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+            <_Parameter1>MaIN.Core.UnitTests</_Parameter1>
+        </AssemblyAttribute>
+    </ItemGroup>
+    
+    <ItemGroup>
         <ProjectReference Include="..\MaIN.Services\MaIN.Services.csproj" />
         <ProjectReference Include="..\MaIN.Domain\MaIN.Domain.csproj" />
         <ProjectReference Include="..\MaIN.Infrastructure\MaIN.Infrastructure.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <FrameworkReference Include="Microsoft.AspNetCore.App" />
     </ItemGroup>
 </Project>

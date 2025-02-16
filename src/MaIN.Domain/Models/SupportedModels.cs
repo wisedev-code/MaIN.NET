@@ -76,6 +76,15 @@ public struct KnownModels
                 DownloadUrl = string.Empty
             }
         },
+        {
+            KnownModelNames.Fox_1_6b, new Model()
+            {
+                Description = string.Empty,
+                Name = KnownModelNames.Fox_1_6b,
+                FileName = "Fox-1.6b-maIN.gguf",
+                DownloadUrl = string.Empty
+            }
+        },
     };
 
     public static Model GetEmbeddingModel() =>
@@ -134,4 +143,5 @@ public struct KnownModelNames
     public const string Llava_7b = "llava:7b";
     public const string Qwen2_5_0_5b = "qwen2.5:0.5b";
     public const string DeepSeek_R1_8b = "deepseek:r1_8b";
+    public const string Fox_1_6b = "fox:1.6b";
 }

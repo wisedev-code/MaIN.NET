@@ -18,6 +18,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Examples", "Examples\Exampl
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MaIN.Server", "MaIN.Server\MaIN.Server.csproj", "{F29916C3-3A0E-49D7-BCC6-D918EFBF0CE4}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{53D24B04-279D-4D18-8829-EA0F57AE69F3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MaIN.Core.UnitTests", "src\MaIN.Core.UnitTests\MaIN.Core.UnitTests.csproj", "{46E6416B-1736-478C-B697-B37BB8E6A23E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -56,8 +60,13 @@ Global
 		{F29916C3-3A0E-49D7-BCC6-D918EFBF0CE4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F29916C3-3A0E-49D7-BCC6-D918EFBF0CE4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F29916C3-3A0E-49D7-BCC6-D918EFBF0CE4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{46E6416B-1736-478C-B697-B37BB8E6A23E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{46E6416B-1736-478C-B697-B37BB8E6A23E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{46E6416B-1736-478C-B697-B37BB8E6A23E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{46E6416B-1736-478C-B697-B37BB8E6A23E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{781BDD20-65BA-4C5D-815B-D8A15931570A} = {28851935-517F-438D-BF7C-02FEB1A37A68}
+		{46E6416B-1736-478C-B697-B37BB8E6A23E} = {53D24B04-279D-4D18-8829-EA0F57AE69F3}
 	EndGlobalSection
 EndGlobal
