@@ -95,6 +95,8 @@ if ($hard) {
     docker-compose down
 }
 
+Start-Sleep -Seconds 10
+
 Write-Host "Starting API & Containers in detached mode..."
 #Start-Process -FilePath ".\server\MaIN.exe" -WorkingDirectory ".\server" -NoNewWindow
 Start-Process -FilePath "dotnet" -ArgumentList "run --project ./src/MaIN/MaIN.csproj" -NoNewWindow

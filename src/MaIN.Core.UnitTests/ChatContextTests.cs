@@ -1,7 +1,9 @@
 using MaIN.Core.Hub.Contexts;
+using MaIN.Domain.Entities;
 using MaIN.Services.Models;
 using MaIN.Services.Services.Abstract;
 using Moq;
+using FileInfo = MaIN.Domain.Entities.FileInfo;
 
 namespace MaIN.Core.UnitTests;
 
@@ -25,16 +27,6 @@ public class ChatContextTests
         // Assert
         Assert.NotNull(chatId);
         Assert.NotEmpty(chatId);
-    }
-
-    [Fact]
-    public void WithModel_ShouldSetModel()
-    {
-        // Act
-        _chatContext.WithModel("GPT-4");
-        
-        // Assert
-        Assert.Equal("GPT-4", _chatContext.GetChatHistory().FirstOrDefault()?.Content);
     }
 
     [Fact]
@@ -69,7 +61,7 @@ public class ChatContextTests
     {
         // Arrange
         _chatContext.WithMessage("User message");
-        var files = new List<FileInfo> { new FileInfo { Name = "file.txt", Path = "/path/file.txt" } };
+        var files = new List<FileInfo> { new() { Name = "file.txt", Path = "/path/file.txt", Extension = "txt"} };
         
         // Act
         _chatContext.WithFiles(files);

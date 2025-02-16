@@ -7,7 +7,6 @@ using MaIN.Services.Services.Abstract;
 using MaIN.Services.Steps;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.AspNetCore.Builder;
 
 namespace MaIN.Core;
 
@@ -22,23 +21,19 @@ public static class Bootstrapper
         return services;
     }
 
-    public static IServiceProvider UseMaINAgentFramework(this IServiceProvider services)
-    {
-        services.InitializeAgents();
-        return services;
-    }
-
     public static IServiceProvider UseMaIN(this IServiceProvider sp)
     {
         _ = sp.GetRequiredService<IAIHubServices>();
+        sp.InitializeAgents();
         return sp;
     }
-
-    public static WebApplication UseMaINAgentFramework(this WebApplication app)
-    {
-        app.Services.InitializeAgents();
-        return app;
-    }
+    
+    // public static WebApplication UseMaIN(this WebApplication sp)
+    // {
+    //     _ = sp.Services.GetRequiredService<IAIHubServices>();
+    //     sp.Services.InitializeAgents();
+    //     return sp;
+    // } //TODO find a way to properly handle this to not require framework REF
     
     public static IServiceCollection AddAIHub(this IServiceCollection services)
     {
