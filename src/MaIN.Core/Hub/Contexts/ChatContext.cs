@@ -1,4 +1,5 @@
 using MaIN.Domain.Entities;
+using MaIN.Domain.Models;
 using MaIN.Services.Models;
 using MaIN.Services.Models.Ollama;
 using MaIN.Services.Services.Abstract;
@@ -30,6 +31,13 @@ public class ChatContext
 
     public ChatContext WithModel(string model)
     {
+        _chat.Model = model;
+        return this;
+    }
+    
+    public ChatContext WithCustomModel(string model, string path)
+    {
+        KnownModels.AddModel(model, path);
         _chat.Model = model;
         return this;
     }

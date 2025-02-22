@@ -209,7 +209,7 @@ public class LLMService(IOptions<MaINSettings> options, INotificationService not
         var model = KnownModels.GetModel(path, chat!.Model);
         var modelKey = model.FileName;
 
-        var kernelMemory = CreateMemory(modelKey, path);
+        var kernelMemory = CreateMemory(modelKey, path, out var generator);
 
         if (textData != null)
         {
@@ -251,13 +251,15 @@ public class LLMService(IOptions<MaINSettings> options, INotificationService not
                 Role = AuthorRole.Assistant.ToString()
             }
         };
+        
+        generator.Dispose();
 
         return chatResult;
     }
 
 
     [Experimental("KMEXP01")]
-    private static IKernelMemory CreateMemory(string modelName, string path)
+    private static IKernelMemory CreateMemory(string modelName, string path, out KernelMemFix.LlamaSharpTextGenerator generator)
     {
         InferenceParams infParams = new() { AntiPrompts = ["INFO", "<|im_end|>", "Question:"] };
 
@@ -280,7 +282,7 @@ public class LLMService(IOptions<MaINSettings> options, INotificationService not
 
         return new KernelMemoryBuilder()
             //.WithLLamaSharpDefaults2(lsConfig)
-            .WithLLamaSharpMaINTemp(lsConfig, Path.Combine(path, modelName))
+            .WithLLamaSharpMaINTemp(lsConfig, Path.Combine(path, modelName), out generator)
             .WithSearchClientConfig(searchClientConfig)
             .WithCustomImageOcr(new OcrWrapper())
             .With(parseOptions)
@@ -325,10 +327,10 @@ public class LLMService(IOptions<MaINSettings> options, INotificationService not
     }
 }
 
-file static class KernelMemFix
+internal static class KernelMemFix
 { 
     [Experimental("KMEXP00")]
-    public sealed class LlamaSharpTextGenerator2 : ITextGenerator, ITextTokenizer, IDisposable
+    public sealed class LlamaSharpTextGenerator : ITextGenerator, ITextTokenizer, IDisposable
   {
     private readonly StatelessExecutor _executor;
     private readonly LLamaWeights _weights;
@@ -339,22 +341,8 @@ file static class KernelMemFix
 
     public int MaxTokenTotal { get; }
 
-    public LlamaSharpTextGenerator2(LLamaSharpConfig config)
-    {
-      ModelParams @params = new ModelParams(config.ModelPath)
-      {
-        ContextSize = new uint?(config.ContextSize.GetValueOrDefault(2048U)),
-        GpuLayerCount = config.GpuLayerCount.GetValueOrDefault(20)
-      };
-      this._weights = LLamaWeights.LoadFromFile((IModelParams) @params);
-      this._context = this._weights.CreateContext((IContextParams) @params);
-      this._executor = new StatelessExecutor(this._weights, (IContextParams) @params);
-      this._defaultInferenceParams = config.DefaultInferenceParams;
-      this._ownsWeights = this._ownsContext = true;
-      this.MaxTokenTotal = (int) @params.ContextSize.Value;
-    }
 
-    public LlamaSharpTextGenerator2(
+    public LlamaSharpTextGenerator(
       LLamaWeights weights,
       LLamaContext context,
       StatelessExecutor? executor = null,
@@ -431,37 +419,11 @@ file static class KernelMemFix
   }
 
     [Experimental("KMEXP00")]
-    public static IKernelMemoryBuilder WithLLamaSharpTextGeneration2(
+    public static IKernelMemoryBuilder WithLLamaSharpTextGeneration(
         this IKernelMemoryBuilder builder,
-        LlamaSharpTextGenerator2 textGenerator)
+        LlamaSharpTextGenerator textGenerator)
     {
         builder.AddSingleton((ITextGenerator) textGenerator);
-        return builder;
-    }
-    
-    [Experimental("KMEXP00")]
-    public static IKernelMemoryBuilder WithLLamaSharpDefaults2(
-        this IKernelMemoryBuilder builder,
-        LLamaSharpConfig config,
-        LLamaWeights? weights = null,
-        LLamaContext? context = null)
-    {
-        ModelParams @params = new ModelParams(config.ModelPath)
-        {
-            ContextSize = new uint?(config.ContextSize.GetValueOrDefault(2048U)),
-            GpuLayerCount = config.GpuLayerCount.GetValueOrDefault(20),
-            MainGpu = config.MainGpu,
-            SplitMode = new GPUSplitMode?(config.SplitMode)
-        };
-        if (weights == null || context == null)
-        {
-            weights = LLamaWeights.LoadFromFile((IModelParams) @params);
-            context = weights.CreateContext((IContextParams) @params);
-        }
-        StatelessExecutor executor = new StatelessExecutor(weights, (IContextParams) @params);
-        builder.WithLLamaSharpTextEmbeddingGeneration(new LLamaSharpTextEmbeddingGenerator(config, weights));
-        builder.WithLLamaSharpTextGeneration2(new LlamaSharpTextGenerator2(weights, context, executor,
-            config.DefaultInferenceParams));
         return builder;
     }
     
@@ -469,7 +431,7 @@ file static class KernelMemFix
 
     [Experimental("KMEXP01")]
     public static IKernelMemoryBuilder WithLLamaSharpMaINTemp(this IKernelMemoryBuilder builder,
-        LLamaSharpConfig config, string modelPath)
+        LLamaSharpConfig config, string modelPath, out LlamaSharpTextGenerator generator)
     {
         // Create ModelParams for the first model.
         var parameters1 = new ModelParams(modelPath)
@@ -495,26 +457,19 @@ file static class KernelMemFix
         var weights = GetOrLoadModel(parameters2);
 
         var context = model.CreateContext(parameters2);
-
         StatelessExecutor executor = new StatelessExecutor(model, parameters2);
+
+        generator = new LlamaSharpTextGenerator(model, context, executor,
+            config.DefaultInferenceParams);
+        
         builder.WithLLamaSharpTextEmbeddingGeneration(new LLamaSharpTextEmbeddingGenerator(config, weights));
-        builder.WithLLamaSharpTextGeneration2(new LlamaSharpTextGenerator2(model, context, executor,
-            config.DefaultInferenceParams));
+        builder.WithLLamaSharpTextGeneration(generator);
         return builder;
     }
 
     private static LLamaWeights GetOrLoadModel(ModelParams modelParams)
     {
-        // Use a unique key based on the serialized ModelParams object.
-        string cacheKey = GenerateCacheKey(modelParams);
-
-        // Retrieve from cache or load if not already cached.
-        return ModelCache.GetOrAdd(cacheKey, _ => LLamaWeights.LoadFromFile(modelParams));
+        return LLamaWeights.LoadFromFile(modelParams);
     }
 
-    private static string GenerateCacheKey(ModelParams modelParams)
-    {
-        // Create a unique key by combining important properties of ModelParams.
-        return $"{modelParams.ModelPath}:{modelParams.ContextSize}:{modelParams.GpuLayerCount}:{modelParams.MainGpu}:{modelParams.SplitMode}";
-    }
 }

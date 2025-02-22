@@ -8,6 +8,23 @@ param(
 
 # Set script root as a global variable for other scripts to use
 $global:MCLI_ROOT = $PSScriptRoot
+$modelsPath = $env:MaIN_ModelsPath
+function Get-ModelsMap {
+    $modelsMapFile = "$PSScriptRoot\models_map.txt"
+    if (-not (Test-Path $modelsMapFile)) {    
+        Write-Host "Models map file not found at $modelsMapFile. Please provide a valid file."    
+        return $null
+    }
+    
+    $modelsMap = @{}
+    Get-Content $modelsMapFile | ForEach-Object {    
+        $split = $_.Split("|")
+        $key = $split[0].Trim()
+        $value = $split[1].Trim()  
+        $modelsMap[$key] = $value
+    }
+    return $modelsMap
+}
 
 function Show-Usage {
     Write-Host @"
@@ -36,6 +53,7 @@ Options for 'api':
 
 Options for 'model':
     download <name>   Download a specific model
+    present          List installed models
     list             List available models
     update           Update all installed models
 
@@ -43,7 +61,7 @@ Examples:
     mcli start-demo
     mcli start-demo --no-image-gen
     mcli api --hard
-    mcli model download llama2-7b
+    mcli model download gemma2-2b-maIN
     mcli help
 "@
 }
@@ -69,7 +87,7 @@ Options:
 Examples:
     mcli start-demo
     mcli start-demo --no-image-gen
-    mcli start-demo --models=llama3.2:3b,gemma2:2b
+    mcli start-demo --models=gemma2-2b-maIN
 "@
         }
         "api" {
@@ -108,11 +126,13 @@ Usage:
 Subcommands:
     download <name>   Download a specific model
     list             List available models
+    present          List installed models
     update           Update all installed models
 
 Examples:
     mcli model download llama2-7b
     mcli model list
+    mcli model present
     mcli model update
 "@
         }
@@ -142,8 +162,29 @@ switch ($command) {
                 & "$PSScriptRoot\download-models.ps1" $modelArgs[0]
             }
             "list" {
+                $modelsMap = Get-ModelsMap
+                if ($null -eq $modelsMap) { return }
+            
                 Write-Host "Available models:"
-                Get-Content "$PSScriptRoot\models_map.txt" | Where-Object { $_ -notmatch '^\s*#' -and $_ -notmatch '^\s*$' }
+                $modelsMap.Keys | Sort-Object | ForEach-Object {
+                    Write-Host "- $_"
+                }
+            }
+            "present" {
+                Write-Host "Downloaded models:"
+                Write-Host "Models path: $modelsPath"
+                $downloadedModels = Get-ChildItem -Path $modelsPath -Filter "*.gguf" | 
+                    Select-Object -ExpandProperty Name |
+                    ForEach-Object { $_ -replace '\.gguf$','' }
+                
+                if ($downloadedModels.Count -eq 0) {
+                    Write-Host "No models found in $modelsPath"
+                } 
+                else {
+                    $downloadedModels | Sort-Object | ForEach-Object {
+                        Write-Host "- $_"
+                    }
+                }
             }
             "update" {
                 Write-Host "Updating all installed models..."
@@ -171,3 +212,4 @@ switch ($command) {
         }
     }
 }
+
