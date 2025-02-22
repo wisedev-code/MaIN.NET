@@ -449,8 +449,8 @@ internal static class KernelMemFix
             ContextSize = new uint?(config.ContextSize.GetValueOrDefault(2048U)),
             GpuLayerCount = config.GpuLayerCount.GetValueOrDefault(20),
             //Embeddings = true,
-            MainGpu = config.MainGpu,
-            SplitMode = new GPUSplitMode?(config.SplitMode)
+            //MainGpu = config.MainGpu,
+            //SplitMode = new GPUSplitMode?(config.SplitMode)
         };
 
         // Load the second model with caching.
