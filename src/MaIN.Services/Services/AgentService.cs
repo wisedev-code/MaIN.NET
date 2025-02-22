@@ -28,13 +28,15 @@ public class AgentService : IAgentService
         IChatRepository chatRepository,
         ILogger<AgentService> logger,
         INotificationService notificationService,
-        IStepProcessor stepProcessor)
+        IStepProcessor stepProcessor, 
+        ILLMService llmService)
     {
         _agentRepository = agentRepository;
         _chatRepository = chatRepository;
         _logger = logger;
         _notificationService = notificationService;
         _stepProcessor = stepProcessor;
+        _llmService = llmService;
     }
 
     public async Task<Chat> Process(Chat chat, string agentId, bool translatePrompt = false)

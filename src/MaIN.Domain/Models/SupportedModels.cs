@@ -11,7 +11,7 @@ public struct Model
 
 public struct KnownModels
 {
-    internal static Dictionary<string, Model> Models => new()
+    internal static Dictionary<string, Model> Models => new(StringComparer.OrdinalIgnoreCase)
     {
         {
             KnownModelNames.Gemma2_2b, new Model()
@@ -130,7 +130,19 @@ public struct KnownModels
         }
 
         throw new Exception($"Model {fileName} is not downloaded");
-    } 
+    }
+
+    public static void AddModel(string model, string path)
+    {
+        Models.Add(model, new Model()
+        {
+            Description = string.Empty,
+            DownloadUrl = string.Empty,
+            Name = model,
+            FileName = $"{Path.GetFileName(path)}",
+            Path = path
+        });
+    }
 }
 
 public struct KnownModelNames

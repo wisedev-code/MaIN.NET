@@ -1,6 +1,7 @@
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
 using MaIN.Domain.Entities.Agents.AgentSource;
+using MaIN.Domain.Models;
 using MaIN.Services.Mappers;
 using MaIN.Services.Models;
 using MaIN.Services.Models.Ollama;
@@ -63,7 +64,7 @@ public class AgentContext
         };
         return this;
     }
-
+    
     public AgentContext WithName(string name)
     {
         _agent.Name = name;
@@ -76,6 +77,14 @@ public class AgentContext
         return this;
     }
 
+    public AgentContext WithCustomModel(string model, string path)
+    {
+        KnownModels.AddModel(model, path);
+        _agent.Model = model;
+        return this;
+    }
+
+    
     public AgentContext WithInitialPrompt(string prompt)
     {
         _agent.Context.Instruction = prompt;
@@ -96,7 +105,6 @@ public class AgentContext
         return this;
     }
 
-    // Creation and Processing
     public async Task<AgentContext> CreateAsync(bool flow = false, bool interactiveResponse = false)
     {
         await _agentService.CreateAgent(_agent, flow, interactiveResponse);
@@ -157,7 +165,6 @@ public class AgentContext
         };
     }
 
-    // Chat Operations
     public async Task<Chat> GetChat()
     {
         return await _agentService.GetChatByAgent(_agent.Id);
@@ -168,7 +175,6 @@ public class AgentContext
         return await _agentService.Restart(_agent.Id);
     }
 
-    // Agent Management
     public async Task<List<Agent>> GetAllAgents()
     {
         return await _agentService.GetAgents();
@@ -184,7 +190,6 @@ public class AgentContext
         return await _agentService.AgentExists(_agent.Id);
     }
 
-    // Static factory methods
     public static async Task<AgentContext> FromExisting(IAgentService agentService, string agentId)
     {
         var existingAgent = await agentService.GetAgentById(agentId);
