@@ -10,7 +10,7 @@ public class AgentDocument
     public string Model { get; set; }
     public string? Description { get; set; }
     public bool Started { get; set; }
-    public AgentContextDocument Context { get; set; }
+    public AgentContextDocument? Context { get; set; }
     public string ChatId { get; set; } = null!;
     public int Order { get; set; }
     public Dictionary<string, string> Behaviours { get; set; }

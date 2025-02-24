@@ -1,4 +1,4 @@
-namespace MaIN.Models.Rag;
+namespace MaIN.Services.Models.Rag.AgentSource;
 
 public class AgentSourceDto
 {

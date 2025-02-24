@@ -38,7 +38,7 @@ public static class ChatMapper
             }) as FileInfoDto[]
         };
 
-    public static Chat? ToDomain(this ChatDto chat)
+    public static Chat ToDomain(this ChatDto chat)
         => new Chat()
         {
             Id = chat.Id,
@@ -79,7 +79,7 @@ public static class ChatMapper
             Files = message.Files?.Select(x => x.Content).ToArray() ?? []
         };
 
-    public static ChatDocument ToDocument(this Chat? chat)
+    public static ChatDocument ToDocument(this Chat chat)
         => new ChatDocument()
         {
             Id = chat.Id,
@@ -89,6 +89,8 @@ public static class ChatMapper
             Visual = chat.Visual,
             Properties = chat.Properties,
             Stream = chat.Stream,
+            Interactive = chat.Interactive,
+            Translate = chat.Translate,
             Type = Enum.Parse<ChatTypeDocument>(chat.Type.ToString())
         };
 
@@ -102,6 +104,8 @@ public static class ChatMapper
             Visual = chat.Visual,
             Stream = chat.Stream,
             Properties = chat.Properties,
+            Interactive = chat.Interactive,
+            Translate = chat.Translate,
             Type = Enum.Parse<ChatType>(chat.Type.ToString())
         };
 

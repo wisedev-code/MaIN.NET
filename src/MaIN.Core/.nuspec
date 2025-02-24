@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<package>
+  <metadata>
+    <id>MaIN</id>
+    <version>0.0.4-alpha</version>
+    <authors>Wisedev</authors>
+    <owners>Wisedev</owners>
+    <description>Pihotron12</description>
+    <license type="expression">MIT</license>
+    <projectUrl>https://github.com/wisedev-code/M.A.I.N</projectUrl>
+    <repository url="https://github.com/wisedev-code/M.A.I.N" type="git" />
+    <dependencies>
+      <dependency id="Microsoft.Extensions.DependencyInjection.Abstractions" version="9.0.1" />
+      <dependency id="GTranslate" version="2.2.0" />
+      <dependency id="HtmlAgilityPack" version="1.11.72" />
+      <dependency id="LLamaSharp" version="0.21.0" />
+      <dependency id="LLamaSharp.Backend.Cuda12" version="0.21.0" />
+      <dependency id="LLamaSharp.kernel-memory" version="0.21.0" />
+      <dependency id="Microsoft.Extensions.Http" version="9.0.1" />
+      <dependency id="Microsoft.KernelMemory" version="0.96.250120.1" />
+      <dependency id="Microsoft.SemanticKernel" version="1.30.0" />
+      <dependency id="Microsoft.SemanticKernel.Plugins.Memory" version="1.30.0-alpha" />
+      <dependency id="System.Data.SqlClient" version="4.8.6" />
+      <dependency id="Tesseract" version="5.2.0" />
+      <dependency id="Tesseract.Data.English" version="4.0.0" />
+    </dependencies>
+  </metadata>
+  <files>
+    <!-- Include the main DLL -->
+    <file src="bin\Release\net8.0\MaIN.Core.dll" target="lib\net8.0" />
+    
+    <!-- Include DLLs from dependent projects -->
+    <file src="..\MaIN.Services\bin\Release\net8.0\MaIN.Services.dll" target="lib\net8.0" />
+    <file src="..\MaIN.Domain\bin\Release\net8.0\MaIN.Domain.dll" target="lib\net8.0" />
+    <file src="..\MaIN.Infrastructure\bin\Release\net8.0\MaIN.Infrastructure.dll" target="lib\net8.0" />
+  </files>
+</package>

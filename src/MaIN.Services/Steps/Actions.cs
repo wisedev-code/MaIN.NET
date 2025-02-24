@@ -5,6 +5,7 @@ using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents.AgentSource;
 using MaIN.Domain.Entities.Agents.Commands;
 using MaIN.Services.Mappers;
+using MaIN.Services.Models;
 using MaIN.Services.Models.Ollama;
 using MaIN.Services.Services;
 using MaIN.Services.Services.Abstract;
@@ -160,7 +161,7 @@ public static class Actions
                     {
                         result = answerCommand.Chat!.Visual
                             ? await imageGenService.Send(answerCommand.Chat)
-                            : await llmService.Send(answerCommand.Chat);
+                            : await llmService.Send(answerCommand.Chat, interactiveUpdates: answerCommand.Chat.Interactive);
                     }
 
                     return result!.Message.ToDomain();
@@ -238,11 +239,10 @@ public static class Actions
     private static async Task<string> FetchApiData(object? details, string? filter,
         IHttpClientFactory httpClientFactory, Dictionary<string, string> properties)
     {
-        var apiDetails = JsonSerializer.Deserialize<AgentApiSourceDetails>(details.ToString(),
-            new JsonSerializerOptions()
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            });
+        var apiDetails = JsonSerializer.Deserialize<AgentApiSourceDetails>(details.ToString(), new JsonSerializerOptions()
+        {
+            PropertyNameCaseInsensitive = true,
+        });
         var httpClient = httpClientFactory.CreateClient();
         apiDetails!.Payload = apiDetails.Payload?.Replace("@filter@", filter);
         apiDetails.Query = apiDetails.Query?.Replace("@filter@", filter);

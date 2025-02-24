@@ -28,16 +28,18 @@ public class AgentService : IAgentService
         IChatRepository chatRepository,
         ILogger<AgentService> logger,
         INotificationService notificationService,
-        IStepProcessor stepProcessor)
+        IStepProcessor stepProcessor, 
+        ILLMService llmService)
     {
         _agentRepository = agentRepository;
         _chatRepository = chatRepository;
         _logger = logger;
         _notificationService = notificationService;
         _stepProcessor = stepProcessor;
+        _llmService = llmService;
     }
 
-    public async Task<Chat?> Process(Chat? chat, string agentId, bool translatePrompt = false)
+    public async Task<Chat> Process(Chat chat, string agentId, bool translatePrompt = false)
     {
         var agent = await _agentRepository.GetAgentById(agentId);
         if (agent == null) throw new ArgumentException("Agent not found.");
@@ -76,7 +78,7 @@ public class AgentService : IAgentService
         }
     }
 
-    public async Task<Agent> CreateAgent(Agent agent, bool flow = false)
+    public async Task<Agent> CreateAgent(Agent agent, bool flow = false, bool interactiveResponse = false)
     {
         var chat = new Chat
         {
@@ -86,6 +88,7 @@ public class AgentService : IAgentService
             Visual = agent.Model == ImageGenService.Models.FLUX,
             Stream = false,
             Messages = new List<Message>(),
+            Interactive = interactiveResponse,
             Type = flow ? ChatType.Flow : ChatType.Rag,
         };
 

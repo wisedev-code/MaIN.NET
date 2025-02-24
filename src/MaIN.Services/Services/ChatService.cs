@@ -1,6 +1,7 @@
 using MaIN.Domain.Entities;
 using MaIN.Infrastructure.Repositories.Abstract;
 using MaIN.Services.Mappers;
+using MaIN.Services.Models;
 using MaIN.Services.Models.Ollama;
 using MaIN.Services.Services.Abstract;
 
@@ -12,32 +13,25 @@ public class ChatService(
     ILLMService llmService,
     IImageGenService imageGenService) : IChatService
 {
-    public async Task Create(Chat? chat)
+    public async Task Create(Chat chat)
     {
         chat.Type = ChatType.Conversation;
         await chatProvider.AddChat(chat.ToDocument());
     }
 
-    public async Task<ChatResult> Completions(Chat? chat, bool translate = false, bool interactiveUpdates = false)
+    public async Task<ChatResult> Completions(Chat chat, bool translate = false, bool interactiveUpdates = false)
     {
-        if (chat?.Model == ImageGenService.Models.FLUX)
+        if (chat.Model == ImageGenService.Models.FLUX)
         {
             chat.Visual = true;
         }
         
-        var newMsg = chat.Messages.Last();
+        translate = translate || chat.Translate;
+        interactiveUpdates = interactiveUpdates || chat.Interactive;
+        var newMsg = chat.Messages!.Last();
         newMsg.Time = DateTime.Now;
         var lng = await translatorService.DetectLanguage(newMsg.Content);
-        if (newMsg.Files is not null && newMsg.Files.Count > 0)
-        {
-            chat.Messages.AddRange(newMsg.Files.Select(
-                (file) => new Message()
-                {
-                    Role = "User",
-                    Tool = true,
-                    Content = $"This is content of attached file. You can see its name and extension, by that you also should be able guess its purpose. You should know its content and provide answers to users questions. Attached File {file.Name} with extension: {file.Extension} and content: {file.Content}"
-                }));
-        }
+
         var originalMessages = chat.Messages;
 
         if (translate)
