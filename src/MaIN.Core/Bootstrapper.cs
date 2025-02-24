@@ -1,6 +1,7 @@
 using MaIN.Core.Hub;
 using MaIN.Core.Interfaces;
 using MaIN.Core.Services;
+using MaIN.Domain.Configuration;
 using MaIN.Services;
 using MaIN.Services.Services;
 using MaIN.Services.Services.Abstract;
@@ -14,9 +15,10 @@ public static class Bootstrapper
 {
     public static IServiceCollection AddMaIN(
         this IServiceCollection services,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        Action<MaINSettings>? configureSettings = null)
     {
-        services.ConfigureMaIN(configuration);
+        services.ConfigureMaIN(configuration, configureSettings);
         services.AddAIHub();
         return services;
     }

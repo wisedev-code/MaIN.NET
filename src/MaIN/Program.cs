@@ -52,7 +52,6 @@ var agents = JsonSerializer.Deserialize<List<AgentDto>>(File.ReadAllText("./init
     PropertyNamingPolicy = JsonNamingPolicy.CamelCase
 });
 
-
 app.MapPost("/api/agents/{agentId}/process", async (HttpContext context,
     [FromServices] IAgentService agentService,
     string agentId,
