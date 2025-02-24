@@ -12,9 +12,19 @@ namespace MaIN.Services;
 
 public static class Bootstrapper
 {
-    public static IServiceCollection ConfigureMaIN(this IServiceCollection serviceCollection, IConfiguration configuration)
+    public static IServiceCollection ConfigureMaIN(
+        this IServiceCollection serviceCollection,
+        IConfiguration configuration,
+        Action<MaINSettings>? configureSettings = null)
     {
-        serviceCollection.Configure<MaINSettings>(configuration.GetSection(MainSectionName));
+        // Load settings from configuration
+        var settings = configuration.GetSection(MainSectionName).Get<MaINSettings>() ?? new MaINSettings();
+        
+        // Apply additional configuration if provided
+        configureSettings?.Invoke(settings);
+
+        // Register the updated settings
+        serviceCollection.AddSingleton(settings);
         
         serviceCollection.AddSingleton<IChatService, ChatService>();
         serviceCollection.AddSingleton<IAgentService, AgentService>();
