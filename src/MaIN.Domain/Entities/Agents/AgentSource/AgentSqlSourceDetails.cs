@@ -1,6 +1,6 @@
 namespace MaIN.Domain.Entities.Agents.AgentSource;
 
-public class AgentSqlSourceDetails
+public class AgentSqlSourceDetails : IAgentSource
 {
     public string ConnectionString { get; set; }
     public string Table { get; set; }

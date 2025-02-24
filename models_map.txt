@@ -1,0 +1,9 @@
+gemma2-2b-maIN|https://huggingface.co/Inza124/gemma2_2b/resolve/main/gemma2-2b-maIN.gguf?download=true
+Nomic-maIN|https://huggingface.co/Inza124/Nomic/resolve/main/Nomic-maIN.gguf?download=true
+phi3.5-maIN|https://huggingface.co/Inza124/phi3.5/resolve/main/phi3.5-maIN.gguf?download=true
+Llama3.2-maIN|https://huggingface.co/Inza124/Llama3.2_3b/resolve/main/Llama3.2-maIN.gguf?download=true
+Llava-maIN|https://huggingface.co/Inza124/Llava/resolve/main/Llava-maIN.gguf?download=true
+Llama3.1-maIN|https://huggingface.co/Inza124/Llama3.1_8b/resolve/main/Llama3.1-maIN.gguf?download=true
+Qwen2.5-maIN|https://huggingface.co/Inza124/Qwen2.5/resolve/main/Qwen2.5-maIN.gguf?download=true
+DeepSeekR1-8b-maIN|https://huggingface.co/Inza124/DeepseekR1-8b/resolve/main/DeepSeekR1-8b-maIN.gguf?download=true
+Fox-1.6b-maIN|https://huggingface.co/Inza124/Fox/resolve/main/Fox-1.6b-maIN.gguf?download=true

@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
+using MaIN.Services.Models.Rag.AgentSource;
 
-namespace MaIN.Models.Rag;
+namespace MaIN.Services.Models.Rag;
 
 public class AgentContextDto
 {

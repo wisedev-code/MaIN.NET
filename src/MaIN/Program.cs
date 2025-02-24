@@ -8,6 +8,7 @@ using MaIN.Services;
 using MaIN.Services.Configuration;
 using MaIN.Services.Mappers;
 using MaIN.Services.Models;
+using MaIN.Services.Models.Rag;
 using MaIN.Services.Services;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Steps;
@@ -34,21 +35,13 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.ConfigureMaIN(builder.Configuration);
-builder.Services.ConfigureInfrastructure(builder.Configuration);
 builder.Services.AddSingleton<INotificationService, SignalRNotificationService>();
 var app = builder.Build();
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
+app.UseSwagger();
+app.UseSwaggerUI();
 app.UseHttpsRedirection();
 app.UseCors("AllowFE");
 app.MapHub<NotificationHub>("/diagnostics");
-
 
 //Initialize agents flow
 app.Services.InitializeAgents();
@@ -58,7 +51,6 @@ var agents = JsonSerializer.Deserialize<List<AgentDto>>(File.ReadAllText("./init
 {
     PropertyNamingPolicy = JsonNamingPolicy.CamelCase
 });
-
 
 app.MapPost("/api/agents/{agentId}/process", async (HttpContext context,
     [FromServices] IAgentService agentService,

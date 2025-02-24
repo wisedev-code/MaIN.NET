@@ -1,153 +1,82 @@
+param(
+    [Parameter(ValueFromRemainingArguments=$true)]
+    [string[]]$arguments
+)
+
 # Initialize variables
 $hard = $false
 $models = @()
-$noInfra = $false
-$infraOnly = $false
-$noImageGen = $false  # New variable for --no-image-gen
+$noApi = $false
+$apiOnly = $false
+$noImageGen = $false
+$noModels = $false
 
-# Manually parse the command-line arguments for double-dash parameters
-foreach ($arg in $args) {
+# Parse command-line arguments
+# First, ensure arguments are split properly if they came as a single string
+if ($arguments.Count -eq 1) {
+    $arguments = $arguments[0] -split '\s+(?=--)'
+}
+
+foreach ($arg in $arguments) {
+    Write-Host "Processing argument: $arg" # Debug line
+    
     if ($arg -eq '--hard') {
         $hard = $true
-    } elseif ($arg -like '--models=*') {
-        # Extract the models from the argument
-        $modelsString = $arg -replace '--models=', ''
-        # Split the models string into an array, assuming comma-separated models
-        $models = $modelsString -split ','
-    } elseif ($arg -eq '--no-infra') {
-        $noInfra = $true
-    } elseif ($arg -eq '--infra-only') {
-        $infraOnly = $true
-    } elseif ($arg -eq '--no-image-gen') {
-        $noImageGen = $true  # Set the flag for --no-image-gen
+    }
+    elseif ($arg -match '^--models=(.+)$') {
+        $models = $matches[1] -split ','
+    }
+    elseif ($arg -eq '--no-api') {
+        $noApi = $true
+    }
+    elseif ($arg -eq '--api-only') {
+        $apiOnly = $true
+    }
+    elseif ($arg -eq '--no-image-gen') {
+        $noImageGen = $true
+    }
+    elseif ($arg -eq '--no-models') {
+        $noModels = $true
+    }
+    elseif ($arg.Trim()) {
+        Write-Host "Warning: Unknown argument '$arg'" -ForegroundColor Yellow
     }
 }
 
-# Run infrastructure-related tasks only if --no-infra is not provided or if --infra-only is provided
-if (-not $noInfra -or $infraOnly) {
-    # Determine models to pull: from parameter if provided, otherwise from file
-    if ($models.Count -gt 0) {
-        Write-Host "Using provided models list..."
-    } else {
-        Write-Host "No models provided as parameter, reading from .models file..."
-        $models = Get-Content ".models"
-    }
+# Show parsed arguments for debugging
+Write-Host "Parsed arguments:"
+Write-Host "Hard: $hard"
+Write-Host "Models: $($models -join ', ')"
+Write-Host "No API: $noApi"
+Write-Host "API Only: $apiOnly"
+Write-Host "No Image Gen: $noImageGen"
+Write-Host "No Models: $noModels"
 
-    # Pull each model, ignoring comments if reading from file
-    foreach ($model in $models) {
-        # Ignore lines that are empty or start with '#' if reading from file
-        if ($model.Trim() -eq "" -or $model.Trim().StartsWith("#")) {
-            continue
-        }
-
-        Write-Host "Pulling model: $model"
-        ollama pull $model
-    }
-
-
-    # Install Python and run Image Gen API if --no-image-gen is not provided
-    if (-not $noImageGen) {
-        $pythonVersion = "3.9.13"
-        $pythonInstallerUrl = "https://www.python.org/ftp/python/$pythonVersion/python-$pythonVersion-amd64.exe"
-        $installerPath = "$env:TEMP\python-$pythonVersion-installer.exe"
-
-        # Check if Python 3.9 is already installed
-        $python = Get-Command python -ErrorAction SilentlyContinue
-        if (-not $python) {
-            Write-Host "Downloading Python $pythonVersion..."
-
-            # Download the Python installer
-            Invoke-WebRequest $pythonInstallerUrl -OutFile $installerPath
-
-            # Install Python 3.9 silently, add to PATH, and ensure pip is installed
-            Write-Host "Installing Python $pythonVersion..."
-            Start-Process $installerPath -ArgumentList '/quiet InstallAllUsers=1 PrependPath=1 Include_pip=1' -Wait
-
-            # Clean up the installer
-            Remove-Item $installerPath
-
-            # Manually add Python to PATH if not automatically set
-            $pythonPath = [System.IO.Path]::Combine("C:\Program Files\Python39", "python.exe")
-            if (-not (Test-Path $pythonPath)) {
-                $pythonPath = [System.IO.Path]::Combine("C:\Program Files (x86)\Python39", "python.exe")
-            }
-
-            if (-not (Test-Path $pythonPath)) {
-                Write-Host "Python installation path not found. Please check the installation."
-                exit 1
-            }
-
-            # Check if the path is already in the PATH environment variable
-            $currentPath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
-            if ($currentPath -notlike "*Python39*") {
-                Write-Host "Adding Python to the PATH manually..."
-                [System.Environment]::SetEnvironmentVariable("Path", "$currentPath;$($pythonPath -replace 'python.exe', '')", "Machine")
-            }
-
-            # Refresh PATH environment variable for the current session
-            $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+# Run setup tasks unless --api-only is provided
+if (-not $apiOnly) {
+    # Handle model downloads unless --no-models is specified
+    if (-not $noModels) {
+        Write-Host "Starting model downloads..."
+        if ($models.Count -gt 0) {
+            & "$PSScriptRoot\download-models.ps1" -models $models
         } else {
-            Write-Host "Python is already installed."
+            & "$PSScriptRoot\download-models.ps1"
         }
+    }
 
-        # Verify Python and pip installation
-        Write-Host "Verifying Python installation..."
-        python --version
-        pip --version
-
-        # Install packages from requirements.txt
-        Write-Host "Installing dependencies from requirements.txt..."
-        pip install --default-timeout=900 -r "./ImageGen/requirements.txt"
-
-        Start-Sleep -Seconds 5
-
-        # Conditionally run the image generation API based on --no-image-gen
-        Write-Host "Running image gen API"
-        Start-Process -FilePath "python" -ArgumentList "./ImageGen/main.py" -NoNewWindow -PassThru
-        Start-Sleep -Seconds 100
-    } else {
-        Write-Host "--no-image-gen flag provided, skipping image generation API..."
+    # Handle Image Generation API unless --no-image-gen is specified
+    if (-not $noImageGen) {
+        Write-Host "Starting Image Generation API as a background job..."
+        Start-Process -FilePath "powershell.exe" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSScriptRoot\start-image-gen.ps1`"" -NoNewWindow
     }
 }
 
-# Run Docker-related tasks only if --infra-only is not provided
-if (-not $infraOnly) {
-    # Stop and remove Docker containers, networks, images (and volumes if --hard is provided)
+# Start API unless --no-api is specified
+if (-not $noApi) {
+    Write-Host "Starting main API..."
     if ($hard) {
-        Write-Host "Stopping and removing Docker containers, networks, images, and volumes..."
-        docker-compose down -v
+        & "$PSScriptRoot\start-api.ps1" -hard
     } else {
-        Write-Host "Stopping and removing Docker containers, networks, and images (volumes retained)..."
-        docker-compose down
+        & "$PSScriptRoot\start-api.ps1"
     }
-
-    # Start Docker containers in detached mode
-    Write-Host "Starting Docker containers in detached mode..."
-    docker-compose up -d
-
-    # Wait for 5 seconds to ensure the containers are up and running
-    Write-Host "Waiting for 5 seconds to ensure the containers are up and running..."
-    Start-Sleep -Seconds 5
-
-    Write-Host "
-MMMMMMMM               MMMMMMMM                       AAA                       IIIIIIIIII        NNNNNNNN        NNNNNNNN
-M:::::::M             M:::::::M                      A:::A                      I::::::::I        N:::::::N       N::::::N
-M::::::::M           M::::::::M                     A:::::A                     I::::::::I        N::::::::N      N::::::N
-M:::::::::M         M:::::::::M                    A:::::::A                    II::::::II        N:::::::::N     N::::::N
-M::::::::::M       M::::::::::M                   A:::::::::A                     I::::I          N::::::::::N    N::::::N
-M:::::::::::M     M:::::::::::M                  A:::::A:::::A                    I::::I          N:::::::::::N   N::::::N
-M:::::::M::::M   M::::M:::::::M                 A:::::A A:::::A                   I::::I          N:::::::N::::N  N::::::N
-M::::::M M::::M M::::M M::::::M                A:::::A   A:::::A                  I::::I          N::::::N N::::N N::::::N
-M::::::M  M::::M::::M  M::::::M               A:::::A     A:::::A                 I::::I          N::::::N  N::::N:::::::N
-M::::::M   M:::::::M   M::::::M              A:::::AAAAAAAAA:::::A                I::::I          N::::::N   N:::::::::::N
-M::::::M    M:::::M    M::::::M             A:::::::::::::::::::::A               I::::I          N::::::N    N::::::::::N
-M::::::M     MMMMM     M::::::M            A:::::AAAAAAAAAAAAA:::::A              I::::I          N::::::N     N:::::::::N
-M::::::M               M::::::M           A:::::A             A:::::A           II::::::II        N::::::N      N::::::::N
-M::::::M               M::::::M ......   A:::::A               A:::::A   ...... I::::::::I ...... N::::::N       N:::::::N
-M::::::M               M::::::M .::::.  A:::::A                 A:::::A  .::::. I::::::::I .::::. N::::::N        N::::::N
-MMMMMMMM               MMMMMMMM ...... AAAAAAA                   AAAAAAA ...... IIIIIIIIII ...... NNNNNNNN         NNNNNNN
-"
-
-    # Wait for all background jobs to complete
-    Write-Host "Listening on http://localhost:5001 - happy travels"
 }

@@ -1,6 +1,6 @@
 namespace MaIN.Domain.Entities.Agents.AgentSource;
 
-public class AgentApiSourceDetails : AgentSourceDetailsBase
+public class AgentApiSourceDetails : AgentSourceDetailsBase, IAgentSource
 {
     public string Url { get; set; }
     public string Method { get; set; }

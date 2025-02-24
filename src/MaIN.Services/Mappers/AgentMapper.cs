@@ -3,6 +3,8 @@ using MaIN.Domain.Entities.Agents;
 using MaIN.Domain.Entities.Agents.AgentSource;
 using MaIN.Infrastructure.Models;
 using MaIN.Models.Rag;
+using MaIN.Services.Models.Rag;
+using MaIN.Services.Models.Rag.AgentSource;
 
 namespace MaIN.Services.Mappers;
 
@@ -23,7 +25,7 @@ public static class AgentMapper
             Context = agent.Context.ToDto()
         };
 
-    public static AgentContextDto ToDto(this AgentContext agentContext)
+    public static AgentContextDto ToDto(this AgentData agentContext)
         => new()
         {
             Instruction = agentContext.Instruction,
@@ -52,7 +54,7 @@ public static class AgentMapper
             Context = agent.Context.ToDomain()
         };
 
-    public static AgentContext ToDomain(this AgentContextDto agentContextDto)
+    public static AgentData ToDomain(this AgentContextDto agentContextDto)
         => new()
         {
             Instruction = agentContextDto.Instruction,
@@ -78,7 +80,7 @@ public static class AgentMapper
         };
     }
 
-    public static AgentContextDocument ToDocument(this AgentContext context)
+    public static AgentContextDocument ToDocument(this AgentData context)
         => new()
         {
             Instruction = context.Instruction,
@@ -122,7 +124,7 @@ public static class AgentMapper
             Context = agent.Context.ToDomain()
         };
 
-    public static AgentContext ToDomain(this AgentContextDocument agentContextDocument)
+    public static AgentData ToDomain(this AgentContextDocument agentContextDocument)
         => new()
         {
             Instruction = agentContextDocument.Instruction,
