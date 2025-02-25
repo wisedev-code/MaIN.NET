@@ -27,7 +27,7 @@ public class LLMService(IOptions<MaINSettings> options, INotificationService not
     private static readonly ConcurrentDictionary<string, LLamaWeights> modelCache = new();
     private static readonly ConcurrentDictionary<string, ChatSession> sessionCache = new(); // Cache for chat sessions
 
-    public async Task<ChatResult?> Send(Chat chat, bool interactiveUpdates = false, bool newSession = false)
+    public async Task<ChatResult?> Send(Chat? chat, bool interactiveUpdates = false, bool newSession = false)
     {
         if (chat == null || chat.Messages == null || !chat.Messages.Any())
             return null;
@@ -137,7 +137,7 @@ public class LLMService(IOptions<MaINSettings> options, INotificationService not
         return chatResult;
     }
 
-    private async Task<ChatResult>? HandleImageInterpreter(Chat chat)
+    private async Task<ChatResult>? HandleImageInterpreter(Chat? chat)
     {
         var path = options.Value.ModelsPath ?? Environment.GetEnvironmentVariable(DefaultModelEnvPath);
         var modelConfig = KnownModels.GetModel(path, chat.Model);
@@ -206,7 +206,7 @@ public class LLMService(IOptions<MaINSettings> options, INotificationService not
     }
 
     [Experimental("SKEXP0001")]
-    public async Task<ChatResult?> AskMemory(Chat chat,
+    public async Task<ChatResult?> AskMemory(Chat? chat,
         Dictionary<string, string>? textData = null,
         Dictionary<string, string>? fileData = null,
         List<string>? memory = null)

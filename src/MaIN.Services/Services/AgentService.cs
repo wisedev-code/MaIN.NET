@@ -39,7 +39,7 @@ public class AgentService : IAgentService
         _llmService = llmService;
     }
 
-    public async Task<Chat> Process(Chat chat, string agentId, bool translatePrompt = false)
+    public async Task<Chat?> Process(Chat? chat, string agentId, bool translatePrompt = false)
     {
         var agent = await _agentRepository.GetAgentById(agentId);
         if (agent == null) throw new ArgumentException("Agent not found.");
@@ -115,14 +115,14 @@ public class AgentService : IAgentService
         return agent;
     }
 
-    public async Task<Chat> GetChatByAgent(string agentId)
+    public async Task<Chat?> GetChatByAgent(string agentId)
     {
         var agent = await _agentRepository.GetAgentById(agentId);
         var chat = await _chatRepository.GetChatById(agent.ChatId);
         return chat.ToDomain();
     }
 
-    public async Task<Chat> Restart(string agentId)
+    public async Task<Chat?> Restart(string agentId)
     {
         var agent = await _agentRepository.GetAgentById(agentId);
         var chat = (await _chatRepository.GetChatById(agent?.ChatId!)).ToDomain();

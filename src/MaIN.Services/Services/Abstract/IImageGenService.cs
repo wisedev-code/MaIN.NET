@@ -7,6 +7,6 @@ namespace MaIN.Services.Services.Abstract;
 
 public interface IImageGenService //TODO generalize with IOllamaService
 {
-    Task<ChatResult?> Send(Chat chat);
+    Task<ChatResult?> Send(Chat? chat);
     Task<List<string>> GetCurrentModels();
 }

@@ -138,7 +138,7 @@ public class FlowContext
     }
     
     
-    public async Task<ChatResult> ProcessAsync(Chat chat, bool translate = false)
+    public async Task<ChatResult> ProcessAsync(Chat? chat, bool translate = false)
     {
         var result = await _agentService.Process(chat, _firstAgent!.Id, translate);
         var message = result!.Messages!.LastOrDefault()!.ToDto();

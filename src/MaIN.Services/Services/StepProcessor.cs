@@ -23,10 +23,10 @@ public class StepProcessor : IStepProcessor
         }
     }
 
-    public async Task<Chat> ProcessSteps(
+    public async Task<Chat?> ProcessSteps(
         AgentContextDocument context,
         AgentDocument agent,
-        Chat chat,
+        Chat? chat,
         Func<string, string, string?, string, Task> notifyProgress,
         Func<Chat, Task> updateChat,
         ILogger logger)

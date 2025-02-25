@@ -117,7 +117,7 @@ public class AgentContext
         return this;
     }
     
-    public async Task<ChatResult> ProcessAsync(Chat chat, bool translate = false)
+    public async Task<ChatResult> ProcessAsync(Chat? chat, bool translate = false)
     {
         var result = await _agentService.Process(chat, _agent.Id, translate);
         var message = result!.Messages!.LastOrDefault()!.ToDto();
@@ -165,12 +165,12 @@ public class AgentContext
         };
     }
 
-    public async Task<Chat> GetChat()
+    public async Task<Chat?> GetChat()
     {
         return await _agentService.GetChatByAgent(_agent.Id);
     }
 
-    public async Task<Chat> RestartChat()
+    public async Task<Chat?> RestartChat()
     {
         return await _agentService.Restart(_agent.Id);
     }
