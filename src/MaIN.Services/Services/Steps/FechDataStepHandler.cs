@@ -90,7 +90,7 @@ public class FetchDataStepHandler(ILLMService llmService) : IStepHandler
         context.Chat.Messages?.Add(newMessage.ToDomain());
     }
 
-    private static Chat GetMemoryChat(StepContext context, string? filterVal)
+    private static Chat? GetMemoryChat(StepContext context, string? filterVal)
     {
         var memoryChat = new Chat()
         {

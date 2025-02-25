@@ -66,6 +66,6 @@ app.UseSwaggerUI(options =>
 app.Run();
 
 // Request DTOs
-record ChatRequest(Chat Chat, bool InteractiveUpdates = false, bool NewSession = false);
+record ChatRequest(Chat? Chat, bool InteractiveUpdates = false, bool NewSession = false);
 
-record AskMemoryRequest(Chat Chat, Dictionary<string,string>? TextData = null, Dictionary<string,string>? FileData = null, List<string>? Memory = null);
+record AskMemoryRequest(Chat? Chat, Dictionary<string,string>? TextData = null, Dictionary<string,string>? FileData = null, List<string>? Memory = null);

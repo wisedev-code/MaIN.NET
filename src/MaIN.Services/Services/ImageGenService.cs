@@ -13,7 +13,7 @@ public class ImageGenService(
     IHttpClientFactory httpClientFactory,
     IOptions<MaINSettings> options) : IImageGenService
 {
-    public async Task<ChatResult?> Send(Chat chat)
+    public async Task<ChatResult?> Send(Chat? chat)
     {
         using var client = httpClientFactory.CreateClient();
         client.Timeout = TimeSpan.FromMinutes(5);
