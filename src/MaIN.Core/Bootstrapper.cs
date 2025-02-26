@@ -70,3 +70,42 @@ public static class Bootstrapper
         return services;
     }
 }
+
+public static class MaINBootstrapper
+{
+    private static IServiceProvider? _serviceProvider;
+
+    /// <summary>
+    /// Initializes the dependency injection container and registers all services.
+    /// </summary>
+    /// <param name="configuration">The application configuration.</param>
+    /// <param name="configureSettings">Optional settings configuration.</param>
+    public static void Initialize(IConfiguration? configuration = null, Action<MaINSettings>? configureSettings = null)
+    {
+        // Create a new ServiceCollection
+        var services = new ServiceCollection();
+
+        // Build configuration if not provided
+        if (configuration == null)
+        {
+            var basePath = Directory.GetCurrentDirectory();
+            configuration = new ConfigurationBuilder()
+                .SetBasePath(basePath)
+                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+                .AddEnvironmentVariables()
+                .Build();
+
+
+            // Use your existing extension method to register the MaIN services
+            services.AddMaIN(configuration, configureSettings);
+
+            // Build the service provider
+            _serviceProvider = services.BuildServiceProvider();
+
+            // This call ensures that any initialization steps are performed (e.g. initializing agents)
+            _serviceProvider.UseMaIN();
+
+            Console.WriteLine("AIHub Initialized Successfully");
+        }
+    }
+}
