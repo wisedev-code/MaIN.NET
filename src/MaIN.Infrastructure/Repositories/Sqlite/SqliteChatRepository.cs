@@ -24,6 +24,9 @@ public class SqliteChatRepository(IDbConnection connection) : IChatRepository
             Type = row.Type != null ? 
                 JsonSerializer.Deserialize<ChatTypeDocument>(row.Type, _jsonOptions) : 
                 default,
+            InferenceParams = row.Type != null ? 
+                JsonSerializer.Deserialize<InferenceParamsDocument>(row.InferenceParams, _jsonOptions) : 
+                default,
             Properties = row.Properties != null ? 
                 JsonSerializer.Deserialize<Dictionary<string, string>>(row.Properties, _jsonOptions) : 
                 new Dictionary<string, string>(),
@@ -41,6 +44,7 @@ public class SqliteChatRepository(IDbConnection connection) : IChatRepository
             chat.Name,
             chat.Model,
             Messages = JsonSerializer.Serialize(chat.Messages, _jsonOptions),
+            InferenceParams = JsonSerializer.Serialize(chat.InferenceParams, _jsonOptions),
             Type = JsonSerializer.Serialize(chat.Type, _jsonOptions),
             Properties = chat.Properties != null ? 
                 JsonSerializer.Serialize(chat.Properties, _jsonOptions) : null,
@@ -68,8 +72,8 @@ public class SqliteChatRepository(IDbConnection connection) : IChatRepository
     {
         var parameters = MapChatToParameters(chat);
         await connection.ExecuteAsync(@"
-            INSERT INTO Chats (Id, Name, Model, Messages, [Type], Properties, Visual, Interactive) VALUES (@Id, @Name, @Model, @Messages, @Type, @Properties, 
-                 @Visual, @Interactive)", parameters);
+            INSERT INTO Chats (Id, Name, Model, Messages, [Type], Properties, Visual, InferenceParams, Interactive) VALUES (@Id, @Name, @Model, @Messages, @Type, @Properties, 
+                 @Visual, @InferenceParams, @Interactive)", parameters);
     }
 
     public async Task UpdateChat(string id, ChatDocument chat)

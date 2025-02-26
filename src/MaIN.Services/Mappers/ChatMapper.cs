@@ -86,7 +86,7 @@ public static class ChatMapper
             Model = chat.Model,
             Messages = chat.Messages.Select(m => m.ToDocument()).ToList(),
             Visual = chat.Visual,
-            InterferenceParams = chat.InterferenceParams.ToDocument(),
+            InferenceParams = chat.InterferenceParams.ToDocument(),
             Properties = chat.Properties,
             Interactive = chat.Interactive,
             Translate = chat.Translate,
@@ -102,7 +102,7 @@ public static class ChatMapper
             Messages = chat.Messages.Select(m => m.ToDomain()).ToList(),
             Visual = chat.Visual,
             Properties = chat.Properties,
-            InterferenceParams = chat.InterferenceParams!.ToDomain(),
+            InterferenceParams = chat.InferenceParams!.ToDomain(),
             Interactive = chat.Interactive,
             Translate = chat.Translate,
             Type = Enum.Parse<ChatType>(chat.Type.ToString())
