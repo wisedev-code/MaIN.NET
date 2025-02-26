@@ -12,6 +12,7 @@ namespace MaIN.Core.Hub.Contexts;
 public class AgentContext
 {
     private readonly IAgentService _agentService;
+    private InferenceParams? _inferenceParams;
     private Agent _agent;
 
     internal AgentContext(IAgentService agentService)
@@ -77,6 +78,12 @@ public class AgentContext
         return this;
     }
 
+    public AgentContext WithInferenceParams(InferenceParams inferenceParams)
+    {
+        _inferenceParams = inferenceParams;
+        return this;
+    }
+    
     public AgentContext WithCustomModel(string model, string path)
     {
         KnownModels.AddModel(model, path);
@@ -107,13 +114,13 @@ public class AgentContext
 
     public async Task<AgentContext> CreateAsync(bool flow = false, bool interactiveResponse = false)
     {
-        await _agentService.CreateAgent(_agent, flow, interactiveResponse);
+        await _agentService.CreateAgent(_agent, flow, interactiveResponse, _inferenceParams);
         return this;
     }
     
     public AgentContext Create(bool flow = false, bool interactiveResponse = false)
     {
-        _ = _agentService.CreateAgent(_agent, flow, interactiveResponse).Result;
+        _ = _agentService.CreateAgent(_agent, flow, interactiveResponse, _inferenceParams).Result;
         return this;
     }
     

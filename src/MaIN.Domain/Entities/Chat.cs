@@ -8,7 +8,7 @@ public class Chat
     public List<Message> Messages { get; set; } = [];
     public ChatType Type { get; set; } = ChatType.Conversation;
     public bool Visual { get; set; } = false;
-    public bool Stream { get; set; } = false;
+    public InferenceParams InterferenceParams { get; set; } = new();
     public Dictionary<string, string> Properties { get; set; } = [];
     public List<string> Memory { get; set; } = [];
 

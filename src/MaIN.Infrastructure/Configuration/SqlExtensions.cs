@@ -47,7 +47,6 @@ public static class SqlRegistrationExtensions
                     [Messages] NVARCHAR(MAX) NOT NULL,  -- Stored as JSON array
                     [Type] NVARCHAR(MAX) NOT NULL,      -- Stored as JSON
                     [Properties] NVARCHAR(MAX) NULL,    -- Stored as JSON
-                    [Stream] BIT NOT NULL DEFAULT 0,
                     [Visual] BIT NOT NULL DEFAULT 0,
                     [Interactive] BIT NOT NULL DEFAULT 0
                 );

@@ -18,6 +18,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.KernelMemory;
 using Microsoft.KernelMemory.AI;
 using Microsoft.KernelMemory.Configuration;
+using InferenceParams = LLama.Common.InferenceParams;
 
 namespace MaIN.Services.Services.LLMService;
 
@@ -47,15 +48,15 @@ public class LLMService(IOptions<MaINSettings> options, INotificationService not
         {
             SamplingPipeline = new DefaultSamplingPipeline
             {
-                Temperature = 0.6f
+                Temperature = chat.InterferenceParams.Temperature
             },
-            MaxTokens = 1024,
+            MaxTokens = chat.InterferenceParams.ContextSize,
             AntiPrompts = new[] { llmModel.Vocab.EOT?.ToString() ?? "User:" }
         };
 
         var parameters = new ModelParams(Path.Combine(path, modelKey))
         {
-            ContextSize = 1024,
+            ContextSize = (uint?)chat.InterferenceParams.ContextSize,
             GpuLayerCount = 30,
         };
 

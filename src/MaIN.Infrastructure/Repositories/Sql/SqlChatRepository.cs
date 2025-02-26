@@ -29,7 +29,6 @@ public class SqlChatRepository(IDbConnection connection) : IChatRepository
             Properties = row.Properties != null ? 
                 JsonSerializer.Deserialize<Dictionary<string, string>>(row.Properties.ToString(), _jsonOptions) : 
                 new Dictionary<string, string>(),
-            Stream = row.Stream,
             Visual = row.Visual,
             Interactive = row.Interactive
         };
@@ -50,7 +49,6 @@ public class SqlChatRepository(IDbConnection connection) : IChatRepository
             Type = JsonSerializer.Serialize(chat.Type, _jsonOptions),
             Properties = chat.Properties != null ? 
                 JsonSerializer.Serialize(chat.Properties, _jsonOptions) : null,
-            chat.Stream,
             chat.Visual,
             chat.Interactive
         };
@@ -83,7 +81,7 @@ public class SqlChatRepository(IDbConnection connection) : IChatRepository
                 Stream, Visual, Interactive
             ) VALUES (
                 @Id, @Name, @Model, @Messages, @Type, @Properties, 
-                @Stream, @Visual, @Interactive)", 
+                 @Visual, @Interactive)", 
             parameters);
     }
 
@@ -100,7 +98,6 @@ public class SqlChatRepository(IDbConnection connection) : IChatRepository
                 Messages = @Messages,
                 Type = @Type,
                 Properties = @Properties,
-                Stream = @Stream,
                 Visual = @Visual
             WHERE Id = @Id",
             parameters);

@@ -35,6 +35,12 @@ public class ChatContext
         return this;
     }
     
+    public ChatContext WithInferenceParams(InferenceParams inferenceParams)
+    {
+        _chat.InterferenceParams = inferenceParams;
+        return this;
+    }
+    
     public ChatContext WithCustomModel(string model, string path)
     {
         KnownModels.AddModel(model, path);
