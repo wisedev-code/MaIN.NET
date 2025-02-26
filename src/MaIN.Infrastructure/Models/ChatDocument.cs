@@ -15,5 +15,5 @@ public class ChatDocument
     public bool Visual { get; set; }
     public bool Interactive { get; set; }
     public bool Translate { get; set; }
-    public InferenceParamsDocument? InterferenceParams { get; set; }
+    public InferenceParamsDocument? InferenceParams { get; set; }
 }
