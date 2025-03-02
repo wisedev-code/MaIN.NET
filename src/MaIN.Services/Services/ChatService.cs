@@ -4,6 +4,7 @@ using MaIN.Services.Mappers;
 using MaIN.Services.Models;
 using MaIN.Services.Models.Ollama;
 using MaIN.Services.Services.Abstract;
+using MaIN.Services.Services.ImageGenServices;
 
 namespace MaIN.Services.Services;
 

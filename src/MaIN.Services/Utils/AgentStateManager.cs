@@ -1,6 +1,7 @@
 using MaIN.Domain.Entities;
 using MaIN.Infrastructure.Models;
 using MaIN.Services.Services;
+using MaIN.Services.Services.ImageGenServices;
 
 namespace MaIN.Services.Utils;
 

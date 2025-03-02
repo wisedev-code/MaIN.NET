@@ -75,6 +75,7 @@ public static class AgentMapper
             AgentSourceTypeDto.Text => (AgentTextSourceDetails)details!,
             AgentSourceTypeDto.File => (AgentFileSourceDetails)details!,
             AgentSourceTypeDto.API => (AgentApiSourceDetails)details!,
+            AgentSourceTypeDto.Web => (AgentWebSourceDetails)details!,
             //TBD add all types
             _ => new()
         };
