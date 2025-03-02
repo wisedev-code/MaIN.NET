@@ -8,6 +8,7 @@ using MaIN.Infrastructure.Models;
 using MaIN.Infrastructure.Repositories.Abstract;
 using MaIN.Services.Mappers;
 using MaIN.Services.Services.Abstract;
+using MaIN.Services.Services.ImageGenServices;
 using MaIN.Services.Steps;
 using MaIN.Services.Utils;
 using Microsoft.Extensions.Logging;

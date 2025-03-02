@@ -27,8 +27,4 @@
       <PackageReference Include="Tesseract.Data.English" Version="4.0.0" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="Configuration\" />
-    </ItemGroup>
-
 </Project>
