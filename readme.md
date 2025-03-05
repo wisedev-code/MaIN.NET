@@ -52,7 +52,7 @@ These resources will guide you through every aspect of the system and help you u
 
 ## 🌟 Our Vision
 
-M.A.I.N is more than just a package—it's a stepping stone towards a complete AI ecosystem. Our goal is to connect diverse AI techniques into one modular framework, making advanced AI accessible and affordable to all users. Built with a low-code philosophy in mind, M.A.I.N empowers developers and non-developers alike to create powerful AI applications with ease. To learn more about our future plans and upcoming features, please visit our ##[Roadmap](./docs/ROADMAP.md).
+M.A.I.N is more than just a package—it's a stepping stone towards a complete AI ecosystem. Our goal is to connect diverse AI techniques into one modular framework, making advanced AI accessible and affordable to all users. Built with a low-code philosophy in mind, M.A.I.N empowers developers and non-developers alike to create powerful AI applications with ease. To learn more about our future plans and upcoming features, please visit our **[Roadmap](./docs/ROADMAP.md)**.
 
 ---
 
