@@ -45,7 +45,7 @@ jobs:
           # Create a tag using today's date
           TAG_NAME="v$(date +'%Y.%m.%d')"
           # Get the NuGet package file name from the artifacts folder and remove its extension for the release title
-          NUPKG_FILE=$(basename $(ls ./artifacts/*.nupkg))
+          NUPKG_FILE=$(basename $(find ./artifacts -name "*.nupkg" | head -n1))
           RELEASE_NAME="${NUPKG_FILE%.*}"
           # Get the newest markdown file from the Releases folder and read its content as release notes
           NEWEST_NOTES=$(ls -t Releases/*.md | head -n1)
