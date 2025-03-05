@@ -19,6 +19,7 @@ public class FetchDataStepHandler(ILLMService llmService) : IStepHandler
 
     public async Task<StepResult> Handle(StepContext context)
     {
+        //TODO refactor it for proper usage
         if (context.StepName == "FETCH_DATA*" && context.Chat!.Properties.ContainsKey("FETCH_DATA*"))
         {
             return new StepResult { Chat = context.Chat };
@@ -42,6 +43,17 @@ public class FetchDataStepHandler(ILLMService llmService) : IStepHandler
             context.Chat.Messages?.Add(newMessage.ToDomain());
             return new StepResult { Chat = context.Chat, RedirectMessage = context.Chat!.Messages!.Last() };
         }
+        
+        if (fetchCommand.Context.Source!.Type == AgentSourceType.Web)
+        {
+            var data = JsonSerializer.Deserialize<AgentWebSourceDetails>(fetchCommand.Context.Source.Details?.ToString()!);
+            var memoryChat = GetMemoryChat(context, filter);
+            var result = await llmService.AskMemory(memoryChat, webUrls: [data!.Url]);
+            var newMessage = result!.Message;
+            newMessage.Properties = new() { { "agent_internal", "true" } };
+            context.Chat.Messages.Add(newMessage.ToDomain());
+            return new StepResult { Chat = context.Chat, RedirectMessage = context.Chat!.Messages!.Last() };
+        }
 
         var response = (await Actions.CallAsync("FETCH_DATA", fetchCommand) as Message)!;
 
@@ -51,7 +63,7 @@ public class FetchDataStepHandler(ILLMService llmService) : IStepHandler
         }
         else
         {
-            context.Chat.Messages?.Add(new Message
+            context.Chat.Messages.Add(new Message
             {
                 Role = "System",
                 Content = $"Remember this data: {response.Content}",

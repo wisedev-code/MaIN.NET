@@ -30,13 +30,6 @@ public static class Bootstrapper
         return sp;
     }
     
-    // public static WebApplication UseMaIN(this WebApplication sp)
-    // {
-    //     _ = sp.Services.GetRequiredService<IAIHubServices>();
-    //     sp.Services.InitializeAgents();
-    //     return sp;
-    // } //TODO find a way to properly handle this to not require framework REF
-    
     public static IServiceCollection AddAIHub(this IServiceCollection services)
     {
         //services.Configure(configureOptions);
@@ -94,8 +87,7 @@ public static class MaINBootstrapper
                 .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
                 .AddEnvironmentVariables()
                 .Build();
-
-
+            
             // Use your existing extension method to register the MaIN services
             services.AddMaIN(configuration, configureSettings);
 

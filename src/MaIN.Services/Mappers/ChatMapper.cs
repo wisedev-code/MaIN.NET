@@ -3,6 +3,7 @@ using MaIN.Infrastructure.Models;
 using MaIN.Models;
 using MaIN.Services.Models;
 using MaIN.Services.Services;
+using MaIN.Services.Services.ImageGenServices;
 using MongoDB.Bson;
 using FileInfo = MaIN.Domain.Entities.FileInfo;
 

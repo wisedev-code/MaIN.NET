@@ -1,8 +1,13 @@
-using System.Diagnostics;
+
 
 namespace Examples.Utils;
 
-class ImagePreviewer
+using System;
+using System.Diagnostics;
+using System.IO;
+using System.Runtime.InteropServices;
+
+public static class ImagePreview
 {
     public static void ShowImage(byte[] imageData, string extension = "png")
     {
@@ -17,11 +22,34 @@ class ImagePreviewer
         );
 
         File.WriteAllBytes(tempFile, imageData);
-        
-        Process.Start(new ProcessStartInfo
+
+        try
         {
-            FileName = tempFile,
-            UseShellExecute = true
-        });
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = tempFile,
+                    UseShellExecute = true
+                });
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                Process.Start("xdg-open", tempFile); // Opens with default viewer on Linux
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                Process.Start("open", "-a Preview " + tempFile);
+            }
+            else
+            {
+                throw new PlatformNotSupportedException("Unsupported OS");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to open image: {ex.Message}");
+        }
     }
 }
+
