@@ -21,7 +21,6 @@ public class NotificationService : INotificationService
             }
             else
             {
-                Console.WriteLine("~END OF GENERATION~");
                 Console.WriteLine();
             }
         }

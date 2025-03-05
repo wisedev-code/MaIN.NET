@@ -1,19 +1,15 @@
-using System.Text.Json;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
-using MaIN.Services.Configuration;
 using MaIN.Services.Models;
-using MaIN.Services.Models.Ollama;
 using MaIN.Services.Services.Abstract;
-using Microsoft.Extensions.Options;
 
-namespace MaIN.Services.Services;
+namespace MaIN.Services.Services.ImageGenServices;
 
 public class ImageGenService(
     IHttpClientFactory httpClientFactory,
-    IOptions<MaINSettings> options) : IImageGenService
+    MaINSettings options) : IImageGenService
 {
-    public async Task<ChatResult?> Send(Chat chat)
+    public async Task<ChatResult?> Send(Chat? chat)
     {
         using var client = httpClientFactory.CreateClient();
         client.Timeout = TimeSpan.FromMinutes(5);
@@ -23,7 +19,7 @@ public class ImageGenService(
                     : $"&& {msg.Content}")
                 .Aggregate((current, next) => $"{current} {next}")
             : string.Empty)!;
-        var response = await client.PostAsync($"{options.Value.ImageGenUrl}/generate/{constructedMessage}", null);
+        var response = await client.PostAsync($"{options.ImageGenUrl}/generate/{constructedMessage}", null);
         
         if (!response.IsSuccessStatusCode)
         {
@@ -46,11 +42,6 @@ public class ImageGenService(
         };
         
         return result;
-    }
-
-    public Task<List<string>> GetCurrentModels()
-    {
-        throw new NotImplementedException();
     }
 
     public struct Models

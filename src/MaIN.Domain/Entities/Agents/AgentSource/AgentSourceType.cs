@@ -7,4 +7,5 @@ public enum AgentSourceType
     NoSQL = 3,
     File = 4,
     Text = 5,
+    Web = 6
 }

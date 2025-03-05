@@ -3,13 +3,15 @@ using MaIN.Infrastructure.Models;
 using MaIN.Models;
 using MaIN.Services.Models;
 using MaIN.Services.Services;
+using MaIN.Services.Services.ImageGenServices;
+using MongoDB.Bson;
 using FileInfo = MaIN.Domain.Entities.FileInfo;
 
 namespace MaIN.Services.Mappers;
 
 public static class ChatMapper
 {
-    public static ChatDto ToDto(this Chat chat)
+    public static ChatDto ToDto(this Chat? chat)
         => new ChatDto()
         {
             Id = chat.Id,
@@ -17,7 +19,6 @@ public static class ChatMapper
             Model = chat.Model,
             Messages = chat.Messages.Select(m => m.ToDto()).ToList(),
             Visual = chat.Visual,
-            Stream = chat.Stream,
             Type = Enum.Parse<ChatTypeDto>(chat.Type.ToString()),
             Properties = chat.Properties
         };
@@ -38,7 +39,7 @@ public static class ChatMapper
             }) as FileInfoDto[]
         };
 
-    public static Chat ToDomain(this ChatDto chat)
+    public static Chat? ToDomain(this ChatDto chat)
         => new Chat()
         {
             Id = chat.Id,
@@ -46,7 +47,6 @@ public static class ChatMapper
             Model = chat.Model,
             Messages = chat.Messages?.Select(m => m.ToDomain()).ToList(),
             Visual = chat.Model == ImageGenService.Models.FLUX,
-            Stream = chat.Stream,
             Type = Enum.Parse<ChatType>(chat.Type.ToString()),
             Properties = chat.Properties
         };
@@ -79,7 +79,7 @@ public static class ChatMapper
             Files = message.Files?.Select(x => x.Content).ToArray() ?? []
         };
 
-    public static ChatDocument ToDocument(this Chat chat)
+    public static ChatDocument ToDocument(this Chat? chat)
         => new ChatDocument()
         {
             Id = chat.Id,
@@ -87,14 +87,14 @@ public static class ChatMapper
             Model = chat.Model,
             Messages = chat.Messages.Select(m => m.ToDocument()).ToList(),
             Visual = chat.Visual,
+            InferenceParams = chat.InterferenceParams.ToDocument(),
             Properties = chat.Properties,
-            Stream = chat.Stream,
             Interactive = chat.Interactive,
             Translate = chat.Translate,
             Type = Enum.Parse<ChatTypeDocument>(chat.Type.ToString())
         };
 
-    public static Chat ToDomain(this ChatDocument chat)
+    public static Chat? ToDomain(this ChatDocument chat)
         => new Chat()
         {
             Id = chat.Id,
@@ -102,8 +102,8 @@ public static class ChatMapper
             Model = chat.Model,
             Messages = chat.Messages.Select(m => m.ToDomain()).ToList(),
             Visual = chat.Visual,
-            Stream = chat.Stream,
             Properties = chat.Properties,
+            InterferenceParams = chat.InferenceParams!.ToDomain(),
             Interactive = chat.Interactive,
             Translate = chat.Translate,
             Type = Enum.Parse<ChatType>(chat.Type.ToString())
@@ -118,5 +118,19 @@ public static class ChatMapper
             Role = message.Role,
             Images = message.Images,
             Properties = message.Properties,
+        };
+    
+    public static InferenceParams ToDomain(this InferenceParamsDocument inferenceParams)
+        => new InferenceParams()
+        {
+            Temperature = inferenceParams.Temperature,
+            ContextSize = inferenceParams.ContextSize
+        };
+    
+    public static InferenceParamsDocument ToDocument(this InferenceParams inferenceParams)
+        => new InferenceParamsDocument()
+        {
+            Temperature = inferenceParams.Temperature,
+            ContextSize = inferenceParams.ContextSize
         };
 }

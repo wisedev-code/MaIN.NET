@@ -18,16 +18,17 @@ using Microsoft.Extensions.Options;
 using Microsoft.KernelMemory;
 using Microsoft.KernelMemory.AI;
 using Microsoft.KernelMemory.Configuration;
+using InferenceParams = LLama.Common.InferenceParams;
 
 namespace MaIN.Services.Services.LLMService;
 
-public class LLMService(IOptions<MaINSettings> options, INotificationService notificationService) : ILLMService
+public class LLMService(MaINSettings options, INotificationService notificationService) : ILLMService
 {
     private const string DefaultModelEnvPath = "MaIN_ModelsPath";
     private static readonly ConcurrentDictionary<string, LLamaWeights> modelCache = new();
     private static readonly ConcurrentDictionary<string, ChatSession> sessionCache = new(); // Cache for chat sessions
 
-    public async Task<ChatResult?> Send(Chat chat, bool interactiveUpdates = false, bool newSession = false)
+    public async Task<ChatResult?> Send(Chat? chat, bool interactiveUpdates = false, bool newSession = false)
     {
         if (chat == null || chat.Messages == null || !chat.Messages.Any())
             return null;
@@ -37,7 +38,7 @@ public class LLMService(IOptions<MaINSettings> options, INotificationService not
             return await HandleImageInterpreter(chat)!;
         }
 
-        var path = options.Value.ModelsPath ?? Environment.GetEnvironmentVariable(DefaultModelEnvPath);
+        var path = options.ModelsPath ?? Environment.GetEnvironmentVariable(DefaultModelEnvPath);
         var model = KnownModels.GetModel(path, chat.Model);
         var modelKey = model.FileName;
 
@@ -47,15 +48,15 @@ public class LLMService(IOptions<MaINSettings> options, INotificationService not
         {
             SamplingPipeline = new DefaultSamplingPipeline
             {
-                Temperature = 0.6f
+                Temperature = chat.InterferenceParams.Temperature
             },
-            MaxTokens = 1024,
+            MaxTokens = chat.InterferenceParams.ContextSize,
             AntiPrompts = new[] { llmModel.Vocab.EOT?.ToString() ?? "User:" }
         };
 
         var parameters = new ModelParams(Path.Combine(path, modelKey))
         {
-            ContextSize = 1024,
+            ContextSize = (uint?)chat.InterferenceParams.ContextSize,
             GpuLayerCount = 30,
         };
 
@@ -137,9 +138,9 @@ public class LLMService(IOptions<MaINSettings> options, INotificationService not
         return chatResult;
     }
 
-    private async Task<ChatResult>? HandleImageInterpreter(Chat chat)
+    private async Task<ChatResult> HandleImageInterpreter(Chat? chat)
     {
-        var path = options.Value.ModelsPath ?? Environment.GetEnvironmentVariable(DefaultModelEnvPath);
+        var path = options.ModelsPath ?? Environment.GetEnvironmentVariable(DefaultModelEnvPath);
         var modelConfig = KnownModels.GetModel(path, chat.Model);
         var modelKey = modelConfig.FileName;
 
@@ -175,7 +176,6 @@ public class LLMService(IOptions<MaINSettings> options, INotificationService not
         return chatResult;
     }
 
-    // Caching session logic.
     private ChatSession GetOrCreateSession(string chatId, Func<ChatSession> createSession)
     {
         if (!sessionCache.TryGetValue(chatId, out var session))
@@ -187,7 +187,6 @@ public class LLMService(IOptions<MaINSettings> options, INotificationService not
         return session;
     }
 
-// Simplified message addition.
     private void AddMessagesToHistory(ChatSession session, List<Message> messages)
     {
         var existingMessages = session.History.Messages
@@ -206,12 +205,13 @@ public class LLMService(IOptions<MaINSettings> options, INotificationService not
     }
 
     [Experimental("SKEXP0001")]
-    public async Task<ChatResult?> AskMemory(Chat chat,
+    public async Task<ChatResult?> AskMemory(Chat? chat,
         Dictionary<string, string>? textData = null,
         Dictionary<string, string>? fileData = null,
+        List<string>? webUrls = null,
         List<string>? memory = null)
     {
-        var path = options.Value.ModelsPath ?? Environment.GetEnvironmentVariable(DefaultModelEnvPath);
+        var path = options.ModelsPath ?? Environment.GetEnvironmentVariable(DefaultModelEnvPath);
         var model = KnownModels.GetModel(path, chat!.Model);
         var modelKey = model.FileName;
 
@@ -230,6 +230,14 @@ public class LLMService(IOptions<MaINSettings> options, INotificationService not
             foreach (var item in fileData)
             {
                 await kernelMemory.ImportDocumentAsync(item.Value, item.Key);
+            }
+        }
+
+        if (webUrls != null)
+        {
+            foreach (var url in webUrls)
+            {
+                await kernelMemory.ImportWebPageAsync(url);
             }
         }
 
@@ -310,7 +318,7 @@ public class LLMService(IOptions<MaINSettings> options, INotificationService not
 
     public Task<List<string>> GetCurrentModels()
     {
-        var path = options.Value.ModelsPath ?? Environment.GetEnvironmentVariable(DefaultModelEnvPath);
+        var path = options.ModelsPath ?? Environment.GetEnvironmentVariable(DefaultModelEnvPath);
         var files = Directory.GetFiles(path, "*.gguf", SearchOption.AllDirectories).ToList();
         var models = new List<string>();
         foreach (var file in files)

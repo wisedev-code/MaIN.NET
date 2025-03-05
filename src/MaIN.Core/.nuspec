@@ -2,11 +2,11 @@
 <package>
   <metadata>
     <id>MaIN.NET</id>
-    <version>0.0.6-alpha</version>
+    <version>0.0.7-pre</version>
     <authors>Wisedev</authors>
     <owners>Wisedev</owners>
     <icon>favicon.png</icon>
-    <description>MaIN.NET</description>
+    <description>MaIN.NET - Package designed to streamline the integration of large language models (LLMs) into advanced AI workflows.</description>
     <license type="expression">MIT</license>
     <projectUrl>https://github.com/wisedev-code/M.A.I.N</projectUrl>
     <repository url="https://github.com/wisedev-code/M.A.I.N" type="git" />

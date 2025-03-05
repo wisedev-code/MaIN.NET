@@ -3,6 +3,7 @@ using MaIN.Infrastructure;
 using MaIN.Services.Configuration;
 using MaIN.Services.Services;
 using MaIN.Services.Services.Abstract;
+using MaIN.Services.Services.ImageGenServices;
 using MaIN.Services.Services.LLMService;
 using MaIN.Services.Services.Steps;
 using Microsoft.Extensions.Configuration;
@@ -33,15 +34,12 @@ public static class Bootstrapper
         serviceCollection.AddSingleton<ITranslatorService, TranslatorService>();
         serviceCollection.AddSingleton<ILLMService, LLMService>();
         serviceCollection.AddSingleton<IImageGenService, ImageGenService>();
-        
-        
-        var remoteServerUrl = configuration.GetValue<string>("MaIN:RemoteServerUrl");
-        if (remoteServerUrl is not null)
+
+
+        if (settings.BackendType == BackendType.OpenAi)
         {
-            serviceCollection.AddHttpClient<ILLMService, RemoteLLMService>(client =>
-            {
-                client.BaseAddress = new Uri(remoteServerUrl);
-            });
+            serviceCollection.AddSingleton<ILLMService, OpenAiService>();
+            serviceCollection.AddSingleton<IImageGenService, OpenAiImageGenService>();
         }
         
         // Register all step handlers

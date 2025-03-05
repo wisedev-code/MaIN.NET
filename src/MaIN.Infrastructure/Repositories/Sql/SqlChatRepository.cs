@@ -1,6 +1,7 @@
 using System.Data;
 using System.Text.Json;
 using Dapper;
+using MaIN.Domain.Entities;
 using MaIN.Infrastructure.Models;
 using MaIN.Infrastructure.Repositories.Abstract;
 
@@ -26,10 +27,12 @@ public class SqlChatRepository(IDbConnection connection) : IChatRepository
             Type = row.Type != null ? 
                 JsonSerializer.Deserialize<ChatTypeDocument>(row.Type.ToString(), _jsonOptions) : 
                 default,
+            InferenceParams = row.InferenceParams != null ? 
+                JsonSerializer.Deserialize<InferenceParamsDocument>(row.InferenceParams.ToString(), _jsonOptions) : 
+                default,
             Properties = row.Properties != null ? 
                 JsonSerializer.Deserialize<Dictionary<string, string>>(row.Properties.ToString(), _jsonOptions) : 
                 new Dictionary<string, string>(),
-            Stream = row.Stream,
             Visual = row.Visual,
             Interactive = row.Interactive
         };
@@ -48,9 +51,9 @@ public class SqlChatRepository(IDbConnection connection) : IChatRepository
             chat.Model,
             Messages = JsonSerializer.Serialize(chat.Messages ?? new List<MessageDocument>(), _jsonOptions),
             Type = JsonSerializer.Serialize(chat.Type, _jsonOptions),
+            InferenceParams = JsonSerializer.Serialize(chat.InferenceParams, _jsonOptions),
             Properties = chat.Properties != null ? 
                 JsonSerializer.Serialize(chat.Properties, _jsonOptions) : null,
-            chat.Stream,
             chat.Visual,
             chat.Interactive
         };
@@ -80,10 +83,10 @@ public class SqlChatRepository(IDbConnection connection) : IChatRepository
         await connection.ExecuteAsync(@"
             INSERT INTO Chats (
                 Id, Name, Model, Messages, Type, Properties, 
-                Stream, Visual, Interactive
+                Stream, Visual, InferenceParams, Interactive
             ) VALUES (
                 @Id, @Name, @Model, @Messages, @Type, @Properties, 
-                @Stream, @Visual, @Interactive)", 
+                 @Visual, @InferenceParams, @Interactive)", 
             parameters);
     }
 
@@ -100,7 +103,6 @@ public class SqlChatRepository(IDbConnection connection) : IChatRepository
                 Messages = @Messages,
                 Type = @Type,
                 Properties = @Properties,
-                Stream = @Stream,
                 Visual = @Visual
             WHERE Id = @Id",
             parameters);

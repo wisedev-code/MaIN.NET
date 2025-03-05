@@ -6,10 +6,10 @@ namespace MaIN.Services.Services.Abstract;
 
 public interface IStepProcessor
 {
-    Task<Chat> ProcessSteps(
+    Task<Chat?> ProcessSteps(
         AgentContextDocument context,
         AgentDocument agent,
-        Chat chat,
+        Chat? chat,
         Func<string, string, string?, string, Task> notifyProgress,
         Func<Chat, Task> updateChat,
         ILogger logger);
