@@ -5,8 +5,7 @@ using MaIN.Services.Models.Ollama;
 
 namespace MaIN.Services.Services.Abstract;
 
-public interface IImageGenService //TODO generalize with IOllamaService
+public interface IImageGenService 
 {
     Task<ChatResult?> Send(Chat? chat);
-    Task<List<string>> GetCurrentModels();
 }

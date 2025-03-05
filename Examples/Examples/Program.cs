@@ -2,6 +2,7 @@
 using Examples.Agents;
 using Examples.Agents.Flows;
 using MaIN.Core;
+using MaIN.Domain.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -28,7 +29,11 @@ var configuration = new ConfigurationBuilder()
 
 var services = new ServiceCollection();
 services.AddSingleton<IConfiguration>(configuration);
-services.AddMaIN(configuration);
+services.AddMaIN(configuration, (options) =>
+{
+    options.BackendType = BackendType.OpenAi;
+    options.OpenAiKey = "<YOUR_OPENAI_KEY>";
+});
 
 RegisterExamples(services);
 
@@ -54,6 +59,9 @@ static void RegisterExamples(IServiceCollection services)
     services.AddTransient<AgentTalkingToEachOtherExample>();
     services.AddTransient<AgentsComposedAsFlowExample>();
     services.AddTransient<AgentsFlowLoadedExample>();
+    services.AddTransient<ChatExampleOpenAi>();
+    services.AddTransient<AgentWithWebDataSourceOpenAiExample>();
+    services.AddTransient<ChatWithImageGenOpenAiExample>();
 }
 
 async Task RunSelectedExample(IServiceProvider serviceProvider)
@@ -129,7 +137,11 @@ public class ExampleRegistry(IServiceProvider serviceProvider)
             ("\u25a0 Agent with API Data Source", _serviceProvider.GetRequiredService<AgentWithApiDataSourceExample>()),
             ("\u25a0 Agents Talking to Each Other", _serviceProvider.GetRequiredService<AgentTalkingToEachOtherExample>()),
             ("\u25a0 Agents Composed as Flow", _serviceProvider.GetRequiredService<AgentsComposedAsFlowExample>()),
-            ("\u25a0 Agents Flow Loaded", _serviceProvider.GetRequiredService<AgentsFlowLoadedExample>())
+            ("\u25a0 Agents Flow Loaded", _serviceProvider.GetRequiredService<AgentsFlowLoadedExample>()),
+            ("\u25a0 OpenAi Chat", _serviceProvider.GetRequiredService<ChatExampleOpenAi>()),
+            ("\u25a0 OpenAi Chat with image", _serviceProvider.GetRequiredService<ChatWithImageGenOpenAiExample>()),
+            ("\u25a0 OpenAi Agent with Web Data Source", _serviceProvider.GetRequiredService<AgentWithWebDataSourceOpenAiExample>())
+
         };
     }
 }
