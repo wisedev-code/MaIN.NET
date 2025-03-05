@@ -1,12 +1,13 @@
 using MaIN.Domain.Entities;
 using MaIN.Infrastructure.Models;
 using MaIN.Services.Services;
+using MaIN.Services.Services.ImageGenServices;
 
 namespace MaIN.Services.Utils;
 
 public static class AgentStateManager
 {
-    public static void ClearState(AgentDocument? agent, Chat chat)
+    public static void ClearState(AgentDocument? agent, Chat? chat)
     {
         agent!.CurrentBehaviour = "Default";
         chat.Properties.Clear();

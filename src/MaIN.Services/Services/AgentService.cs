@@ -8,6 +8,7 @@ using MaIN.Infrastructure.Models;
 using MaIN.Infrastructure.Repositories.Abstract;
 using MaIN.Services.Mappers;
 using MaIN.Services.Services.Abstract;
+using MaIN.Services.Services.ImageGenServices;
 using MaIN.Services.Steps;
 using MaIN.Services.Utils;
 using Microsoft.Extensions.Logging;
@@ -39,7 +40,7 @@ public class AgentService : IAgentService
         _llmService = llmService;
     }
 
-    public async Task<Chat> Process(Chat chat, string agentId, bool translatePrompt = false)
+    public async Task<Chat?> Process(Chat? chat, string agentId, bool translatePrompt = false)
     {
         var agent = await _agentRepository.GetAgentById(agentId);
         if (agent == null) throw new ArgumentException("Agent not found.");
@@ -78,7 +79,8 @@ public class AgentService : IAgentService
         }
     }
 
-    public async Task<Agent> CreateAgent(Agent agent, bool flow = false, bool interactiveResponse = false)
+    public async Task<Agent> CreateAgent(Agent agent, bool flow = false, bool interactiveResponse = false,
+        InferenceParams? inferenceParams = null)
     {
         var chat = new Chat
         {
@@ -86,7 +88,7 @@ public class AgentService : IAgentService
             Model = agent.Model,
             Name = agent.Name,
             Visual = agent.Model == ImageGenService.Models.FLUX,
-            Stream = false,
+            InterferenceParams = inferenceParams ?? new InferenceParams(),
             Messages = new List<Message>(),
             Interactive = interactiveResponse,
             Type = flow ? ChatType.Flow : ChatType.Rag,
@@ -115,14 +117,14 @@ public class AgentService : IAgentService
         return agent;
     }
 
-    public async Task<Chat> GetChatByAgent(string agentId)
+    public async Task<Chat?> GetChatByAgent(string agentId)
     {
         var agent = await _agentRepository.GetAgentById(agentId);
         var chat = await _chatRepository.GetChatById(agent.ChatId);
         return chat.ToDomain();
     }
 
-    public async Task<Chat> Restart(string agentId)
+    public async Task<Chat?> Restart(string agentId)
     {
         var agent = await _agentRepository.GetAgentById(agentId);
         var chat = (await _chatRepository.GetChatById(agent?.ChatId!)).ToDomain();

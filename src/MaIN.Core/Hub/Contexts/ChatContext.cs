@@ -10,7 +10,7 @@ namespace MaIN.Core.Hub.Contexts;
 public class ChatContext
 {
     private readonly IChatService _chatService;
-    private Chat _chat;
+    private Chat? _chat;
 
     internal ChatContext(IChatService chatService)
     {
@@ -23,7 +23,7 @@ public class ChatContext
         };
     }
 
-    internal ChatContext(IChatService chatService, Chat existingChat)
+    internal ChatContext(IChatService chatService, Chat? existingChat)
     {
         _chatService = chatService;
         _chat = existingChat;
@@ -32,6 +32,12 @@ public class ChatContext
     public ChatContext WithModel(string model)
     {
         _chat.Model = model;
+        return this;
+    }
+    
+    public ChatContext WithInferenceParams(InferenceParams inferenceParams)
+    {
+        _chat.InterferenceParams = inferenceParams;
         return this;
     }
     
@@ -113,7 +119,7 @@ public class ChatContext
         return await _chatService.Completions(_chat, translate, interactive);
     }
 
-    public async Task<Chat> GetCurrentChat()
+    public async Task<Chat?> GetCurrentChat()
     {
         if (_chat.Id == null)
             throw new InvalidOperationException("Chat has not been created yet. Call CompleteAsync first.");

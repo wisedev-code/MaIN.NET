@@ -45,8 +45,8 @@ public static class SqliteRegistrationExtensions
             Messages TEXT NOT NULL,  -- Stored as JSON array
             Type TEXT NOT NULL,      -- Stored as JSON
             Properties TEXT,         -- Stored as JSON
-            Stream INTEGER NOT NULL DEFAULT 0,
             Visual INTEGER NOT NULL DEFAULT 0,
+            InferenceParams TEXT,         -- Stored as JSON
             Interactive INTEGER NOT NULL DEFAULT 0
         );
 
