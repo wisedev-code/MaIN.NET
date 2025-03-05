@@ -1,4 +1,3 @@
-```md
 ![MaIN ROADMAP](./maIN_roadmap.png)
 
 # MaIN Roadmap
@@ -44,4 +43,3 @@ Finally, we aim to support the creation of fine-tuned model versions directly wi
 
 ### A Timeless Roadmap
 Because MaIN is not a full-time endeavor yet, we can’t commit to specific deadlines. However, our **ambition** drives us forward, and the project exists today thanks to that drive. We hope you’ll join us on this journey—contributions, ideas, and feedback are always welcome.
-```
