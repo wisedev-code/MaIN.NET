@@ -29,11 +29,7 @@ var configuration = new ConfigurationBuilder()
 
 var services = new ServiceCollection();
 services.AddSingleton<IConfiguration>(configuration);
-services.AddMaIN(configuration, (options) =>
-{
-    options.BackendType = BackendType.OpenAi;
-    options.OpenAiKey = "<YOUR_OPENAI_KEY>";
-});
+services.AddMaIN(configuration);
 
 RegisterExamples(services);
 
