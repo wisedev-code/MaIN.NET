@@ -3,11 +3,7 @@ using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
 using MaIN.Services.Services.Abstract;
 using Moq;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using MaIN.Domain.Entities.Agents.AgentSource;
-using Xunit;
 
 namespace MaIN.Core.UnitTests;
 

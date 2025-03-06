@@ -6,8 +6,6 @@ using MaIN.Domain.Entities.Agents.AgentSource;
 using MaIN.Domain.Entities.Agents.Commands;
 using MaIN.Services.Mappers;
 using MaIN.Services.Models;
-using MaIN.Services.Models.Ollama;
-using MaIN.Services.Services;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Utils;
 using Microsoft.Extensions.DependencyInjection;

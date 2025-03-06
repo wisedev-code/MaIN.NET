@@ -3,7 +3,6 @@ using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Services.Models;
 using MaIN.Services.Services.Abstract;
-using Microsoft.Extensions.Options;
 
 namespace MaIN.Services.Services;
 

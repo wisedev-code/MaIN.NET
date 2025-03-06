@@ -2,7 +2,6 @@
 using Examples.Agents;
 using Examples.Agents.Flows;
 using MaIN.Core;
-using MaIN.Domain.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 

@@ -2,7 +2,6 @@ using MaIN.Domain.Entities;
 using MaIN.Infrastructure.Repositories.Abstract;
 using MaIN.Services.Mappers;
 using MaIN.Services.Models;
-using MaIN.Services.Models.Ollama;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.ImageGenServices;
 
