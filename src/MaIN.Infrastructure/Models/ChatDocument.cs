@@ -1,4 +1,3 @@
-using MaIN.Domain.Entities;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace MaIN.Infrastructure.Models;

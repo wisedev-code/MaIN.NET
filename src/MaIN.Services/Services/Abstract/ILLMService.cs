@@ -1,6 +1,5 @@
 using MaIN.Domain.Entities;
 using MaIN.Services.Models;
-using MaIN.Services.Models.Ollama;
 
 namespace MaIN.Services;
 

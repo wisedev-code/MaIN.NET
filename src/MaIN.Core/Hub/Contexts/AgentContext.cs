@@ -4,7 +4,6 @@ using MaIN.Domain.Entities.Agents.AgentSource;
 using MaIN.Domain.Models;
 using MaIN.Services.Mappers;
 using MaIN.Services.Models;
-using MaIN.Services.Models.Ollama;
 using MaIN.Services.Services.Abstract;
 
 namespace MaIN.Core.Hub.Contexts;

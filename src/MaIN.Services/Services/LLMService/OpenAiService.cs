@@ -5,7 +5,6 @@ using MaIN.Domain.Models;
 using MaIN.Services.Models;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Utils;
-using Microsoft.Extensions.Logging;
 using Microsoft.KernelMemory;
 
 namespace MaIN.Services.Services.LLMService;
@@ -20,7 +19,6 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Options;
 
 public class OpenAiService(
     MaINSettings options,

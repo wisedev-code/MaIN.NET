@@ -1,7 +1,6 @@
 using System.Data;
 using System.Text.Json;
 using Dapper;
-using MaIN.Domain.Entities;
 using MaIN.Infrastructure.Models;
 using MaIN.Infrastructure.Repositories.Abstract;
 

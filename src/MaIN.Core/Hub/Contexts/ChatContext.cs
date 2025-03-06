@@ -1,7 +1,6 @@
 using MaIN.Domain.Entities;
 using MaIN.Domain.Models;
 using MaIN.Services.Models;
-using MaIN.Services.Models.Ollama;
 using MaIN.Services.Services.Abstract;
 using FileInfo = MaIN.Domain.Entities.FileInfo;
 
@@ -110,7 +109,10 @@ public class ChatContext
     
     public string GetChatId() => _chat.Id;
 
-    public async Task<ChatResult> CompleteAsync(bool translate = false, bool interactive = false)
+    public async Task<ChatResult> CompleteAsync(
+        bool translate = false,
+        bool interactive = false,
+        Func<string, Task>? changeOfValue = null)
     {
         if (_chat.Id == null || !await ChatExists(_chat.Id))
         {
