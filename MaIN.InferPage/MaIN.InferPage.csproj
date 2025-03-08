@@ -4,10 +4,7 @@
         <TargetFramework>net8.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
+        <RootNamespace>BlazorApp1</RootNamespace>
     </PropertyGroup>
-
-    <ItemGroup>
-      <ProjectReference Include="..\src\MaIN.Core\MaIN.Core.csproj" />
-    </ItemGroup>
 
 </Project>
