@@ -32,8 +32,6 @@ public static class Bootstrapper
     
     public static IServiceCollection AddAIHub(this IServiceCollection services)
     {
-        //services.Configure(configureOptions);
-        
         // Register core services
         services.AddSingleton<IChatService, ChatService>();
         services.AddSingleton<IAgentService, AgentService>();

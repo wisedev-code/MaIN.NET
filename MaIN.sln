@@ -24,7 +24,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MaIN.Core.UnitTests", "src\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Examples.SimpleConsole", "Examples\Examples.SimpleConsole\Examples.SimpleConsole.csproj", "{75DEBB8A-75CD-44BA-9369-3916950428EF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MaIN.Infer", "MaIN.Infer\MaIN.Infer.csproj", "{CC78FC62-04C3-4755-B998-76D72B79822A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MaIN.InferPage", "MaIN.InferPage\MaIN.InferPage.csproj", "{9179D542-A0A7-4EBF-BACE-8413D92AFC69}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -72,10 +72,10 @@ Global
 		{75DEBB8A-75CD-44BA-9369-3916950428EF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{75DEBB8A-75CD-44BA-9369-3916950428EF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{75DEBB8A-75CD-44BA-9369-3916950428EF}.Release|Any CPU.Build.0 = Release|Any CPU
-		{CC78FC62-04C3-4755-B998-76D72B79822A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{CC78FC62-04C3-4755-B998-76D72B79822A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{CC78FC62-04C3-4755-B998-76D72B79822A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{CC78FC62-04C3-4755-B998-76D72B79822A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9179D542-A0A7-4EBF-BACE-8413D92AFC69}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9179D542-A0A7-4EBF-BACE-8413D92AFC69}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9179D542-A0A7-4EBF-BACE-8413D92AFC69}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9179D542-A0A7-4EBF-BACE-8413D92AFC69}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{781BDD20-65BA-4C5D-815B-D8A15931570A} = {28851935-517F-438D-BF7C-02FEB1A37A68}
