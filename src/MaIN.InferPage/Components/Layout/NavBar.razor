@@ -1,0 +1,29 @@
+@using Microsoft.FluentUI.AspNetCore.Components.Icons.Regular
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+<FluentDesignTheme @bind-Mode="@Mode"
+                   StorageName="theme" />
+
+<header class="navbar">
+    <span class="fancy-text" style="align-self: flex-start;">M.A.I.N</span>
+    <FluentBadge 
+        Appearance="Appearance.Neutral"
+        Fill="highlight" 
+        BackgroundColor="#ffd800;"
+        Color="#000"
+        Style="margin-left: 10px">@Utils.Model</FluentBadge>
+
+    <FluentButton Style="margin-left: auto; align-self: flex-end;"
+                  Appearance="Appearance.Stealth"
+                  OnClick="@SetTheme" IconStart="@(new Size24.WeatherMoon())">
+    </FluentButton>
+</header>
+
+@code {
+    private DesignThemeModes Mode { get; set; }
+
+    private void SetTheme()
+    {
+        Mode = Mode == DesignThemeModes.Dark ? DesignThemeModes.Light : DesignThemeModes.Dark;
+    }
+}

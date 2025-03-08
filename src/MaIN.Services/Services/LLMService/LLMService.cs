@@ -26,7 +26,11 @@ public class LLMService(MaINSettings options, INotificationService notificationS
     private static readonly ConcurrentDictionary<string, LLamaWeights> modelCache = new();
     private static readonly ConcurrentDictionary<string, ChatSession> sessionCache = new(); // Cache for chat sessions
 
-    public async Task<ChatResult?> Send(Chat? chat, bool interactiveUpdates = false, bool newSession = false)
+    public async Task<ChatResult?> Send(
+        Chat? chat, 
+        bool interactiveUpdates = false,
+        bool newSession = false,
+        Func<string, Task>? changeOfValue = null)
     {
         if (chat == null || chat.Messages == null || !chat.Messages.Any())
             return null;
@@ -109,6 +113,7 @@ public class LLMService(MaINSettings options, INotificationService notificationS
                         "ReceiveMessageUpdate");
                 }
 
+                changeOfValue?.Invoke(text);
                 resultBuilder.Append(text);
             }
         }

@@ -165,7 +165,7 @@ app.MapPost("/api/chats/complete", async (HttpContext context,
     [FromQuery] bool translate = false,
         [FromQuery] bool interactiveUpdates = true) =>
 {
-    var chat = await chatService.Completions(request.ToDomain(), translate, interactiveUpdates);
+    var chat = await chatService.Completions(request.ToDomain(), translate, interactiveUpdates, null);
     context.Response.ContentType = "application/json";
     await context.Response.WriteAsync(JsonSerializer.Serialize(chat));
 });

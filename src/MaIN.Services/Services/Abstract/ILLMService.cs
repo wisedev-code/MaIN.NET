@@ -1,11 +1,15 @@
 using MaIN.Domain.Entities;
 using MaIN.Services.Models;
 
-namespace MaIN.Services;
+namespace MaIN.Services.Services.Abstract;
 
 public interface ILLMService
 {
-    Task<ChatResult?> Send(Chat? chat, bool interactiveUpdates = false, bool createSession = false);
+    Task<ChatResult?> Send(
+        Chat? chat,
+        bool interactiveUpdates = false,
+        bool createSession = false,
+        Func<string, Task>? changeOfValue = null);
     Task<ChatResult?> AskMemory(Chat? chat,
         Dictionary<string, string>? textData = null,
         Dictionary<string, string>? fileData = null,
