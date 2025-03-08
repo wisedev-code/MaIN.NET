@@ -28,7 +28,11 @@ public class OpenAiService(
     private readonly HttpClient _httpClient = new();
     private static readonly ConcurrentDictionary<string, List<ChatMessage>> SessionCache = new();
     
-    public async Task<ChatResult?> Send(Chat? chat, bool interactiveUpdates = false, bool createSession = false)
+    public async Task<ChatResult?> Send(
+        Chat? chat,
+        bool interactiveUpdates = false,
+        bool createSession = false,
+        Func<string, Task>? changeOfValue = null)
     {
         if (string.IsNullOrEmpty(options.OpenAiKey) || string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OPENAI_API_KEY")))
         {
@@ -112,6 +116,7 @@ public class OpenAiService(
                             var content = chunk?.Choices?.FirstOrDefault()?.Delta?.Content;
                             if (!string.IsNullOrEmpty(content))
                             {
+                                changeOfValue?.Invoke(content);
                                 resultBuilder.Append(content);
                                 await notificationService.DispatchNotification(
                                     NotificationMessageBuilder.CreateChatCompletion(chat.Id, content, false),

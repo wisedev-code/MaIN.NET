@@ -118,8 +118,9 @@ public class ChatContext
         {
             await _chatService.Create(_chat);
         }
-        return await _chatService.Completions(_chat, translate, interactive);
+        return await _chatService.Completions(_chat, translate, interactive, changeOfValue);
     }
+    
 
     public async Task<Chat?> GetCurrentChat()
     {

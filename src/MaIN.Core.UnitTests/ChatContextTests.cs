@@ -76,14 +76,14 @@ public class ChatContextTests
     {
         // Arrange
         var chatResult = new ChatResult();
-        _mockChatService.Setup(s => s.Completions(It.IsAny<Chat>(), It.IsAny<bool>(), It.IsAny<bool>()))
+        _mockChatService.Setup(s => s.Completions(It.IsAny<Chat>(), It.IsAny<bool>(), It.IsAny<bool>(), null))
             .ReturnsAsync(chatResult);
         
         // Act
         var result = await _chatContext.CompleteAsync();
         
         // Assert
-        _mockChatService.Verify(s => s.Completions(It.IsAny<Chat>(), false, false), Times.Once);
+        _mockChatService.Verify(s => s.Completions(It.IsAny<Chat>(), false, false, null), Times.Once);
         Assert.Equal(chatResult, result);
     }
 

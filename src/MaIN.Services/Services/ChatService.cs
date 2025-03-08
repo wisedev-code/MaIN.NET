@@ -19,7 +19,11 @@ public class ChatService(
         await chatProvider.AddChat(chat.ToDocument());
     }
 
-    public async Task<ChatResult> Completions(Chat? chat, bool translate = false, bool interactiveUpdates = false)
+    public async Task<ChatResult> Completions(
+        Chat? chat,
+        bool translate = false,
+        bool interactiveUpdates = false,
+        Func<string, Task>? changeOfValue = null)
     {
         if (chat.Model == ImageGenService.Models.FLUX)
         {
@@ -46,7 +50,7 @@ public class ChatService(
 
         var result = chat.Visual 
             ? await imageGenService.Send(chat) 
-            : await llmService.Send(chat, interactiveUpdates, true);
+            : await llmService.Send(chat, interactiveUpdates, true, changeOfValue);
     
         if (translate)
         {

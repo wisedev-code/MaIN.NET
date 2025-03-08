@@ -1,11 +1,14 @@
-using BlazorApp1.Components;
+using MaIN.Core;
+using Microsoft.FluentUI.AspNetCore.Components;
+using MaIN.InferPage.Components;
+
 
 var builder = WebApplication.CreateBuilder(args);
-
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
-
+builder.Services.AddFluentUIComponents();
+builder.Services.AddMaIN(builder.Configuration);
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -20,7 +23,7 @@ app.UseHttpsRedirection();
 
 app.UseStaticFiles();
 app.UseAntiforgery();
-
+app.Services.UseMaIN();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
