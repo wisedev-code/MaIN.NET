@@ -15,12 +15,12 @@
 }
 
 .message-role-bot {
-    color: white;
     align-self: flex-start;
+    margin-bottom: 5px;
 }
 
 .message-role-user {
-    color: white;
+    margin-bottom: 5px;
     align-self: flex-end;
 }
 

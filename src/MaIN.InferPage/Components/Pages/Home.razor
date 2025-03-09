@@ -22,7 +22,9 @@
                 {
                     @if (Chat.Visual)
                     {
-                        <span class="@(message.Role == "User" ? "message-role-user" : "message-role-bot")"></span>
+                        <FluentBadge Class="@(message.Role == "User" ? "message-role-user" : "message-role-bot")" Appearance="Appearance.Accent">
+                            @(message.Role == "User" ? "User" : Utils.Model)
+                        </FluentBadge>
                         @if (message.Role == "User")
                         {
                             <FluentCard class="message-card user-message">
@@ -45,7 +47,9 @@
                     }
                     else
                     {
-                        <span class="@(message.Role == "User" ? "message-role-user" : "message-role-bot")"></span>
+                        <FluentBadge Class="@(message.Role == "User" ? "message-role-user" : "message-role-bot")" Appearance="Appearance.Accent">
+                            @(message.Role == "User" ? "User" : Utils.Model)
+                        </FluentBadge>                       
                         <FluentCard class="@(message.Role == "User" ? "message-card user-message" : "message-card bot-message")">
                             @((MarkupString)((message.Role == "User"
                                 ? message.Content
@@ -61,14 +65,14 @@
             {
                 @if (Chat.Visual)
                 {
-                    <span class="message-role-bot">@_displayName</span>
+                    <FluentBadge Appearance="Appearance.Accent" Class="message-role-bot">@_displayName</FluentBadge>
                     <span class="message-role-bot" style="font-style: italic; font-size: small">This might take a while...</span>
                     <FluentProgressRing Visible="_isLoading" Color="#afffab"></FluentProgressRing>
                 }
                 else
                 {
                     <FluentStack>
-                        <span Class="message-role-bot">@_displayName</span>
+                        <FluentBadge Appearance="Appearance.Accent" Class="message-role-bot">@_displayName</FluentBadge>
                         <FluentProgressRing Width="20px" Visible="_isLoading"></FluentProgressRing>
                     </FluentStack>
                     @if (_incomingMessage != null)
@@ -106,7 +110,7 @@
     private string prompt { get; set; }
     private bool _isLoading;
     private string? _incomingMessage = null;
-    private string _displayName = "Bot";
+    private string _displayName = Utils.Model;
     private ChatContext ctx;    
     private Chat Chat { get; set; } = new();
 
