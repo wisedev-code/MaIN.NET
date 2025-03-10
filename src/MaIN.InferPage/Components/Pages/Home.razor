@@ -1,6 +1,6 @@
 ﻿@page "/"
 @rendermode @(new InteractiveServerRenderMode(prerender: true))
-
+@inject IJSRuntime JS
 @using MaIN.Core.Hub
 @using MaIN.Core.Hub.Contexts
 @using MaIN.Domain.Entities
@@ -12,8 +12,8 @@
 <PageTitle>Home</PageTitle>
 
 <FluentGrid>
-    <FluentGridItem sm="2" xs="2" lg="2"></FluentGridItem>
-    <FluentGridItem sm="8" xs="8" lg="8" Style="align-self: center; align-items: center">
+    <FluentGridItem sm="1" xs="1" lg="1"></FluentGridItem>
+    <FluentGridItem sm="10" xs="10" lg="10" Style="align-self: center; align-items: center">
         <div class="messages-container">
             @foreach (var message in Chat.Messages)
             {
@@ -86,10 +86,11 @@
                     }
                 }
             }
+            <div id="bottom" @ref="_bottomElement"></div>
         </div>
         <div class="input-container">
             <FluentTextField Style="width: 95%"
-                             Value="@prompt"
+                             bind-Value="@_prompt"
                              placeholder="Enter your prompt here..." 
                              @oninput="Callback"
                              @onkeydown="CheckEnterKey">
@@ -98,22 +99,30 @@
             <FluentButton IconStart="@(new Size28.Send())" BackgroundColor="rgba(0, 0, 0, 0)" Style="margin-top: 5px; background-color: transparent"
                           Appearance="Appearance.Lightweight"
                           Loading="@_isLoading"
-                          OnClick="@(() => SendAsync(prompt))">
+                          OnClick="@(() => SendAsync(_prompt!))">
             </FluentButton >
         </div>
     </FluentGridItem>
-    <FluentGridItem sm="2" xs="2" lg="2"></FluentGridItem>
+    <FluentGridItem sm="1" xs="1" lg="1"></FluentGridItem>
 </FluentGrid>
-<FluentProgress Visible="@(_isLoading)" style="width: 100%;"></FluentProgress >
+<FluentProgress Visible="@(_isLoading)" style="width: 100%; !important; position: absolute; margin-bottom: auto"></FluentProgress >
 
+@* ReSharper disable once UnassignedField.Compiler *@
 @code {
-    private string prompt { get; set; }
+    private string? _prompt;
     private bool _isLoading;
     private string? _incomingMessage = null;
-    private string _displayName = Utils.Model;
+    private readonly string _displayName = Utils.Model;
     private ChatContext ctx;    
     private Chat Chat { get; set; } = new();
-
+    private ElementReference? _bottomElement;
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Scroll to the bottom element
+        await JS.InvokeVoidAsync("scrollToBottom", _bottomElement);
+    }
+    
     protected override Task OnInitializedAsync()
     {
         ctx = Utils.Visual ? AIHub.Chat().EnableVisual()
@@ -123,15 +132,16 @@
 
     private async Task CheckEnterKey(KeyboardEventArgs e)
     {
+        StateHasChanged();
         if (e.Key == "Enter")
         {
-            await SendAsync(prompt);
+            await SendAsync(_prompt!);
         }
     }
 
     private async Task SendAsync(string msg)
     {
-        prompt = string.Empty;
+        _prompt = string.Empty;
         StateHasChanged();
         if (!string.IsNullOrWhiteSpace(msg))
         {
@@ -159,7 +169,7 @@
 
     private void Callback(ChangeEventArgs obj)
     {
-        prompt = obj.Value?.ToString()!;    
+        _prompt = obj.Value?.ToString()!;    
     }
 
 }
