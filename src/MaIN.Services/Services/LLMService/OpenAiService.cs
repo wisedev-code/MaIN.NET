@@ -34,7 +34,7 @@ public class OpenAiService(
         bool createSession = false,
         Func<string, Task>? changeOfValue = null)
     {
-        if (string.IsNullOrEmpty(options.OpenAiKey) || string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OPENAI_API_KEY")))
+        if (string.IsNullOrEmpty(options.OpenAiKey) && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OPENAI_API_KEY")))
         {
             throw new Exception("OpenAI API key is not configured.");
         }
@@ -73,7 +73,7 @@ public class OpenAiService(
         }
         else
         {
-            if (interactiveUpdates)
+            if (interactiveUpdates || changeOfValue != null)
             {
                 // Streaming mode.
                 var requestBody = new
