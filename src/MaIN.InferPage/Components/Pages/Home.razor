@@ -14,7 +14,7 @@
 <FluentGrid>
     <FluentGridItem sm="1" xs="1" lg="1"></FluentGridItem>
     <FluentGridItem sm="10" xs="10" lg="10" Style="align-self: center; align-items: center">
-        <div class="messages-container">
+        <div class="messages-container" id="messages-container">
             @foreach (var message in Chat.Messages)
             {
                 <br/>
@@ -92,9 +92,9 @@
             <FluentTextField Style="width: 95%"
                              bind-Value="@_prompt"
                              Value="@_prompt"
+                             @oninput="Callback"
                              Disabled="@_isLoading"
                              placeholder="Enter your prompt here..." 
-                             @oninput="Callback"
                              @onkeydown="CheckEnterKey">
             </FluentTextField>
 
@@ -123,7 +123,7 @@
     {
         if (!firstRender)
         {
-            await JS.InvokeVoidAsync("scrollManager.restoreScrollPosition", "bottom");
+            await JS.InvokeVoidAsync("scrollManager.restoreScrollPosition", "messages-container");
         }
     }
     
@@ -136,7 +136,6 @@
 
     private async Task CheckEnterKey(KeyboardEventArgs e)
     {
-        StateHasChanged();
         if (e.Key == "Enter")
         {
             await SendAsync(_prompt!);
@@ -145,7 +144,6 @@
 
     private async Task SendAsync(string msg)
     {
-        _prompt = string.Empty;
         if (!string.IsNullOrWhiteSpace(msg))
         {
             var newMsg = new Message { Role = "User", Content = msg };
@@ -153,8 +151,9 @@
             Chat.Model = Utils.Model;
             _isLoading = true;
             Chat.Visual = Utils.Visual;
+            _prompt = string.Empty;
             StateHasChanged();
-            bool wasAtBottom = await JS.InvokeAsync<bool>("scrollManager.isAtBottom", "bottom");            
+            bool wasAtBottom = await JS.InvokeAsync<bool>("scrollManager.isAtBottom", "messages-container");            
             await ctx.WithMessage(msg)
                 .CompleteAsync(changeOfValue: async message =>
                 {
@@ -163,16 +162,17 @@
                     if (wasAtBottom)
                     {
                         await JS.InvokeVoidAsync("scrollManager.scrollToBottomSmooth", _bottomElement);
-                        await JS.InvokeVoidAsync("scrollManager.saveScrollPosition", _bottomElement);
                     }
                 });
 
-            Chat = (await ctx.GetCurrentChat())!;
             _isLoading = false;
+            var currentChat = (await ctx.GetCurrentChat())!;
+            Chat.Messages.Add(currentChat.Messages.Last());
             _incomingMessage = null;
+            await JS.InvokeVoidAsync("scrollManager.scrollToBottomSmooth", _bottomElement);   
             StateHasChanged();
-            
-            await JS.InvokeVoidAsync("scrollManager.scrollToBottomSmooth", _bottomElement);        }
+
+        }
     }
 
     private void Callback(ChangeEventArgs obj)

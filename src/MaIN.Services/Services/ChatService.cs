@@ -23,7 +23,7 @@ public class ChatService(
         Chat? chat,
         bool translate = false,
         bool interactiveUpdates = false,
-        Func<string, Task>? changeOfValue = null)
+        Func<string?, Task>? changeOfValue = null)
     {
         if (chat.Model == ImageGenService.Models.FLUX)
         {

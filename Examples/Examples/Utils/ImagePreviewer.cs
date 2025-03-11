@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 
 public static class ImagePreview
 {
-    public static void ShowImage(byte[] imageData, string extension = "png")
+    public static void ShowImage(byte[]? imageData, string extension = "png")
     {
         // Validate extension
         if (string.IsNullOrWhiteSpace(extension) || extension.Contains("."))

@@ -125,7 +125,7 @@ public class AgentContextTests
     public async Task CreateAsync_ShouldCallAgentServiceCreateAgent()
     {
         // Arrange
-        var agent = new Agent();
+        var agent = new Agent() {Id = Guid.NewGuid().ToString()};
         _mockAgentService
             .Setup(s => s.CreateAgent(
                 It.IsAny<Agent>(), 

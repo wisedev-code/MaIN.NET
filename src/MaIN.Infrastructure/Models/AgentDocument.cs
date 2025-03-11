@@ -5,15 +5,15 @@ namespace MaIN.Infrastructure.Models;
 public class AgentDocument
 {
     [BsonId]
-    public string Id { get; set; }
-    public string Name { get; set; }
-    public string Model { get; set; }
-    public string? Description { get; set; }
-    public bool Started { get; set; }
-    public AgentContextDocument? Context { get; set; }
+    public required string Id { get; init; }
+    public required string Name { get; init; }
+    public required string Model { get; init; }
+    public string? Description { get; init; }
+    public bool Started { get; init; }
+    public AgentContextDocument? Context { get; init; }
     public string ChatId { get; set; } = null!;
-    public int Order { get; set; }
-    public Dictionary<string, string> Behaviours { get; set; }
-    public string CurrentBehaviour { get; set; }
-    public bool Flow { get; set; }
+    public int Order { get; init; }
+    public Dictionary<string, string>? Behaviours { get; init; }
+    public string CurrentBehaviour { get; set; } = null!;
+    public bool Flow { get; init; }
 }

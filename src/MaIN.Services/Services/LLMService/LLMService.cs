@@ -30,9 +30,9 @@ public class LLMService(MaINSettings options, INotificationService notificationS
         Chat? chat, 
         bool interactiveUpdates = false,
         bool newSession = false,
-        Func<string, Task>? changeOfValue = null)
+        Func<string?, Task>? changeOfValue = null)
     {
-        if (chat == null || chat.Messages == null || !chat.Messages.Any())
+        if (chat == null || !chat.Messages.Any())
             return null;
 
         if (chat.Model == KnownModelNames.Llava_7b) //TODO include better support for vision models

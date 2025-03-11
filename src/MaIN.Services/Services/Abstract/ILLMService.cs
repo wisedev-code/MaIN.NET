@@ -9,7 +9,7 @@ public interface ILLMService
         Chat? chat,
         bool interactiveUpdates = false,
         bool createSession = false,
-        Func<string, Task>? changeOfValue = null);
+        Func<string?, Task>? changeOfValue = null);
     Task<ChatResult?> AskMemory(Chat? chat,
         Dictionary<string, string>? textData = null,
         Dictionary<string, string>? fileData = null,
