@@ -91,6 +91,8 @@
         <div class="input-container">
             <FluentTextField Style="width: 95%"
                              bind-Value="@_prompt"
+                             Value="@_prompt"
+                             Disabled="@_isLoading"
                              placeholder="Enter your prompt here..." 
                              @oninput="Callback"
                              @onkeydown="CheckEnterKey">
@@ -119,8 +121,10 @@
     
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // Scroll to the bottom element
-        await JS.InvokeVoidAsync("scrollToBottom", _bottomElement);
+        if (!firstRender)
+        {
+            await JS.InvokeVoidAsync("scrollManager.restoreScrollPosition", "bottom");
+        }
     }
     
     protected override Task OnInitializedAsync()
@@ -142,29 +146,33 @@
     private async Task SendAsync(string msg)
     {
         _prompt = string.Empty;
-        StateHasChanged();
         if (!string.IsNullOrWhiteSpace(msg))
         {
-            _isLoading = true;
             var newMsg = new Message { Role = "User", Content = msg };
             Chat.Messages.Add(newMsg);
-
             Chat.Model = Utils.Model;
+            _isLoading = true;
             Chat.Visual = Utils.Visual;
-
+            StateHasChanged();
+            bool wasAtBottom = await JS.InvokeAsync<bool>("scrollManager.isAtBottom", "bottom");            
             await ctx.WithMessage(msg)
-                .CompleteAsync(changeOfValue: message =>
+                .CompleteAsync(changeOfValue: async message =>
                 {
                     _incomingMessage += message;
                     StateHasChanged();
-                    return Task.CompletedTask;
+                    if (wasAtBottom)
+                    {
+                        await JS.InvokeVoidAsync("scrollManager.scrollToBottomSmooth", _bottomElement);
+                        await JS.InvokeVoidAsync("scrollManager.saveScrollPosition", _bottomElement);
+                    }
                 });
 
             Chat = (await ctx.GetCurrentChat())!;
             _isLoading = false;
             _incomingMessage = null;
             StateHasChanged();
-        }
+            
+            await JS.InvokeVoidAsync("scrollManager.scrollToBottomSmooth", _bottomElement);        }
     }
 
     private void Callback(ChangeEventArgs obj)

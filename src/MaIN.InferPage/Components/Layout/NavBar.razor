@@ -1,4 +1,6 @@
 @using Microsoft.FluentUI.AspNetCore.Components.Icons.Regular
+@using Size32 = Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size32
+@inject NavigationManager _navigationManager
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 
 <FluentDesignTheme @bind-Mode="@Mode"
@@ -13,10 +15,16 @@
         Color="#000"
         Style="margin-left: 10px">@Utils.Model</FluentBadge>
 
-    <FluentButton Style="margin-left: auto; align-self: flex-end;"
+    <div  style="margin-left: auto; align-self: flex-end;">
+    <FluentButton Style="padding: 10px"
+                  Appearance="Appearance.Stealth"
+                  OnClick="@Reload" IconStart="@(new Icons.Filled.Size20.ArrowClockwise())">
+    </FluentButton>
+    <FluentButton
                   Appearance="Appearance.Stealth"
                   OnClick="@SetTheme" IconStart="@(new Size24.WeatherMoon())">
     </FluentButton>
+    </div>
 </header>
 
 @code {
@@ -26,4 +34,10 @@
     {
         Mode = Mode == DesignThemeModes.Dark ? DesignThemeModes.Light : DesignThemeModes.Dark;
     }
+
+    private void Reload(MouseEventArgs obj)
+    {
+        _navigationManager.Refresh(true);
+    }
+
 }
