@@ -8,7 +8,7 @@ namespace MaIN.Infrastructure.Repositories.Sqlite;
 
 public class SqliteAgentRepository(IDbConnection connection) : IAgentRepository
 {
-    private readonly JsonSerializerOptions _jsonOptions = new()
+    private readonly JsonSerializerOptions? _jsonOptions = new()
     {
         PropertyNameCaseInsensitive = true
     };

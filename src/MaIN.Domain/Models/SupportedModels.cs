@@ -18,7 +18,7 @@ public struct KnownModels
             {
                 Description = string.Empty,
                 Name = KnownModelNames.Gemma2_2b,
-                FileName = "gemma2-2b-maIN.gguf",
+                FileName = "gemma2-2b.gguf",
                 DownloadUrl = "https://huggingface.co/TheBloke/gemma2-2b-quantized/resolve/main/gemma2-2b-quantized.bin",
             }
         },
@@ -27,7 +27,7 @@ public struct KnownModels
             {
                 Description = string.Empty,
                 Name = KnownModelNames.Llama3_2_3b,
-                FileName = "Llama3.2-maIN.gguf",
+                FileName = "Llama3.2-3b.gguf",
                 DownloadUrl = string.Empty
             }
         },
@@ -36,7 +36,7 @@ public struct KnownModels
             {
                 Description = string.Empty,
                 Name = KnownModelNames.Llama3_1_8b,
-                FileName = "Llama3.1-maIN.gguf",
+                FileName = "Llama3.1-8b.gguf",
                 DownloadUrl = string.Empty
             }
         },
@@ -45,7 +45,7 @@ public struct KnownModels
            {
                Description = string.Empty,
                Name = KnownModelNames.Llava_7b,
-               FileName = "Llava-maIN.gguf",
+               FileName = "Llava.gguf",
                DownloadUrl = string.Empty,
            }
         },
@@ -54,7 +54,7 @@ public struct KnownModels
             {
                 Description = string.Empty,
                 Name = KnownModelNames.Phi_mini,
-                FileName = "phi3.5-maIN.gguf",
+                FileName = "phi3.5.gguf",
                 DownloadUrl = string.Empty
             }
         },
@@ -63,7 +63,7 @@ public struct KnownModels
             {
                 Description = string.Empty,
                 Name = KnownModelNames.Qwen2_5_0_5b,
-                FileName = "Qwen2.5-maIN.gguf",
+                FileName = "Qwen2.5.gguf",
                 DownloadUrl = string.Empty
             }
         },
@@ -72,7 +72,7 @@ public struct KnownModels
             {
                 Description = string.Empty,
                 Name = KnownModelNames.DeepSeek_R1_8b,
-                FileName = "DeepSeekR1-8b-maIN.gguf",
+                FileName = "DeepSeekR1-8b.gguf",
                 DownloadUrl = string.Empty
             }
         },
@@ -81,7 +81,7 @@ public struct KnownModels
             {
                 Description = string.Empty,
                 Name = KnownModelNames.Fox_1_6b,
-                FileName = "Fox-1.6b-maIN.gguf",
+                FileName = "Fox-1.6b.gguf",
                 DownloadUrl = string.Empty
             }
         },

@@ -112,7 +112,7 @@ public class ChatContext
     public async Task<ChatResult> CompleteAsync(
         bool translate = false,
         bool interactive = false,
-        Func<string, Task>? changeOfValue = null)
+        Func<string?, Task>? changeOfValue = null)
     {
         if (_chat.Id == null || !await ChatExists(_chat.Id))
         {

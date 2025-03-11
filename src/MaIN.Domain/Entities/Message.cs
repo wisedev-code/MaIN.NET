@@ -2,11 +2,11 @@ namespace MaIN.Domain.Entities;
 
 public class Message
 {
-    public string Role { get; set; }
-    public string Content { get; set; }
-    public bool Tool { get; set; }
+    public required string Role { get; set; }
+    public required string Content { get; set; }
+    public bool Tool { get; init; }
     public DateTime Time { get; set; }
-    public byte[] Images { get; set; }
+    public byte[]? Images { get; init; }
     public List<FileInfo>? Files { get; set; } //Temporary solution
-    public Dictionary<string,string> Properties { get; set; } = [];
+    public Dictionary<string, string>? Properties { get; set; } = [];
 }

@@ -25,7 +25,7 @@ public static class AgentMapper
             Context = agent.Context.ToDto()
         };
 
-    public static AgentContextDto ToDto(this AgentData agentContext)
+    public static AgentContextDto ToDto(this AgentData? agentContext)
         => new()
         {
             Instruction = agentContext.Instruction,
@@ -81,7 +81,7 @@ public static class AgentMapper
         };
     }
 
-    public static AgentContextDocument ToDocument(this AgentData context)
+    public static AgentContextDocument ToDocument(this AgentData? context)
         => new()
         {
             Instruction = context.Instruction,

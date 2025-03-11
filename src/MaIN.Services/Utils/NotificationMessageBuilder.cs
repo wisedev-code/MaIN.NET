@@ -5,7 +5,7 @@ public static class NotificationMessageBuilder
     public static Dictionary<string, string> CreateActorProgress(
         string agentId, 
         string isProcessing, 
-        string? progress, 
+        string progress, 
         string behaviour)
     {
         return new Dictionary<string, string>

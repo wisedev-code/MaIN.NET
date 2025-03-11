@@ -4,5 +4,5 @@ namespace MaIN.Domain.Entities.Agents.Commands;
 
 public class StartCommand : BaseCommand
 {
-    public string InitialPrompt { get; set; }
+    public string? InitialPrompt { get; init; }
 }

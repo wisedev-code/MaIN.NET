@@ -9,7 +9,7 @@ namespace MaIN.Infrastructure.Repositories.Sql;
 public class SqlAgentRepository : IAgentRepository
 {
     private readonly IDbConnection _connection;
-    private readonly JsonSerializerOptions _jsonOptions = new()
+    private readonly JsonSerializerOptions? _jsonOptions = new()
     {
         PropertyNameCaseInsensitive = true
     };

@@ -32,7 +32,7 @@ public class OpenAiService(
         Chat? chat,
         bool interactiveUpdates = false,
         bool createSession = false,
-        Func<string, Task>? changeOfValue = null)
+        Func<string?, Task>? changeOfValue = null)
     {
         if (string.IsNullOrEmpty(options.OpenAiKey) && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OPENAI_API_KEY")))
         {

@@ -10,10 +10,7 @@ window.scrollManager = {
     restoreScrollPosition: (containerId) => {
         const container = document.getElementById(containerId);
         if (!container) return;
-        const savedScroll = sessionStorage.getItem("scrollTop");
-        if (savedScroll !== null) {
-            container.scrollTop = savedScroll;
-        }
+        container.scrollTop = 9999;
     },
 
     isAtBottom: (containerId) => {

@@ -40,7 +40,7 @@ public class AgentContext
         _agent = existingAgent;
     }
 
-    public AgentContext WithId(string id)
+    public AgentContext WithId(string? id)
     {
         _agent.Id = id;
         return this;
@@ -97,13 +97,13 @@ public class AgentContext
         return this;
     }
 
-    public AgentContext WithSteps(List<string> steps)
+    public AgentContext WithSteps(List<string>? steps)
     {
         _agent.Context.Steps = steps;
         return this;
     }
     
-    public AgentContext WithBehaviour(string name, string instruction)
+    public AgentContext WithBehaviour(string? name, string instruction)
     {
         _agent.Behaviours ??= new Dictionary<string, string>();
         _agent.Behaviours[name] = instruction;
