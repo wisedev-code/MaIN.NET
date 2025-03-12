@@ -329,7 +329,7 @@ public class LLMService(MaINSettings options, INotificationService notificationS
             var model = KnownModels.GetModelByFileName(path, Path.GetFileName(file));
             if (model != null)
             {
-                models.Add(model.Value.Name);
+                models.Add(model.Name);
             }
         }
 

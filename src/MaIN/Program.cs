@@ -191,16 +191,16 @@ app.MapGet("/api/chats/{id}", async (HttpContext context,
     Results.Ok((await chatService.GetById(id)).ToDto()));
 
 app.MapGet("/api/chats/models", async (HttpContext context,
-    [FromServices] ILLMService ollamaService, 
+    [FromServices] ILLMService llmService, 
     [FromServices] IHttpClientFactory httpClientFactory,
-    [FromServices] IOptions<MaINSettings> options) =>
+    [FromServices] MaINSettings options) =>
 {
-    var models = await ollamaService.GetCurrentModels();
+    var models = await llmService.GetCurrentModels();
     //add flux support
     var client = httpClientFactory.CreateClient();
     try
     {
-        var response = await client.GetAsync(options.Value.ImageGenUrl + "/health");
+        var response = await client.GetAsync(options.ImageGenUrl + "/health");
         if (response.IsSuccessStatusCode)
         {
             models.Add(ImageGenService.Models.FLUX);
