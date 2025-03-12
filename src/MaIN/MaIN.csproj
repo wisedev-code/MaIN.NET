@@ -41,4 +41,8 @@
       </Content>
     </ItemGroup>
 
+    <ItemGroup>
+        <InternalsVisibleTo Include="MaIN.Core.IntegrationTests" />
+    </ItemGroup>
+
 </Project>
