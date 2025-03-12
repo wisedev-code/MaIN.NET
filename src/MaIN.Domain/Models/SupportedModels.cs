@@ -91,12 +91,12 @@ public struct KnownModels
         new()
         {
             Name = KnownModelNames.Nomic_Embedding,
-            FileName = "nomic-maIN.gguf",
+            FileName = "nomic.gguf",
             Description = "Model used to generate embeddings.",
             DownloadUrl = string.Empty,
         };
 
-    public static Model GetModel(string path, string name)
+    public static Model GetModel(string? path, string name)
     {
         var isPresent = Models.TryGetValue(name, out var model);
         if (!isPresent)
