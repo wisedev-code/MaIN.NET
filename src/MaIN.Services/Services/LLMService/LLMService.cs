@@ -276,7 +276,7 @@ public class LLMService(MaINSettings options, INotificationService notificationS
 
 
     [Experimental("KMEXP01")]
-    private static IKernelMemory CreateMemory(string modelName, string path,
+    private static IKernelMemory CreateMemory(string modelName, string? path,
         out KernelMemFix.LlamaSharpTextGenerator generator)
     {
         InferenceParams infParams = new() { AntiPrompts = ["INFO", "<|im_end|>", "Question:"] };
@@ -307,7 +307,7 @@ public class LLMService(MaINSettings options, INotificationService notificationS
             .Build();
     }
 
-    internal static async Task<LLamaWeights> GetOrLoadModelAsync(string path, string modelKey)
+    internal static async Task<LLamaWeights> GetOrLoadModelAsync(string? path, string modelKey)
     {
         if (modelCache.TryGetValue(modelKey, out var cachedModel))
         {
@@ -452,7 +452,7 @@ internal static class KernelMemFix
 
     [Experimental("KMEXP01")]
     public static IKernelMemoryBuilder WithLLamaSharpMaINTemp(this IKernelMemoryBuilder builder,
-        LLamaSharpConfig config, string path, string modelName, out LlamaSharpTextGenerator generator)
+        LLamaSharpConfig config, string? path, string modelName, out LlamaSharpTextGenerator generator)
     {
         // Load the first model with caching.
         var model = LLMService.GetOrLoadModelAsync(path, modelName).Result;
