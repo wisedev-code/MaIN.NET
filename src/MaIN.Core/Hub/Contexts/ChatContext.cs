@@ -28,7 +28,7 @@ public class ChatContext
         _chat = existingChat;
     }
 
-    public ChatContext WithModel(string model)
+    public ChatContext WithModel(string? model)
     {
         _chat.Model = model;
         return this;
@@ -40,7 +40,7 @@ public class ChatContext
         return this;
     }
     
-    public ChatContext WithCustomModel(string model, string path)
+    public ChatContext WithCustomModel(string? model, string path)
     {
         KnownModels.AddModel(model, path);
         _chat.Model = model;
@@ -107,7 +107,7 @@ public class ChatContext
         return this;
     }
     
-    public string GetChatId() => _chat.Id;
+    public string? GetChatId() => _chat.Id;
 
     public async Task<ChatResult> CompleteAsync(
         bool translate = false,
@@ -122,7 +122,7 @@ public class ChatContext
     }
     
 
-    public async Task<Chat?> GetCurrentChat()
+    public async Task<Chat> GetCurrentChat()
     {
         if (_chat.Id == null)
             throw new InvalidOperationException("Chat has not been created yet. Call CompleteAsync first.");
@@ -143,7 +143,7 @@ public class ChatContext
         await _chatService.Delete(_chat.Id);
     }
 
-    private async Task<bool> ChatExists(string id)
+    private async Task<bool> ChatExists(string? id)
     {
         try
         {
@@ -157,7 +157,7 @@ public class ChatContext
     }
 
     // Static methods to create builder from existing chat
-    public async Task<ChatContext> FromExisting(string chatId)
+    public async Task<ChatContext> FromExisting(string? chatId)
     {
         var existingChat = await _chatService.GetById(chatId);
         if (existingChat == null)

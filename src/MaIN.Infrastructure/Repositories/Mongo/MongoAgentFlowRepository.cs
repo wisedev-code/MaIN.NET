@@ -11,7 +11,7 @@ public class MongoAgentFlowRepository(IMongoDatabase database, string collection
     public async Task<IEnumerable<AgentFlowDocument>> GetAllFlows() =>
         await _flows.Find(chat => true).ToListAsync();
 
-    public async Task<AgentFlowDocument> GetFlowById(string id) =>
+    public async Task<AgentFlowDocument?> GetFlowById(string id) =>
         await _flows.Find(flow => flow.Id == id).FirstOrDefaultAsync();
 
     public async Task AddFlow(AgentFlowDocument flow) =>

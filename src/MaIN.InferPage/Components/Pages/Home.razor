@@ -114,8 +114,8 @@
     private string? _prompt;
     private bool _isLoading;
     private string? _incomingMessage = null;
-    private readonly string _displayName = Utils.Model;
-    private ChatContext ctx;    
+    private readonly string? _displayName = Utils.Model;
+    private ChatContext? ctx;    
     private Chat Chat { get; set; } = new();
     private ElementReference? _bottomElement;
     
@@ -154,7 +154,7 @@
             _prompt = string.Empty;
             StateHasChanged();
             bool wasAtBottom = await JS.InvokeAsync<bool>("scrollManager.isAtBottom", "messages-container");            
-            await ctx.WithMessage(msg)
+            await ctx!.WithMessage(msg)
                 .CompleteAsync(changeOfValue: async message =>
                 {
                     _incomingMessage += message;

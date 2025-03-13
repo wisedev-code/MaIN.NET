@@ -32,7 +32,7 @@ public class FlowContextTests
         // Setup mock to return flow with the set ID
         _mockFlowService
             .Setup(s => s.GetFlowById(expectedId))
-            .ReturnsAsync(new AgentFlow { Id = expectedId });
+            .ReturnsAsync(new AgentFlow { Id = expectedId, Name = It.IsAny<string>() });
 
         var flow = await _flowContext.GetCurrentFlow();
 
@@ -69,7 +69,7 @@ public class FlowContextTests
     public async Task CreateAsync_ShouldCallFlowService()
     {
         // Arrange
-        var expectedFlow = new AgentFlow { Id = "new-flow-id" };
+        var expectedFlow = new AgentFlow { Id = "new-flow-id", Name = It.IsAny<string>() };
         _mockFlowService
             .Setup(s => s.CreateFlow(It.IsAny<AgentFlow>()))
             .ReturnsAsync(expectedFlow);
@@ -86,7 +86,7 @@ public class FlowContextTests
     public async Task ProcessAsync_WithStringMessage_ShouldReturnChatResult()
     {
         // Arrange
-        var firstAgent = new Agent { Id = "first-agent", Order = 0 };
+        var firstAgent = new Agent { Id = "first-agent", Order = 0, CurrentBehaviour = It.IsAny<string>(), Context = new AgentData()};
         _flowContext.AddAgent(firstAgent);
 
         var message = "Hello, flow!";
@@ -138,8 +138,8 @@ public class FlowContextTests
         // Arrange
         var expectedFlows = new List<AgentFlow>
         {
-            new() { Id = "flow1" },
-            new() { Id = "flow2" }
+            new() { Id = "flow1", Name = "Flow 1" },
+            new() { Id = "flow2", Name = "Flow 2" }
         };
 
         _mockFlowService
@@ -162,7 +162,15 @@ public class FlowContextTests
         { 
             Id = existingFlowId, 
             Name = "Existing Flow",
-            Agents = new List<Agent> { new Agent { Id = "agent1" } }
+            Agents =
+            [
+                new Agent
+                {
+                    Id = "agent1",
+                    CurrentBehaviour = It.IsAny<string>(),
+                    Context = new AgentData()
+                }
+            ]
         };
 
         _mockFlowService

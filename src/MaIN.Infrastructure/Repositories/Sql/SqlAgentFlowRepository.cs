@@ -50,7 +50,7 @@ public class SqlAgentFlowRepository(IDbConnection connection) : IAgentFlowReposi
         return rows.Select(MapAgentFlowDocument);
     }
 
-    public async Task<AgentFlowDocument> GetFlowById(string id)
+    public async Task<AgentFlowDocument?> GetFlowById(string id)
     {
         var row = await connection.QueryFirstOrDefaultAsync(@"
             SELECT * FROM AgentFlows 

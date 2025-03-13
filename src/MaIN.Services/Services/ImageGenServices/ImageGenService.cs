@@ -9,22 +9,20 @@ public class ImageGenService(
     IHttpClientFactory httpClientFactory,
     MaINSettings options) : IImageGenService
 {
-    public async Task<ChatResult?> Send(Chat? chat)
+    public async Task<ChatResult?> Send(Chat chat)
     {
         using var client = httpClientFactory.CreateClient();
         client.Timeout = TimeSpan.FromMinutes(5);
-        var constructedMessage = (chat?.Messages != null
-            ? chat.Messages
-                .Select((msg, index) => index == 0 ? msg.Content
-                    : $"&& {msg.Content}")
-                .Aggregate((current, next) => $"{current} {next}")
-            : string.Empty)!;
+        var constructedMessage = (chat.Messages
+            .Select((msg, index) => index == 0 ? msg.Content
+                : $"&& {msg.Content}")
+            .Aggregate((current, next) => $"{current} {next}"))!;
         var response = await client.PostAsync($"{options.ImageGenUrl}/generate/{constructedMessage}", null);
         
         if (!response.IsSuccessStatusCode)
         {
-            throw new Exception($"Failed to create completion for chat {chat?.Id} with message " +
-                                $"{chat.Messages?.Last().Content}, status code {response.StatusCode}");
+            throw new Exception($"Failed to create completion for chat {chat.Id} with message " +
+                                $"{chat.Messages.Last().Content}, status code {response.StatusCode}");
         }
 
         byte[] imageBytes = await response.Content.ReadAsByteArrayAsync();

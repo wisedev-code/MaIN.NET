@@ -23,6 +23,7 @@ public class FlowContext
         _flow = new AgentFlow
         {
             Id = Guid.NewGuid().ToString(),
+            Name = string.Empty,
             Agents = new List<Agent>(),
         };
     }
@@ -54,7 +55,7 @@ public class FlowContext
     
     public FlowContext Save(string path)
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(path));
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
 
         using (var fileStream = new FileStream(path, FileMode.Create))
         using (var archive = new ZipArchive(fileStream, ZipArchiveMode.Create))
@@ -138,7 +139,7 @@ public class FlowContext
     }
     
     
-    public async Task<ChatResult> ProcessAsync(Chat? chat, bool translate = false)
+    public async Task<ChatResult> ProcessAsync(Chat chat, bool translate = false)
     {
         var result = await _agentService.Process(chat, _firstAgent!.Id, translate);
         var message = result!.Messages!.LastOrDefault()!.ToDto();
@@ -154,7 +155,7 @@ public class FlowContext
     public async Task<ChatResult> ProcessAsync(string message, bool translate = false)
     {
         var chat = await _agentService.GetChatByAgent(_firstAgent!.Id);
-        chat.Messages?.Add(new Message()
+        chat?.Messages.Add(new Message()
         {
             Content = message,
             Role = "User",
@@ -174,9 +175,9 @@ public class FlowContext
     public async Task<ChatResult> ProcessAsync(Message message, bool translate = false)
     {
         var chat = await _agentService.GetChatByAgent(_firstAgent!.Id);
-        chat.Messages?.Add(message);
+        chat?.Messages.Add(message);
         var result = await _agentService.Process(chat, _firstAgent.Id, translate);
-        var messageResult = result!.Messages!.LastOrDefault()!.ToDto();
+        var messageResult = result!.Messages.LastOrDefault()!.ToDto();
         return new ChatResult()
         {
             Done = true,

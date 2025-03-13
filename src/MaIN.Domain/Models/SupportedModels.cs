@@ -2,7 +2,7 @@ namespace MaIN.Domain.Models;
 
 public class Model
 {
-    public required string Name { get; init; }
+    public required string? Name { get; init; }
     public required string FileName { get; init; }
     public string? DownloadUrl { get; set; }
     public string? Description { get; set; }
@@ -87,7 +87,7 @@ public static class KnownModels
             DownloadUrl = string.Empty,
         };
 
-    public static Model GetModel(string path, string name)
+    public static Model GetModel(string path, string? name)
     {
         var model = Models.FirstOrDefault(x => x.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase)
                                                || x.Name.Replace(':', '-').Equals(name,
@@ -124,7 +124,7 @@ public static class KnownModels
         throw new Exception($"Model {fileName} is not downloaded");
     }
 
-    public static void AddModel(string model, string path)
+    public static void AddModel(string? model, string path)
     {
         Models.Add(new Model()
         {

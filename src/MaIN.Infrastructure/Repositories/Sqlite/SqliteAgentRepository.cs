@@ -59,7 +59,7 @@ public class SqliteAgentRepository(IDbConnection connection) : IAgentRepository
         };
     }
 
-    public async Task<IEnumerable<AgentDocument?>> GetAllAgents()
+    public async Task<IEnumerable<AgentDocument>> GetAllAgents()
     {
         var rows = await connection.QueryAsync(
             "SELECT * FROM Agents");
@@ -74,7 +74,7 @@ public class SqliteAgentRepository(IDbConnection connection) : IAgentRepository
         return row != null ? MapAgentDocument(row) : null;
     }
 
-    public async Task AddAgent(AgentDocument? agent)
+    public async Task AddAgent(AgentDocument agent)
     {
         if (agent == null)
             throw new ArgumentNullException(nameof(agent));
@@ -90,7 +90,7 @@ public class SqliteAgentRepository(IDbConnection connection) : IAgentRepository
             )", parameters);
     }
 
-    public async Task UpdateAgent(string id, AgentDocument? agent)
+    public async Task UpdateAgent(string id, AgentDocument agent)
     {
         if (agent == null)
             throw new ArgumentNullException(nameof(agent));

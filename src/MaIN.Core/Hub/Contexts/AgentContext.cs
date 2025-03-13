@@ -23,6 +23,7 @@ public class AgentContext
             Behaviours = new Dictionary<string, string>(),
             Name = $"Agent-{Guid.NewGuid()}",
             Description = "Agent created by MaIN",
+            CurrentBehaviour = "Default",
             Flow = false,
             Context = new AgentData()
             {
@@ -40,7 +41,7 @@ public class AgentContext
         _agent = existingAgent;
     }
 
-    public AgentContext WithId(string? id)
+    public AgentContext WithId(string id)
     {
         _agent.Id = id;
         return this;
@@ -71,7 +72,7 @@ public class AgentContext
         return this;
     }
 
-    public AgentContext WithModel(string model)
+    public AgentContext WithModel(string? model)
     {
         _agent.Model = model;
         return this;
@@ -83,7 +84,7 @@ public class AgentContext
         return this;
     }
     
-    public AgentContext WithCustomModel(string model, string path)
+    public AgentContext WithCustomModel(string? model, string path)
     {
         KnownModels.AddModel(model, path);
         _agent.Model = model;
@@ -103,7 +104,7 @@ public class AgentContext
         return this;
     }
     
-    public AgentContext WithBehaviour(string? name, string instruction)
+    public AgentContext WithBehaviour(string name, string instruction)
     {
         _agent.Behaviours ??= new Dictionary<string, string>();
         _agent.Behaviours[name] = instruction;
@@ -123,7 +124,7 @@ public class AgentContext
         return this;
     }
     
-    public async Task<ChatResult> ProcessAsync(Chat? chat, bool translate = false)
+    public async Task<ChatResult> ProcessAsync(Chat chat, bool translate = false)
     {
         var result = await _agentService.Process(chat, _agent.Id, translate);
         var message = result!.Messages!.LastOrDefault()!.ToDto();
@@ -139,7 +140,7 @@ public class AgentContext
     public async Task<ChatResult> ProcessAsync(string message, bool translate = false)
     {
         var chat = await _agentService.GetChatByAgent(_agent.Id);
-        chat.Messages?.Add(new Message()
+        chat?.Messages.Add(new Message()
         {
             Content = message,
             Role = "User",
@@ -159,9 +160,9 @@ public class AgentContext
     public async Task<ChatResult> ProcessAsync(Message message, bool translate = false)
     {
         var chat = await _agentService.GetChatByAgent(_agent.Id);
-        chat.Messages?.Add(message);
+        chat?.Messages.Add(message);
         var result = await _agentService.Process(chat, _agent.Id, translate);
-        var messageResult = result!.Messages!.LastOrDefault()!.ToDto();
+        var messageResult = result!.Messages.LastOrDefault()!.ToDto();
         return new ChatResult()
         {
             Done = true,
@@ -171,12 +172,12 @@ public class AgentContext
         };
     }
 
-    public async Task<Chat?> GetChat()
+    public async Task<Chat> GetChat()
     {
         return await _agentService.GetChatByAgent(_agent.Id);
     }
 
-    public async Task<Chat?> RestartChat()
+    public async Task<Chat> RestartChat()
     {
         return await _agentService.Restart(_agent.Id);
     }

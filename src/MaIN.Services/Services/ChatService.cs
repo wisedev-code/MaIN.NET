@@ -1,4 +1,5 @@
 using MaIN.Domain.Entities;
+using MaIN.Infrastructure.Models;
 using MaIN.Infrastructure.Repositories.Abstract;
 using MaIN.Services.Mappers;
 using MaIN.Services.Models;
@@ -13,14 +14,14 @@ public class ChatService(
     ILLMService llmService,
     IImageGenService imageGenService) : IChatService
 {
-    public async Task Create(Chat? chat)
+    public async Task Create(Chat chat)
     {
         chat.Type = ChatType.Conversation;
         await chatProvider.AddChat(chat.ToDocument());
     }
 
     public async Task<ChatResult> Completions(
-        Chat? chat,
+        Chat chat,
         bool translate = false,
         bool interactiveUpdates = false,
         Func<string?, Task>? changeOfValue = null)
@@ -71,13 +72,13 @@ public class ChatService(
         return result;
     }
 
-    public async Task Delete(string id)
+    public async Task Delete(string? id)
     {
         await llmService.CleanSessionCache(id);
         await chatProvider.DeleteChat(id);
     }
     
-    public async Task<Chat?> GetById(string id)
+    public async Task<Chat> GetById(string? id)
     {
         var chatDocument = await chatProvider.GetChatById(id);
         return chatDocument.ToDomain();

@@ -7,7 +7,7 @@ namespace MaIN.Infrastructure.Repositories.FileSystem;
 public class FileSystemChatRepository : IChatRepository
 {
     private readonly string _directoryPath;
-    private static readonly JsonSerializerOptions _jsonOptions = new() { WriteIndented = true };
+    private static readonly JsonSerializerOptions? _jsonOptions = new() { WriteIndented = true };
 
     public FileSystemChatRepository(string basePath)
     {
@@ -15,7 +15,7 @@ public class FileSystemChatRepository : IChatRepository
         Directory.CreateDirectory(_directoryPath);
     }
 
-    private string GetFilePath(string id) => Path.Combine(_directoryPath, $"{id}.json");
+    private string GetFilePath(string? id) => Path.Combine(_directoryPath, $"{id}.json");
 
     public async Task<IEnumerable<ChatDocument>> GetAllChats()
     {
@@ -32,7 +32,7 @@ public class FileSystemChatRepository : IChatRepository
         return chats;
     }
 
-    public async Task<ChatDocument> GetChatById(string id)
+    public async Task<ChatDocument?> GetChatById(string? id)
     {
         var filePath = GetFilePath(id);
         if (!File.Exists(filePath)) return null;
@@ -51,7 +51,7 @@ public class FileSystemChatRepository : IChatRepository
         await File.WriteAllTextAsync(filePath, json);
     }
 
-    public async Task UpdateChat(string id, ChatDocument chat)
+    public async Task UpdateChat(string? id, ChatDocument chat)
     {
         var filePath = GetFilePath(id);
         if (!File.Exists(filePath))
@@ -61,7 +61,7 @@ public class FileSystemChatRepository : IChatRepository
         await File.WriteAllTextAsync(filePath, json);
     }
 
-    public async Task DeleteChat(string id)
+    public async Task DeleteChat(string? id)
     {
         var filePath = GetFilePath(id);
         if (!File.Exists(filePath))

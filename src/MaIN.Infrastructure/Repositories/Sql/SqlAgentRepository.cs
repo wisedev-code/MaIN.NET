@@ -65,7 +65,7 @@ public class SqlAgentRepository : IAgentRepository
         };
     }
 
-    public async Task<IEnumerable<AgentDocument?>> GetAllAgents()
+    public async Task<IEnumerable<AgentDocument>> GetAllAgents()
     {
         var rows = await _connection.QueryAsync(@"
             SELECT * FROM Agents");
@@ -81,7 +81,7 @@ public class SqlAgentRepository : IAgentRepository
         return row != null ? MapAgentDocument(row) : null;
     }
 
-    public async Task AddAgent(AgentDocument? agent)
+    public async Task AddAgent(AgentDocument agent)
     {
         if (agent == null)
             throw new ArgumentNullException(nameof(agent));
@@ -99,7 +99,7 @@ public class SqlAgentRepository : IAgentRepository
             parameters);
     }
 
-    public async Task UpdateAgent(string id, AgentDocument? agent)
+    public async Task UpdateAgent(string id, AgentDocument agent)
     {
         if (agent == null)
             throw new ArgumentNullException(nameof(agent));

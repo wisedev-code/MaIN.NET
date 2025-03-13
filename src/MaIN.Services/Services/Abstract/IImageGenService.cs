@@ -5,5 +5,5 @@ namespace MaIN.Services.Services.Abstract;
 
 public interface IImageGenService 
 {
-    Task<ChatResult?> Send(Chat? chat);
+    Task<ChatResult?> Send(Chat chat);
 }
