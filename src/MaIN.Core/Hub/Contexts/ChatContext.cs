@@ -9,7 +9,7 @@ namespace MaIN.Core.Hub.Contexts;
 public class ChatContext
 {
     private readonly IChatService _chatService;
-    private Chat? _chat;
+    private Chat _chat { get; set; }
 
     internal ChatContext(IChatService chatService)
     {
@@ -22,7 +22,7 @@ public class ChatContext
         };
     }
 
-    internal ChatContext(IChatService chatService, Chat? existingChat)
+    internal ChatContext(IChatService chatService, Chat existingChat)
     {
         _chatService = chatService;
         _chat = existingChat;
@@ -114,7 +114,7 @@ public class ChatContext
         bool interactive = false,
         Func<string?, Task>? changeOfValue = null)
     {
-        if (_chat.Id == null || !await ChatExists(_chat.Id))
+        if (!await ChatExists(_chat.Id))
         {
             await _chatService.Create(_chat);
         }
@@ -160,6 +160,10 @@ public class ChatContext
     public async Task<ChatContext> FromExisting(string chatId)
     {
         var existingChat = await _chatService.GetById(chatId);
+        if (existingChat == null)
+        {
+            throw new Exception("Chat not found");
+        }
         return new ChatContext(_chatService, existingChat);
     }
 

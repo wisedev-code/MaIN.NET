@@ -9,68 +9,74 @@ public class Model
     public string? Path { get; set; }
 }
 
-public struct KnownModels
+public static class KnownModels
 {
-    internal static List<Model> Models => new()
-    {
-        
-             new Model()
-            {
-                Description = string.Empty,
-                Name = KnownModelNames.Gemma2_2b,
-                FileName = "gemma2-2b.gguf",
-                DownloadUrl = "https://huggingface.co/TheBloke/gemma2-2b-quantized/resolve/main/gemma2-2b-quantized.bin",
-            },
-            new Model()
-            {
-                Description = string.Empty,
-                Name = KnownModelNames.Llama3_2_3b,
-                FileName = "Llama3.2-3b.gguf",
-                DownloadUrl = string.Empty
-            },
-            new Model()
-            {
-                Description = string.Empty,
-                Name = KnownModelNames.Llama3_1_8b,
-                FileName = "Llama3.1-8b.gguf",
-                DownloadUrl = string.Empty
-            },
-           new Model()
-           {
-               Description = string.Empty,
-               Name = KnownModelNames.Llava_7b,
-               FileName = "Llava.gguf",
-               DownloadUrl = string.Empty,
-           },
-           new Model()
-            {
-                Description = string.Empty,
-                Name = KnownModelNames.Phi_mini,
-                FileName = "phi3.5.gguf",
-                DownloadUrl = string.Empty
-            },
-            new Model()
-            {
-                Description = string.Empty,
-                Name = KnownModelNames.Qwen2_5_0_5b,
-                FileName = "Qwen2.5.gguf",
-                DownloadUrl = string.Empty
-            },
-            new Model()
-            {
-                Description = string.Empty,
-                Name = KnownModelNames.DeepSeek_R1_8b,
-                FileName = "DeepSeekR1-8b.gguf",
-                DownloadUrl = string.Empty
-            },
-             new Model()
-            {
-                Description = string.Empty,
-                Name = KnownModelNames.Fox_1_6b,
-                FileName = "Fox-1.6b.gguf",
-                DownloadUrl = string.Empty
-            }
-    };
+    private static List<Model> Models { get; } = 
+    [
+        new Model()
+        {
+            Description = string.Empty,
+            Name = KnownModelNames.Gemma2_2b,
+            FileName = "gemma2-2b.gguf",
+            DownloadUrl = "https://huggingface.co/TheBloke/gemma2-2b-quantized/resolve/main/gemma2-2b-quantized.bin",
+        },
+
+        new Model()
+        {
+            Description = string.Empty,
+            Name = KnownModelNames.Llama3_2_3b,
+            FileName = "Llama3.2-3b.gguf",
+            DownloadUrl = string.Empty
+        },
+
+        new Model()
+        {
+            Description = string.Empty,
+            Name = KnownModelNames.Llama3_1_8b,
+            FileName = "Llama3.1-8b.gguf",
+            DownloadUrl = string.Empty
+        },
+
+        new Model()
+        {
+            Description = string.Empty,
+            Name = KnownModelNames.Llava_7b,
+            FileName = "Llava.gguf",
+            DownloadUrl = string.Empty,
+        },
+
+        new Model()
+        {
+            Description = string.Empty,
+            Name = KnownModelNames.Phi_mini,
+            FileName = "phi3.5.gguf",
+            DownloadUrl = string.Empty
+        },
+
+        new Model()
+        {
+            Description = string.Empty,
+            Name = KnownModelNames.Qwen2_5_0_5b,
+            FileName = "Qwen2.5.gguf",
+            DownloadUrl = string.Empty
+        },
+
+        new Model()
+        {
+            Description = string.Empty,
+            Name = KnownModelNames.DeepSeek_R1_8b,
+            FileName = "DeepSeekR1-8b.gguf",
+            DownloadUrl = string.Empty
+        },
+
+        new Model()
+        {
+            Description = string.Empty,
+            Name = KnownModelNames.Fox_1_6b,
+            FileName = "Fox-1.6b.gguf",
+            DownloadUrl = string.Empty
+        }
+    ];
 
     public static Model GetEmbeddingModel() =>
         new()
