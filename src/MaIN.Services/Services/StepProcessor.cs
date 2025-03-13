@@ -23,18 +23,17 @@ public class StepProcessor : IStepProcessor
         }
     }
 
-    public async Task<Chat?> ProcessSteps(
+    public async Task<Chat> ProcessSteps(
         AgentContextDocument context,
         AgentDocument agent,
-        Chat? chat,
+        Chat chat,
         Func<string, string, string?, string, Task> notifyProgress,
         Func<Chat, Task> updateChat,
         ILogger logger)
     {
-        Message redirectMessage = chat?.Messages?.Last()!;
+        Message redirectMessage = chat.Messages.Last()!;
         var tagsToReplaceWithFilter = new List<string>();
-        var index = 0;
-        foreach (var step in context.Steps)
+        foreach (var step in context.Steps!)
         {
             logger.LogInformation("Processing step: {Step} on agent {agent}", step, agent.Name);
             
@@ -63,7 +62,6 @@ public class StepProcessor : IStepProcessor
             chat = result.Chat;
 
             await updateChat(chat!);
-            index++;
         }
 
         await CleanupBehaviors(agent, tagsToReplaceWithFilter);
@@ -84,7 +82,7 @@ public class StepProcessor : IStepProcessor
 
     private static Task CleanupBehaviors(AgentDocument agent, List<string> tagsToReplaceWithFilter)
     {
-        foreach (var key in agent.Behaviours.Keys.ToList())
+        foreach (var key in agent.Behaviours!.Keys.ToList())
         {
             agent.Behaviours[key] = tagsToReplaceWithFilter.Aggregate(
                 agent.Behaviours[key],

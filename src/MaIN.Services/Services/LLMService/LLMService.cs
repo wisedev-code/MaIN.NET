@@ -24,15 +24,15 @@ public class LLMService(MaINSettings options, INotificationService notificationS
 {
     private const string DefaultModelEnvPath = "MaIN_ModelsPath";
     private static readonly ConcurrentDictionary<string, LLamaWeights> modelCache = new();
-    private static readonly ConcurrentDictionary<string, ChatSession> sessionCache = new(); // Cache for chat sessions
+    private static readonly ConcurrentDictionary<string?, ChatSession> sessionCache = new(); // Cache for chat sessions
 
     public async Task<ChatResult?> Send(
-        Chat? chat, 
+        Chat chat, 
         bool interactiveUpdates = false,
         bool newSession = false,
         Func<string?, Task>? changeOfValue = null)
     {
-        if (chat == null || !chat.Messages.Any())
+        if (!chat.Messages.Any())
             return null;
 
         if (chat.Model == KnownModelNames.Llava_7b) //TODO include better support for vision models
@@ -40,8 +40,8 @@ public class LLMService(MaINSettings options, INotificationService notificationS
             return await HandleImageInterpreter(chat)!;
         }
 
-        var path = options.ModelsPath ?? Environment.GetEnvironmentVariable(DefaultModelEnvPath);
-        var model = KnownModels.GetModel(path, chat.Model);
+        var path = options.ModelsPath ?? Environment.GetEnvironmentVariable(DefaultModelEnvPath); //TODO add handling for null path
+        var model = KnownModels.GetModel(path!, chat.Model);
         var modelKey = model.FileName;
 
         // Get or load the model asynchronously.
@@ -141,13 +141,13 @@ public class LLMService(MaINSettings options, INotificationService notificationS
         return chatResult;
     }
 
-    private async Task<ChatResult> HandleImageInterpreter(Chat? chat)
+    private async Task<ChatResult> HandleImageInterpreter(Chat chat)
     {
-        var path = options.ModelsPath ?? Environment.GetEnvironmentVariable(DefaultModelEnvPath);
-        var modelConfig = KnownModels.GetModel(path, chat.Model);
+        var path = options.ModelsPath ?? Environment.GetEnvironmentVariable(DefaultModelEnvPath); //TODO add handling for null path
+        var modelConfig = KnownModels.GetModel(path!, chat.Model);
         var modelKey = modelConfig.FileName;
 
-        var parameters = new ModelParams(Path.Combine(path, modelKey));
+        var parameters = new ModelParams(Path.Combine(path!, modelKey));
 
         using var model = LLamaWeights.LoadFromFile(parameters);
         using var context = model.CreateContext(parameters);
@@ -156,7 +156,7 @@ public class LLMService(MaINSettings options, INotificationService notificationS
         var inferenceParams = new InferenceParams() { AntiPrompts = new[] { model.Vocab.EOT.ToString() ?? "User:" } };
         var ex = new InteractiveExecutor(context);
         ex.Context.NativeHandle.KvCacheRemove(LLamaSeqId.Zero, -1, -1);
-        ex.Images.Add(chat.Messages!.Last().Images);
+        ex.Images.Add(chat.Messages.Last().Images!);
         var result = new StringBuilder();
         await foreach (var text in ex.InferAsync(chat.Messages!.Last().Content, inferenceParams))
         {
@@ -179,7 +179,7 @@ public class LLMService(MaINSettings options, INotificationService notificationS
         return chatResult;
     }
 
-    private ChatSession GetOrCreateSession(string chatId, Func<ChatSession> createSession)
+    private ChatSession GetOrCreateSession(string? chatId, Func<ChatSession> createSession)
     {
         if (!sessionCache.TryGetValue(chatId, out var session))
         {
@@ -208,14 +208,14 @@ public class LLMService(MaINSettings options, INotificationService notificationS
     }
 
     [Experimental("SKEXP0001")]
-    public async Task<ChatResult?> AskMemory(Chat? chat,
+    public async Task<ChatResult?> AskMemory(Chat chat,
         Dictionary<string, string>? textData = null,
         Dictionary<string, string>? fileData = null,
         List<string>? webUrls = null,
         List<string>? memory = null)
     {
-        var path = options.ModelsPath ?? Environment.GetEnvironmentVariable(DefaultModelEnvPath);
-        var model = KnownModels.GetModel(path, chat!.Model);
+        var path = options.ModelsPath ?? Environment.GetEnvironmentVariable(DefaultModelEnvPath); //TODO add handling for null path
+        var model = KnownModels.GetModel(path!, chat!.Model);
         var modelKey = model.FileName;
 
         var kernelMemory = CreateMemory(modelKey, path, out var generator);
@@ -276,7 +276,7 @@ public class LLMService(MaINSettings options, INotificationService notificationS
 
 
     [Experimental("KMEXP01")]
-    private static IKernelMemory CreateMemory(string modelName, string? path,
+    private static IKernelMemory CreateMemory(string modelName, string path,
         out KernelMemFix.LlamaSharpTextGenerator generator)
     {
         InferenceParams infParams = new() { AntiPrompts = ["INFO", "<|im_end|>", "Question:"] };
@@ -307,7 +307,7 @@ public class LLMService(MaINSettings options, INotificationService notificationS
             .Build();
     }
 
-    internal static async Task<LLamaWeights> GetOrLoadModelAsync(string? path, string modelKey)
+    internal static async Task<LLamaWeights> GetOrLoadModelAsync(string path, string modelKey)
     {
         if (modelCache.TryGetValue(modelKey, out var cachedModel))
         {
@@ -319,14 +319,14 @@ public class LLMService(MaINSettings options, INotificationService notificationS
         return modelCache.GetOrAdd(modelKey, loadedModel);
     }
 
-    public Task<List<string>> GetCurrentModels()
+    public Task<List<string?>> GetCurrentModels()
     {
-        var path = options.ModelsPath ?? Environment.GetEnvironmentVariable(DefaultModelEnvPath);
-        var files = Directory.GetFiles(path, "*.gguf", SearchOption.AllDirectories).ToList();
-        var models = new List<string>();
+        var path = options.ModelsPath ?? Environment.GetEnvironmentVariable(DefaultModelEnvPath); //TODO add handling for null path
+        var files = Directory.GetFiles(path!, "*.gguf", SearchOption.AllDirectories).ToList();
+        var models = new List<string?>();
         foreach (var file in files)
         {
-            var model = KnownModels.GetModelByFileName(path, Path.GetFileName(file));
+            var model = KnownModels.GetModelByFileName(path!, Path.GetFileName(file));
             if (model != null)
             {
                 models.Add(model.Name);
@@ -336,7 +336,7 @@ public class LLMService(MaINSettings options, INotificationService notificationS
         return Task.FromResult(models);
     }
 
-    public Task CleanSessionCache(string id)
+    public Task CleanSessionCache(string? id)
     {
         sessionCache.Remove(id, out var session);
         session?.Executor.Context.NativeHandle.KvCacheClear();
@@ -352,9 +352,7 @@ internal static class KernelMemFix
     {
         private readonly StatelessExecutor _executor;
         private readonly LLamaWeights _weights;
-        private readonly bool _ownsWeights;
         private readonly LLamaContext _context;
-        private readonly bool _ownsContext;
         private readonly InferenceParams? _defaultInferenceParams;
 
         public int MaxTokenTotal { get; }
@@ -375,10 +373,7 @@ internal static class KernelMemFix
 
         public void Dispose()
         {
-            if (this._ownsWeights)
-                this._weights.Dispose();
-            if (!this._ownsContext)
-                return;
+            this._weights.Dispose();
             this._context.Dispose();
         }
 
@@ -395,13 +390,13 @@ internal static class KernelMemFix
             TextGenerationOptions options,
             InferenceParams? defaultParams)
         {
-            if (defaultParams != (InferenceParams)null)
+            if (defaultParams != null!)
                 return defaultParams with
                 {
-                    AntiPrompts = (IReadOnlyList<string>)defaultParams.AntiPrompts
-                        .Concat<string>((IEnumerable<string>)options.StopSequences).ToList<string>().AsReadOnly(),
+                    AntiPrompts = defaultParams.AntiPrompts
+                        .Concat(options.StopSequences).ToList().AsReadOnly(),
                     MaxTokens = options.MaxTokens ?? defaultParams.MaxTokens,
-                    SamplingPipeline = (ISamplingPipeline)new DefaultSamplingPipeline()
+                    SamplingPipeline = new DefaultSamplingPipeline()
                     {
                         Temperature = (float)options.Temperature,
                         FrequencyPenalty = (float)options.FrequencyPenalty,

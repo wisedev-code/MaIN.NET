@@ -6,13 +6,13 @@ namespace MaIN.Infrastructure.Repositories;
 
 public class DefaultChatRepository : IChatRepository
 {
-    private readonly ConcurrentDictionary<string, ChatDocument> _chats = new();
+    private readonly ConcurrentDictionary<string?, ChatDocument> _chats = new();
 
     public async Task<IEnumerable<ChatDocument>> GetAllChats() =>
         await Task.FromResult(_chats.Values);
 
-    public async Task<ChatDocument> GetChatById(string id) =>
-        await Task.FromResult(_chats.GetValueOrDefault(id));
+    public async Task<ChatDocument?> GetChatById(string? id) =>
+        (await Task.FromResult(_chats.GetValueOrDefault(id)))!;
 
     public async Task AddChat(ChatDocument chat)
     {
@@ -22,15 +22,15 @@ public class DefaultChatRepository : IChatRepository
         await Task.CompletedTask;
     }
 
-    public async Task UpdateChat(string id, ChatDocument chat)
+    public async Task UpdateChat(string? id, ChatDocument chat)
     {
-        if (!_chats.TryUpdate(id, chat, _chats.GetValueOrDefault(id)))
+        if (!_chats.TryUpdate(id, chat, _chats.GetValueOrDefault(id)!))
             throw new KeyNotFoundException($"Chat with ID {id} not found.");
             
         await Task.CompletedTask;
     }
 
-    public async Task DeleteChat(string id)
+    public async Task DeleteChat(string? id)
     {
         if (!_chats.TryRemove(id, out _))
             throw new KeyNotFoundException($"Chat with ID {id} not found.");

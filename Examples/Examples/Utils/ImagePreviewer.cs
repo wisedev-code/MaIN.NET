@@ -21,7 +21,7 @@ public static class ImagePreview
             $"{Guid.NewGuid()}.{extension}"
         );
 
-        File.WriteAllBytes(tempFile, imageData);
+        File.WriteAllBytes(tempFile, imageData!);
 
         try
         {

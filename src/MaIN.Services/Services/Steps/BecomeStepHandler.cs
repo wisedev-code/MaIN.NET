@@ -18,9 +18,9 @@ public class BecomeStepHandler : IStepHandler
         
         var newBehaviour = context.Arguments[0];
         var messageFilter = context.Agent.Behaviours.GetValueOrDefault(newBehaviour) ?? 
-                            context.Agent.Context.Instruction;
+                            context.Agent.Context!.Instruction;
 
-        if (context.Chat!.Properties.TryGetValue("data_filter", out var filterQuery))
+        if (context.Chat.Properties!.TryGetValue("data_filter", out var filterQuery))
         {
             messageFilter = context.Agent.Behaviours.GetValueOrDefault(newBehaviour)!
                 .Replace("@filter@", filterQuery);

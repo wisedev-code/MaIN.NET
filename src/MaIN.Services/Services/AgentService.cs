@@ -1,6 +1,7 @@
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
 using MaIN.Domain.Entities.Agents.Commands;
+using MaIN.Infrastructure.Models;
 using MaIN.Infrastructure.Repositories.Abstract;
 using MaIN.Services.Mappers;
 using MaIN.Services.Services.Abstract;
@@ -36,7 +37,7 @@ public class AgentService : IAgentService
         _llmService = llmService;
     }
 
-    public async Task<Chat?> Process(Chat? chat, string agentId, bool translatePrompt = false)
+    public async Task<Chat> Process(Chat chat, string agentId, bool translatePrompt = false)
     {
         var agent = await _agentRepository.GetAgentById(agentId);
         if (agent == null) throw new ArgumentException("Agent not found.");
@@ -101,7 +102,7 @@ public class AgentService : IAgentService
         agent.Started = true;
         agent.Flow = flow;
         agent.Behaviours ??= new Dictionary<string, string>();
-        agent.Behaviours.Add("Default", agent.Context.Instruction);
+        agent.Behaviours.Add("Default", agent.Context.Instruction!);
         agent.CurrentBehaviour = "Default";
 
         var agentDocument = agent.ToDocument();
@@ -113,19 +114,19 @@ public class AgentService : IAgentService
         return agent;
     }
 
-    public async Task<Chat?> GetChatByAgent(string agentId)
+    public async Task<Chat> GetChatByAgent(string agentId)
     {
         var agent = await _agentRepository.GetAgentById(agentId);
-        var chat = await _chatRepository.GetChatById(agent.ChatId);
+        var chat = await _chatRepository.GetChatById(agent?.ChatId);
         return chat.ToDomain();
     }
 
-    public async Task<Chat?> Restart(string agentId)
+    public async Task<Chat> Restart(string agentId)
     {
         var agent = await _agentRepository.GetAgentById(agentId);
         var chat = (await _chatRepository.GetChatById(agent?.ChatId!)).ToDomain();
         await _llmService.CleanSessionCache(chat.Id);
-        AgentStateManager.ClearState(agent, chat);
+        AgentStateManager.ClearState(agent!, chat);
 
         await _chatRepository.UpdateChat(chat.Id, chat.ToDocument());
         await _agentRepository.UpdateAgent(agent!.Id, agent);

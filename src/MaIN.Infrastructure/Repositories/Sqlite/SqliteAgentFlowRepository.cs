@@ -50,7 +50,7 @@ public class SqliteAgentFlowRepository(IDbConnection connection) : IAgentFlowRep
         return rows.Select(MapAgentFlowDocument);
     }
 
-    public async Task<AgentFlowDocument> GetFlowById(string id)
+    public async Task<AgentFlowDocument?> GetFlowById(string id)
     {
         var row = await connection.QueryFirstOrDefaultAsync(
             "SELECT * FROM AgentFlows WHERE Id = @Id",

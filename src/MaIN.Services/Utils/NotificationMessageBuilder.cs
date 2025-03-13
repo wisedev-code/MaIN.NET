@@ -5,7 +5,7 @@ public static class NotificationMessageBuilder
     public static Dictionary<string, string> CreateActorProgress(
         string agentId, 
         string isProcessing, 
-        string progress, 
+        string? progress, 
         string behaviour)
     {
         return new Dictionary<string, string>
@@ -17,12 +17,12 @@ public static class NotificationMessageBuilder
         };
     }
     
-    public static Dictionary<string, string> CreateChatCompletion(
-        string chatId, 
-        string content, 
+    public static Dictionary<string, string?> CreateChatCompletion(
+        string? chatId, 
+        string? content, 
         bool done)
     {
-        return new Dictionary<string, string>
+        return new Dictionary<string, string?>
         {
             { "ChatId", chatId },
             { "Done", done.ToString() },

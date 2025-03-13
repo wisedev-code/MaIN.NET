@@ -180,14 +180,14 @@ app.MapPost("/api/chats", async (HttpContext context,
 });
 
 app.MapDelete("/api/chats/{id}", async (HttpContext context,
-    [FromServices] IChatService chatService, string id) =>
+    [FromServices] IChatService chatService, string? id) =>
 {
     await chatService.Delete(id);
     return Results.NoContent();
 });
 
 app.MapGet("/api/chats/{id}", async (HttpContext context,
-    [FromServices] IChatService chatService, string id) => 
+    [FromServices] IChatService chatService, string? id) => 
     Results.Ok((await chatService.GetById(id)).ToDto()));
 
 app.MapGet("/api/chats/models", async (HttpContext context,
@@ -206,7 +206,7 @@ app.MapGet("/api/chats/models", async (HttpContext context,
             models.Add(ImageGenService.Models.FLUX);
         }
     }
-    catch (Exception _)
+    catch (Exception)
     {
         Console.WriteLine("No image-gen service running");
     }

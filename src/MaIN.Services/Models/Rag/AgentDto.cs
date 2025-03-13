@@ -5,22 +5,24 @@ namespace MaIN.Services.Models.Rag;
 public class AgentDto
 {
     [JsonPropertyName("id")]
-    public string Id { get; set; }
+    public string Id { get; init; } = null!;
+
     [JsonPropertyName("name")]
-    public string Name { get; set; }
+    public string Name { get; init; } = null!;
+
     [JsonPropertyName("model")]
-    public string Model { get; set; }
+    public string? Model { get; init; }
     [JsonPropertyName("description")]
-    public string? Description { get; set; }
+    public string? Description { get; init; }
     [JsonPropertyName("started")]
-    public bool Started { get; set; }
+    public bool Started { get; init; }
     [JsonPropertyName("context")]
-    public AgentContextDto Context { get; set; }
+    public AgentContextDto Context { get; init; } = null!;
 
     [JsonPropertyName("order")]
-    public int Order { get; set; }
+    public int Order { get; init; }
 
-    [JsonPropertyName("behaviours")] public Dictionary<string, string> Behaviours { get; set; } = [];
-    [JsonPropertyName("currentBehaviour")] public string CurrentBehaviour { get; set; }
-    [JsonPropertyName("flow")]  public bool Flow { get; set; }
+    [JsonPropertyName("behaviours")] public Dictionary<string, string> Behaviours { get; init; } = [];
+    [JsonPropertyName("currentBehaviour")] public string CurrentBehaviour { get; init; } = null!;
+    [JsonPropertyName("flow")]  public bool Flow { get; init; }
 }

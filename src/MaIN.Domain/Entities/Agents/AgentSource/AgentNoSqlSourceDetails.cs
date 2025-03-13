@@ -2,8 +2,8 @@ namespace MaIN.Domain.Entities.Agents.AgentSource;
 
 public class AgentNoSqlSourceDetails : IAgentSource
 {
-    public string ConnectionString { get; set; }
-    public string DbName { get; set; }
-    public string Collection { get; set; }
-    public string Query { get; set; }
+    public required string ConnectionString { get; set; }
+    public required string DbName { get; init; }
+    public required string Collection { get; set; }
+    public required string Query { get; set; }
 }

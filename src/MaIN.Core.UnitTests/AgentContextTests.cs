@@ -115,7 +115,7 @@ public class AgentContextTests
 
         // Assert
         var agent = _agentContext.GetAgent();
-        Assert.Contains(behaviourName, agent.Behaviours.Keys);
+        Assert.Contains(behaviourName, agent.Behaviours!.Keys);
         Assert.Equal(behaviourInstruction, agent.Behaviours[behaviourName]);
         Assert.Equal(behaviourName, agent.CurrentBehaviour);
         Assert.Equal(result, _agentContext);
@@ -125,7 +125,7 @@ public class AgentContextTests
     public async Task CreateAsync_ShouldCallAgentServiceCreateAgent()
     {
         // Arrange
-        var agent = new Agent() {Id = Guid.NewGuid().ToString()};
+        var agent = new Agent() {Id = Guid.NewGuid().ToString(), CurrentBehaviour = "Default", Context = new AgentData()};
         _mockAgentService
             .Setup(s => s.CreateAgent(
                 It.IsAny<Agent>(), 
@@ -154,7 +154,7 @@ public class AgentContextTests
         // Arrange
         var message = "Hello, agent!";
         var chat = new Chat { Id = _agentContext.GetAgentId(), Messages = new List<Message>() };
-        var chatResult = new ChatResult { Done = true, Model = "test-model" };
+        var chatResult = new ChatResult { Done = true, Model = "test-model", Message = new MessageDto()};
 
         _mockAgentService
             .Setup(s => s.GetChatByAgent(_agentContext.GetAgentId()))
@@ -183,7 +183,7 @@ public class AgentContextTests
     {
         // Arrange
         var existingAgentId = "existing-agent-id";
-        var existingAgent = new Agent { Id = existingAgentId, Name = "Existing Agent" };
+        var existingAgent = new Agent { Id = existingAgentId, Name = "Existing Agent", CurrentBehaviour = "Default", Context = new AgentData() };
 
         _mockAgentService
             .Setup(s => s.GetAgentById(existingAgentId))
@@ -205,7 +205,7 @@ public class AgentContextTests
 
         _mockAgentService
             .Setup(s => s.GetAgentById(nonExistentAgentId))
-            .ReturnsAsync((Agent)null);
+            .ReturnsAsync((Agent)null!);
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(() => 
