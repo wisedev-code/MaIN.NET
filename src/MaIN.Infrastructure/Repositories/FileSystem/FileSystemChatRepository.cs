@@ -7,7 +7,7 @@ namespace MaIN.Infrastructure.Repositories.FileSystem;
 public class FileSystemChatRepository : IChatRepository
 {
     private readonly string _directoryPath;
-    private static readonly JsonSerializerOptions? _jsonOptions = new() { WriteIndented = true };
+    private static readonly JsonSerializerOptions? JsonOptions = new() { WriteIndented = true };
 
     public FileSystemChatRepository(string basePath)
     {
@@ -47,7 +47,7 @@ public class FileSystemChatRepository : IChatRepository
         if (File.Exists(filePath))
             throw new InvalidOperationException($"Chat with ID {chat.Id} already exists.");
 
-        var json = JsonSerializer.Serialize(chat, _jsonOptions);
+        var json = JsonSerializer.Serialize(chat, JsonOptions);
         await File.WriteAllTextAsync(filePath, json);
     }
 
@@ -57,7 +57,7 @@ public class FileSystemChatRepository : IChatRepository
         if (!File.Exists(filePath))
             throw new KeyNotFoundException($"Chat with ID {id} not found.");
 
-        var json = JsonSerializer.Serialize(chat, _jsonOptions);
+        var json = JsonSerializer.Serialize(chat, JsonOptions);
         await File.WriteAllTextAsync(filePath, json);
     }
 

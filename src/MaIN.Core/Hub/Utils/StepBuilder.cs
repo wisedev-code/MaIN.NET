@@ -35,7 +35,7 @@ public class StepBuilder
         return this;
     }
 
-    public List<string>? Build()
+    public List<string> Build()
     {
         return Steps;
     }
