@@ -77,39 +77,22 @@ public class ChatTests : IntegrationTestBase
         Assert.Contains("call of duty", result.Message.Content.ToLower());
     }
 
-    [Fact(Skip = "ImageGen api had some problems on my laptop - will run it on better hardware")]
+    //[Fact]
     public async Task Should_GenerateImage_BasedOnPrompt()
     {
-        Assert.True(PingHost("localhost", 5003, 5), "Please make sure ImageGen service is running on port 5003");
+        Assert.True(PingHost("127.0.0.1", 5003, 5), "Please make sure ImageGen service is running on port 5003");
         
         const string extension = "png";
         
         var result = await AIHub.Chat()
             .EnableVisual()
-            .WithMessage("Generate cyberpunk godzilla cat warrior")
+            .WithMessage("Generate cat in Rome. Sightseeing, colloseum, ancient builidngs, Italy.")
             .CompleteAsync();
-        
-        // Validate extension
+
         if (string.IsNullOrWhiteSpace(extension) || extension.Contains("."))
             throw new ArgumentException("Invalid file extension");
 
-        // Create temp file with proper extension
-        string tempFile = Path.Combine(
-            Path.GetTempPath(),
-            $"{Guid.NewGuid()}.{extension}"
-        );
-
         Assert.True(result.Done);
         Assert.NotNull(result.Message.Images);
-        
-        await File.WriteAllBytesAsync(tempFile, result.Message.Images);
-        
-        var description = await AIHub.Chat()
-            .WithModel("llama3.2:3b")
-            .WithMessage("What's on the image?")
-            .WithFiles([tempFile])
-            .CompleteAsync();
-        
-        //TODO
     }
 }
