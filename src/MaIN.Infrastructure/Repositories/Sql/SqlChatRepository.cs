@@ -1,7 +1,6 @@
 using System.Data;
 using System.Text.Json;
 using Dapper;
-using MaIN.Domain.Entities;
 using MaIN.Infrastructure.Models;
 using MaIN.Infrastructure.Repositories.Abstract;
 
@@ -9,7 +8,7 @@ namespace MaIN.Infrastructure.Repositories.Sql;
 
 public class SqlChatRepository(IDbConnection connection) : IChatRepository
 {
-    private readonly JsonSerializerOptions _jsonOptions = new()
+    private readonly JsonSerializerOptions? _jsonOptions = new()
     {
         PropertyNameCaseInsensitive = true
     };
@@ -66,7 +65,7 @@ public class SqlChatRepository(IDbConnection connection) : IChatRepository
         return rows.Select(MapChatDocument);
     }
 
-    public async Task<ChatDocument> GetChatById(string id)
+    public async Task<ChatDocument?> GetChatById(string? id)
     {
         var row = await connection.QueryFirstOrDefaultAsync(@"
             SELECT * FROM Chats 
@@ -90,7 +89,7 @@ public class SqlChatRepository(IDbConnection connection) : IChatRepository
             parameters);
     }
 
-    public async Task UpdateChat(string id, ChatDocument chat)
+    public async Task UpdateChat(string? id, ChatDocument chat)
     {
         if (chat == null)
             throw new ArgumentNullException(nameof(chat));
@@ -108,7 +107,7 @@ public class SqlChatRepository(IDbConnection connection) : IChatRepository
             parameters);
     }
 
-    public async Task DeleteChat(string id) =>
+    public async Task DeleteChat(string? id) =>
         await connection.ExecuteAsync(@"
             DELETE FROM Chats 
             WHERE Id = @Id",

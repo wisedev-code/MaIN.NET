@@ -5,16 +5,17 @@ namespace MaIN.Services.Models;
 public class MessageDto
 {
     [JsonPropertyName("role")] 
-    public string Role { get; set; }
+    public string Role { get; init; } = null!;
 
     [JsonPropertyName("content")] 
-    public string Content { get; set; }
+    public string Content { get; set; } = null!;
+
     [JsonPropertyName("time")]
     public DateTime Time { get; set; }
     [JsonPropertyName("images")] 
-    public byte[] Images { get; set; }
+    public byte[]? Images { get; init; }
     [JsonPropertyName("files")] 
-    public FileInfoDto[]? Files { get; set; }
+    public FileInfoDto[]? Files { get; init; }
     [JsonPropertyName("properties")]
-    public Dictionary<string, string> Properties { get; set; } = [];
+    public Dictionary<string, string>? Properties { get; set; } = [];
 }

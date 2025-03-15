@@ -31,15 +31,15 @@ app.Run();
 public class Hardware
 {
     public int Id { get; set; }
-    public string Image { get; set; }
-    public string Name { get; set; }
-    public string Brand { get; set; }
-    public string Processor { get; set; }
-    public string Type { get; set; }
-    public string Ram { get; set; }
-    public string Storage { get; set; }
-    public string Gpu { get; set; }
+    public string Image { get; set; } = null!;
+    public string Name { get; set; } = null!;
+    public string Brand { get; set; } = null!;
+    public string Processor { get; set; } = null!;
+    public string Type { get; set; } = null!;
+    public string Ram { get; set; } = null!;
+    public string Storage { get; set; } = null!;
+    public string Gpu { get; set; } = null!;
     public double Price { get; set; }
-    public string Availability { get; set; }
-    public string Description { get; set; }
+    public string Availability { get; set; } = null!;
+    public string Description { get; set; } = null!;
 }

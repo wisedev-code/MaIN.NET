@@ -5,7 +5,6 @@ using MaIN.Domain.Models;
 using MaIN.Services.Models;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Utils;
-using Microsoft.Extensions.Logging;
 using Microsoft.KernelMemory;
 
 namespace MaIN.Services.Services.LLMService;
@@ -20,7 +19,6 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Options;
 
 public class OpenAiService(
     MaINSettings options,
@@ -28,11 +26,15 @@ public class OpenAiService(
     : ILLMService
 {
     private readonly HttpClient _httpClient = new();
-    private static readonly ConcurrentDictionary<string, List<ChatMessage>> SessionCache = new();
+    private static readonly ConcurrentDictionary<string?, List<ChatMessage>> SessionCache = new();
     
-    public async Task<ChatResult?> Send(Chat? chat, bool interactiveUpdates = false, bool createSession = false)
+    public async Task<ChatResult?> Send(
+        Chat chat,
+        bool interactiveUpdates = false,
+        bool createSession = false,
+        Func<string?, Task>? changeOfValue = null)
     {
-        if (string.IsNullOrEmpty(options.OpenAiKey) || string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OPENAI_API_KEY")))
+        if (string.IsNullOrEmpty(options.OpenAiKey) && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OPENAI_API_KEY")))
         {
             throw new Exception("OpenAI API key is not configured.");
         }
@@ -71,7 +73,7 @@ public class OpenAiService(
         }
         else
         {
-            if (interactiveUpdates)
+            if (interactiveUpdates || changeOfValue != null)
             {
                 // Streaming mode.
                 var requestBody = new
@@ -114,6 +116,7 @@ public class OpenAiService(
                             var content = chunk?.Choices?.FirstOrDefault()?.Delta?.Content;
                             if (!string.IsNullOrEmpty(content))
                             {
+                                changeOfValue?.Invoke(content);
                                 resultBuilder.Append(content);
                                 await notificationService.DispatchNotification(
                                     NotificationMessageBuilder.CreateChatCompletion(chat.Id, content, false),
@@ -180,7 +183,7 @@ public class OpenAiService(
         };
     }
     
-    public async Task<ChatResult?> AskMemory(Chat? chat,
+    public async Task<ChatResult?> AskMemory(Chat chat,
         Dictionary<string, string>? textData = null,
         Dictionary<string, string>? fileData = null,
         List<string>? webUrls = null,
@@ -250,7 +253,7 @@ public class OpenAiService(
         };
     }
     
-    public async Task<List<string>> GetCurrentModels()
+    public async Task<List<string?>> GetCurrentModels()
     {
         var request = new HttpRequestMessage(HttpMethod.Get, "https://api.openai.com/v1/models");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", options.OpenAiKey ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY"));
@@ -260,15 +263,15 @@ public class OpenAiService(
         var responseJson = await response.Content.ReadAsStringAsync();
         var modelsResponse = JsonSerializer.Deserialize<OpenAiModelsResponse>(responseJson);
 
-        var models = modelsResponse?.Data?
+        List<string?> models = modelsResponse?.Data?
             .Where(m => m.Id.StartsWith("gpt-", StringComparison.InvariantCultureIgnoreCase))
             .Select(m => m.Id)
-            .ToList() ?? new List<string>();
+            .ToList() ?? new List<string?>();
 
         return models;
     }
 
-    public Task CleanSessionCache(string id)
+    public Task CleanSessionCache(string? id)
     {
         SessionCache.TryRemove(id, out _);
         return Task.CompletedTask;
@@ -338,5 +341,5 @@ public class OpenAiModelsResponse
 
 public abstract class OpenAiModel
 {
-    public string Id { get; set; }
+    public string? Id { get; set; }
 }

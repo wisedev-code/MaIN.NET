@@ -1,4 +1,5 @@
 using MaIN.Domain.Entities.Agents.AgentSource;
+using MaIN.Infrastructure.Models;
 using MaIN.Infrastructure.Repositories.Abstract;
 using MaIN.Services.Mappers;
 using MaIN.Services.Services.Abstract;
@@ -28,7 +29,7 @@ public class AgentFlowService(IAgentFlowRepository flowRepository, IAgentService
     public async Task DeleteFlow(string id)
     {
         var flow = await flowRepository.GetFlowById(id);
-        foreach (var agent in flow.Agents)
+        foreach (var agent in flow?.Agents!)
         {
             await agentService.DeleteAgent(agent.Id);
         }

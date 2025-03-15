@@ -4,5 +4,5 @@ namespace MaIN.Domain.Entities.Agents.Commands;
 
 public class BecomeCommand : BaseCommand
 {
-    public string Key { get; set; }
+    public required string Key { get; set; }
 }

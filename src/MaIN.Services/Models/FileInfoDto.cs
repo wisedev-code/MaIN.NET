@@ -5,9 +5,9 @@ namespace MaIN.Services.Models;
 public class FileInfoDto
 {
     [JsonPropertyName("name")]
-    public string Name { get; set; }
+    public string? Name { get; init; }
     [JsonPropertyName("extension")]
-    public string Extension { get; set; }
+    public string? Extension { get; init; }
     [JsonPropertyName("content")]
-    public string Content { get; set; }
+    public string? Content { get; init; }
 }

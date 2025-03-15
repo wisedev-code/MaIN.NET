@@ -165,7 +165,7 @@ app.MapPost("/api/chats/complete", async (HttpContext context,
     [FromQuery] bool translate = false,
         [FromQuery] bool interactiveUpdates = true) =>
 {
-    var chat = await chatService.Completions(request.ToDomain(), translate, interactiveUpdates);
+    var chat = await chatService.Completions(request.ToDomain(), translate, interactiveUpdates, null);
     context.Response.ContentType = "application/json";
     await context.Response.WriteAsync(JsonSerializer.Serialize(chat));
 });
@@ -180,33 +180,33 @@ app.MapPost("/api/chats", async (HttpContext context,
 });
 
 app.MapDelete("/api/chats/{id}", async (HttpContext context,
-    [FromServices] IChatService chatService, string id) =>
+    [FromServices] IChatService chatService, string? id) =>
 {
     await chatService.Delete(id);
     return Results.NoContent();
 });
 
 app.MapGet("/api/chats/{id}", async (HttpContext context,
-    [FromServices] IChatService chatService, string id) => 
+    [FromServices] IChatService chatService, string? id) => 
     Results.Ok((await chatService.GetById(id)).ToDto()));
 
 app.MapGet("/api/chats/models", async (HttpContext context,
-    [FromServices] ILLMService ollamaService, 
+    [FromServices] ILLMService llmService, 
     [FromServices] IHttpClientFactory httpClientFactory,
-    [FromServices] IOptions<MaINSettings> options) =>
+    [FromServices] MaINSettings options) =>
 {
-    var models = await ollamaService.GetCurrentModels();
+    var models = await llmService.GetCurrentModels();
     //add flux support
     var client = httpClientFactory.CreateClient();
     try
     {
-        var response = await client.GetAsync(options.Value.ImageGenUrl + "/health");
+        var response = await client.GetAsync(options.ImageGenUrl + "/health");
         if (response.IsSuccessStatusCode)
         {
             models.Add(ImageGenService.Models.FLUX);
         }
     }
-    catch (Exception _)
+    catch (Exception)
     {
         Console.WriteLine("No image-gen service running");
     }

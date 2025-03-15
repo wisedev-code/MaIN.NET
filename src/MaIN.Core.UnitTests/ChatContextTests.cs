@@ -75,15 +75,15 @@ public class ChatContextTests
     public async Task CompleteAsync_ShouldCallChatService()
     {
         // Arrange
-        var chatResult = new ChatResult();
-        _mockChatService.Setup(s => s.Completions(It.IsAny<Chat>(), It.IsAny<bool>(), It.IsAny<bool>()))
+        var chatResult = new ChatResult(){ Model = "test-model", Message = new MessageDto() };
+        _mockChatService.Setup(s => s.Completions(It.IsAny<Chat>(), It.IsAny<bool>(), It.IsAny<bool>(), null))
             .ReturnsAsync(chatResult);
         
         // Act
         var result = await _chatContext.CompleteAsync();
         
         // Assert
-        _mockChatService.Verify(s => s.Completions(It.IsAny<Chat>(), false, false), Times.Once);
+        _mockChatService.Verify(s => s.Completions(It.IsAny<Chat>(), false, false, null), Times.Once);
         Assert.Equal(chatResult, result);
     }
 

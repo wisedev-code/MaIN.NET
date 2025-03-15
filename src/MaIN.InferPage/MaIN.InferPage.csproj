@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Costura.Fody" Version="6.0.0">
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
+        <PackageReference Include="Markdig" Version="0.40.0" />
+        <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.11.6"/>
+        <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.11.6"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\MaIN.Core\MaIN.Core.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Include="wwwroot\home.css" />
+    </ItemGroup>
+</Project>

@@ -4,6 +4,6 @@ namespace MaIN.Domain.Entities.Agents.Commands;
 
 public class FetchCommand : BaseCommand
 {
-    public string? Filter { get; set; }
-    public AgentData Context { get; set; }
+    public string? Filter { get; init; }
+    public required AgentData Context { get; init; }
 }
