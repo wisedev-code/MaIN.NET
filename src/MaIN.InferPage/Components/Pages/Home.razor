@@ -130,6 +130,8 @@
     protected override Task OnInitializedAsync()
     {
         ctx = Utils.Visual ? AIHub.Chat().EnableVisual()
+                : Utils.Path != null 
+                    ? AIHub.Chat().WithCustomModel(model: Utils.Model, path: Utils.Path)
             : AIHub.Chat().WithModel(Utils.Model); //If that grows with different chat types we can consider switch ex
         return base.OnInitializedAsync();
     }       
