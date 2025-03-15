@@ -4,5 +4,5 @@ namespace MaIN.Services.Models.Rag.AgentSource;
 
 public class AgentFileSourceDetailsDto : AgentSourceDetailsBase
 {
-    public string Path { get; set; }
+    public required string Path { get; set; }
 }

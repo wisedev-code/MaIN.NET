@@ -8,7 +8,6 @@
 
     <ItemGroup>
         <PackageReference Include="Costura.Fody" Version="6.0.0">
-          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
           <PrivateAssets>all</PrivateAssets>
         </PackageReference>
         <PackageReference Include="GTranslate" Version="2.2.0" />

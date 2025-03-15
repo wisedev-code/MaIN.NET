@@ -1,105 +1,98 @@
 namespace MaIN.Domain.Models;
 
-public struct Model
+public class Model
 {
-    public string Name { get; set; }
-    public string FileName { get; set; }
-    public string DownloadUrl { get; set; }
-    public string Description { get; set; }
-    public string Path { get; set; }
+    public required string? Name { get; init; }
+    public required string FileName { get; init; }
+    public string? DownloadUrl { get; set; }
+    public string? Description { get; set; }
+    public string? Path { get; set; }
 }
 
-public struct KnownModels
+public static class KnownModels
 {
-    internal static Dictionary<string, Model> Models => new(StringComparer.OrdinalIgnoreCase)
-    {
+    private static List<Model> Models { get; } = 
+    [
+        new Model()
         {
-            KnownModelNames.Gemma2_2b, new Model()
-            {
-                Description = string.Empty,
-                Name = KnownModelNames.Gemma2_2b,
-                FileName = "gemma2-2b-maIN.gguf",
-                DownloadUrl = "https://huggingface.co/TheBloke/gemma2-2b-quantized/resolve/main/gemma2-2b-quantized.bin",
-            }
+            Description = string.Empty,
+            Name = KnownModelNames.Gemma2_2b,
+            FileName = "gemma2-2b.gguf",
+            DownloadUrl = "https://huggingface.co/TheBloke/gemma2-2b-quantized/resolve/main/gemma2-2b-quantized.bin",
         },
+
+        new Model()
         {
-            KnownModelNames.Llama3_2_3b, new Model()
-            {
-                Description = string.Empty,
-                Name = KnownModelNames.Llama3_2_3b,
-                FileName = "Llama3.2-maIN.gguf",
-                DownloadUrl = string.Empty
-            }
+            Description = string.Empty,
+            Name = KnownModelNames.Llama3_2_3b,
+            FileName = "Llama3.2-3b.gguf",
+            DownloadUrl = string.Empty
         },
+
+        new Model()
         {
-            KnownModelNames.Llama3_1_8b, new Model()
-            {
-                Description = string.Empty,
-                Name = KnownModelNames.Llama3_1_8b,
-                FileName = "Llama3.1-maIN.gguf",
-                DownloadUrl = string.Empty
-            }
+            Description = string.Empty,
+            Name = KnownModelNames.Llama3_1_8b,
+            FileName = "Llama3.1-8b.gguf",
+            DownloadUrl = string.Empty
         },
+
+        new Model()
         {
-           KnownModelNames.Llava_7b, new Model()
-           {
-               Description = string.Empty,
-               Name = KnownModelNames.Llava_7b,
-               FileName = "Llava-maIN.gguf",
-               DownloadUrl = string.Empty,
-           }
+            Description = string.Empty,
+            Name = KnownModelNames.Llava_7b,
+            FileName = "Llava.gguf",
+            DownloadUrl = string.Empty,
         },
+
+        new Model()
         {
-            KnownModelNames.Phi_mini, new Model()
-            {
-                Description = string.Empty,
-                Name = KnownModelNames.Phi_mini,
-                FileName = "phi3.5-maIN.gguf",
-                DownloadUrl = string.Empty
-            }
+            Description = string.Empty,
+            Name = KnownModelNames.Phi_mini,
+            FileName = "phi3.5.gguf",
+            DownloadUrl = string.Empty
         },
+
+        new Model()
         {
-            KnownModelNames.Qwen2_5_0_5b, new Model()
-            {
-                Description = string.Empty,
-                Name = KnownModelNames.Qwen2_5_0_5b,
-                FileName = "Qwen2.5-maIN.gguf",
-                DownloadUrl = string.Empty
-            }
+            Description = string.Empty,
+            Name = KnownModelNames.Qwen2_5_0_5b,
+            FileName = "Qwen2.5.gguf",
+            DownloadUrl = string.Empty
         },
+
+        new Model()
         {
-            KnownModelNames.DeepSeek_R1_8b, new Model()
-            {
-                Description = string.Empty,
-                Name = KnownModelNames.DeepSeek_R1_8b,
-                FileName = "DeepSeekR1-8b-maIN.gguf",
-                DownloadUrl = string.Empty
-            }
+            Description = string.Empty,
+            Name = KnownModelNames.DeepSeek_R1_8b,
+            FileName = "DeepSeekR1-8b.gguf",
+            DownloadUrl = string.Empty
         },
+
+        new Model()
         {
-            KnownModelNames.Fox_1_6b, new Model()
-            {
-                Description = string.Empty,
-                Name = KnownModelNames.Fox_1_6b,
-                FileName = "Fox-1.6b-maIN.gguf",
-                DownloadUrl = string.Empty
-            }
-        },
-    };
+            Description = string.Empty,
+            Name = KnownModelNames.Fox_1_6b,
+            FileName = "Fox-1.6b.gguf",
+            DownloadUrl = string.Empty
+        }
+    ];
 
     public static Model GetEmbeddingModel() =>
         new()
         {
             Name = KnownModelNames.Nomic_Embedding,
-            FileName = "nomic-maIN.gguf",
+            FileName = "nomic.gguf",
             Description = "Model used to generate embeddings.",
             DownloadUrl = string.Empty,
         };
 
-    public static Model GetModel(string path, string name)
+    public static Model GetModel(string path, string? name)
     {
-        var isPresent = Models.TryGetValue(name, out var model);
-        if (!isPresent)
+        var model = Models.FirstOrDefault(x => x.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase)
+                                               || x.Name.Replace(':', '-').Equals(name,
+                                                   StringComparison.InvariantCultureIgnoreCase));
+        if (model is null)
         {
             //todo support domain specific exceptions
             throw new Exception($"Model {name} is not supported");
@@ -107,7 +100,7 @@ public struct KnownModels
 
         if (File.Exists(Path.Combine(path, model.FileName)))
         {
-            return Models[name];  
+            return model;  
         }
 
         throw new Exception($"Model {name} is not downloaded");
@@ -115,8 +108,7 @@ public struct KnownModels
     
     public static Model? GetModelByFileName(string path, string fileName)
     {
-        var models = Models.Values.ToList();
-        var isPresent = models.Exists(x => x.FileName == fileName);
+        var isPresent = Models.Exists(x => x.FileName == fileName);
         if (!isPresent)
         {
             //todo support domain specific exceptions
@@ -126,15 +118,15 @@ public struct KnownModels
 
         if (File.Exists(Path.Combine(path, fileName)))
         {
-            return models.First(x => x.FileName == fileName);  
+            return Models.First(x => x.FileName == fileName);  
         }
 
         throw new Exception($"Model {fileName} is not downloaded");
     }
 
-    public static void AddModel(string model, string path)
+    public static void AddModel(string? model, string path)
     {
-        Models.Add(model, new Model()
+        Models.Add(new Model()
         {
             Description = string.Empty,
             DownloadUrl = string.Empty,
@@ -154,6 +146,6 @@ public struct KnownModelNames
     public const string Phi_mini = "phi3:mini";
     public const string Llava_7b = "llava:7b";
     public const string Qwen2_5_0_5b = "qwen2.5:0.5b";
-    public const string DeepSeek_R1_8b = "deepseek:r1_8b";
+    public const string DeepSeek_R1_8b = "deepseekR1-8b";
     public const string Fox_1_6b = "fox:1.6b";
 }

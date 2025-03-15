@@ -3,7 +3,6 @@ using MaIN.Infrastructure.Configuration;
 using MaIN.Infrastructure.Repositories;
 using MaIN.Infrastructure.Repositories.Abstract;
 using MaIN.Infrastructure.Repositories.FileSystem;
-using MaIN.Services.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;

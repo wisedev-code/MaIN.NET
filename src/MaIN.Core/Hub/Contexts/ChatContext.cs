@@ -1,7 +1,6 @@
 using MaIN.Domain.Entities;
 using MaIN.Domain.Models;
 using MaIN.Services.Models;
-using MaIN.Services.Models.Ollama;
 using MaIN.Services.Services.Abstract;
 using FileInfo = MaIN.Domain.Entities.FileInfo;
 
@@ -10,7 +9,7 @@ namespace MaIN.Core.Hub.Contexts;
 public class ChatContext
 {
     private readonly IChatService _chatService;
-    private Chat? _chat;
+    private Chat _chat { get; set; }
 
     internal ChatContext(IChatService chatService)
     {
@@ -23,13 +22,13 @@ public class ChatContext
         };
     }
 
-    internal ChatContext(IChatService chatService, Chat? existingChat)
+    internal ChatContext(IChatService chatService, Chat existingChat)
     {
         _chatService = chatService;
         _chat = existingChat;
     }
 
-    public ChatContext WithModel(string model)
+    public ChatContext WithModel(string? model)
     {
         _chat.Model = model;
         return this;
@@ -41,7 +40,7 @@ public class ChatContext
         return this;
     }
     
-    public ChatContext WithCustomModel(string model, string path)
+    public ChatContext WithCustomModel(string? model, string path)
     {
         KnownModels.AddModel(model, path);
         _chat.Model = model;
@@ -108,18 +107,22 @@ public class ChatContext
         return this;
     }
     
-    public string GetChatId() => _chat.Id;
+    public string? GetChatId() => _chat.Id;
 
-    public async Task<ChatResult> CompleteAsync(bool translate = false, bool interactive = false)
+    public async Task<ChatResult> CompleteAsync(
+        bool translate = false,
+        bool interactive = false,
+        Func<string?, Task>? changeOfValue = null)
     {
-        if (_chat.Id == null || !await ChatExists(_chat.Id))
+        if (!await ChatExists(_chat.Id))
         {
             await _chatService.Create(_chat);
         }
-        return await _chatService.Completions(_chat, translate, interactive);
+        return await _chatService.Completions(_chat, translate, interactive, changeOfValue);
     }
+    
 
-    public async Task<Chat?> GetCurrentChat()
+    public async Task<Chat> GetCurrentChat()
     {
         if (_chat.Id == null)
             throw new InvalidOperationException("Chat has not been created yet. Call CompleteAsync first.");
@@ -140,7 +143,7 @@ public class ChatContext
         await _chatService.Delete(_chat.Id);
     }
 
-    private async Task<bool> ChatExists(string id)
+    private async Task<bool> ChatExists(string? id)
     {
         try
         {
@@ -154,9 +157,13 @@ public class ChatContext
     }
 
     // Static methods to create builder from existing chat
-    public async Task<ChatContext> FromExisting(string chatId)
+    public async Task<ChatContext> FromExisting(string? chatId)
     {
         var existingChat = await _chatService.GetById(chatId);
+        if (existingChat == null)
+        {
+            throw new Exception("Chat not found");
+        }
         return new ChatContext(_chatService, existingChat);
     }
 

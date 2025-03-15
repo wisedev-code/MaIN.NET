@@ -10,7 +10,7 @@ namespace MaIN.Services.Mappers;
 
 public static class AgentMapper
 {
-    public static AgentDto ToDto(this Agent? agent)
+    public static AgentDto ToDto(this Agent agent)
         => new()
         {
             Id = agent.Id,
@@ -20,7 +20,7 @@ public static class AgentMapper
             Started = agent.Started,
             Flow = agent.Flow,
             Description = agent.Description,
-            Behaviours = agent.Behaviours,
+            Behaviours = agent.Behaviours!,
             CurrentBehaviour = agent.CurrentBehaviour,
             Context = agent.Context.ToDto()
         };
@@ -28,15 +28,15 @@ public static class AgentMapper
     public static AgentContextDto ToDto(this AgentData agentContext)
         => new()
         {
-            Instruction = agentContext.Instruction,
+            Instruction = agentContext.Instruction!,
             Relations = agentContext.Relations,
-            Steps = agentContext?.Steps ?? [],
-            Source = agentContext?.Source is not null ? new AgentSourceDto()
+            Steps = agentContext.Steps ?? [],
+            Source = (agentContext.Source is not null ? new AgentSourceDto()
             {
-                Details = agentContext?.Source?.Details,
+                Details = agentContext.Source?.Details,
                 AdditionalMessage = agentContext?.Source?.AdditionalMessage,
-                Type = Enum.Parse<AgentSourceTypeDto>(agentContext.Source.Type.ToString())
-            } : null
+                Type = Enum.Parse<AgentSourceTypeDto>(agentContext?.Source?.Type.ToString()!)
+            } : null)!
         };
 
     public static Agent ToDomain(this AgentDto agent)
@@ -86,7 +86,7 @@ public static class AgentMapper
         {
             Instruction = context.Instruction,
             Relations = context.Relations?.ToList(),
-            Steps = context.Steps.ToList(),
+            Steps = context.Steps!.ToList(),
             Source = context.Source is not null ? new AgentSourceDocument()
             {
                 DetailsSerialized = JsonSerializer.Serialize(context.Source.Details),
@@ -110,7 +110,7 @@ public static class AgentMapper
             Context = agent.Context.ToDocument()
         };
     
-    public static Agent ToDomain(this AgentDocument? agent)
+    public static Agent ToDomain(this AgentDocument agent)
         => new()
         {
             Id = agent.Id,
@@ -122,7 +122,7 @@ public static class AgentMapper
             Description = agent.Description,
             Behaviours = agent.Behaviours,
             CurrentBehaviour = agent.CurrentBehaviour,
-            Context = agent.Context.ToDomain()
+            Context = agent.Context!.ToDomain()
         };
 
     public static AgentData ToDomain(this AgentContextDocument agentContextDocument)

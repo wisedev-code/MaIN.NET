@@ -11,7 +11,7 @@ public class DefaultAgentFlowRepository : IAgentFlowRepository
     public async Task<IEnumerable<AgentFlowDocument>> GetAllFlows() =>
         await Task.FromResult(_flows.Values);
 
-    public async Task<AgentFlowDocument> GetFlowById(string id) =>
+    public async Task<AgentFlowDocument?> GetFlowById(string id) =>
         (await Task.FromResult(_flows.GetValueOrDefault(id)))!;
 
     public async Task AddFlow(AgentFlowDocument flow)
@@ -24,7 +24,7 @@ public class DefaultAgentFlowRepository : IAgentFlowRepository
 
     public async Task UpdateFlow(string id, AgentFlowDocument flow)
     {
-        if (!_flows.TryUpdate(id, flow, _flows.GetValueOrDefault(id)))
+        if (!_flows.TryUpdate(id, flow, _flows.GetValueOrDefault(id)!))
             throw new KeyNotFoundException($"Flow with ID {id} not found.");
             
         await Task.CompletedTask;

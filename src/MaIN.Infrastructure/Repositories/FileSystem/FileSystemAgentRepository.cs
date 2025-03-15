@@ -7,7 +7,7 @@ namespace MaIN.Infrastructure.Repositories.FileSystem;
 public class FileSystemAgentRepository : IAgentRepository
 {
     private readonly string _directoryPath;
-    private static readonly JsonSerializerOptions _jsonOptions = new() { WriteIndented = true };
+    private static readonly JsonSerializerOptions? JsonOptions = new() { WriteIndented = true };
 
     public FileSystemAgentRepository(string basePath)
     {
@@ -17,7 +17,7 @@ public class FileSystemAgentRepository : IAgentRepository
 
     private string GetFilePath(string id) => Path.Combine(_directoryPath, $"{id}.json");
 
-    public async Task<IEnumerable<AgentDocument?>> GetAllAgents()
+    public async Task<IEnumerable<AgentDocument>> GetAllAgents()
     {
         var files = Directory.GetFiles(_directoryPath, "*.json");
         var agents = new List<AgentDocument>();
@@ -41,7 +41,7 @@ public class FileSystemAgentRepository : IAgentRepository
         return JsonSerializer.Deserialize<AgentDocument>(json);
     }
 
-    public async Task AddAgent(AgentDocument? agent)
+    public async Task AddAgent(AgentDocument agent)
     {
         if (agent == null)
             throw new ArgumentNullException(nameof(agent));
@@ -50,17 +50,17 @@ public class FileSystemAgentRepository : IAgentRepository
         if (File.Exists(filePath))
             throw new InvalidOperationException($"Agent with ID {agent.Id} already exists.");
 
-        var json = JsonSerializer.Serialize(agent, _jsonOptions);
+        var json = JsonSerializer.Serialize(agent, JsonOptions);
         await File.WriteAllTextAsync(filePath, json);
     }
 
-    public async Task UpdateAgent(string id, AgentDocument? agent)
+    public async Task UpdateAgent(string id, AgentDocument agent)
     {
         var filePath = GetFilePath(id);
         if (!File.Exists(filePath))
             throw new KeyNotFoundException($"Agent with ID {id} not found.");
 
-        var json = JsonSerializer.Serialize(agent, _jsonOptions);
+        var json = JsonSerializer.Serialize(agent, JsonOptions);
         await File.WriteAllTextAsync(filePath, json);
     }
 

@@ -1,17 +1,14 @@
 using MaIN.Domain.Entities;
 using MaIN.Infrastructure.Models;
-using MaIN.Models;
 using MaIN.Services.Models;
-using MaIN.Services.Services;
 using MaIN.Services.Services.ImageGenServices;
-using MongoDB.Bson;
 using FileInfo = MaIN.Domain.Entities.FileInfo;
 
 namespace MaIN.Services.Mappers;
 
 public static class ChatMapper
 {
-    public static ChatDto ToDto(this Chat? chat)
+    public static ChatDto ToDto(this Chat chat)
         => new ChatDto()
         {
             Id = chat.Id,
@@ -33,19 +30,19 @@ public static class ChatMapper
             Properties = message.Properties,
             Files = message.Files?.Select(x => new FileInfoDto()
             {
-                Content = x.Content,
+                Content = x.Content ?? string.Empty,
                 Name = x.Name,
                 Extension = x.Extension
             }) as FileInfoDto[]
         };
 
-    public static Chat? ToDomain(this ChatDto chat)
+    public static Chat ToDomain(this ChatDto chat)
         => new Chat()
         {
             Id = chat.Id,
             Name = chat.Name,
             Model = chat.Model,
-            Messages = chat.Messages?.Select(m => m.ToDomain()).ToList(),
+            Messages = chat.Messages?.Select(m => m.ToDomain()).ToList()!,
             Visual = chat.Model == ImageGenService.Models.FLUX,
             Type = Enum.Parse<ChatType>(chat.Type.ToString()),
             Properties = chat.Properties
@@ -76,10 +73,10 @@ public static class ChatMapper
             Images = message.Images,
             Properties = message.Properties,
             Tool = message.Tool,
-            Files = message.Files?.Select(x => x.Content).ToArray() ?? []
+            Files = (message.Files?.Select(x => x.Content).ToArray() ?? [])!
         };
 
-    public static ChatDocument ToDocument(this Chat? chat)
+    public static ChatDocument ToDocument(this Chat chat)
         => new ChatDocument()
         {
             Id = chat.Id,
@@ -94,7 +91,7 @@ public static class ChatMapper
             Type = Enum.Parse<ChatTypeDocument>(chat.Type.ToString())
         };
 
-    public static Chat? ToDomain(this ChatDocument chat)
+    public static Chat ToDomain(this ChatDocument chat)
         => new Chat()
         {
             Id = chat.Id,

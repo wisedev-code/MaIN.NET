@@ -6,8 +6,6 @@ using MaIN.Domain.Entities.Agents.AgentSource;
 using MaIN.Domain.Entities.Agents.Commands;
 using MaIN.Services.Mappers;
 using MaIN.Services.Models;
-using MaIN.Services.Models.Ollama;
-using MaIN.Services.Services;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,7 +16,7 @@ namespace MaIN.Services.Steps;
 
 public static class Actions
 {
-    public static Dictionary<string, Delegate> Steps { get; private set; }
+    public static Dictionary<string, Delegate> Steps { get; private set; } = null!;
 
     public static void InitializeAgents(this IServiceProvider serviceProvider)
     {
@@ -30,32 +28,32 @@ public static class Actions
         Steps = new Dictionary<string, Delegate>
         {
             {
-                "START", new Func<StartCommand, Task<Message?>>(async startCommand =>
+                "START", new Func<StartCommand, Task<Message?>>(startCommand =>
                 {
                     if (startCommand.Chat?.Visual == true)
                     {
-                        return null;
+                        return Task.FromResult<Message?>(null);
                     }
 
                     var message = new Message()
                     {
-                        Content = startCommand.InitialPrompt,
+                        Content = startCommand.InitialPrompt!,
                         Role = "System"
                     };
                     startCommand.Chat?.Messages?.Add(message);
-                    return new Message()
+                    return Task.FromResult(new Message()
                     {
                         Content = "STARTED",
                         Role = "System",
                         Time = DateTime.UtcNow
-                    };
+                    })!;
                 })
             },
             {
                 "REDIRECT", new Func<RedirectCommand, Task<Message?>>(async redirectCommand =>
                 {
                     var chat = await agentService.GetChatByAgent(redirectCommand.RelatedAgentId);
-                    chat.Messages?.Add(new Message()
+                    chat.Messages.Add(new Message()
                     {
                         Role = "User",
                         Content = redirectCommand.Message.Content,
@@ -67,7 +65,7 @@ public static class Actions
 
                     if (!string.IsNullOrEmpty(redirectCommand.Filter))
                     {
-                        chat.Properties.TryAdd("data_filter", redirectCommand.Filter!);
+                        chat.Properties?.TryAdd("data_filter", redirectCommand.Filter!);
                     }
 
                     var result = await agentService.Process(chat, redirectCommand.RelatedAgentId);
@@ -89,7 +87,7 @@ public static class Actions
                 {
                     //TBD
                     var properties = new Dictionary<string, string>();
-                    var data = fetchCommand.Context.Source.Type switch
+                    var data = fetchCommand.Context.Source!.Type switch
                     {
                         AgentSourceType.File => await File.ReadAllTextAsync(
                             ((AgentFileSourceDetails)fetchCommand.Context.Source.Details!).Path),
@@ -120,7 +118,7 @@ public static class Actions
                 "FETCH_DATA*", new Func<FetchCommand, Task<Message?>>(async fetchCommand =>
                 {
                     var properties = new Dictionary<string, string>();
-                    var data = fetchCommand.Context.Source.Type switch
+                    var data = fetchCommand.Context.Source!.Type switch
                     {
                         AgentSourceType.File => await File.ReadAllTextAsync(
                             JsonSerializer.Deserialize<AgentFileSourceDetails>(fetchCommand.Context.Source.Details
@@ -170,10 +168,10 @@ public static class Actions
         };
     }
 
-    private static async Task<string> FetchNoSqlData(object? sourceDetails, string? fetchCommandFilter,
+    private static Task<string> FetchNoSqlData(object? sourceDetails, string? fetchCommandFilter,
         Dictionary<string, string> properties)
     {
-        var noSqlDetails = JsonSerializer.Deserialize<AgentNoSqlSourceDetails>(sourceDetails.ToString());
+        var noSqlDetails = JsonSerializer.Deserialize<AgentNoSqlSourceDetails>(sourceDetails!.ToString()!);
         noSqlDetails!.ConnectionString = noSqlDetails.ConnectionString.Replace("@filter@", fetchCommandFilter);
         noSqlDetails.Query = noSqlDetails.Query.Replace("@filter@", fetchCommandFilter);
         noSqlDetails.Collection = noSqlDetails.Collection.Replace("@filter@", fetchCommandFilter);
@@ -200,13 +198,13 @@ public static class Actions
         }
 
         var jsonResult = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
-        return jsonResult;
+        return Task.FromResult(jsonResult);
     }
 
     private static async Task<string> FetchSqlData(object? sourceDetails, string? fetchCommandFilter,
         Dictionary<string, string> properties)
     {
-        var sqlDetails = JsonSerializer.Deserialize<AgentSqlSourceDetails>(sourceDetails.ToString());
+        var sqlDetails = JsonSerializer.Deserialize<AgentSqlSourceDetails>(sourceDetails!.ToString()!);
         sqlDetails!.ConnectionString = sqlDetails.ConnectionString.Replace("@filter@", fetchCommandFilter);
         sqlDetails.Query = sqlDetails.Query.Replace("@filter@", fetchCommandFilter);
         await using SqlConnection connection = new SqlConnection(sqlDetails!.ConnectionString);
@@ -239,7 +237,7 @@ public static class Actions
     private static async Task<string> FetchApiData(object? details, string? filter,
         IHttpClientFactory httpClientFactory, Dictionary<string, string> properties)
     {
-        var apiDetails = JsonSerializer.Deserialize<AgentApiSourceDetails>(details.ToString(), new JsonSerializerOptions()
+        var apiDetails = JsonSerializer.Deserialize<AgentApiSourceDetails>(details!.ToString()!, new JsonSerializerOptions()
         {
             PropertyNameCaseInsensitive = true,
         });

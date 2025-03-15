@@ -7,7 +7,7 @@ namespace MaIN.Infrastructure.Repositories.FileSystem;
 public class FileSystemAgentFlowRepository : IAgentFlowRepository
 {
     private readonly string _directoryPath;
-    private static readonly JsonSerializerOptions _jsonOptions = new() { WriteIndented = true };
+    private static readonly JsonSerializerOptions? JsonOptions = new() { WriteIndented = true };
 
     public FileSystemAgentFlowRepository(string basePath)
     {
@@ -32,7 +32,7 @@ public class FileSystemAgentFlowRepository : IAgentFlowRepository
         return flows;
     }
 
-    public async Task<AgentFlowDocument> GetFlowById(string id)
+    public async Task<AgentFlowDocument?> GetFlowById(string id)
     {
         var filePath = GetFilePath(id);
         if (!File.Exists(filePath)) return null;
@@ -47,7 +47,7 @@ public class FileSystemAgentFlowRepository : IAgentFlowRepository
         if (File.Exists(filePath))
             throw new InvalidOperationException($"Flow with ID {flow.Id} already exists.");
 
-        var json = JsonSerializer.Serialize(flow, _jsonOptions);
+        var json = JsonSerializer.Serialize(flow, JsonOptions);
         await File.WriteAllTextAsync(filePath, json);
     }
 
@@ -57,7 +57,7 @@ public class FileSystemAgentFlowRepository : IAgentFlowRepository
         if (!File.Exists(filePath))
             throw new KeyNotFoundException($"Flow with ID {id} not found.");
 
-        var json = JsonSerializer.Serialize(flow, _jsonOptions);
+        var json = JsonSerializer.Serialize(flow, JsonOptions);
         await File.WriteAllTextAsync(filePath, json);
     }
 

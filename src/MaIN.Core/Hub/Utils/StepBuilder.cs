@@ -2,7 +2,7 @@ namespace MaIN.Core.Hub.Utils;
 
 public class StepBuilder
 {
-    public List<string> Steps = new();
+    private readonly List<string> Steps = new();
     public static StepBuilder Instance => new();
 
     public StepBuilder Answer()

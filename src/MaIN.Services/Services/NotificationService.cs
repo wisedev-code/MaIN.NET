@@ -1,4 +1,3 @@
-using System.Drawing;
 using System.Text.Json;
 using MaIN.Services.Services.Abstract;
 

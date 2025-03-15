@@ -6,15 +6,15 @@ namespace MaIN.Infrastructure.Repositories;
 
 public class DefaultAgentRepository : IAgentRepository
 {
-    private readonly ConcurrentDictionary<string, AgentDocument?> _agents = new();
+    private readonly ConcurrentDictionary<string, AgentDocument> _agents = new();
 
-    public async Task<IEnumerable<AgentDocument?>> GetAllAgents() =>
+    public async Task<IEnumerable<AgentDocument>> GetAllAgents() =>
         await Task.FromResult(_agents.Values);
 
     public async Task<AgentDocument?> GetAgentById(string id) =>
         await Task.FromResult(_agents.GetValueOrDefault(id));
 
-    public async Task AddAgent(AgentDocument? agent)
+    public async Task AddAgent(AgentDocument agent)
     {
         if (agent == null)
             throw new ArgumentNullException(nameof(agent));
@@ -25,9 +25,9 @@ public class DefaultAgentRepository : IAgentRepository
         await Task.CompletedTask;
     }
 
-    public async Task UpdateAgent(string id, AgentDocument? agent)
+    public async Task UpdateAgent(string id, AgentDocument agent)
     {
-        if (!_agents.TryUpdate(id, agent, _agents.GetValueOrDefault(id)))
+        if (!_agents.TryUpdate(id, agent, _agents.GetValueOrDefault(id)!))
             throw new KeyNotFoundException($"Agent with ID {id} not found.");
             
         await Task.CompletedTask;

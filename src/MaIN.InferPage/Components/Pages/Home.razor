@@ -1,0 +1,183 @@
+﻿@page "/"
+@rendermode @(new InteractiveServerRenderMode(prerender: true))
+@inject IJSRuntime JS
+@using MaIN.Core.Hub
+@using MaIN.Core.Hub.Contexts
+@using MaIN.Domain.Entities
+@using Markdig
+@using Microsoft.FluentUI.AspNetCore.Components.Icons.Regular
+@using Message = MaIN.Domain.Entities.Message
+<link rel="stylesheet" href="home.css">
+
+<PageTitle>MaIN Infer</PageTitle>
+
+<FluentGrid>
+    <FluentGridItem sm="1" xs="1" lg="1"></FluentGridItem>
+    <FluentGridItem sm="10" xs="10" lg="10" Style="align-self: center; align-items: center">
+        <div class="messages-container" id="messages-container">
+            @foreach (var message in Chat.Messages)
+            {
+                <br/>
+                @if (message.Role != "System")
+                {
+                    @if (Chat.Visual)
+                    {
+                        <FluentBadge Class="@(message.Role == "User" ? "message-role-user" : "message-role-bot")" Appearance="Appearance.Accent">
+                            @(message.Role == "User" ? "User" : Utils.Model)
+                        </FluentBadge>
+                        @if (message.Role == "User")
+                        {
+                            <FluentCard class="message-card user-message">
+                                @message.Content
+                            </FluentCard>
+                        }
+                        else
+                        {
+                            <FluentCard class="message-card-img bot-message" Style="height: 30rem !important; width: 30rem !important; ">
+                                <div>
+                                    <a href="data:image/png;base64,@Convert.ToBase64String(message.Images!)"
+                                       style="cursor: -webkit-zoom-in; cursor: zoom-in;" target="_blank">
+                                        <img src="data:image/png;base64,@Convert.ToBase64String(message.Images!)"
+                                             style="object-fit: fill; width:100%; height:100%;"
+                                             alt="imageResponse"/>
+                                    </a>
+                                </div>
+                            </FluentCard>
+                        }
+                    }
+                    else
+                    {
+                        <FluentBadge Class="@(message.Role == "User" ? "message-role-user" : "message-role-bot")" Appearance="Appearance.Accent">
+                            @(message.Role == "User" ? "User" : Utils.Model)
+                        </FluentBadge>                       
+                        <FluentCard class="@(message.Role == "User" ? "message-card user-message" : "message-card bot-message")">
+                            @((MarkupString)((message.Role == "User"
+                                ? message.Content
+                                : Markdown.ToHtml((string)message.Content!,
+                                    new MarkdownPipelineBuilder()
+                                        .UseAdvancedExtensions()
+                                        .Build())) ?? string.Empty))
+                        </FluentCard>
+                    }
+                }
+            }
+            @if (_isLoading)
+            {
+                @if (Chat.Visual)
+                {
+                    <FluentBadge Appearance="Appearance.Accent" Class="message-role-bot">@_displayName</FluentBadge>
+                    <span class="message-role-bot" style="font-style: italic; font-size: small">This might take a while...</span>
+                    <FluentProgressRing Visible="_isLoading" Color="#afffab"></FluentProgressRing>
+                }
+                else
+                {
+                    <FluentStack>
+                        <FluentBadge Appearance="Appearance.Accent" Class="message-role-bot">@_displayName</FluentBadge>
+                        <FluentProgressRing Width="20px" Visible="_isLoading"></FluentProgressRing>
+                    </FluentStack>
+                    @if (_incomingMessage != null)
+                    {
+                        <FluentCard class="message-card bot-message">
+                            @((MarkupString)Markdown.ToHtml(_incomingMessage.ToString()!,
+                                new MarkdownPipelineBuilder()
+                                    .UseAdvancedExtensions()
+                                    .Build()))
+                        </FluentCard>
+                    }
+                }
+            }
+            <div id="bottom" @ref="_bottomElement"></div>
+        </div>
+        <div class="input-container">
+            <FluentTextField Style="width: 95%"
+                             bind-Value="@_prompt"
+                             Value="@_prompt"
+                             @oninput="Callback"
+                             Disabled="@_isLoading"
+                             placeholder="Enter your prompt here..." 
+                             @onkeydown="CheckEnterKey">
+            </FluentTextField>
+
+            <FluentButton IconStart="@(new Size28.Send())" BackgroundColor="rgba(0, 0, 0, 0)" Style="margin-top: 5px; background-color: transparent"
+                          Appearance="Appearance.Lightweight"
+                          Loading="@_isLoading"
+                          OnClick="@(() => SendAsync(_prompt!))">
+            </FluentButton >
+        </div>
+    </FluentGridItem>
+    <FluentGridItem sm="1" xs="1" lg="1"></FluentGridItem>
+</FluentGrid>
+<FluentProgress Visible="@(_isLoading)" style="width: 100%; !important; position: absolute; margin-bottom: auto"></FluentProgress >
+
+@* ReSharper disable once UnassignedField.Compiler *@
+@code {
+    private string? _prompt;
+    private bool _isLoading;
+    private string? _incomingMessage = null;
+    private readonly string? _displayName = Utils.Model;
+    private ChatContext? ctx;    
+    private Chat Chat { get; set; } = new();
+    private ElementReference? _bottomElement;
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            await JS.InvokeVoidAsync("scrollManager.restoreScrollPosition", "messages-container");
+        }
+    }
+    
+    protected override Task OnInitializedAsync()
+    {
+        ctx = Utils.Visual ? AIHub.Chat().EnableVisual()
+            : AIHub.Chat().WithModel(Utils.Model); //If that grows with different chat types we can consider switch ex
+        return base.OnInitializedAsync();
+    }       
+
+    private async Task CheckEnterKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SendAsync(_prompt!);
+        }
+    }
+
+    private async Task SendAsync(string msg)
+    {
+        if (!string.IsNullOrWhiteSpace(msg))
+        {
+            var newMsg = new Message { Role = "User", Content = msg };
+            Chat.Messages.Add(newMsg);
+            Chat.Model = Utils.Model;
+            _isLoading = true;
+            Chat.Visual = Utils.Visual;
+            _prompt = string.Empty;
+            StateHasChanged();
+            bool wasAtBottom = await JS.InvokeAsync<bool>("scrollManager.isAtBottom", "messages-container");            
+            await ctx!.WithMessage(msg)
+                .CompleteAsync(changeOfValue: async message =>
+                {
+                    _incomingMessage += message;
+                    StateHasChanged();
+                    if (wasAtBottom)
+                    {
+                        await JS.InvokeVoidAsync("scrollManager.scrollToBottomSmooth", _bottomElement);
+                    }
+                });
+
+            _isLoading = false;
+            var currentChat = (await ctx.GetCurrentChat())!;
+            Chat.Messages.Add(currentChat.Messages.Last());
+            _incomingMessage = null;
+            await JS.InvokeVoidAsync("scrollManager.scrollToBottomSmooth", _bottomElement);   
+            StateHasChanged();
+
+        }
+    }
+
+    private void Callback(ChangeEventArgs obj)
+    {
+        _prompt = obj.Value?.ToString()!;    
+    }
+
+}

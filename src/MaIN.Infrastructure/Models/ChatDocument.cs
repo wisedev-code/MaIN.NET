@@ -1,4 +1,3 @@
-using MaIN.Domain.Entities;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace MaIN.Infrastructure.Models;
@@ -6,14 +5,14 @@ namespace MaIN.Infrastructure.Models;
 public class ChatDocument
 {
     [BsonId]
-    public string Id { get; set; }
-    public string Name { get; set; }
-    public string Model { get; set; }
-    public List<MessageDocument> Messages { get; set; }
-    public ChatTypeDocument Type { get; set; }
-    public Dictionary<string, string> Properties { get; set; }
-    public bool Visual { get; set; }
-    public bool Interactive { get; set; }
-    public bool Translate { get; set; }
-    public InferenceParamsDocument? InferenceParams { get; set; }
+    public required string? Id { get; init; }
+    public required string? Name { get; init; }
+    public required string? Model { get; init; }
+    public required List<MessageDocument> Messages { get; init; }
+    public ChatTypeDocument Type { get; init; }
+    public required Dictionary<string, string>? Properties { get; init; }
+    public bool Visual { get; init; }
+    public bool Interactive { get; init; }
+    public bool Translate { get; init; }
+    public InferenceParamsDocument? InferenceParams { get; init; }
 }

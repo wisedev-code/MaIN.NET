@@ -2,7 +2,7 @@ namespace MaIN.Domain.Entities.Agents.AgentSource;
 
 public class AgentSqlSourceDetails : IAgentSource
 {
-    public string ConnectionString { get; set; }
-    public string Table { get; set; }
-    public string Query { get; set; }
+    public required string ConnectionString { get; set; }
+    public required string Table { get; init; }
+    public required string Query { get; set; }
 }
