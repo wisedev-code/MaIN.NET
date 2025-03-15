@@ -4,7 +4,7 @@ public class Agent
 {
     public required string Id { get; set; }
     public string Name { get; set; } = null!;
-    public string? Model { get; set; } = null!;
+    public string? Model { get; set; }
     public string? Description { get; init; }
     public bool Started { get; set; }
     public bool Flow { get; set; }

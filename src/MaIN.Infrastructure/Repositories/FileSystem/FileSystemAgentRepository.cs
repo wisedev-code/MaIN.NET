@@ -7,7 +7,7 @@ namespace MaIN.Infrastructure.Repositories.FileSystem;
 public class FileSystemAgentRepository : IAgentRepository
 {
     private readonly string _directoryPath;
-    private static readonly JsonSerializerOptions? _jsonOptions = new() { WriteIndented = true };
+    private static readonly JsonSerializerOptions? JsonOptions = new() { WriteIndented = true };
 
     public FileSystemAgentRepository(string basePath)
     {
@@ -50,7 +50,7 @@ public class FileSystemAgentRepository : IAgentRepository
         if (File.Exists(filePath))
             throw new InvalidOperationException($"Agent with ID {agent.Id} already exists.");
 
-        var json = JsonSerializer.Serialize(agent, _jsonOptions);
+        var json = JsonSerializer.Serialize(agent, JsonOptions);
         await File.WriteAllTextAsync(filePath, json);
     }
 
@@ -60,7 +60,7 @@ public class FileSystemAgentRepository : IAgentRepository
         if (!File.Exists(filePath))
             throw new KeyNotFoundException($"Agent with ID {id} not found.");
 
-        var json = JsonSerializer.Serialize(agent, _jsonOptions);
+        var json = JsonSerializer.Serialize(agent, JsonOptions);
         await File.WriteAllTextAsync(filePath, json);
     }
 
