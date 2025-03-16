@@ -9,7 +9,7 @@ namespace MaIN.Services.Services;
 public class AgentFlowService(IAgentFlowRepository flowRepository, IAgentService agentService) : IAgentFlowService
 {
     public async Task<AgentFlow> GetFlowById(string id)
-        => (await flowRepository.GetFlowById(id)).ToDomain();
+        => (await flowRepository.GetFlowById(id) ?? throw new Exception("Flow not found")).ToDomain(); //TODO candidate for domain ex
 
     public async Task<List<AgentFlow>> GetAllFlows()
         => (await flowRepository.GetAllFlows()).Select(x => x.ToDomain()).ToList();

@@ -24,7 +24,7 @@ public class LLMService(MaINSettings options, INotificationService notificationS
 {
     private const string DefaultModelEnvPath = "MaIN_ModelsPath";
     private static readonly ConcurrentDictionary<string, LLamaWeights> modelCache = new();
-    private static readonly ConcurrentDictionary<string?, ChatSession> sessionCache = new(); // Cache for chat sessions
+    private static readonly ConcurrentDictionary<string, ChatSession> sessionCache = new(); // Cache for chat sessions
 
     public async Task<ChatResult?> Send(
         Chat chat, 
@@ -37,15 +37,19 @@ public class LLMService(MaINSettings options, INotificationService notificationS
 
         if (chat.Model == KnownModelNames.Llava_7b) //TODO include better support for vision models
         {
-            return await HandleImageInterpreter(chat)!;
+            return await HandleImageInterpreter(chat);
         }
 
-        var path = options.ModelsPath ?? Environment.GetEnvironmentVariable(DefaultModelEnvPath); //TODO add handling for null path
-        var model = KnownModels.GetModel(path!, chat.Model);
+        var path = options.ModelsPath ?? Environment.GetEnvironmentVariable(DefaultModelEnvPath);
+        if (path == null)
+        {
+            throw new Exception("ModelsPath setting is not present in configuration");
+        }
+        var model = KnownModels.GetModel(path, chat.Model);
         var modelKey = model.FileName;
 
         // Get or load the model asynchronously.
-        var llmModel = await GetOrLoadModelAsync(path, modelKey);
+        var llmModel = await GetOrLoadModelAsync(path!, modelKey);
         var inferenceParams = new InferenceParams
         {
             SamplingPipeline = new DefaultSamplingPipeline
@@ -53,7 +57,7 @@ public class LLMService(MaINSettings options, INotificationService notificationS
                 Temperature = chat.InterferenceParams.Temperature
             },
             MaxTokens = chat.InterferenceParams.ContextSize,
-            AntiPrompts = new[] { llmModel.Vocab.EOT?.ToString() ?? "User:" }
+            AntiPrompts = [llmModel.Vocab.EOT?.ToString() ?? "User:"]
         };
 
         var parameters = new ModelParams(Path.Combine(path, modelKey))
@@ -158,7 +162,7 @@ public class LLMService(MaINSettings options, INotificationService notificationS
         ex.Context.NativeHandle.KvCacheRemove(LLamaSeqId.Zero, -1, -1);
         ex.Images.Add(chat.Messages.Last().Images!);
         var result = new StringBuilder();
-        await foreach (var text in ex.InferAsync(chat.Messages!.Last().Content, inferenceParams))
+        await foreach (var text in ex.InferAsync(chat.Messages.Last().Content, inferenceParams))
         {
             Console.Write(text);
             result.Append(text);
@@ -179,7 +183,7 @@ public class LLMService(MaINSettings options, INotificationService notificationS
         return chatResult;
     }
 
-    private ChatSession GetOrCreateSession(string? chatId, Func<ChatSession> createSession)
+    private ChatSession GetOrCreateSession(string chatId, Func<ChatSession> createSession)
     {
         if (!sessionCache.TryGetValue(chatId, out var session))
         {
@@ -215,7 +219,11 @@ public class LLMService(MaINSettings options, INotificationService notificationS
         List<string>? memory = null)
     {
         var path = options.ModelsPath ?? Environment.GetEnvironmentVariable(DefaultModelEnvPath); //TODO add handling for null path
-        var model = KnownModels.GetModel(path!, chat!.Model);
+        if (path == null)
+        {
+            throw new Exception("ModelsPath setting is not present in configuration");
+        }
+        var model = KnownModels.GetModel(path, chat.Model);
         var modelKey = model.FileName;
 
         var kernelMemory = CreateMemory(modelKey, path, out var generator);
@@ -252,7 +260,7 @@ public class LLMService(MaINSettings options, INotificationService notificationS
             }
         }
 
-        var userMsg = chat.Messages!.Last();
+        var userMsg = chat.Messages.Last();
         var result = await kernelMemory.AskAsync(userMsg.Content);
 
         await kernelMemory.DeleteIndexAsync();
@@ -336,7 +344,7 @@ public class LLMService(MaINSettings options, INotificationService notificationS
         return Task.FromResult(models);
     }
 
-    public Task CleanSessionCache(string? id)
+    public Task CleanSessionCache(string id)
     {
         sessionCache.Remove(id, out var session);
         session?.Executor.Context.NativeHandle.KvCacheClear();
@@ -449,10 +457,8 @@ internal static class KernelMemFix
     public static IKernelMemoryBuilder WithLLamaSharpMaINTemp(this IKernelMemoryBuilder builder,
         LLamaSharpConfig config, string? path, string modelName, out LlamaSharpTextGenerator generator)
     {
-        // Load the first model with caching.
-        var model = LLMService.GetOrLoadModelAsync(path, modelName).Result;
+        var model = LLMService.GetOrLoadModelAsync(path!, modelName).Result;
 
-        // Create ModelParams for the second model.
         ModelParams parameters2 = new ModelParams(config.ModelPath)
         {
             ContextSize = new uint?(config.ContextSize.GetValueOrDefault(2048U)),

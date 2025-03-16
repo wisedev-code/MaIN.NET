@@ -17,9 +17,8 @@ public class ChatDto
 
     [JsonPropertyName("stream")] 
     public bool Stream { get; set; } = false;
-    
-    [JsonPropertyName("properties")]
-    public Dictionary<string, string>? Properties { get; init; }
+
+    [JsonPropertyName("properties")] public Dictionary<string, string> Properties { get; init; } = [];
 
     [JsonPropertyName("visual")]
     public bool Visual { get; set; }

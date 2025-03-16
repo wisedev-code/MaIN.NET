@@ -37,11 +37,11 @@ public static class ChatMapper
         };
 
     public static Chat ToDomain(this ChatDto chat)
-        => new Chat()
+        => new()
         {
-            Id = chat.Id,
-            Name = chat.Name,
-            Model = chat.Model,
+            Id = chat.Id!,
+            Name = chat.Name!,
+            Model = chat.Model!,
             Messages = chat.Messages?.Select(m => m.ToDomain()).ToList()!,
             Visual = chat.Model == ImageGenService.Models.FLUX,
             Type = Enum.Parse<ChatType>(chat.Type.ToString()),
@@ -49,7 +49,7 @@ public static class ChatMapper
         };
 
     public static Message ToDomain(this MessageDto message)
-        => new Message()
+        => new()
         {
             Content = message.Content,
             Role = message.Role,
@@ -92,7 +92,7 @@ public static class ChatMapper
         };
 
     public static Chat ToDomain(this ChatDocument chat)
-        => new Chat()
+        => new()
         {
             Id = chat.Id,
             Name = chat.Name,

@@ -46,7 +46,7 @@ app.MapGet("/api/llm/models", async ([FromServices] ILLMService llmService) =>
     return Results.Ok(models);
 });
 
-app.MapDelete("/api/llm/session/{chatId}", async ([FromServices] ILLMService llmService, string? chatId) =>
+app.MapDelete("/api/llm/session/{chatId}", async ([FromServices] ILLMService llmService, string chatId) =>
 {
     await llmService.CleanSessionCache(chatId);
     return Results.Ok($"Session chat {chatId} has been cleared.");

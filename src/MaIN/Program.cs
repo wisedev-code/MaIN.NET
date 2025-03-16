@@ -117,7 +117,7 @@ app.MapGet("/api/agents/{id}", async (HttpContext context,
 {
     var agent = await agentService.GetAgentById(id);
     context.Response.ContentType = "application/json";
-    await context.Response.WriteAsync(JsonSerializer.Serialize(agent.ToDto()));
+    await context.Response.WriteAsync(JsonSerializer.Serialize(agent!.ToDto()));
 });
 
 app.MapGet("/api/flows/{id}", async (HttpContext context,
@@ -180,14 +180,14 @@ app.MapPost("/api/chats", async (HttpContext context,
 });
 
 app.MapDelete("/api/chats/{id}", async (HttpContext context,
-    [FromServices] IChatService chatService, string? id) =>
+    [FromServices] IChatService chatService, string id) =>
 {
     await chatService.Delete(id);
     return Results.NoContent();
 });
 
 app.MapGet("/api/chats/{id}", async (HttpContext context,
-    [FromServices] IChatService chatService, string? id) => 
+    [FromServices] IChatService chatService, string id) => 
     Results.Ok((await chatService.GetById(id)).ToDto()));
 
 app.MapGet("/api/chats/models", async (HttpContext context,

@@ -31,7 +31,7 @@ public class StepProcessor : IStepProcessor
         Func<Chat, Task> updateChat,
         ILogger logger)
     {
-        Message redirectMessage = chat.Messages.Last()!;
+        Message redirectMessage = chat.Messages.Last();
         var tagsToReplaceWithFilter = new List<string>();
         foreach (var step in context.Steps!)
         {
@@ -61,7 +61,7 @@ public class StepProcessor : IStepProcessor
             
             chat = result.Chat;
 
-            await updateChat(chat!);
+            await updateChat(chat);
         }
 
         await CleanupBehaviors(agent, tagsToReplaceWithFilter);
@@ -82,7 +82,7 @@ public class StepProcessor : IStepProcessor
 
     private static Task CleanupBehaviors(AgentDocument agent, List<string> tagsToReplaceWithFilter)
     {
-        foreach (var key in agent.Behaviours!.Keys.ToList())
+        foreach (var key in agent.Behaviours.Keys.ToList())
         {
             agent.Behaviours[key] = tagsToReplaceWithFilter.Aggregate(
                 agent.Behaviours[key],

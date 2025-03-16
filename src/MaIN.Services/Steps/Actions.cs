@@ -153,7 +153,7 @@ public static class Actions
                     ChatResult? result;
                     if (answerCommand.UseMemory)
                     {
-                        result = await llmService.AskMemory(answerCommand.Chat, memory: answerCommand.Chat?.Memory);
+                        result = await llmService.AskMemory(answerCommand.Chat!, memory: answerCommand.Chat?.Memory);
                     }
                     else
                     {
@@ -175,7 +175,7 @@ public static class Actions
         noSqlDetails!.ConnectionString = noSqlDetails.ConnectionString.Replace("@filter@", fetchCommandFilter);
         noSqlDetails.Query = noSqlDetails.Query.Replace("@filter@", fetchCommandFilter);
         noSqlDetails.Collection = noSqlDetails.Collection.Replace("@filter@", fetchCommandFilter);
-        var clientSettings = MongoClientSettings.FromConnectionString(noSqlDetails!.ConnectionString);
+        var clientSettings = MongoClientSettings.FromConnectionString(noSqlDetails.ConnectionString);
         var client = new MongoClient(clientSettings);
 
         var database = client.GetDatabase(noSqlDetails.DbName);
@@ -207,7 +207,7 @@ public static class Actions
         var sqlDetails = JsonSerializer.Deserialize<AgentSqlSourceDetails>(sourceDetails!.ToString()!);
         sqlDetails!.ConnectionString = sqlDetails.ConnectionString.Replace("@filter@", fetchCommandFilter);
         sqlDetails.Query = sqlDetails.Query.Replace("@filter@", fetchCommandFilter);
-        await using SqlConnection connection = new SqlConnection(sqlDetails!.ConnectionString);
+        await using SqlConnection connection = new SqlConnection(sqlDetails.ConnectionString);
         connection.Open();
 
         var command = new SqlCommand(sqlDetails.Query, connection);

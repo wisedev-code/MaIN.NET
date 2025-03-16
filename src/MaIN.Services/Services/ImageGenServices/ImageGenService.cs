@@ -16,7 +16,7 @@ public class ImageGenService(
         var constructedMessage = (chat.Messages
             .Select((msg, index) => index == 0 ? msg.Content
                 : $"&& {msg.Content}")
-            .Aggregate((current, next) => $"{current} {next}"))!;
+            .Aggregate((current, next) => $"{current} {next}"));
         var response = await client.PostAsync($"{options.ImageGenUrl}/generate/{constructedMessage}", null);
         
         if (!response.IsSuccessStatusCode)

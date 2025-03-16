@@ -20,12 +20,12 @@ public class FetchDataStepHandler(ILLMService llmService) : IStepHandler
     public async Task<StepResult> Handle(StepContext context)
     {
         //TODO refactor it for proper usage
-        if (context.StepName == "FETCH_DATA*" && context.Chat!.Properties.ContainsKey("FETCH_DATA*"))
+        if (context.StepName == "FETCH_DATA*" && context.Chat.Properties.ContainsKey("FETCH_DATA*"))
         {
             return new StepResult { Chat = context.Chat };
         }
 
-        var filterExists = context.Chat!.Properties.TryGetValue("data_filter", out var filter);
+        var filterExists = context.Chat.Properties.TryGetValue("data_filter", out var filter);
         var fetchCommand = new FetchCommand
         {
             Chat = context.Chat,
@@ -39,9 +39,9 @@ public class FetchDataStepHandler(ILLMService llmService) : IStepHandler
             var memoryChat = GetMemoryChat(context, filter);
             var result = await llmService.AskMemory(memoryChat, fileData: new Dictionary<string, string>() { { data!.Name, data.Path } });
             var newMessage = result!.Message;
-            newMessage!.Properties = new() { { "agent_internal", "true" } };
+            newMessage.Properties = new() { { "agent_internal", "true" } };
             context.Chat.Messages?.Add(newMessage.ToDomain());
-            return new StepResult { Chat = context.Chat, RedirectMessage = context.Chat!.Messages!.Last() };
+            return new StepResult { Chat = context.Chat, RedirectMessage = context.Chat.Messages!.Last() };
         }
         
         if (fetchCommand.Context.Source!.Type == AgentSourceType.Web)
@@ -52,7 +52,7 @@ public class FetchDataStepHandler(ILLMService llmService) : IStepHandler
             var newMessage = result!.Message;
             newMessage.Properties = new() { { "agent_internal", "true" } };
             context.Chat.Messages.Add(newMessage.ToDomain());
-            return new StepResult { Chat = context.Chat, RedirectMessage = context.Chat!.Messages!.Last() };
+            return new StepResult { Chat = context.Chat, RedirectMessage = context.Chat.Messages.Last() };
         }
 
         var response = (await Actions.CallAsync("FETCH_DATA", fetchCommand) as Message)!;
@@ -76,19 +76,19 @@ public class FetchDataStepHandler(ILLMService llmService) : IStepHandler
             context.Chat.Properties.Add("FETCH_DATA*", string.Empty);
         }
 
-        return new StepResult { Chat = context.Chat, RedirectMessage = context.Chat!.Messages!.Last() };
+        return new StepResult { Chat = context.Chat, RedirectMessage = context.Chat.Messages.Last() };
     }
 
     private async Task ProcessJsonResponse(Message response, StepContext context)
     {
-        context.Chat!.Messages?.Add(new Message
+        context.Chat.Messages?.Add(new Message
         {
             Role = "User",
             Content = "Process this data {....}",
             Properties = response.Properties,
         });
 
-        context.Chat!.Properties.TryGetValue("data_filter", out var filterVal);
+        context.Chat.Properties.TryGetValue("data_filter", out var filterVal);
         var memoryChat = GetMemoryChat(context, filterVal);
         
         var chunker = new JsonChunker();
@@ -98,7 +98,7 @@ public class FetchDataStepHandler(ILLMService llmService) : IStepHandler
             .ToDictionary(item => item.Key, item => item.Value);
         var result = await llmService.AskMemory(memoryChat, chunks);
         var newMessage = result!.Message;
-        newMessage!.Properties = new() { { "agent_internal", "true" } };
+        newMessage.Properties = new() { { "agent_internal", "true" } };
         context.Chat.Messages?.Add(newMessage.ToDomain());
     }
 
@@ -116,6 +116,7 @@ public class FetchDataStepHandler(ILLMService llmService) : IStepHandler
             },
             Model = context.Chat.Model,
             Properties = context.Chat.Properties,
+            Name = "Memory Chat",
             Id = Guid.NewGuid().ToString()
         };
         return memoryChat;
@@ -129,7 +130,7 @@ public class FetchDataStepHandler(ILLMService llmService) : IStepHandler
 
         var addition = total == index + 1 ? "Process it" : "Process it, and output processed data";
         var message = $"{chunk} - {addition}";
-        context.Chat!.Messages?.Add(new Message
+        context.Chat.Messages?.Add(new Message
         {
             Role = "User",
             Content = message,
@@ -140,11 +141,12 @@ public class FetchDataStepHandler(ILLMService llmService) : IStepHandler
         {
             Id = Guid.NewGuid().ToString(),
             Model = context.Chat.Model,
-            Messages = new List<Message>
-            {
+            Name = "Temporary Chat",
+            Messages =
+            [
                 context.Chat.Messages!.First(),
                 new() { Role = "User", Content = message }
-            }
+            ]
         };
         
         var newMessage = await Actions.CallAsync("ANSWER", new AnswerCommand

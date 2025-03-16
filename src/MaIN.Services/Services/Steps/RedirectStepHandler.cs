@@ -20,7 +20,7 @@ public class RedirectStepHandler : IStepHandler
             Message = context.RedirectMessage,
             RelatedAgentId = context.Arguments[0],
             SaveAs = Enum.Parse<OutputTypeOfRedirect>(context.Arguments[1]),
-            Filter = context.Chat?.Properties.GetValueOrDefault("data_filter")
+            Filter = context.Chat.Properties.GetValueOrDefault("data_filter")
         };
 
         await context.NotifyProgress("false", context.Agent.Id, null, context.Agent.CurrentBehaviour);
@@ -40,8 +40,8 @@ public class RedirectStepHandler : IStepHandler
         {
             if (shouldReplaceLastMessage)
             {
-                var lastMsg = context.Chat?.Messages![^1];
-                message!.Properties = lastMsg!.Properties ?? [];
+                var lastMsg = (context.Chat!.Messages)[^1];
+                message!.Properties = lastMsg.Properties ?? [];
                 message.Role = lastMsg.Role;
                 context.Chat?.Messages?.RemoveAt(context.Chat.Messages.Count - 1);
             }
@@ -54,6 +54,6 @@ public class RedirectStepHandler : IStepHandler
             context.Chat?.Messages?.Add(message);
         }
 
-        return new StepResult { Chat = context.Chat, RedirectMessage = message };
+        return new StepResult { Chat = context.Chat!, RedirectMessage = message };
     }
 }
