@@ -8,5 +8,5 @@ public class MessageDocument
     public byte[]? Images { get; init; }
     public string[]? Files { get; set; }
     public bool Tool { get; init; }
-    public Dictionary<string, string>? Properties { get; init; }
+    public Dictionary<string, string> Properties { get; init; } = [];
 }

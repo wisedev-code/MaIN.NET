@@ -11,7 +11,7 @@ public interface IChatService
         bool translatePrompt = false,
         bool interactiveUpdates = false,
         Func<string?, Task>? changeOfValue = null);
-    Task Delete(string? id);
-    Task<Chat> GetById(string? id);
+    Task Delete(string id);
+    Task<Chat> GetById(string id);
     Task<List<Chat>> GetAll();
 }

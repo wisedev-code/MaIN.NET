@@ -8,8 +8,8 @@ public static class AgentStateManager
 {
     public static void ClearState(AgentDocument agent, Chat chat)
     {
-        agent!.CurrentBehaviour = "Default";
-        chat.Properties!.Clear();
+        agent.CurrentBehaviour = "Default";
+        chat.Properties.Clear();
         
         if (chat.Model == ImageGenService.Models.FLUX)
         {
@@ -17,7 +17,7 @@ public static class AgentStateManager
         }
         else
         {
-            chat.Messages![0].Content = agent.Context!.Instruction!;
+            chat.Messages[0].Content = agent.Context!.Instruction!;
             chat.Messages = chat.Messages.Take(1).ToList();
         }
     }

@@ -19,7 +19,7 @@ public class OpenAiImageGenService(
     var prompt = (chat.Messages
         .Select((msg, index) => index == 0 ? msg.Content
             : $"&& {msg.Content}")
-        .Aggregate((current, next) => $"{current} {next}"))!;
+        .Aggregate((current, next) => $"{current} {next}"));
     
     var requestBody = new
     {

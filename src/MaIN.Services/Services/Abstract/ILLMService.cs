@@ -16,5 +16,5 @@ public interface ILLMService
         List<string>? webUrls = null,
         List<string>? memory = null);
     Task<List<string?>> GetCurrentModels();
-    Task CleanSessionCache(string? id);
+    Task CleanSessionCache(string id);
 }

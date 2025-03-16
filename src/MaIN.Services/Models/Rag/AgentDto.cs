@@ -10,8 +10,7 @@ public class AgentDto
     [JsonPropertyName("name")]
     public string Name { get; init; } = null!;
 
-    [JsonPropertyName("model")]
-    public string? Model { get; init; }
+    [JsonPropertyName("model")] public string Model { get; init; } = null!;
     [JsonPropertyName("description")]
     public string? Description { get; init; }
     [JsonPropertyName("started")]

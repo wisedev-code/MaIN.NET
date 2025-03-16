@@ -91,7 +91,7 @@ public class ChatContextTests
     public async Task GetCurrentChat_ShouldCallChatService()
     {
         // Arrange
-        var chat = new Chat { Id = _chatContext.GetChatId() };
+        var chat = new Chat { Id = _chatContext.GetChatId(), Model = "default", Name = "test"};
         _mockChatService.Setup(s => s.GetById(chat.Id)).ReturnsAsync(chat);
         
         // Act

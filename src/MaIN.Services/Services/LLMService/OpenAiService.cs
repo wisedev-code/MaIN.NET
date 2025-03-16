@@ -26,7 +26,7 @@ public class OpenAiService(
     : ILLMService
 {
     private readonly HttpClient _httpClient = new();
-    private static readonly ConcurrentDictionary<string?, List<ChatMessage>> SessionCache = new();
+    private static readonly ConcurrentDictionary<string, List<ChatMessage>> SessionCache = new();
     
     public async Task<ChatResult?> Send(
         Chat chat,
@@ -264,14 +264,14 @@ public class OpenAiService(
         var modelsResponse = JsonSerializer.Deserialize<OpenAiModelsResponse>(responseJson);
 
         List<string?> models = modelsResponse?.Data?
-            .Where(m => m.Id.StartsWith("gpt-", StringComparison.InvariantCultureIgnoreCase))
+            .Where(m => m.Id!.StartsWith("gpt-", StringComparison.InvariantCultureIgnoreCase))
             .Select(m => m.Id)
             .ToList() ?? new List<string?>();
 
         return models;
     }
 
-    public Task CleanSessionCache(string? id)
+    public Task CleanSessionCache(string id)
     {
         SessionCache.TryRemove(id, out _);
         return Task.CompletedTask;

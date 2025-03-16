@@ -27,9 +27,9 @@ public class AnswerStepHandler : IStepHandler
         }
 
         answerResponse.Time = DateTime.Now;
-        context.Chat?.Messages?.Add(answerResponse);
+        context.Chat?.Messages.Add(answerResponse);
 
-        return new StepResult { Chat = context.Chat, RedirectMessage = answerResponse };
+        return new StepResult { Chat = context.Chat!, RedirectMessage = answerResponse };
     }
 
     private static string? GetFilter(string? content)

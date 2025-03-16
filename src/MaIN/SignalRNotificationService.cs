@@ -16,9 +16,9 @@ public class SignalRNotificationService(IHubContext<NotificationHub> hub) : INot
                 payload = new
                 {
                     agentId = msg!["AgentId"],
-                    isProcessing = bool.Parse(msg!["IsProcessing"]),
-                    behaviour = msg!["Behaviour"],
-                    progress = msg!["Progress"]
+                    isProcessing = bool.Parse(msg["IsProcessing"]),
+                    behaviour = msg["Behaviour"],
+                    progress = msg["Progress"]
                 };
                 break;
             case "ReceiveMessageUpdate":

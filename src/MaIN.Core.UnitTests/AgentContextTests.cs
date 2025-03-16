@@ -115,7 +115,7 @@ public class AgentContextTests
 
         // Assert
         var agent = _agentContext.GetAgent();
-        Assert.Contains(behaviourName, agent.Behaviours!.Keys);
+        Assert.Contains(behaviourName, agent.Behaviours.Keys);
         Assert.Equal(behaviourInstruction, agent.Behaviours[behaviourName]);
         Assert.Equal(behaviourName, agent.CurrentBehaviour);
         Assert.Equal(result, _agentContext);
@@ -153,7 +153,7 @@ public class AgentContextTests
     {
         // Arrange
         var message = "Hello, agent!";
-        var chat = new Chat { Id = _agentContext.GetAgentId(), Messages = new List<Message>() };
+        var chat = new Chat { Id = _agentContext.GetAgentId(), Messages = new List<Message>(), Name = "test", Model = "default"};
         var chatResult = new ChatResult { Done = true, Model = "test-model", Message = new MessageDto()};
 
         _mockAgentService
@@ -164,6 +164,7 @@ public class AgentContextTests
             .Setup(s => s.Process(It.IsAny<Chat>(), _agentContext.GetAgentId(), It.IsAny<bool>()))
             .ReturnsAsync(new Chat { 
                 Model = "test-model", 
+                Name = "test",
                 Messages = new List<Message> { 
                     new Message { Content = "Response", Role = "Assistant" } 
                 } 

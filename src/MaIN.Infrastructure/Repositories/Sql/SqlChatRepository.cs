@@ -65,7 +65,7 @@ public class SqlChatRepository(IDbConnection connection) : IChatRepository
         return rows.Select(MapChatDocument);
     }
 
-    public async Task<ChatDocument?> GetChatById(string? id)
+    public async Task<ChatDocument?> GetChatById(string id)
     {
         var row = await connection.QueryFirstOrDefaultAsync(@"
             SELECT * FROM Chats 
@@ -89,7 +89,7 @@ public class SqlChatRepository(IDbConnection connection) : IChatRepository
             parameters);
     }
 
-    public async Task UpdateChat(string? id, ChatDocument chat)
+    public async Task UpdateChat(string id, ChatDocument chat)
     {
         if (chat == null)
             throw new ArgumentNullException(nameof(chat));
@@ -107,7 +107,7 @@ public class SqlChatRepository(IDbConnection connection) : IChatRepository
             parameters);
     }
 
-    public async Task DeleteChat(string? id) =>
+    public async Task DeleteChat(string id) =>
         await connection.ExecuteAsync(@"
             DELETE FROM Chats 
             WHERE Id = @Id",

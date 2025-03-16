@@ -33,7 +33,7 @@ public class ChatService(
         
         translate = translate || chat.Translate;
         interactiveUpdates = interactiveUpdates || chat.Interactive;
-        var newMsg = chat.Messages!.Last();
+        var newMsg = chat.Messages.Last();
         newMsg.Time = DateTime.Now;
         var lng = await translatorService.DetectLanguage(newMsg.Content);
 
@@ -56,7 +56,7 @@ public class ChatService(
         if (translate)
         {
             result!.Message.Content = (await translatorService.Translate(result.Message.Content, lng));
-            result!.Message.Time = DateTime.Now;
+            result.Message.Time = DateTime.Now;
         }
         
         originalMessages.Add(new Message()
@@ -72,15 +72,16 @@ public class ChatService(
         return result;
     }
 
-    public async Task Delete(string? id)
+    public async Task Delete(string id)
     {
         await llmService.CleanSessionCache(id);
         await chatProvider.DeleteChat(id);
     }
     
-    public async Task<Chat> GetById(string? id)
+    public async Task<Chat> GetById(string id)
     {
         var chatDocument = await chatProvider.GetChatById(id);
+        if(chatDocument == null) throw new Exception("Chat not found"); //TODO good candidate for custom exception
         return chatDocument.ToDomain();
     }
 

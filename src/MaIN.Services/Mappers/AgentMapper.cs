@@ -20,7 +20,7 @@ public static class AgentMapper
             Started = agent.Started,
             Flow = agent.Flow,
             Description = agent.Description,
-            Behaviours = agent.Behaviours!,
+            Behaviours = agent.Behaviours,
             CurrentBehaviour = agent.CurrentBehaviour,
             Context = agent.Context.ToDto()
         };
@@ -104,6 +104,7 @@ public static class AgentMapper
             Order = agent.Order,
             Started = agent.Started,
             Flow = agent.Flow,
+            ChatId = agent.ChatId,
             Description = agent.Description,
             Behaviours = agent.Behaviours,
             CurrentBehaviour = agent.CurrentBehaviour,
