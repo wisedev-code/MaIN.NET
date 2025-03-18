@@ -27,7 +27,7 @@ jobs:
         run: dotnet build --configuration Release --no-restore
 
       - name: Run tests
-        run: dotnet test --configuration Release --no-build --verbosity normal --filter "TestCategory!=Integration"
+        run: dotnet test --configuration Release --no-build --verbosity normal --filter FullyQualifiedName\!~IntegrationTests
 
       - name: Pack NuGet package
         run: dotnet pack --configuration Release --output ./artifacts
