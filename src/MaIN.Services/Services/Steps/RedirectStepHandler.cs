@@ -1,7 +1,7 @@
 using MaIN.Domain.Entities;
-using MaIN.Domain.Entities.Agents.Commands;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
+using MaIN.Services.Services.Models.Commands;
 using MaIN.Services.Steps;
 
 namespace MaIN.Services.Services.Steps;

@@ -89,14 +89,15 @@
             <div id="bottom" @ref="_bottomElement"></div>
         </div>
         <div class="input-container">
-            <FluentTextField Style="width: 95%"
+            <FluentTextArea Style="width: 95%;"
+                             @key="_inputKey"
                              bind-Value="@_prompt"
-                             Value="@_prompt"
+                             Rows="1"
                              @oninput="Callback"
                              Disabled="@_isLoading"
                              placeholder="Enter your prompt here..." 
-                             @onkeydown="CheckEnterKey">
-            </FluentTextField>
+                             @onkeyup="CheckEnterKey">
+            </FluentTextArea>
 
             <FluentButton IconStart="@(new Size28.Send())" BackgroundColor="rgba(0, 0, 0, 0)" Style="margin-top: 5px; background-color: transparent"
                           Appearance="Appearance.Lightweight"
@@ -111,14 +112,15 @@
 
 @* ReSharper disable once UnassignedField.Compiler *@
 @code {
-    private string? _prompt;
+    private string _prompt = string.Empty;
     private bool _isLoading;
     private string? _incomingMessage = null;
     private readonly string? _displayName = Utils.Model;
     private ChatContext? ctx;    
     private Chat Chat { get; } = new() { Name = "MaIN Infer", Model = Utils.Model!};
     private ElementReference? _bottomElement;
-    
+    private int _inputKey = 0;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender)
@@ -138,7 +140,7 @@
 
     private async Task CheckEnterKey(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter")
+        if (e is { Key: "Enter", ShiftKey: false })
         {
             await SendAsync(_prompt!);
         }
@@ -148,11 +150,13 @@
     {
         if (!string.IsNullOrWhiteSpace(msg))
         {
+            StateHasChanged();
             var newMsg = new Message { Role = "User", Content = msg };
             Chat.Messages.Add(newMsg);
             Chat.Model = Utils.Model!;
             _isLoading = true;
             Chat.Visual = Utils.Visual;
+            _inputKey++;
             _prompt = string.Empty;
             StateHasChanged();
             bool wasAtBottom = await JS.InvokeAsync<bool>("scrollManager.isAtBottom", "messages-container");            

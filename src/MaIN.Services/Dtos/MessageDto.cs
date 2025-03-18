@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace MaIN.Services.Models;
+namespace MaIN.Services.Dtos;
 
 public class MessageDto
 {

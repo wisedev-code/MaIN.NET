@@ -1,6 +1,6 @@
 using MaIN.Domain.Entities;
 using MaIN.Infrastructure.Models;
-using MaIN.Services.Models;
+using MaIN.Services.Dtos;
 using MaIN.Services.Services.ImageGenServices;
 using FileInfo = MaIN.Domain.Entities.FileInfo;
 

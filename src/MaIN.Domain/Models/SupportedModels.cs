@@ -49,7 +49,7 @@ public static class KnownModels
         {
             Description = string.Empty,
             Name = KnownModelNames.Phi_mini,
-            FileName = "phi3.5.gguf",
+            FileName = "phi3.5-3b.gguf",
             DownloadUrl = string.Empty
         },
 
@@ -57,10 +57,34 @@ public static class KnownModels
         {
             Description = string.Empty,
             Name = KnownModelNames.Qwen2_5_0_5b,
-            FileName = "Qwen2.5.gguf",
+            FileName = "Qwen2.5-0.5b.gguf",
             DownloadUrl = string.Empty
         },
 
+        new Model()
+        {
+            Description = string.Empty,
+            Name = KnownModelNames.Qwen2_5_coder_3b,
+            FileName = "Qwen2.5-coder-3b.gguf",
+            DownloadUrl = string.Empty
+        },
+        
+        new Model()
+        {
+            Description = string.Empty,
+            Name = KnownModelNames.Qwen2_5_coder_7b,
+            FileName = "Qwen2.5-coder-7b.gguf",
+            DownloadUrl = string.Empty
+        },
+        
+        new Model()
+        {
+            Description = string.Empty,
+            Name = KnownModelNames.Qwen2_5_coder_14b,
+            FileName = "Qwen2.5-coder-14b.gguf",
+            DownloadUrl = string.Empty
+        },
+        
         new Model()
         {
             Description = string.Empty,
@@ -146,6 +170,9 @@ public struct KnownModelNames
     public const string Phi_mini = "phi3:mini";
     public const string Llava_7b = "llava:7b";
     public const string Qwen2_5_0_5b = "qwen2.5:0.5b";
+    public const string Qwen2_5_coder_3b = "qwen2.5-coder:3b";
+    public const string Qwen2_5_coder_7b = "qwen2.5-coder:7b";
+    public const string Qwen2_5_coder_14b = "qwen2.5-coder:14b";
     public const string DeepSeek_R1_8b = "deepseekR1-8b";
     public const string Fox_1_6b = "fox:1.6b";
 }

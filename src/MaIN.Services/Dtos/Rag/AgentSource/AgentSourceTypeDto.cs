@@ -1,4 +1,4 @@
-namespace MaIN.Services.Models.Rag.AgentSource;
+namespace MaIN.Services.Dtos.Rag.AgentSource;
 
 public enum AgentSourceTypeDto
 {

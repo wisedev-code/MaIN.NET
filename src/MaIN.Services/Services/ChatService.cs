@@ -1,8 +1,8 @@
 using MaIN.Domain.Entities;
 using MaIN.Infrastructure.Models;
 using MaIN.Infrastructure.Repositories.Abstract;
+using MaIN.Services.Dtos;
 using MaIN.Services.Mappers;
-using MaIN.Services.Models;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.ImageGenServices;
 

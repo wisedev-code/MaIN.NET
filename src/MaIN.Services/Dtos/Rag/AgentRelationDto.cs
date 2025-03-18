@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace MaIN.Services.Models.Rag;
+namespace MaIN.Services.Dtos.Rag;
 
 public class AgentRelationDto
 {

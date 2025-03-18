@@ -3,8 +3,8 @@ using System.Text.Json;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
 using MaIN.Domain.Entities.Agents.AgentSource;
+using MaIN.Services.Dtos;
 using MaIN.Services.Mappers;
-using MaIN.Services.Models;
 using MaIN.Services.Services.Abstract;
 
 namespace MaIN.Core.Hub.Contexts;

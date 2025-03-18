@@ -1,4 +1,4 @@
-namespace MaIN.Services.Models;
+namespace MaIN.Services.Dtos;
 
 public enum ChatTypeDto
 {
