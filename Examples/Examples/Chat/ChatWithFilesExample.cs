@@ -17,5 +17,6 @@ public class ChatWithFilesExample : IExample
             .CompleteAsync();
         
         Console.WriteLine(result.Message.Content);
+        Console.ReadKey();
     }
 }

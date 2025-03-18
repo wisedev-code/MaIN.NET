@@ -10,4 +10,6 @@ public class FileInfoDto
     public string? Extension { get; init; }
     [JsonPropertyName("content")]
     public string? Content { get; init; }
+
+    public FileStream? StreamContent { get; set; }
 }
