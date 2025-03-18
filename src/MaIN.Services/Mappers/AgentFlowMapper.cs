@@ -1,6 +1,6 @@
 using MaIN.Domain.Entities.Agents.AgentSource;
 using MaIN.Infrastructure.Models;
-using MaIN.Services.Models.Rag;
+using MaIN.Services.Dtos.Rag;
 
 namespace MaIN.Services.Mappers;
 

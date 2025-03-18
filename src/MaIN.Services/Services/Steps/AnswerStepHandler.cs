@@ -1,13 +1,14 @@
 using System.Text.RegularExpressions;
 using MaIN.Domain.Entities;
-using MaIN.Domain.Entities.Agents.Commands;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
+using MaIN.Services.Services.Models.Commands;
+using MaIN.Services.Services.Steps.Commands;
 using MaIN.Services.Steps;
 
 namespace MaIN.Services.Services.Steps;
 
-public class AnswerStepHandler : IStepHandler
+public class AnswerStepHandler(ICommandDispatcher commandDispatcher) : IStepHandler
 {
     public string StepName => "ANSWER";
 
@@ -17,19 +18,22 @@ public class AnswerStepHandler : IStepHandler
         var useMemory = context.Arguments.Contains("USE_MEMORY");
         
         var answerCommand = new AnswerCommand { Chat = context.Chat, UseMemory = useMemory };
+        var answerResponse = await commandDispatcher.DispatchAsync(answerCommand);
+        if (answerResponse == null)
+        {
+            throw new Exception("Answer command failed"); //TODO proper candidate for custom exception
+        }
         
-        var answerResponse = (await Actions.CallAsync("ANSWER", answerCommand) as Message)!;
-
         var filterVal = GetFilter(answerResponse.Content);
         if (!string.IsNullOrEmpty(filterVal))
         {
-            context.Chat?.Properties.TryAdd("data_filter", filterVal);
+            context.Chat.Properties.TryAdd("data_filter", filterVal);
         }
 
         answerResponse.Time = DateTime.Now;
-        context.Chat?.Messages.Add(answerResponse);
+        context.Chat.Messages.Add(answerResponse);
 
-        return new StepResult { Chat = context.Chat!, RedirectMessage = answerResponse };
+        return new StepResult { Chat = context.Chat, RedirectMessage = answerResponse };
     }
 
     private static string? GetFilter(string? content)

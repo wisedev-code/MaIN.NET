@@ -1,6 +1,6 @@
 using MaIN.Core.Hub.Contexts;
 using MaIN.Domain.Entities;
-using MaIN.Services.Models;
+using MaIN.Services.Dtos;
 using MaIN.Services.Services.Abstract;
 using Moq;
 using FileInfo = MaIN.Domain.Entities.FileInfo;

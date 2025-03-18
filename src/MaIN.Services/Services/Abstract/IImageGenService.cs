@@ -1,5 +1,5 @@
 using MaIN.Domain.Entities;
-using MaIN.Services.Models;
+using MaIN.Services.Dtos;
 
 namespace MaIN.Services.Services.Abstract;
 

@@ -1,10 +1,10 @@
 using System.Text.Json;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents.AgentSource;
-using MaIN.Domain.Entities.Agents.Commands;
 using MaIN.Services.Mappers;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
+using MaIN.Services.Services.Models.Commands;
 using MaIN.Services.Steps;
 using MaIN.Services.Utils;
 
