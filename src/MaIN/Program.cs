@@ -220,3 +220,6 @@ app.MapGet("/api/chats", async ([FromServices] IChatService chatService)
     => Results.Ok((await chatService.GetAll()).Where(x => x.Type == ChatType.Conversation).Select(x => x.ToDto())));
 
 app.Run();
+
+// Grants Program.cs visibility in Integration Tests project assembly
+public partial class Program {}
