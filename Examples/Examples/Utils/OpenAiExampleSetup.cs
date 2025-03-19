@@ -11,7 +11,7 @@ public class OpenAiExample
         MaINBootstrapper.Initialize(configureSettings: (options) =>
         {
             options.BackendType = BackendType.OpenAi;
-            options.OpenAiKey = "<YOUR_OPENAI_KEY>";
+            //options.OpenAiKey = "<YOUR_OPENAI_KEY>";
         });
     }
 }

@@ -9,7 +9,6 @@ using MaIN.Services.Mappers;
 using MaIN.Services.Services;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.ImageGenServices;
-using MaIN.Services.Steps;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
@@ -40,9 +39,6 @@ app.UseSwaggerUI();
 app.UseHttpsRedirection();
 app.UseCors("AllowFE");
 app.MapHub<NotificationHub>("/diagnostics");
-
-//Initialize agents flow
-app.Services.InitializeAgents();
 
 //load initial agents configuration
 var agents = JsonSerializer.Deserialize<List<AgentDto>>(File.ReadAllText("./initial_agents.json"), new JsonSerializerOptions()

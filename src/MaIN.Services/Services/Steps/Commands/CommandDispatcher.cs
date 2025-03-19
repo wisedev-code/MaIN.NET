@@ -16,7 +16,7 @@ public class CommandDispatcher(IServiceProvider serviceProvider) : ICommandDispa
     public async Task<TResult> DispatchAsync<TResult>(ICommand<TResult> command, string? commandName = null)
     {
         Type handlerType;
-
+        commandName ??= command.CommandName;
         if (!string.IsNullOrEmpty(commandName) && _namedHandlers.TryGetValue(commandName, out var namedHandlerType))
         {
             handlerType = namedHandlerType;

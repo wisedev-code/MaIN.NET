@@ -65,12 +65,12 @@ public static class Bootstrapper
     {
         services.AddSingleton<IDataSourceProvider, DataSourceProvider>();
         
-        services.AddScoped<ICommandHandler<StartCommand, Message?>, StartCommandHandler>();
-        services.AddScoped<ICommandHandler<RedirectCommand, Message?>, RedirectCommandHandler>();
-        services.AddScoped<ICommandHandler<FetchCommand, Message?>, FetchCommandHandler>();
-        services.AddScoped<ICommandHandler<AnswerCommand, Message?>, AnswerCommandHandler>();
+        services.AddSingleton<ICommandHandler<StartCommand, Message?>, StartCommandHandler>();
+        services.AddSingleton<ICommandHandler<RedirectCommand, Message?>, RedirectCommandHandler>();
+        services.AddSingleton<ICommandHandler<FetchCommand, Message?>, FetchCommandHandler>();
+        services.AddSingleton<ICommandHandler<AnswerCommand, Message?>, AnswerCommandHandler>();
 
-        services.AddScoped<ICommandDispatcher, CommandDispatcher>(provider =>
+        services.AddSingleton<ICommandDispatcher, CommandDispatcher>(provider =>
         {
             var dispatcher = new CommandDispatcher(provider);
             
@@ -82,6 +82,11 @@ public static class Bootstrapper
             
             return dispatcher;
         });
+        
+        services.AddSingleton<StartCommandHandler>();
+        services.AddSingleton<RedirectCommandHandler>();
+        services.AddSingleton<FetchCommandHandler>();
+        services.AddSingleton<AnswerCommandHandler>();
 
         return services;
     }

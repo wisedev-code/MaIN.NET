@@ -189,7 +189,7 @@ public class OpenAiService(
         List<string>? webUrls = null,
         List<string>? memory = null)
     {
-        if (chat == null || chat.Messages == null || !chat.Messages.Any())
+        if (!chat.Messages.Any())
             return null;
 
         var kernelMemory = new KernelMemoryBuilder()
