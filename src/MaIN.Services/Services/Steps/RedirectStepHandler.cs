@@ -1,12 +1,11 @@
-using MaIN.Domain.Entities;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
 using MaIN.Services.Services.Models.Commands;
-using MaIN.Services.Steps;
+using MaIN.Services.Services.Steps.Commands;
 
 namespace MaIN.Services.Services.Steps;
 
-public class RedirectStepHandler : IStepHandler
+public class RedirectStepHandler(ICommandDispatcher commandDispatcher) : IStepHandler
 {
     public string StepName => "REDIRECT";
 
@@ -25,7 +24,7 @@ public class RedirectStepHandler : IStepHandler
 
         await context.NotifyProgress("false", context.Agent.Id, null, context.Agent.CurrentBehaviour);
 
-        var message = await Actions.CallAsync("REDIRECT", redirectCommand) as Message;
+        var message = await commandDispatcher.DispatchAsync(redirectCommand);
 
         if (useMemory)
         {

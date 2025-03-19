@@ -276,9 +276,7 @@ public class LLMService(MaINSettings options, INotificationService notificationS
                 Role = AuthorRole.Assistant.ToString()
             }
         };
-
-        generator.Dispose();
-
+        
         return chatResult;
     }
 
