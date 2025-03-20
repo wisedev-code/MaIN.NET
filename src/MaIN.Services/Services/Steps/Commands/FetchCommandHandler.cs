@@ -64,9 +64,9 @@ public class FetchCommandHandler(
         
         if (command.Chat?.Messages.Count > 0)
         {
-            var memoryChat = CreateMemoryChat(command);
+            var memoryChat = command.MemoryChat;
             var result = await llmService.AskMemory(
-                memoryChat, 
+                memoryChat!, 
                 fileData: new Dictionary<string, string>() { { fileData!.Name, fileData.Path } }
             );
             
@@ -83,29 +83,12 @@ public class FetchCommandHandler(
         
         if (command.Chat?.Messages.Count > 0)
         {
-            var memoryChat = CreateMemoryChat(command);
-            var result = await llmService.AskMemory(memoryChat, webUrls: [webData!.Url]);
+            var memoryChat = command.MemoryChat;
+            var result = await llmService.AskMemory(memoryChat!, webUrls: [webData!.Url]);
             return result!.Message.ToDomain();
         }
 
         return CreateMessage($"Web data from {webData!.Url}", properties);
-    }
-    
-    private static Chat CreateMemoryChat(FetchCommand command)
-    {
-        if (command.Chat == null)
-        {
-            throw new ArgumentNullException(nameof(command.Chat));
-        }
-        
-        return new Chat
-        {
-            Messages = command.Chat.Messages,
-            Model = command.Chat.Model,
-            Properties = command.Chat.Properties,
-            Name = "Memory Chat",
-            Id = Guid.NewGuid().ToString()
-        };
     }
     
     private static Message CreateMessage(string content, Dictionary<string, string> properties)
