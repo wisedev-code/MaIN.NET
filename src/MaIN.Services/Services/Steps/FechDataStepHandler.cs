@@ -17,43 +17,32 @@ public class FetchDataStepHandler(
     
     public async Task<StepResult> Handle(StepContext context)
     {
-        // Skip if already processed
         if (context.StepName == "FETCH_DATA*" && context.Chat.Properties.ContainsKey("FETCH_DATA*"))
         {
             return new StepResult { Chat = context.Chat };
         }
 
-        // Get filter value
         context.Chat.Properties.TryGetValue("data_filter", out var filter);
         var fetchCommand = new FetchCommand
         {
             Chat = context.Chat,
             Filter = filter ?? string.Empty,
-            Context = context.Agent.Context!.ToDomain()
+            Context = context.Agent.Context!.ToDomain(),
+            MemoryChat = CreateMemoryChat(context, filter)
         };
 
-        // Use the command dispatcher for all source types
         var response = await commandDispatcher.DispatchAsync(fetchCommand);
         if (response == null)
         {
-            throw new InvalidOperationException("Data fetch command failed");
+            throw new InvalidOperationException("Data fetch command failed"); //TODO proper candidate for custom exception
         }
-
+        
+        context.Chat.Messages.Add(response);
         if (response.Properties.ContainsValue("JSON"))
         {
             await ProcessJsonResponse(response, context);
         }
-        else
-        {
-            context.Chat.Messages.Add(new Message
-            {
-                Role = "System",
-                Content = $"Remember this data: {response.Content}",
-                Properties = response.Properties
-            });
-        }
 
-        // Mark as processed if needed
         if (context.StepName == "FETCH_DATA*")
         {
             context.Chat.Properties["FETCH_DATA*"] = string.Empty;
@@ -67,12 +56,13 @@ public class FetchDataStepHandler(
 
     private async Task ProcessJsonResponse(Message response, StepContext context)
     {
-        context.Chat.Messages?.Add(new Message
-        {
-            Role = "User",
-            Content = "Process this data {....}",
-            Properties = response.Properties,
-        });
+        //TODO remove
+        // context.Chat.Messages?.Add(new Message
+        // {
+        //     Role = "User",
+        //     Content = "Process this data {....}",
+        //     Properties = response.Properties,
+        // });
 
         context.Chat.Properties.TryGetValue("data_filter", out var filterVal);
         var memoryChat = CreateMemoryChat(context, filterVal);

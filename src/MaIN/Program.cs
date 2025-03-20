@@ -10,7 +10,6 @@ using MaIN.Services.Services;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.ImageGenServices;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -39,6 +38,7 @@ app.UseSwaggerUI();
 app.UseHttpsRedirection();
 app.UseCors("AllowFE");
 app.MapHub<NotificationHub>("/diagnostics");
+
 
 //load initial agents configuration
 var agents = JsonSerializer.Deserialize<List<AgentDto>>(File.ReadAllText("./initial_agents.json"), new JsonSerializerOptions()
@@ -192,7 +192,6 @@ app.MapGet("/api/chats/models", async (HttpContext context,
     [FromServices] MaINSettings options) =>
 {
     var models = await llmService.GetCurrentModels();
-    //add flux support
     var client = httpClientFactory.CreateClient();
     try
     {

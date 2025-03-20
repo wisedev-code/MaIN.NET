@@ -23,7 +23,7 @@ public class StepProcessor : IStepProcessor
         }
     }
 
-    public async Task<Chat> ProcessSteps(
+    public async Task<Chat> ProcessSteps( //TODO try without delegates
         AgentContextDocument context,
         AgentDocument agent,
         Chat chat,
