@@ -18,7 +18,8 @@ public class AgentWithApiDataSourceExample : IExample
             {
                 Method = "Get",
                 Url = "https://remoteok.com/api?tags=javascript",
-                ResponseType = "JSON"
+                ResponseType = "JSON",
+                ChunkLimit = 10,
             }, AgentSourceType.API)
             .WithSteps(StepBuilder.Instance
                 .FetchData()

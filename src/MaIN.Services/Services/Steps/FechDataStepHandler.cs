@@ -37,7 +37,6 @@ public class FetchDataStepHandler(
             throw new InvalidOperationException("Data fetch command failed"); //TODO proper candidate for custom exception
         }
         
-        context.Chat.Messages.Add(response);
         if (response.Properties.ContainsValue("JSON"))
         {
             await ProcessJsonResponse(response, context);

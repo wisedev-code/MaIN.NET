@@ -226,7 +226,7 @@ public class LLMService(MaINSettings options, INotificationService notificationS
         var model = KnownModels.GetModel(path, chat.Model);
         var modelKey = model.FileName;
 
-        var kernelMemory = CreateMemory(modelKey, path, out var generator);
+        var kernelMemory = await CreateMemory(modelKey, path);
 
         if (textData != null)
         {
@@ -282,13 +282,14 @@ public class LLMService(MaINSettings options, INotificationService notificationS
 
 
     [Experimental("KMEXP01")]
-    private static IKernelMemory CreateMemory(string modelName, string path,
-        out KernelMemFix.LlamaSharpTextGenerator generator)
+    private static async Task<IKernelMemory> CreateMemory(string modelName, string path)
     {
         InferenceParams infParams = new() { AntiPrompts = ["INFO", "<|im_end|>", "Question:"] };
 
         LLamaSharpConfig lsConfig = new(Path.Combine(path, KnownModels.GetEmbeddingModel().FileName))
             { DefaultInferenceParams = infParams };
+
+        //var weights = await LLMService.GetOrLoadModelAsync(path, modelName);
 
         SearchClientConfig searchClientConfig = new()
         {
@@ -305,8 +306,9 @@ public class LLMService(MaINSettings options, INotificationService notificationS
         };
 
         return new KernelMemoryBuilder()
+            //.WithLLamaSharpDefaults(lsConfig)
             //.WithLLamaSharpDefaults2(lsConfig)
-            .WithLLamaSharpMaINTemp(lsConfig, path, modelName, out generator)
+            .WithLLamaSharpMaINTemp(lsConfig, path, modelName, out var generator)
             .WithSearchClientConfig(searchClientConfig)
             .WithCustomImageOcr(new OcrWrapper())
             .With(parseOptions)
