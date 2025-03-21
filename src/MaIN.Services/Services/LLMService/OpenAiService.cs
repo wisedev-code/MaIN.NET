@@ -63,12 +63,19 @@ public class OpenAiService(
         var lastMessage = chat.Messages.Last();
         if (lastMessage.Files != null && lastMessage.Files.Count != 0)
         {
-            var textData = lastMessage.Files!.Where(x => x.Content is not null)
+            var textData = lastMessage.Files!
+                .Where(x => x.Content is not null)
                 .ToDictionary(x => x.Name, x => x.Content);
-            var fileData =
-                lastMessage.Files!.Where(x => x.Path is not null)
-                    .ToDictionary(x => x.Name, x => x.Path); //shity coode TODO
-            var result = await AskMemory(chat, textData!, fileData!);
+            
+            var fileData = lastMessage.Files!
+                .Where(x => x.Path is not null)
+                .ToDictionary(x => x.Name, x => x.Path); //shity coode TODO
+            
+            var streamData = lastMessage.Files
+                .Where(x => x.StreamContent is not null)
+                .ToDictionary(x => x.Name, x => x.StreamContent);
+            
+            var result = await AskMemory(chat, textData!, fileData!, streamData!);
             resultBuilder.Append(result!.Message.Content);
         }
         else
@@ -186,6 +193,7 @@ public class OpenAiService(
     public async Task<ChatResult?> AskMemory(Chat chat,
         Dictionary<string, string>? textData = null,
         Dictionary<string, string>? fileData = null,
+        Dictionary<string, FileStream>? streamData = null,
         List<string>? webUrls = null,
         List<string>? memory = null)
     {
@@ -216,6 +224,14 @@ public class OpenAiService(
                 {
                     Console.WriteLine($"Error importing file '{item.Key}': {ex.Message}");
                 }
+            }
+        }
+        
+        if (streamData != null)
+        {
+            foreach (var item in streamData)
+            {
+                await kernelMemory.ImportDocumentAsync(item.Value, item.Key);
             }
         }
         

@@ -88,12 +88,20 @@ public class LLMService(MaINSettings options, INotificationService notificationS
         if (lastMessage.Files?.Any() ?? false)
         {
 #pragma warning disable SKEXP0001
-            var textData = lastMessage.Files.Where(x => x.Content is not null)
+            var textData = lastMessage.Files
+                .Where(x => x.Content is not null)
                 .ToDictionary(x => x.Name, x => x.Content);
-            var fileData =
-                lastMessage.Files.Where(x => x.Path is not null)
-                    .ToDictionary(x => x.Name, x => x.Path); //shity coode TODO
-            var result = await AskMemory(chat, textData!, fileData!);
+            
+            var fileData = lastMessage.Files
+                .Where(x => x.Path is not null)
+                .ToDictionary(x => x.Name, x => x.Path); //shity coode TODO
+            
+            var streamData = lastMessage.Files
+                .Where(x => x.StreamContent is not null)
+                .ToDictionary(x => x.Name, x => x.StreamContent);
+            
+            var result = await AskMemory(chat, textData!, fileData!, streamData!); 
+            
             resultBuilder.Append(result!.Message.Content);
 #pragma warning restore SKEXP0001
         }
@@ -211,6 +219,7 @@ public class LLMService(MaINSettings options, INotificationService notificationS
     public async Task<ChatResult?> AskMemory(Chat chat,
         Dictionary<string, string>? textData = null,
         Dictionary<string, string>? fileData = null,
+        Dictionary<string, FileStream>? streamData = null,
         List<string>? webUrls = null,
         List<string>? memory = null)
     {
@@ -231,6 +240,14 @@ public class LLMService(MaINSettings options, INotificationService notificationS
         if (fileData != null)
         {
             foreach (var item in fileData)
+            {
+                await kernelMemory.ImportDocumentAsync(item.Value, item.Key);
+            }
+        }
+
+        if (streamData != null)
+        {
+            foreach (var item in streamData)
             {
                 await kernelMemory.ImportDocumentAsync(item.Value, item.Key);
             }
