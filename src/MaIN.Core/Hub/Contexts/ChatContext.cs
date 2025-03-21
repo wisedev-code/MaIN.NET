@@ -74,6 +74,24 @@ public class ChatContext
         return this;
     }
 
+    public ChatContext WithFiles(List<FileStream> fileStreams)
+    {
+        var files = fileStreams.Select(p => new FileInfo()
+        {
+            Name = Path.GetFileName(p.Name),
+            Path = null,
+            Extension = Path.GetExtension(p.Name),
+            StreamContent = p 
+        }).ToList();
+        
+        var lastMessage = _chat.Messages?.LastOrDefault();
+        if (lastMessage != null)
+        {
+            lastMessage.Files = files;
+        }
+        return this;
+    }
+
     public ChatContext WithFiles(List<FileInfo> files)
     {
         var lastMessage = _chat.Messages?.LastOrDefault();

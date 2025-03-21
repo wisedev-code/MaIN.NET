@@ -34,7 +34,7 @@ app.MapPost("/api/llm/send", async ([FromServices] ILLMService llmService, ChatR
 
 app.MapPost("/api/llm/askmemory", async ([FromServices] ILLMService llmService, AskMemoryRequest request) =>
 {
-    var result = await llmService.AskMemory(request.Chat, request.TextData, request.FileData, request.Memory);
+    var result = await llmService.AskMemory(request.Chat, request.TextData, request.FileData, new Dictionary<string, FileStream>(), request.Memory);
     return result != null 
         ? Results.Ok(result) 
         : Results.BadRequest("Failed to process the memory request.");
