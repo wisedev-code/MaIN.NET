@@ -29,16 +29,63 @@ jobs:
       - name: Run tests
         run: dotnet test --configuration Release --no-build --verbosity normal --filter "TestCategory!=Integration"
 
+      - name: Get Version
+        run: |
+          NUSPEC_VERSION=$(grep -oP '(?<=<version>).*?(?=</version>)' MaIN.Core/*.nuspec | head -1)
+          echo "NUSPEC_VERSION=${NUSPEC_VERSION}" >> $GITHUB_ENV
+          echo "nuspec_version=${NUSPEC_VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Get latest release version
+        uses: octokit/request-action@v2.x
+        with:
+          route: GET /repos/{owner}/{repo}/releases/latest
+          owner: ${{ github.repository_owner }}
+          repo: ${{ github.event.repository.name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      - name: Extract latest version
+        id: extract-latest
+        run: |
+          if [ "${{ steps.latest-release.outcome }}" == "success" ]; then
+            LATEST_VERSION=$(echo '${{ steps.latest-release.outputs.data }}' | jq -r '.tag_name' | sed 's/^v//')
+            echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_ENV
+            echo "latest_version=${LATEST_VERSION}" >> $GITHUB_OUTPUT
+          else
+            echo "No previous release found"
+            echo "LATEST_VERSION=0.0.0" >> $GITHUB_ENV
+            echo "latest_version=0.0.0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Compare versions
+        id: compare-versions
+        run: |
+          echo "Nuspec version: ${{ env.NUSPEC_VERSION }}"
+          echo "Latest release version: ${{ env.LATEST_VERSION }}"
+          
+          if [ "${{ env.NUSPEC_VERSION }}" != "${{ env.LATEST_VERSION }}" ]; then
+            echo "Versions are different - creating a new release"
+            echo "CREATE_RELEASE=true" >> $GITHUB_ENV
+            echo "create_release=true" >> $GITHUB_OUTPUT
+          else
+            echo "Versions are the same - skipping release"
+            echo "CREATE_RELEASE=false" >> $GITHUB_ENV
+            echo "create_release=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Pack NuGet package
+        if: env.CREATE_RELEASE == 'true'
         run: dotnet pack --configuration Release --output ./artifacts
 
       - name: Push package to NuGet
+        if: env.CREATE_RELEASE == 'true'
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: dotnet nuget push "./artifacts/*.nupkg" --source "https://api.nuget.org/v3/index.json" --api-key "$NUGET_API_KEY" --skip-duplicate
 
       - name: Create GitHub Release
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && env.CREATE_RELEASE == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
