@@ -29,9 +29,9 @@ jobs:
       - name: Run tests
         run: dotnet test --configuration Release --no-build --verbosity normal --filter FullyQualifiedName\!~IntegrationTests
 
-      - name: Get Version
+      - name: Get version from .nupsec file
         run: |
-          NUSPEC_VERSION=$(grep -oP '(?<=<version>).*?(?=</version>)' MaIN.Core/*.nuspec | head -1)
+          NUSPEC_VERSION=$(grep -oP '(?<=<version>).*?(?=</version>)' MaIN.Core/.nuspec | head -1)
           echo "NUSPEC_VERSION=${NUSPEC_VERSION}" >> $GITHUB_ENV
           echo "nuspec_version=${NUSPEC_VERSION}" >> $GITHUB_OUTPUT
 
