@@ -31,7 +31,6 @@ jobs:
 
       - name: Get version from .nupsec file
         run: |
-          ls
           NUSPEC_VERSION=$(grep -oP '(?<=<version>).*?(?=</version>)' src/MaIN.Core/.nuspec | head -1)
           echo "NUSPEC_VERSION=${NUSPEC_VERSION}" >> $GITHUB_ENV
           echo "nuspec_version=${NUSPEC_VERSION}" >> $GITHUB_OUTPUT
