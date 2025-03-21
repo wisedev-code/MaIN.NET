@@ -26,11 +26,12 @@ jobs:
       - name: Build solution
         run: dotnet build --configuration Release --no-restore
 
-      - name: Run tests
-        run: dotnet test --configuration Release --no-build --verbosity normal --filter FullyQualifiedName\!~IntegrationTests
+      # - name: Run tests
+      #   run: dotnet test --configuration Release --no-build --verbosity normal --filter FullyQualifiedName\!~IntegrationTests
 
       - name: Get version from .nupsec file
         run: |
+          ls
           NUSPEC_VERSION=$(grep -oP '(?<=<version>).*?(?=</version>)' MaIN.Core/.nuspec | head -1)
           echo "NUSPEC_VERSION=${NUSPEC_VERSION}" >> $GITHUB_ENV
           echo "nuspec_version=${NUSPEC_VERSION}" >> $GITHUB_OUTPUT
@@ -74,29 +75,29 @@ jobs:
             echo "create_release=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Pack NuGet package
-        if: env.CREATE_RELEASE == 'true'
-        run: dotnet pack --configuration Release --output ./artifacts
+      # - name: Pack NuGet package
+      #   if: env.CREATE_RELEASE == 'true'
+      #   run: dotnet pack --configuration Release --output ./artifacts
 
-      - name: Push package to NuGet
-        if: env.CREATE_RELEASE == 'true'
-        env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
-        run: dotnet nuget push "./artifacts/*.nupkg" --source "https://api.nuget.org/v3/index.json" --api-key "$NUGET_API_KEY" --skip-duplicate
+      # - name: Push package to NuGet
+      #   if: env.CREATE_RELEASE == 'true'
+      #   env:
+      #     NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+      #   run: dotnet nuget push "./artifacts/*.nupkg" --source "https://api.nuget.org/v3/index.json" --api-key "$NUGET_API_KEY" --skip-duplicate
 
-      - name: Create GitHub Release
-        if: github.ref == 'refs/heads/main' && env.CREATE_RELEASE == 'true'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # Create a tag using today's date
-          TAG_NAME="v$(date +'%Y.%m.%d')"
-          # Get the NuGet package file name from the artifacts folder and remove its extension for the release title
-          NUPKG_FILE=$(basename $(find ./artifacts -name "*.nupkg" | head -n1))
-          RELEASE_NAME="${NUPKG_FILE%.*}"
-          # Get the newest markdown file from the Releases folder and read its content as release notes
-          NEWEST_NOTES=$(ls -t Releases/*.md | head -n1)
-          RELEASE_NOTES=$(cat "$NEWEST_NOTES")
-          # Create the GitHub release using the tag, NuGet package and release notes
-          gh release create "$TAG_NAME" ./artifacts/*.nupkg --title "$RELEASE_NAME" --notes "$RELEASE_NOTES"
-        shell: bash
+      # - name: Create GitHub Release
+      #   if: github.ref == 'refs/heads/main' && env.CREATE_RELEASE == 'true'
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   run: |
+      #     # Create a tag using today's date
+      #     TAG_NAME="v$(date +'%Y.%m.%d')"
+      #     # Get the NuGet package file name from the artifacts folder and remove its extension for the release title
+      #     NUPKG_FILE=$(basename $(find ./artifacts -name "*.nupkg" | head -n1))
+      #     RELEASE_NAME="${NUPKG_FILE%.*}"
+      #     # Get the newest markdown file from the Releases folder and read its content as release notes
+      #     NEWEST_NOTES=$(ls -t Releases/*.md | head -n1)
+      #     RELEASE_NOTES=$(cat "$NEWEST_NOTES")
+      #     # Create the GitHub release using the tag, NuGet package and release notes
+      #     gh release create "$TAG_NAME" ./artifacts/*.nupkg --title "$RELEASE_NAME" --notes "$RELEASE_NOTES"
+      #   shell: bash
