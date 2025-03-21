@@ -123,7 +123,7 @@ public class ExampleRegistry(IServiceProvider serviceProvider)
         {
             ("\u25a0 Basic Chat", _serviceProvider.GetRequiredService<ChatExample>()),
             ("\u25a0 Chat with Files", _serviceProvider.GetRequiredService<ChatWithFilesExample>()),
-            ("\u25a0 Chat with Files from stream [TEMPORARY]", _serviceProvider.GetRequiredService<ChatWithFilesFromStreamExample>()),
+            ("\u25a0 Chat with Files from stream", _serviceProvider.GetRequiredService<ChatWithFilesFromStreamExample>()),
             ("\u25a0 Chat with Vision", _serviceProvider.GetRequiredService<ChatWithVisionExample>()),
             ("\u25a0 Chat with Image Generation", _serviceProvider.GetRequiredService<ChatWithImageGenExample>()),
             ("\u25a0 Chat from Existing", _serviceProvider.GetRequiredService<ChatFromExistingExample>()),
