@@ -21,7 +21,7 @@ public class RedirectCommandHandler(IAgentService agentService) : ICommandHandle
 
         if (!string.IsNullOrEmpty(command.Filter))
         {
-            chat.Properties?.TryAdd("data_filter", command.Filter!);
+            chat.Properties.TryAdd("data_filter", command.Filter!);
         }
 
         var result = await agentService.Process(chat, command.RelatedAgentId);

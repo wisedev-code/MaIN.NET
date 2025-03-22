@@ -7,7 +7,7 @@ public class CommandDispatcher(IServiceProvider serviceProvider) : ICommandDispa
     private readonly IDictionary<string, Type> _namedHandlers = new Dictionary<string, Type>();
     
     public void RegisterNamedHandler<TCommand, TResult, THandler>(string commandName)
-        where TCommand : ICommand<TResult>?
+        where TCommand : ICommand<TResult>
         where THandler : ICommandHandler<TCommand, TResult>
     {
         _namedHandlers[commandName] = typeof(THandler);

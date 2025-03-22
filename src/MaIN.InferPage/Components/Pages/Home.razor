@@ -4,6 +4,7 @@
 @using MaIN.Core.Hub
 @using MaIN.Core.Hub.Contexts
 @using MaIN.Domain.Entities
+@using MaIN.Domain.Models
 @using Markdig
 @using Microsoft.FluentUI.AspNetCore.Components.Icons.Regular
 @using Message = MaIN.Domain.Entities.Message
@@ -22,7 +23,8 @@
                 {
                     @if (Chat.Visual)
                     {
-                        <FluentBadge Class="@(message.Role == "User" ? "message-role-user" : "message-role-bot")" Appearance="Appearance.Accent">
+                        <FluentBadge Class="@(message.Role == "User" ? "message-role-user" : "message-role-bot")"
+                                     Appearance="Appearance.Accent">
                             @(message.Role == "User" ? "User" : Utils.Model)
                         </FluentBadge>
                         @if (message.Role == "User")
@@ -33,7 +35,8 @@
                         }
                         else
                         {
-                            <FluentCard class="message-card-img bot-message" Style="height: 30rem !important; width: 30rem !important; ">
+                            <FluentCard class="message-card-img bot-message"
+                                        Style="height: 30rem !important; width: 30rem !important; ">
                                 <div>
                                     <a href="data:image/png;base64,@Convert.ToBase64String(message.Images!)"
                                        style="cursor: -webkit-zoom-in; cursor: zoom-in;" target="_blank">
@@ -47,10 +50,12 @@
                     }
                     else
                     {
-                        <FluentBadge Class="@(message.Role == "User" ? "message-role-user" : "message-role-bot")" Appearance="Appearance.Accent">
+                        <FluentBadge Class="@(message.Role == "User" ? "message-role-user" : "message-role-bot")"
+                                     Appearance="Appearance.Accent">
                             @(message.Role == "User" ? "User" : Utils.Model)
-                        </FluentBadge>                       
-                        <FluentCard class="@(message.Role == "User" ? "message-card user-message" : "message-card bot-message")">
+                        </FluentBadge>
+                        <FluentCard
+                            class="@(message.Role == "User" ? "message-card user-message" : "message-card bot-message")">
                             @((MarkupString)((message.Role == "User"
                                 ? message.Content
                                 : Markdown.ToHtml((string)message.Content,
@@ -78,10 +83,23 @@
                     @if (_incomingMessage != null)
                     {
                         <FluentCard class="message-card bot-message">
-                            @((MarkupString)Markdown.ToHtml(_incomingMessage.ToString(),
-                                new MarkdownPipelineBuilder()
-                                    .UseAdvancedExtensions()
-                                    .Build()))
+                            @if (_isThinking)
+                            {
+                                <span class="thinker">
+                                   @((MarkupString)Markdown.ToHtml(_incomingMessage.ToString(),
+                                        new MarkdownPipelineBuilder()
+                                            .UseAdvancedExtensions()
+                                            .Build()))
+                                </span>
+                            }
+                            else
+                            {
+                                @((MarkupString)Markdown.ToHtml(_incomingMessage.ToString(),
+                                    new MarkdownPipelineBuilder()
+                                        .UseAdvancedExtensions()
+                                        .Build()))
+                            }
+
                         </FluentCard>
                     }
                 }
@@ -90,34 +108,38 @@
         </div>
         <div class="input-container">
             <FluentTextArea Style="width: 95%;"
-                             @key="_inputKey"
-                             bind-Value="@_prompt"
-                             Rows="1"
-                             @oninput="Callback"
-                             Disabled="@_isLoading"
-                             placeholder="Enter your prompt here..." 
-                             @onkeyup="CheckEnterKey">
+                            @key="_inputKey"
+                            bind-Value="@_prompt"
+                            Rows="1"
+                            @oninput="Callback"
+                            Disabled="@_isLoading"
+                            placeholder="Enter your prompt here..."
+                            @onkeyup="CheckEnterKey">
             </FluentTextArea>
 
-            <FluentButton IconStart="@(new Size28.Send())" BackgroundColor="rgba(0, 0, 0, 0)" Style="margin-top: 5px; background-color: transparent"
+            <FluentButton IconStart="@(new Size28.Send())" BackgroundColor="rgba(0, 0, 0, 0)"
+                          Style="margin-top: 5px; background-color: transparent"
                           Appearance="Appearance.Lightweight"
                           Loading="@_isLoading"
                           OnClick="@(() => SendAsync(_prompt!))">
-            </FluentButton >
+            </FluentButton>
         </div>
     </FluentGridItem>
     <FluentGridItem sm="1" xs="1" lg="1"></FluentGridItem>
 </FluentGrid>
-<FluentProgress Visible="@(_isLoading)" style="width: 100%; !important; position: absolute; margin-bottom: auto"></FluentProgress >
+<FluentProgress Visible="@(_isLoading)"
+                style="width: 100%; !important; position: absolute; margin-bottom: auto"></FluentProgress>
 
 @* ReSharper disable once UnassignedField.Compiler *@
+
 @code {
     private string _prompt = string.Empty;
     private bool _isLoading;
+    private bool _isThinking;
     private string? _incomingMessage = null;
     private readonly string? _displayName = Utils.Model;
-    private ChatContext? ctx;    
-    private Chat Chat { get; } = new() { Name = "MaIN Infer", Model = Utils.Model!};
+    private ChatContext? ctx;
+    private Chat Chat { get; } = new() { Name = "MaIN Infer", Model = Utils.Model! };
     private ElementReference? _bottomElement;
     private int _inputKey = 0;
 
@@ -128,15 +150,16 @@
             await JS.InvokeVoidAsync("scrollManager.restoreScrollPosition", "messages-container");
         }
     }
-    
+
     protected override Task OnInitializedAsync()
     {
-        ctx = Utils.Visual ? AIHub.Chat().EnableVisual()
-                : Utils.Path != null 
-                    ? AIHub.Chat().WithCustomModel(model: Utils.Model!, path: Utils.Path)
-            : AIHub.Chat().WithModel(Utils.Model!); //If that grows with different chat types we can consider switch ex
+        ctx = Utils.Visual
+            ? AIHub.Chat().EnableVisual()
+            : Utils.Path != null
+                ? AIHub.Chat().WithCustomModel(model: Utils.Model!, path: Utils.Path)
+                : AIHub.Chat().WithModel(Utils.Model!); //If that grows with different chat types we can consider switch ex
         return base.OnInitializedAsync();
-    }       
+    }
 
     private async Task CheckEnterKey(KeyboardEventArgs e)
     {
@@ -159,11 +182,20 @@
             _inputKey++;
             _prompt = string.Empty;
             StateHasChanged();
-            bool wasAtBottom = await JS.InvokeAsync<bool>("scrollManager.isAtBottom", "messages-container");            
+            bool wasAtBottom = await JS.InvokeAsync<bool>("scrollManager.isAtBottom", "messages-container");
             await ctx!.WithMessage(msg)
                 .CompleteAsync(changeOfValue: async message =>
                 {
-                    _incomingMessage += message;
+                    if (message?.Type == TokenType.Reason)
+                    {
+                        _isThinking = true;
+                    }
+                    else
+                    {
+                        _isThinking = false;
+                    }
+
+                    _incomingMessage += message?.Text;
                     StateHasChanged();
                     if (wasAtBottom)
                     {
@@ -175,15 +207,14 @@
             var currentChat = (await ctx.GetCurrentChat());
             Chat.Messages.Add(currentChat.Messages.Last());
             _incomingMessage = null;
-            await JS.InvokeVoidAsync("scrollManager.scrollToBottomSmooth", _bottomElement);   
+            await JS.InvokeVoidAsync("scrollManager.scrollToBottomSmooth", _bottomElement);
             StateHasChanged();
-
         }
     }
 
     private void Callback(ChangeEventArgs obj)
     {
-        _prompt = obj.Value?.ToString()!;    
+        _prompt = obj.Value?.ToString()!;
     }
 
 }

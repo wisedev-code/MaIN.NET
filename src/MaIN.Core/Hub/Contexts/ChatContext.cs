@@ -113,7 +113,7 @@ public class ChatContext
     public async Task<ChatResult> CompleteAsync(
         bool translate = false,
         bool interactive = false,
-        Func<string?, Task>? changeOfValue = null)
+        Func<LLMTokenValue?, Task>? changeOfValue = null)
     {
         if (!await ChatExists(_chat.Id))
         {

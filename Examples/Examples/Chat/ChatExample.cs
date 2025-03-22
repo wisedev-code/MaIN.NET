@@ -8,7 +8,7 @@ public class ChatExample : IExample
     {
         Console.WriteLine("ChatExample is running!");
         
-        var context = AIHub.Chat().WithModel("gemma2:2b");
+        var context = AIHub.Chat().WithCustomModel("test","/Users/pstach/WiseDev/Models/DeepSeekR1-8b.gguf");
         
         await context
             .WithMessage("Where the hedgehog goes at night?")

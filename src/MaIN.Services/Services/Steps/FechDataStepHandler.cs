@@ -4,12 +4,10 @@ using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
 using MaIN.Services.Services.Models.Commands;
 using MaIN.Services.Services.Steps.Commands;
-using MaIN.Services.Utils;
 
 namespace MaIN.Services.Services.Steps;
 
 public class FetchDataStepHandler(
-    ILLMService llmService, 
     ICommandDispatcher commandDispatcher) : IStepHandler
 {
     public string StepName => "FETCH_DATA";
@@ -36,11 +34,6 @@ public class FetchDataStepHandler(
         {
             throw new InvalidOperationException("Data fetch command failed"); //TODO proper candidate for custom exception
         }
-        
-        if (response.Properties.ContainsValue("JSON"))
-        {
-            await ProcessJsonResponse(response, context);
-        }
 
         if (context.StepName == "FETCH_DATA*")
         {
@@ -52,33 +45,7 @@ public class FetchDataStepHandler(
             RedirectMessage = context.Chat.Messages.Last() 
         };
     }
-
-    private async Task ProcessJsonResponse(Message response, StepContext context)
-    {
-        //TODO remove
-        // context.Chat.Messages?.Add(new Message
-        // {
-        //     Role = "User",
-        //     Content = "Process this data {....}",
-        //     Properties = response.Properties,
-        // });
-
-        context.Chat.Properties.TryGetValue("data_filter", out var filterVal);
-        var memoryChat = CreateMemoryChat(context, filterVal);
-        
-        var chunker = new JsonChunker();
-        var chunksAsList = chunker.ChunkJson(response.Content).ToList();
-        var chunks = chunksAsList
-            .Select((chunk, index) => new { Key = $"CHUNK_{index + 1}-{chunksAsList.Count}", Value = chunk })
-            .ToDictionary(item => item.Key, item => item.Value);
-        
-        var result = await llmService.AskMemory(memoryChat, chunks);
-        var newMessage = result!.Message;
-        newMessage.Properties = new() { { "agent_internal", "true" } };
-        context.Chat.Messages?.Add(newMessage.ToDomain());
-    }
-
-    //TODO proper way for memory chat!
+    
     private static Chat CreateMemoryChat(StepContext context, string? filterVal)
     {
         return new Chat

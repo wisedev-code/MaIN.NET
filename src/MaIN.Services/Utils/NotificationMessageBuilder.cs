@@ -1,3 +1,5 @@
+using MaIN.Domain.Models;
+
 namespace MaIN.Services.Utils;
 
 public static class NotificationMessageBuilder
@@ -19,14 +21,15 @@ public static class NotificationMessageBuilder
     
     public static Dictionary<string, string?> CreateChatCompletion(
         string? chatId, 
-        string? content, 
+        LLMTokenValue content, 
         bool done)
     {
         return new Dictionary<string, string?>
         {
             { "ChatId", chatId },
             { "Done", done.ToString() },
-            { "Content", content }
+            { "Content", content.Text },
+            { "Type", content.Type.ToString() }
         };
     }
 

@@ -1,4 +1,5 @@
 using MaIN.Domain.Entities;
+using MaIN.Domain.Models;
 using MaIN.Infrastructure.Models;
 using MaIN.Infrastructure.Repositories.Abstract;
 using MaIN.Services.Dtos;
@@ -24,7 +25,7 @@ public class ChatService(
         Chat chat,
         bool translate = false,
         bool interactiveUpdates = false,
-        Func<string?, Task>? changeOfValue = null)
+        Func<LLMTokenValue?, Task>? changeOfValue = null)
     {
         if (chat.Model == ImageGenService.Models.FLUX)
         {
