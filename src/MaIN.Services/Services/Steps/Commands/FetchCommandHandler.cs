@@ -1,9 +1,11 @@
+// FetchCommandHandler.cs
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents.AgentSource;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models.Commands;
 using System.Text.Json;
 using MaIN.Services.Mappers;
+using MaIN.Services.Utils;
 
 namespace MaIN.Services.Services.Steps.Commands;
 
@@ -19,17 +21,22 @@ public class FetchCommandHandler(
             { "agent_internal", "true" }
         };
 
+        Message? response;
+        
         switch (command.Context.Source!.Type)
         {
             case AgentSourceType.File:
-                return await HandleFileSource(command, properties);
+                response = await HandleFileSource(command, properties);
+                break;
                 
             case AgentSourceType.Web:
-                return await HandleWebSource(command, properties);
+                response = await HandleWebSource(command, properties);
+                break;
                 
             case AgentSourceType.Text:
                 var textData = dataSourceService.FetchTextData(command.Context.Source.Details);
-                return CreateMessage(textData, properties);
+                response = CreateMessage(textData, properties);
+                break;
                 
             case AgentSourceType.API:
                 var apiData = await dataSourceService.FetchApiData(
@@ -37,25 +44,36 @@ public class FetchCommandHandler(
                     command.Filter,
                     httpClientFactory,
                     properties);
-                return CreateMessage(apiData, properties);
+                response = CreateMessage(apiData, properties);
+                break;
                 
             case AgentSourceType.SQL:
                 var sqlData = await dataSourceService.FetchSqlData(
                     command.Context.Source.Details,
                     command.Filter,
                     properties);
-                return CreateMessage(sqlData, properties);
+                response = CreateMessage(sqlData, properties);
+                break;
                 
             case AgentSourceType.NoSQL:
                 var noSqlData = await dataSourceService.FetchNoSqlData(
                     command.Context.Source.Details,
                     command.Filter,
                     properties);
-                return CreateMessage(noSqlData, properties);
+                response = CreateMessage(noSqlData, properties);
+                break;
                 
             default:
                 throw new ArgumentOutOfRangeException();
         }
+        
+        // Process JSON response if needed
+        if (response != null && response.Properties.ContainsValue("JSON"))
+        {
+            await ProcessJsonResponse(response, command);
+        }
+        
+        return response;
     }
 
     private async Task<Message> HandleFileSource(FetchCommand command, Dictionary<string, string> properties)
@@ -89,6 +107,20 @@ public class FetchCommandHandler(
         }
 
         return CreateMessage($"Web data from {webData!.Url}", properties);
+    }
+    
+    private async Task ProcessJsonResponse(Message response, FetchCommand command)
+    {
+        var chunker = new JsonChunker();
+        var chunksAsList = chunker.ChunkJson(response.Content).ToList();
+        var chunks = chunksAsList
+            .Select((chunk, index) => new { Key = $"CHUNK_{index + 1}-{chunksAsList.Count}", Value = chunk })
+            .ToDictionary(item => item.Key, item => item.Value);
+        
+        var result = await llmService.AskMemory(command.MemoryChat!, chunks);
+        var newMessage = result!.Message;
+        newMessage.Properties = new() { { "agent_internal", "true" } };
+        command.Chat!.Messages?.Add(newMessage.ToDomain());
     }
     
     private static Message CreateMessage(string content, Dictionary<string, string> properties)

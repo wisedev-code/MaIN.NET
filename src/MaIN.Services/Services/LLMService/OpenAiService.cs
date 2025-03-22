@@ -28,11 +28,10 @@ public class OpenAiService(
     private readonly HttpClient _httpClient = new();
     private static readonly ConcurrentDictionary<string, List<ChatMessage>> SessionCache = new();
     
-    public async Task<ChatResult?> Send(
-        Chat chat,
+    public async Task<ChatResult?> Send(Chat chat,
         bool interactiveUpdates = false,
         bool createSession = false,
-        Func<string?, Task>? changeOfValue = null)
+        Func<LLMTokenValue, Task>? changeOfValue = null)
     {
         if (string.IsNullOrEmpty(options.OpenAiKey) && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OPENAI_API_KEY")))
         {
@@ -116,10 +115,11 @@ public class OpenAiService(
                             var content = chunk?.Choices?.FirstOrDefault()?.Delta?.Content;
                             if (!string.IsNullOrEmpty(content))
                             {
-                                changeOfValue?.Invoke(content);
+                                var token = new LLMTokenValue() { Text = content, Type = TokenType.Answer };
+                                changeOfValue?.Invoke(token);
                                 resultBuilder.Append(content);
                                 await notificationService.DispatchNotification(
-                                    NotificationMessageBuilder.CreateChatCompletion(chat.Id, content, false),
+                                    NotificationMessageBuilder.CreateChatCompletion(chat.Id, token, false),
                                     "ReceiveMessageUpdate");
                             }
                         }
@@ -155,10 +155,11 @@ public class OpenAiService(
             }
         }
         
+        var finalToken = new LLMTokenValue() { Text = resultBuilder.ToString(), Type = TokenType.Answer };
         if (interactiveUpdates)
         {
             await notificationService.DispatchNotification(
-                NotificationMessageBuilder.CreateChatCompletion(chat.Id, resultBuilder.ToString(), true),
+                NotificationMessageBuilder.CreateChatCompletion(chat.Id, finalToken, true),
                 "ReceiveMessageUpdate");
         }
 

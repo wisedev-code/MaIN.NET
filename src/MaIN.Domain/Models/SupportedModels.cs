@@ -7,20 +7,41 @@ public class Model
     public string? DownloadUrl { get; set; }
     public string? Description { get; set; }
     public string? Path { get; set; }
+    public Func<string, ThinkingState, LLMTokenValue>? ReasonFunction { get; set; }
 }
 
 public static class KnownModels
 {
-    private static List<Model> Models { get; } = 
+    private static List<Model> Models { get; } =
     [
         new Model()
         {
             Description = string.Empty,
             Name = KnownModelNames.Gemma2_2b,
             FileName = "gemma2-2b.gguf",
-            DownloadUrl = "https://huggingface.co/TheBloke/gemma2-2b-quantized/resolve/main/gemma2-2b-quantized.bin",
+            DownloadUrl = string.Empty,
         },
-
+        new Model()
+        {
+            Description = string.Empty,
+            Name = KnownModelNames.Gemma3_4b,
+            FileName = "gemma3-4b.gguf",
+            DownloadUrl = string.Empty,
+        },
+        new Model()
+        {
+            Description = string.Empty,
+            Name = KnownModelNames.Gemma3_12b,
+            FileName = "gemma3-12b.gguf",
+            DownloadUrl = string.Empty,
+        },
+        new Model()
+        {
+            Description = string.Empty,
+            Name = KnownModelNames.OlympicCoder_7b,
+            FileName = "olympiccoder-7b.gguf",
+            DownloadUrl = string.Empty,
+        },
         new Model()
         {
             Description = string.Empty,
@@ -28,7 +49,6 @@ public static class KnownModels
             FileName = "Llama3.2-3b.gguf",
             DownloadUrl = string.Empty
         },
-
         new Model()
         {
             Description = string.Empty,
@@ -36,7 +56,6 @@ public static class KnownModels
             FileName = "Llama3.1-8b.gguf",
             DownloadUrl = string.Empty
         },
-
         new Model()
         {
             Description = string.Empty,
@@ -44,15 +63,6 @@ public static class KnownModels
             FileName = "Llava.gguf",
             DownloadUrl = string.Empty,
         },
-
-        new Model()
-        {
-            Description = string.Empty,
-            Name = KnownModelNames.Phi_mini,
-            FileName = "phi3.5-3b.gguf",
-            DownloadUrl = string.Empty
-        },
-
         new Model()
         {
             Description = string.Empty,
@@ -60,7 +70,6 @@ public static class KnownModels
             FileName = "Qwen2.5-0.5b.gguf",
             DownloadUrl = string.Empty
         },
-
         new Model()
         {
             Description = string.Empty,
@@ -68,7 +77,6 @@ public static class KnownModels
             FileName = "Qwen2.5-coder-3b.gguf",
             DownloadUrl = string.Empty
         },
-        
         new Model()
         {
             Description = string.Empty,
@@ -76,7 +84,6 @@ public static class KnownModels
             FileName = "Qwen2.5-coder-7b.gguf",
             DownloadUrl = string.Empty
         },
-        
         new Model()
         {
             Description = string.Empty,
@@ -84,15 +91,14 @@ public static class KnownModels
             FileName = "Qwen2.5-coder-14b.gguf",
             DownloadUrl = string.Empty
         },
-        
         new Model()
         {
             Description = string.Empty,
             Name = KnownModelNames.DeepSeek_R1_8b,
             FileName = "DeepSeekR1-8b.gguf",
-            DownloadUrl = string.Empty
+            DownloadUrl = string.Empty,
+            ReasonFunction = ReasoningFunctions.ProcessDeepSeekToken 
         },
-
         new Model()
         {
             Description = string.Empty,
@@ -124,12 +130,12 @@ public static class KnownModels
 
         if (File.Exists(Path.Combine(path, model.FileName)))
         {
-            return model;  
+            return model;
         }
 
         throw new Exception($"Model {name} is not downloaded");
-    } 
-    
+    }
+
     public static Model? GetModelByFileName(string path, string fileName)
     {
         var isPresent = Models.Exists(x => x.FileName == fileName);
@@ -142,7 +148,7 @@ public static class KnownModels
 
         if (File.Exists(Path.Combine(path, fileName)))
         {
-            return Models.First(x => x.FileName == fileName);  
+            return Models.First(x => x.FileName == fileName);
         }
 
         throw new Exception($"Model {fileName} is not downloaded");
@@ -165,9 +171,13 @@ public struct KnownModelNames
 {
     public const string Nomic_Embedding = "nomic";
     public const string Gemma2_2b = "gemma2:2b";
+    public const string Gemma3_4b = "gemma3:4b";
+    public const string Gemma3_12b = "gemma3:12b";
+    public const string OlympicCoder_7b = "olympiccoder:7b";
     public const string Llama3_1_8b = "llama3.1:8b";
     public const string Llama3_2_3b = "llama3.2:3b";
     public const string Phi_mini = "phi3:mini";
+    public const string Phi_4b = "phi4:4b";
     public const string Llava_7b = "llava:7b";
     public const string Qwen2_5_0_5b = "qwen2.5:0.5b";
     public const string Qwen2_5_coder_3b = "qwen2.5-coder:3b";

@@ -26,26 +26,22 @@ public class LLMService(MaINSettings options, INotificationService notificationS
     private static readonly ConcurrentDictionary<string, LLamaWeights> modelCache = new();
     private static readonly ConcurrentDictionary<string, ChatSession> sessionCache = new(); // Cache for chat sessions
 
-    public async Task<ChatResult?> Send(
-        Chat chat, 
+    public async Task<ChatResult?> Send(Chat chat,
         bool interactiveUpdates = false,
         bool newSession = false,
-        Func<string?, Task>? changeOfValue = null)
+        Func<LLMTokenValue, Task>? changeOfValue = null)
     {
         if (!chat.Messages.Any())
             return null;
-
-        if (chat.Model == KnownModelNames.Llava_7b) //TODO include better support for vision models
-        {
-            return await HandleImageInterpreter(chat);
-        }
 
         var path = options.ModelsPath ?? Environment.GetEnvironmentVariable(DefaultModelEnvPath);
         if (path == null)
         {
             throw new Exception("ModelsPath setting is not present in configuration");
         }
+        
         var model = KnownModels.GetModel(path, chat.Model);
+        var thinkingState = new ThinkingState();
         var modelKey = model.FileName;
 
         // Get or load the model asynchronously.
@@ -54,9 +50,9 @@ public class LLMService(MaINSettings options, INotificationService notificationS
         {
             SamplingPipeline = new DefaultSamplingPipeline
             {
-                Temperature = chat.InterferenceParams.Temperature
+                Temperature = chat.InterferenceParams.Temperature, 
+                
             },
-            MaxTokens = chat.InterferenceParams.ContextSize,
             AntiPrompts = [llmModel.Vocab.EOT?.ToString() ?? "User:"]
         };
 
@@ -85,8 +81,7 @@ public class LLMService(MaINSettings options, INotificationService notificationS
             new[] { llmModel.Vocab.EOT.ToString() ?? "User:", "�" },
             redundancyLength: 5));
 
-        var resultBuilder = new StringBuilder();
-
+        var listOfTokens = new List<LLMTokenValue>();
         var lastMessage = chat.Messages.Last();
 
         if (lastMessage.Files?.Any() ?? false)
@@ -98,7 +93,11 @@ public class LLMService(MaINSettings options, INotificationService notificationS
                 lastMessage.Files.Where(x => x.Path is not null)
                     .ToDictionary(x => x.Name, x => x.Path); //shity coode TODO
             var result = await AskMemory(chat, textData!, fileData!);
-            resultBuilder.Append(result!.Message.Content);
+            listOfTokens.Add(new LLMTokenValue()
+            {
+                Type = TokenType.Answer,
+                Text = result!.Message.Content
+            });
 #pragma warning restore SKEXP0001
         }
         else
@@ -107,26 +106,39 @@ public class LLMService(MaINSettings options, INotificationService notificationS
                                new ChatHistory.Message(AuthorRole.User, chat.Messages.Last().Content),
                                inferenceParams))
             {
+                var token = model.ReasonFunction is not null
+                    ? model.ReasonFunction(text, thinkingState)
+                    : new LLMTokenValue()
+                    {
+                        Type = TokenType.Answer,
+                        Text = text
+                    };
+                
                 if (interactiveUpdates)
                 {
                     await notificationService.DispatchNotification(
                         NotificationMessageBuilder.CreateChatCompletion(
                             chat.Id,
-                            text,
+                            token,
                             false),
                         "ReceiveMessageUpdate");
                 }
 
-                changeOfValue?.Invoke(text);
-                resultBuilder.Append(text);
+                changeOfValue?.Invoke(token);
+                listOfTokens.Add(token);
             }
         }
 
+        var stringToReturn = string.Concat(listOfTokens.Select(x => x.Text));
         if (interactiveUpdates)
         {
             await notificationService.DispatchNotification(NotificationMessageBuilder.CreateChatCompletion(
                 chat.Id,
-                resultBuilder.ToString(),
+                new LLMTokenValue()
+                {
+                    Type = TokenType.Answer,
+                    Text = stringToReturn
+                },
                 true), "ReceiveMessageUpdate");
         }
 
@@ -137,7 +149,7 @@ public class LLMService(MaINSettings options, INotificationService notificationS
             Model = chat.Model,
             Message = new MessageDto
             {
-                Content = resultBuilder.ToString(),
+                Content = stringToReturn,
                 Role = AuthorRole.Assistant.ToString()
             }
         };
@@ -226,7 +238,7 @@ public class LLMService(MaINSettings options, INotificationService notificationS
         var model = KnownModels.GetModel(path, chat.Model);
         var modelKey = model.FileName;
 
-        var kernelMemory = await CreateMemory(modelKey, path);
+        var kernelMemory = CreateMemory(modelKey, path);
 
         if (textData != null)
         {
@@ -282,15 +294,13 @@ public class LLMService(MaINSettings options, INotificationService notificationS
 
 
     [Experimental("KMEXP01")]
-    private static async Task<IKernelMemory> CreateMemory(string modelName, string path)
+    private static IKernelMemory CreateMemory(string modelName, string path)
     {
         InferenceParams infParams = new() { AntiPrompts = ["INFO", "<|im_end|>", "Question:"] };
 
         LLamaSharpConfig lsConfig = new(Path.Combine(path, KnownModels.GetEmbeddingModel().FileName))
             { DefaultInferenceParams = infParams };
-
-        //var weights = await LLMService.GetOrLoadModelAsync(path, modelName);
-
+        
         SearchClientConfig searchClientConfig = new()
         {
             MaxMatchesCount = 5,

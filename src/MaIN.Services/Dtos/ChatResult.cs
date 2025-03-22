@@ -11,7 +11,7 @@ public class ChatResult
     public DateTime CreatedAt { get; set; }
 
     [JsonPropertyName("message")] 
-    public required MessageDto Message { get; init; }
+    public required MessageDto Message { get; init; } //TODO change to domain objects
 
     [JsonPropertyName("done")] 
     public bool Done { get; init; }
