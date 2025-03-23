@@ -4,6 +4,7 @@ using MaIN.Domain.Entities;
 using MaIN.Domain.Models;
 using MaIN.Services.Dtos;
 using MaIN.Services.Services.Abstract;
+using MaIN.Services.Services.Models;
 using MaIN.Services.Utils;
 using Microsoft.KernelMemory;
 
@@ -115,7 +116,7 @@ public class OpenAiService(
                             var content = chunk?.Choices?.FirstOrDefault()?.Delta?.Content;
                             if (!string.IsNullOrEmpty(content))
                             {
-                                var token = new LLMTokenValue() { Text = content, Type = TokenType.Answer };
+                                var token = new LLMTokenValue() { Text = content, Type = TokenType.Message };
                                 changeOfValue?.Invoke(token);
                                 resultBuilder.Append(content);
                                 await notificationService.DispatchNotification(
@@ -155,7 +156,7 @@ public class OpenAiService(
             }
         }
         
-        var finalToken = new LLMTokenValue() { Text = resultBuilder.ToString(), Type = TokenType.Answer };
+        var finalToken = new LLMTokenValue() { Text = resultBuilder.ToString(), Type = TokenType.FullAnswer};
         if (interactiveUpdates)
         {
             await notificationService.DispatchNotification(
@@ -176,7 +177,7 @@ public class OpenAiService(
             Done = true,
             CreatedAt = DateTime.Now,
             Model = chat.Model,
-            Message = new MessageDto
+            Message = new Message
             {
                 Content = resultBuilder.ToString(),
                 Role = AuthorRole.Assistant.ToString()
@@ -246,7 +247,7 @@ public class OpenAiService(
             Done = true,
             CreatedAt = DateTime.Now,
             Model = chat.Model,
-            Message = new MessageDto
+            Message = new Message
             {
                 Content = retrievedContext.Result,
                 Role = AuthorRole.Assistant.ToString()

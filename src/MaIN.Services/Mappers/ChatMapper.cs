@@ -1,4 +1,5 @@
 using MaIN.Domain.Entities;
+using MaIN.Domain.Models;
 using MaIN.Infrastructure.Models;
 using MaIN.Services.Dtos;
 using MaIN.Services.Services.ImageGenServices;
@@ -71,6 +72,7 @@ public static class ChatMapper
             Role = message.Role,
             Time = message.Time,
             Images = message.Images,
+            Tokens = message.Tokens.Select(x => x.ToDocument()).ToList(),
             Properties = message.Properties,
             Tool = message.Tool,
             Files = (message.Files?.Select(x => x.Content).ToArray() ?? [])!
@@ -112,9 +114,24 @@ public static class ChatMapper
             Content = message.Content,
             Tool = message.Tool,
             Time = message.Time,
+            Tokens = message.Tokens.Select(x => x.ToDomain()).ToList(),
             Role = message.Role,
             Images = message.Images,
             Properties = message.Properties,
+        };
+    
+    public static LLMTokenValueDocument ToDocument(this LLMTokenValue llmTokenValue)
+    => new LLMTokenValueDocument()
+    {
+        Text = llmTokenValue.Text,
+        Type = llmTokenValue.Type
+    };
+    
+    public static LLMTokenValue ToDomain(this LLMTokenValueDocument llmTokenValue)
+        => new LLMTokenValue()
+        {
+            Text = llmTokenValue.Text,
+            Type = llmTokenValue.Type
         };
     
     public static InferenceParams ToDomain(this InferenceParamsDocument inferenceParams)

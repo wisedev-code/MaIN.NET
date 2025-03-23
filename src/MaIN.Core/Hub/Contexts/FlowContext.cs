@@ -6,6 +6,7 @@ using MaIN.Domain.Entities.Agents.AgentSource;
 using MaIN.Services.Dtos;
 using MaIN.Services.Mappers;
 using MaIN.Services.Services.Abstract;
+using MaIN.Services.Services.Models;
 
 namespace MaIN.Core.Hub.Contexts;
 
@@ -142,7 +143,7 @@ public class FlowContext
     public async Task<ChatResult> ProcessAsync(Chat chat, bool translate = false)
     {
         var result = await _agentService.Process(chat, _firstAgent!.Id, translate);
-        var message = result.Messages.LastOrDefault()!.ToDto();
+        var message = result.Messages.LastOrDefault()!;
         return new ChatResult()
         {
             Done = true,
@@ -162,7 +163,7 @@ public class FlowContext
             Time = DateTime.Now
         });
         var result = await _agentService.Process(chat, _firstAgent.Id, translate);
-        var messageResult = result.Messages.LastOrDefault()!.ToDto();
+        var messageResult = result.Messages.LastOrDefault()!;
         return new ChatResult()
         {
             Done = true,
@@ -177,7 +178,7 @@ public class FlowContext
         var chat = await _agentService.GetChatByAgent(_firstAgent!.Id);
         chat.Messages.Add(message);
         var result = await _agentService.Process(chat, _firstAgent.Id, translate);
-        var messageResult = result.Messages.LastOrDefault()!.ToDto();
+        var messageResult = result.Messages.LastOrDefault()!;
         return new ChatResult()
         {
             Done = true,

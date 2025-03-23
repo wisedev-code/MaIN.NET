@@ -6,6 +6,7 @@ using MaIN.Services.Dtos;
 using MaIN.Services.Mappers;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.ImageGenServices;
+using MaIN.Services.Services.Models;
 
 namespace MaIN.Services.Services;
 
@@ -60,13 +61,7 @@ public class ChatService(
             result.Message.Time = DateTime.Now;
         }
         
-        originalMessages.Add(new Message()
-        {
-            Content = result!.Message.Content,
-            Role = result.Message.Role,
-            Images = result.Message.Images,
-            Time = result.Message.Time
-        });
+        originalMessages.Add(result!.Message);
         chat.Messages = originalMessages;
 
         await chatProvider.UpdateChat(chat.Id, chat.ToDocument());

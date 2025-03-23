@@ -2,6 +2,7 @@ using MaIN.Domain.Entities;
 using MaIN.Services.Dtos;
 using MaIN.Services.Mappers;
 using MaIN.Services.Services.Abstract;
+using MaIN.Services.Services.Models;
 using MaIN.Services.Services.Models.Commands;
 
 namespace MaIN.Services.Services.Steps.Commands;
@@ -26,6 +27,6 @@ public class AnswerCommandHandler(
                 : await llmService.Send(command.Chat, interactiveUpdates: command.Chat.Interactive);
         }
 
-        return result!.Message.ToDomain();
+        return result!.Message;
     }
 }

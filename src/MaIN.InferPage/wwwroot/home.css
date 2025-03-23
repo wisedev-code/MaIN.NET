@@ -44,8 +44,8 @@
 .thinker
 {
     font-style: italic;
-    color: var(--accent-fill-rest);
-    font-size: x-small;
+    color: var(--accent-base-color);
+    font-size: smaller !important;
 }
 
 .message-card-img {

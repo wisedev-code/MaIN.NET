@@ -68,7 +68,7 @@ public class FetchCommandHandler(
         }
         
         // Process JSON response if needed
-        if (response != null && response.Properties.ContainsValue("JSON"))
+        if (response.Properties.ContainsValue("JSON"))
         {
             await ProcessJsonResponse(response, command);
         }
@@ -88,7 +88,7 @@ public class FetchCommandHandler(
                 fileData: new Dictionary<string, string>() { { fileData!.Name, fileData.Path } }
             );
             
-            return result!.Message.ToDomain();
+            return result!.Message;
         }
         
         var data = await dataSourceService.FetchFileData(command.Context.Source.Details);
@@ -103,7 +103,7 @@ public class FetchCommandHandler(
         {
             var memoryChat = command.MemoryChat;
             var result = await llmService.AskMemory(memoryChat!, webUrls: [webData!.Url]);
-            return result!.Message.ToDomain();
+            return result!.Message;
         }
 
         return CreateMessage($"Web data from {webData!.Url}", properties);
@@ -120,7 +120,7 @@ public class FetchCommandHandler(
         var result = await llmService.AskMemory(command.MemoryChat!, chunks);
         var newMessage = result!.Message;
         newMessage.Properties = new() { { "agent_internal", "true" } };
-        command.Chat!.Messages?.Add(newMessage.ToDomain());
+        command.Chat!.Messages.Add(newMessage);
     }
     
     private static Message CreateMessage(string content, Dictionary<string, string> properties)
