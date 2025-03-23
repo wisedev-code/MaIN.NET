@@ -5,9 +5,11 @@ public class Model
     public required string Name { get; init; }
     public required string FileName { get; init; }
     public string? DownloadUrl { get; set; }
+    public string? AdditionalPrompt { get; set; }
     public string? Description { get; set; }
     public string? Path { get; set; }
     public Func<string, ThinkingState, LLMTokenValue>? ReasonFunction { get; set; }
+    public bool HasReasoning() => ReasonFunction is not null;
 }
 
 public static class KnownModels
@@ -97,14 +99,23 @@ public static class KnownModels
             Name = KnownModelNames.DeepSeek_R1_8b,
             FileName = "DeepSeekR1-8b.gguf",
             DownloadUrl = string.Empty,
-            ReasonFunction = ReasoningFunctions.ProcessDeepSeekToken 
+            ReasonFunction = ReasoningFunctions.ProcessDeepSeekToken
         },
         new Model()
         {
             Description = string.Empty,
-            Name = KnownModelNames.Fox_1_6b,
-            FileName = "Fox-1.6b.gguf",
+            Name = KnownModelNames.Smollm2_0_1b,
+            FileName = "smollm2-0.1b.gguf",
             DownloadUrl = string.Empty
+        },
+        new Model()
+        {
+            Description = string.Empty,
+            Name = KnownModelNames.EXAOne_Deep_2_4b,
+            FileName = "exaone-deep-2.4b.gguf",
+            DownloadUrl = string.Empty,
+            AdditionalPrompt = " Please reason step by step, and put your final answer within \\boxed{}.",
+            ReasonFunction = ReasoningFunctions.ProcessExaONEToken
         }
     ];
 
@@ -165,6 +176,20 @@ public static class KnownModels
             Path = path
         });
     }
+
+    public static Model GetModel(string modelName)
+    {
+        var model = Models.FirstOrDefault(x => x.Name.Equals(modelName, StringComparison.InvariantCultureIgnoreCase)
+                                               || x.Name.Replace(':', '-').Equals(modelName,
+                                                   StringComparison.InvariantCultureIgnoreCase));
+        if (model is null)
+        {
+            //todo support domain specific exceptions
+            throw new Exception($"Model {modelName} is not supported");
+        }
+
+        return model;
+    }
 }
 
 public struct KnownModelNames
@@ -184,5 +209,6 @@ public struct KnownModelNames
     public const string Qwen2_5_coder_7b = "qwen2.5-coder:7b";
     public const string Qwen2_5_coder_14b = "qwen2.5-coder:14b";
     public const string DeepSeek_R1_8b = "deepseekR1-8b";
-    public const string Fox_1_6b = "fox:1.6b";
+    public const string Smollm2_0_1b = "smollm2-0.1b";
+    public const string EXAOne_Deep_2_4b = "exaone-deep-2.4b";
 }

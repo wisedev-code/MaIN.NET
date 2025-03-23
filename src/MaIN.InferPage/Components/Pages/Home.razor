@@ -16,21 +16,21 @@
     <FluentGridItem sm="1" xs="1" lg="1"></FluentGridItem>
     <FluentGridItem sm="10" xs="10" lg="10" Style="align-self: center; align-items: center">
         <div class="messages-container" id="messages-container">
-            @foreach (var message in Chat.Messages)
+            @foreach (var conversation in Messages)
             {
                 <br/>
-                @if (message.Role != "System")
+                @if (conversation.Message.Role != "System")
                 {
                     @if (Chat.Visual)
                     {
-                        <FluentBadge Class="@(message.Role == "User" ? "message-role-user" : "message-role-bot")"
+                        <FluentBadge Class="@(conversation.Message.Role == "User" ? "message-role-user" : "message-role-bot")"
                                      Appearance="Appearance.Accent">
-                            @(message.Role == "User" ? "User" : Utils.Model)
+                            @(conversation.Message.Role == "User" ? "User" : Utils.Model)
                         </FluentBadge>
-                        @if (message.Role == "User")
+                        @if (conversation.Message.Role == "User")
                         {
                             <FluentCard class="message-card user-message">
-                                @message.Content
+                                @conversation.Message.Content
                             </FluentCard>
                         }
                         else
@@ -38,9 +38,9 @@
                             <FluentCard class="message-card-img bot-message"
                                         Style="height: 30rem !important; width: 30rem !important; ">
                                 <div>
-                                    <a href="data:image/png;base64,@Convert.ToBase64String(message.Images!)"
+                                    <a href="data:image/png;base64,@Convert.ToBase64String(conversation.Message.Images!)"
                                        style="cursor: -webkit-zoom-in; cursor: zoom-in;" target="_blank">
-                                        <img src="data:image/png;base64,@Convert.ToBase64String(message.Images!)"
+                                        <img src="data:image/png;base64,@Convert.ToBase64String(conversation.Message.Images!)"
                                              style="object-fit: fill; width:100%; height:100%;"
                                              alt="imageResponse"/>
                                     </a>
@@ -50,18 +50,54 @@
                     }
                     else
                     {
-                        <FluentBadge Class="@(message.Role == "User" ? "message-role-user" : "message-role-bot")"
-                                     Appearance="Appearance.Accent">
-                            @(message.Role == "User" ? "User" : Utils.Model)
-                        </FluentBadge>
+                        @if (conversation.Message.Role == "User")
+                        {
+                            <FluentBadge Class="message-role-user"
+                                         Appearance="Appearance.Accent">
+                                User
+                            </FluentBadge>
+                        }
+                        else
+                        {
+                            <FluentStack>
+                                <FluentBadge Class="message-role-bot"
+                                             Appearance="Appearance.Accent">
+                                    @Utils.Model
+                                </FluentBadge>
+                                @if (_reasoning && conversation.Message.Role == "Assistant")
+                                {
+                                    <FluentSwitch Label="Show reasoning" @bind-Value="@conversation.ShowReason"></FluentSwitch>
+                                }
+                            </FluentStack>
+                        }
+
                         <FluentCard
-                            class="@(message.Role == "User" ? "message-card user-message" : "message-card bot-message")">
-                            @((MarkupString)((message.Role == "User"
-                                ? message.Content
-                                : Markdown.ToHtml((string)message.Content,
-                                    new MarkdownPipelineBuilder()
-                                        .UseAdvancedExtensions()
-                                        .Build())) ?? string.Empty))
+                            class="@(conversation.Message.Role == "User" ? "message-card user-message" : "message-card bot-message")">
+                            @if (conversation.Message.Role == "User")
+                            {
+                                <span>@conversation.Message.Content</span>
+                            }
+                            else
+                            {
+                                <div>
+                                    @if (conversation.ShowReason)
+                                    {
+                                        <div class="thinker" style="border-radius: 10px; padding: 10px; border-width: 2px; background-color: var(--neutral-fill-hover)">
+                                            @((MarkupString)Markdown.ToHtml(string.Concat(conversation.Message.Tokens.Where(x => x.Type == TokenType.Reason).Select(x => x.Text)),
+                                                new MarkdownPipelineBuilder()
+                                                    .UseAdvancedExtensions()
+                                                    .Build()))
+                                        </div>
+                                        <hr/>
+                                    }
+                                    @((MarkupString)Markdown.ToHtml(string.Concat(conversation.Message.Tokens.Where(x => x.Type == TokenType.Message).Select(x => x.Text)),
+                                        new MarkdownPipelineBuilder()
+                                            .UseAdvancedExtensions()
+                                            .Build()))
+                                </div>
+                            }
+                            
+                              
                         </FluentCard>
                     }
                 }
@@ -79,14 +115,18 @@
                     <FluentStack>
                         <FluentBadge Appearance="Appearance.Accent" Class="message-role-bot">@_displayName</FluentBadge>
                         <FluentProgressRing Width="20px" Visible="_isLoading"></FluentProgressRing>
+                        @if (_isThinking)
+                        {
+                            <span class="message-role-bot" style="font-style: italic; font-size: small">Thinking...</span>
+                        }
                     </FluentStack>
-                    @if (_incomingMessage != null)
+                    @if (_incomingMessage != null || _incomingReasoning != null)
                     {
                         <FluentCard class="message-card bot-message">
                             @if (_isThinking)
                             {
                                 <span class="thinker">
-                                   @((MarkupString)Markdown.ToHtml(_incomingMessage.ToString(),
+                                   @((MarkupString)Markdown.ToHtml(_incomingReasoning!,
                                         new MarkdownPipelineBuilder()
                                             .UseAdvancedExtensions()
                                             .Build()))
@@ -94,7 +134,7 @@
                             }
                             else
                             {
-                                @((MarkupString)Markdown.ToHtml(_incomingMessage.ToString(),
+                                @((MarkupString)Markdown.ToHtml(_incomingMessage!,
                                     new MarkdownPipelineBuilder()
                                         .UseAdvancedExtensions()
                                         .Build()))
@@ -136,10 +176,13 @@
     private string _prompt = string.Empty;
     private bool _isLoading;
     private bool _isThinking;
+    private bool _reasoning;
     private string? _incomingMessage = null;
+    private string? _incomingReasoning = null;
     private readonly string? _displayName = Utils.Model;
     private ChatContext? ctx;
     private Chat Chat { get; } = new() { Name = "MaIN Infer", Model = Utils.Model! };
+    private List<MessageExt> Messages { get; set; } = new();
     private ElementReference? _bottomElement;
     private int _inputKey = 0;
 
@@ -153,6 +196,8 @@
 
     protected override Task OnInitializedAsync()
     {
+        _reasoning = KnownModels.GetModel(Utils.Model!).HasReasoning();
+        Utils.Reason = _reasoning;
         ctx = Utils.Visual
             ? AIHub.Chat().EnableVisual()
             : Utils.Path != null
@@ -165,7 +210,8 @@
     {
         if (e is { Key: "Enter", ShiftKey: false })
         {
-            await SendAsync(_prompt!);
+            _prompt = _prompt.Replace("\n", string.Empty);
+            await SendAsync(_prompt);
         }
     }
 
@@ -176,6 +222,10 @@
             StateHasChanged();
             var newMsg = new Message { Role = "User", Content = msg };
             Chat.Messages.Add(newMsg);
+            Messages.Add(new MessageExt()
+            {
+                Message = newMsg
+            });
             Chat.Model = Utils.Model!;
             _isLoading = true;
             Chat.Visual = Utils.Visual;
@@ -189,13 +239,14 @@
                     if (message?.Type == TokenType.Reason)
                     {
                         _isThinking = true;
+                        _incomingReasoning += message.Text;
                     }
-                    else
+                    else if(message?.Type == TokenType.Message)
                     {
                         _isThinking = false;
+                        _incomingMessage += message.Text;
                     }
 
-                    _incomingMessage += message?.Text;
                     StateHasChanged();
                     if (wasAtBottom)
                     {
@@ -206,6 +257,11 @@
             _isLoading = false;
             var currentChat = (await ctx.GetCurrentChat());
             Chat.Messages.Add(currentChat.Messages.Last());
+            Messages = Chat.Messages.Select(x => new MessageExt()
+            {
+                Message = x
+            }).ToList();
+            _incomingReasoning = null;
             _incomingMessage = null;
             await JS.InvokeVoidAsync("scrollManager.scrollToBottomSmooth", _bottomElement);
             StateHasChanged();
@@ -216,5 +272,4 @@
     {
         _prompt = obj.Value?.ToString()!;
     }
-
 }

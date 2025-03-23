@@ -14,7 +14,14 @@
         BackgroundColor="#ffd800;"
         Color="#000"
         Style="margin-left: 10px">@Utils.Model</FluentBadge>
-
+    @if (Utils.Reason)
+    {
+        <FluentBadge
+            Appearance="Appearance.Accent"
+            BackgroundColor="#ffd800;"
+            Color="#000"
+            Style="margin-left: 10px">Reasoning ✨</FluentBadge>
+    }
     <div  style="margin-left: auto; align-self: flex-end;">
     <FluentButton Style="padding: 10px"
                   Appearance="Appearance.Stealth"

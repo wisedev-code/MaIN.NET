@@ -2,6 +2,7 @@ using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Services.Dtos;
 using MaIN.Services.Services.Abstract;
+using MaIN.Services.Services.Models;
 
 namespace MaIN.Services.Services.ImageGenServices;
 
@@ -29,7 +30,7 @@ public class ImageGenService(
         var result = new ChatResult()
         {
             Done = true,
-            Message = new MessageDto()
+            Message = new Message()
             {
                 Content = "Generated Image:",
                 Role = "Assistant",

@@ -12,6 +12,7 @@ using MaIN.Domain.Entities;
 using MaIN.Domain.Models;
 using MaIN.Services.Dtos;
 using MaIN.Services.Services.Abstract;
+using MaIN.Services.Services.Models;
 using MaIN.Services.Utils;
 using Microsoft.KernelMemory;
 using Microsoft.KernelMemory.AI;
@@ -51,7 +52,7 @@ public class LLMService(MaINSettings options, INotificationService notificationS
             SamplingPipeline = new DefaultSamplingPipeline
             {
                 Temperature = chat.InterferenceParams.Temperature, 
-                
+                TopP = 0.95f,
             },
             AntiPrompts = [llmModel.Vocab.EOT?.ToString() ?? "User:"]
         };
@@ -78,11 +79,12 @@ public class LLMService(MaINSettings options, INotificationService notificationS
         // Generate a response.
         session.WithHistoryTransform(new PromptTemplateTransformer(llmModel, withAssistant: true));
         session.WithOutputTransform(new LLamaTransforms.KeywordTextOutputStreamTransform(
-            new[] { llmModel.Vocab.EOT.ToString() ?? "User:", "�" },
+            new[] { llmModel.Vocab.EOT.ToString() ?? "User:", "�"},
             redundancyLength: 5));
 
         var listOfTokens = new List<LLMTokenValue>();
         var lastMessage = chat.Messages.Last();
+        var finalPrompt = model.AdditionalPrompt is not null ? $"{lastMessage.Content}{model.AdditionalPrompt}" : lastMessage.Content;
 
         if (lastMessage.Files?.Any() ?? false)
         {
@@ -95,7 +97,7 @@ public class LLMService(MaINSettings options, INotificationService notificationS
             var result = await AskMemory(chat, textData!, fileData!);
             listOfTokens.Add(new LLMTokenValue()
             {
-                Type = TokenType.Answer,
+                Type = TokenType.FullAnswer,
                 Text = result!.Message.Content
             });
 #pragma warning restore SKEXP0001
@@ -103,14 +105,14 @@ public class LLMService(MaINSettings options, INotificationService notificationS
         else
         {
             await foreach (var text in session.ChatAsync(
-                               new ChatHistory.Message(AuthorRole.User, chat.Messages.Last().Content),
+                               new ChatHistory.Message(AuthorRole.User, finalPrompt),
                                inferenceParams))
             {
                 var token = model.ReasonFunction is not null
                     ? model.ReasonFunction(text, thinkingState)
                     : new LLMTokenValue()
                     {
-                        Type = TokenType.Answer,
+                        Type = TokenType.Message,
                         Text = text
                     };
                 
@@ -136,7 +138,7 @@ public class LLMService(MaINSettings options, INotificationService notificationS
                 chat.Id,
                 new LLMTokenValue()
                 {
-                    Type = TokenType.Answer,
+                    Type = TokenType.FullAnswer,
                     Text = stringToReturn
                 },
                 true), "ReceiveMessageUpdate");
@@ -147,9 +149,10 @@ public class LLMService(MaINSettings options, INotificationService notificationS
             Done = true,
             CreatedAt = DateTime.Now,
             Model = chat.Model,
-            Message = new MessageDto
+            Message = new Message
             {
                 Content = stringToReturn,
+                Tokens = listOfTokens,
                 Role = AuthorRole.Assistant.ToString()
             }
         };
@@ -185,7 +188,7 @@ public class LLMService(MaINSettings options, INotificationService notificationS
             Done = true,
             CreatedAt = DateTime.Now,
             Model = chat.Model,
-            Message = new MessageDto
+            Message = new Message
             {
                 Content = result.ToString(),
                 Role = AuthorRole.Assistant.ToString()
@@ -282,7 +285,7 @@ public class LLMService(MaINSettings options, INotificationService notificationS
             Done = true,
             CreatedAt = DateTime.Now,
             Model = chat.Model,
-            Message = new MessageDto()
+            Message = new Message
             {
                 Content = result.Result.Replace("Question:", string.Empty).Replace("Assistant:", string.Empty),
                 Role = AuthorRole.Assistant.ToString()

@@ -2,7 +2,8 @@ namespace MaIN.Domain.Models;
 
 public enum TokenType
 {
-    Answer,
+    FullAnswer,
+    Message,
     Reason,
     Special
 }

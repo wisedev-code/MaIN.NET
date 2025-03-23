@@ -2,6 +2,7 @@ using MaIN.Domain.Entities;
 using MaIN.Domain.Models;
 using MaIN.Services.Dtos;
 using MaIN.Services.Services.Abstract;
+using MaIN.Services.Services.Models;
 using FileInfo = MaIN.Domain.Entities.FileInfo;
 
 namespace MaIN.Core.Hub.Contexts;
