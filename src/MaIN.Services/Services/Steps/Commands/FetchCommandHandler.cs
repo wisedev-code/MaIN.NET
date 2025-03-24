@@ -70,7 +70,7 @@ public class FetchCommandHandler(
         // Process JSON response if needed
         if (response.Properties.ContainsValue("JSON"))
         {
-            await ProcessJsonResponse(response, command);
+            response = await ProcessJsonResponse(response, command);
         }
         
         return response;
@@ -109,7 +109,7 @@ public class FetchCommandHandler(
         return CreateMessage($"Web data from {webData!.Url}", properties);
     }
     
-    private async Task ProcessJsonResponse(Message response, FetchCommand command)
+    private async Task<Message> ProcessJsonResponse(Message response, FetchCommand command)
     {
         var chunker = new JsonChunker();
         var chunksAsList = chunker.ChunkJson(response.Content).ToList();
@@ -120,7 +120,7 @@ public class FetchCommandHandler(
         var result = await llmService.AskMemory(command.MemoryChat!, chunks);
         var newMessage = result!.Message;
         newMessage.Properties = new() { { "agent_internal", "true" } };
-        command.Chat!.Messages.Add(newMessage);
+        return newMessage;
     }
     
     private static Message CreateMessage(string content, Dictionary<string, string> properties)
