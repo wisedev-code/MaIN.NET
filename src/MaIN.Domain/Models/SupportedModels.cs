@@ -104,6 +104,14 @@ public static class KnownModels
         new Model()
         {
             Description = string.Empty,
+            Name = KnownModelNames.DeepSeek_R1_1_5b,
+            FileName = "DeepSeekR1-1.5b.gguf",
+            DownloadUrl = string.Empty,
+            ReasonFunction = ReasoningFunctions.ProcessDeepSeekToken
+        },
+        new Model()
+        {
+            Description = string.Empty,
             Name = KnownModelNames.Smollm2_0_1b,
             FileName = "smollm2-0.1b.gguf",
             DownloadUrl = string.Empty
@@ -111,11 +119,18 @@ public static class KnownModels
         new Model()
         {
             Description = string.Empty,
-            Name = KnownModelNames.EXAOne_Deep_2_4b,
-            FileName = "exaone-deep-2.4b.gguf",
+            Name = KnownModelNames.Olmo2_7b,
+            FileName = "olmo2-7b.gguf",
+            DownloadUrl = string.Empty
+        },
+        new Model()
+        {
+            Description = string.Empty,
+            Name = KnownModelNames.QwQ_7b,
+            FileName = "qwq-7b.gguf",
             DownloadUrl = string.Empty,
-            AdditionalPrompt = " Please reason step by step, and put your final answer within \\boxed{}.",
-            ReasonFunction = ReasoningFunctions.ProcessExaONEToken
+            AdditionalPrompt = "- Output nothing before <think>, enclose all step-by-step reasoning (excluding the final answer) within <think>...</think>, and place the final answer immediately after the closing </think>",
+            ReasonFunction = ReasoningFunctions.ProcessQwQ_QwenModToken
         }
     ];
 
@@ -131,7 +146,7 @@ public static class KnownModels
     public static Model GetModel(string path, string? name)
     {
         var model = Models.FirstOrDefault(x => x.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase)
-                                               || x.Name.Replace(':', '-').Equals(name,
+                                               || x.Name.Replace('-',':').Equals(name,
                                                    StringComparison.InvariantCultureIgnoreCase));
         if (model is null)
         {
@@ -201,14 +216,15 @@ public struct KnownModelNames
     public const string OlympicCoder_7b = "olympiccoder:7b";
     public const string Llama3_1_8b = "llama3.1:8b";
     public const string Llama3_2_3b = "llama3.2:3b";
-    public const string Phi_mini = "phi3:mini";
-    public const string Phi_4b = "phi4:4b";
     public const string Llava_7b = "llava:7b";
     public const string Qwen2_5_0_5b = "qwen2.5:0.5b";
     public const string Qwen2_5_coder_3b = "qwen2.5-coder:3b";
     public const string Qwen2_5_coder_7b = "qwen2.5-coder:7b";
     public const string Qwen2_5_coder_14b = "qwen2.5-coder:14b";
-    public const string DeepSeek_R1_8b = "deepseekR1-8b";
-    public const string Smollm2_0_1b = "smollm2-0.1b";
-    public const string EXAOne_Deep_2_4b = "exaone-deep-2.4b";
+    public const string DeepSeek_R1_8b = "deepseekR1:8b";
+    public const string DeepSeek_R1_1_5b = "deepseekR1:1.5b";
+    public const string QwQ_7b = "qwq:7b";
+    public const string Olmo2_7b = "olmo2:7b";
+    public const string Smollm2_0_1b = "smollm2:0.1b";
+
 }

@@ -45,14 +45,12 @@ public class LLMService(MaINSettings options, INotificationService notificationS
         var thinkingState = new ThinkingState();
         var modelKey = model.FileName;
 
-        // Get or load the model asynchronously.
         var llmModel = await GetOrLoadModelAsync(path!, modelKey);
         var inferenceParams = new InferenceParams
         {
             SamplingPipeline = new DefaultSamplingPipeline
             {
                 Temperature = chat.InterferenceParams.Temperature, 
-                TopP = 0.95f,
             },
             AntiPrompts = [llmModel.Vocab.EOT?.ToString() ?? "User:"]
         };
@@ -73,10 +71,9 @@ public class LLMService(MaINSettings options, INotificationService notificationS
             })
             : new ChatSession(new InteractiveExecutor(llmModel.CreateContext(parameters)));
 
-        // Add all messages to the session history.
+        var startSession = session.History.Messages.Count == 0;
         AddMessagesToHistory(session, chat.Messages);
 
-        // Generate a response.
         session.WithHistoryTransform(new PromptTemplateTransformer(llmModel, withAssistant: true));
         session.WithOutputTransform(new LLamaTransforms.KeywordTextOutputStreamTransform(
             new[] { llmModel.Vocab.EOT.ToString() ?? "User:", "�"},
@@ -84,7 +81,7 @@ public class LLMService(MaINSettings options, INotificationService notificationS
 
         var listOfTokens = new List<LLMTokenValue>();
         var lastMessage = chat.Messages.Last();
-        var finalPrompt = model.AdditionalPrompt is not null ? $"{lastMessage.Content}{model.AdditionalPrompt}" : lastMessage.Content;
+        var finalPrompt = startSession && model.AdditionalPrompt is not null ? $"{lastMessage.Content}{model.AdditionalPrompt}" : lastMessage.Content;
 
         if (lastMessage.Files?.Any() ?? false)
         {
@@ -159,45 +156,7 @@ public class LLMService(MaINSettings options, INotificationService notificationS
 
         return chatResult;
     }
-
-    private async Task<ChatResult> HandleImageInterpreter(Chat chat)
-    {
-        var path = options.ModelsPath ?? Environment.GetEnvironmentVariable(DefaultModelEnvPath); //TODO add handling for null path
-        var modelConfig = KnownModels.GetModel(path!, chat.Model);
-        var modelKey = modelConfig.FileName;
-
-        var parameters = new ModelParams(Path.Combine(path!, modelKey));
-
-        using var model = LLamaWeights.LoadFromFile(parameters);
-        using var context = model.CreateContext(parameters);
-
-        // Llava Init
-        var inferenceParams = new InferenceParams() { AntiPrompts = new[] { model.Vocab.EOT.ToString() ?? "User:" } };
-        var ex = new InteractiveExecutor(context);
-        ex.Context.NativeHandle.KvCacheRemove(LLamaSeqId.Zero, -1, -1);
-        ex.Images.Add(chat.Messages.Last().Images!);
-        var result = new StringBuilder();
-        await foreach (var text in ex.InferAsync(chat.Messages.Last().Content, inferenceParams))
-        {
-            Console.Write(text);
-            result.Append(text);
-        }
-
-        var chatResult = new ChatResult
-        {
-            Done = true,
-            CreatedAt = DateTime.Now,
-            Model = chat.Model,
-            Message = new Message
-            {
-                Content = result.ToString(),
-                Role = AuthorRole.Assistant.ToString()
-            }
-        };
-
-        return chatResult;
-    }
-
+    
     private ChatSession GetOrCreateSession(string chatId, Func<ChatSession> createSession)
     {
         if (!sessionCache.TryGetValue(chatId, out var session))

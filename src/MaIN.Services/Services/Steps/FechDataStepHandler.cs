@@ -39,7 +39,9 @@ public class FetchDataStepHandler(
         {
             context.Chat.Properties["FETCH_DATA*"] = string.Empty;
         }
-
+        
+        context.Chat.Messages.Add(response);
+        
         return new StepResult { 
             Chat = context.Chat, 
             RedirectMessage = context.Chat.Messages.Last() 

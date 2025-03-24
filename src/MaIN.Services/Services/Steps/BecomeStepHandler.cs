@@ -32,7 +32,7 @@ public class BecomeStepHandler : IStepHandler
         
         await context.NotifyProgress("true", context.Agent.Id, null, context.Agent.CurrentBehaviour);
 
-        context.Chat.Messages?.Add(new()
+        context.Chat.Messages.Add(new()
         {
             Role = "System",
             Content = $"Now - {messageFilter}",
