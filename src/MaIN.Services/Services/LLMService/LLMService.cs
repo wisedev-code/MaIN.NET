@@ -125,7 +125,7 @@ public class LLMService(MaINSettings options, INotificationService notificationS
                     await notificationService.DispatchNotification(
                         NotificationMessageBuilder.CreateChatCompletion(
                             chat.Id,
-                            text,
+                            token,
                             false),
                         "ReceiveMessageUpdate");
                 }
