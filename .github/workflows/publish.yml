@@ -36,7 +36,6 @@ jobs:
           echo "nuspec_version=${NUSPEC_VERSION}" >> $GITHUB_OUTPUT
 
       - name: Get latest release version
-        id: get-version
         uses: actions/github-script@v6
         with:
           script: |
