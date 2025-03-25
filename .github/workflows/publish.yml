@@ -105,7 +105,7 @@ jobs:
         run: |
           # Create a tag using today's date
           # TAG_NAME="v$(date +'%Y.%m.%d')"
-          TAG_NAME="$env.NUSPEC_VERSION"
+          TAG_NAME="${{env.NUSPEC_VERSION}}"
           # Get the NuGet package file name from the artifacts folder and remove its extension for the release title
           NUPKG_FILE=$(basename $(find ./artifacts -name "*.nupkg" | head -n1))
           RELEASE_NAME="${NUPKG_FILE%.*}"
