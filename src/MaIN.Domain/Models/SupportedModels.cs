@@ -61,6 +61,20 @@ public static class KnownModels
         new Model()
         {
             Description = string.Empty,
+            Name = KnownModelNames.Hermes3_3b,
+            FileName = "Hermes3-3b.gguf",
+            DownloadUrl = string.Empty
+        },
+        new Model()
+        {
+            Description = string.Empty,
+            Name = KnownModelNames.Hermes3_8b,
+            FileName = "Hermes3-8b.gguf",
+            DownloadUrl = string.Empty
+        },
+        new Model()
+        {
+            Description = string.Empty,
             Name = KnownModelNames.Llava_7b,
             FileName = "Llava.gguf",
             DownloadUrl = string.Empty,
@@ -112,6 +126,13 @@ public static class KnownModels
         new Model()
         {
             Description = string.Empty,
+            Name = KnownModelNames.Yi_6b,
+            FileName = "yi-6b.gguf",
+            DownloadUrl = string.Empty
+        },
+        new Model()
+        {
+            Description = string.Empty,
             Name = KnownModelNames.Smollm2_0_1b,
             FileName = "smollm2-0.1b.gguf",
             DownloadUrl = string.Empty
@@ -146,7 +167,7 @@ public static class KnownModels
     public static Model GetModel(string path, string? name)
     {
         var model = Models.FirstOrDefault(x => x.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase)
-                                               || x.Name.Replace('-',':').Equals(name,
+                                               || x.Name.Replace(':', '-').Equals(name,
                                                    StringComparison.InvariantCultureIgnoreCase));
         if (model is null)
         {
@@ -216,6 +237,8 @@ public struct KnownModelNames
     public const string OlympicCoder_7b = "olympiccoder:7b";
     public const string Llama3_1_8b = "llama3.1:8b";
     public const string Llama3_2_3b = "llama3.2:3b";
+    public const string Hermes3_3b = "Hermes3:3b";
+    public const string Hermes3_8b = "Hermes3:8b";
     public const string Llava_7b = "llava:7b";
     public const string Qwen2_5_0_5b = "qwen2.5:0.5b";
     public const string Qwen2_5_coder_3b = "qwen2.5-coder:3b";
@@ -226,5 +249,6 @@ public struct KnownModelNames
     public const string QwQ_7b = "qwq:7b";
     public const string Olmo2_7b = "olmo2:7b";
     public const string Smollm2_0_1b = "smollm2:0.1b";
+    public const string Yi_6b = "yi:6b";
 
 }
