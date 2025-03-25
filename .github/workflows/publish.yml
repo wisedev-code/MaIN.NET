@@ -47,7 +47,9 @@ jobs:
           result-encoding: string
 
       - name: Save the version
-        run: echo "LATEST_VERSION=${steps.get-version.outputs.result}" >> $GITHUB_ENV 
+        run: |
+          LATEST_VERSION="${{steps.get-version.outputs.result}}"
+          echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_ENV 
 
       - name: Compare versions
         id: compare-versions
