@@ -36,18 +36,18 @@ jobs:
           echo "nuspec_version=${NUSPEC_VERSION}" >> $GITHUB_OUTPUT
 
       - name: Get latest release version
-        id: get-version
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const response = await github.rest.repos.getLatestRelease({
-              owner: context.repo.owner,
-              repo: context.repo.repo
-            });
-            return response.data.tag_name;
-          result-encoding: string
+          id: get-version
+          uses: actions/github-script@v6
+          with:
+            script: |
+              const response = await github.rest.repos.getLatestRelease({
+                owner: context.repo.owner,
+                repo: context.repo.repo
+              });
+              return response.data.tag_name;
+            result-encoding: string
 
-        - name: Output the version
+      - name: Output the version
           run: echo "Latest release version is ${{ steps.get-version.outputs.result }}"
 
       # - name: Get latest release version
