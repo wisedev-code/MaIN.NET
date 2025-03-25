@@ -36,15 +36,17 @@ jobs:
           echo "nuspec_version=${NUSPEC_VERSION}" >> $GITHUB_OUTPUT
 
       - name: Get Version from latest release
-        run: |
-          const response = await github.rest.repos.getLatestRelease({
-          owner: context.repo.owner,
-          repo: context.repo.repo,
-          });
-          core.setOutput('release_name', response.data.name);
-          core.setOutput('release_tag', response.data.tag_name);
-          echo "release_name: ${{response.data.name}}"
-          echo "release_tag: ${{response.data.tag_name}}"
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const response = await github.rest.repos.getLatestRelease({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            });
+            core.setOutput('release_name', response.data.name);
+            core.setOutput('release_tag', response.data.tag_name);
+            echo "release_name: ${{response.data.name}}"
+            echo "release_tag: ${{response.data.tag_name}}"
 
       # - name: Get latest release version
       #   uses: octokit/request-action@v2.x
