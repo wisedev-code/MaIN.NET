@@ -20,28 +20,28 @@ public static class KnownModels
         {
             Description = string.Empty,
             Name = KnownModelNames.Gemma2_2b,
-            FileName = "gemma2-2b.gguf",
+            FileName = "Gemma2-2b.gguf",
             DownloadUrl = string.Empty,
         },
         new Model()
         {
             Description = string.Empty,
             Name = KnownModelNames.Gemma3_4b,
-            FileName = "gemma3-4b.gguf",
+            FileName = "Gemma3-4b.gguf",
             DownloadUrl = string.Empty,
         },
         new Model()
         {
             Description = string.Empty,
             Name = KnownModelNames.Gemma3_12b,
-            FileName = "gemma3-12b.gguf",
+            FileName = "Gemma3-12b.gguf",
             DownloadUrl = string.Empty,
         },
         new Model()
         {
             Description = string.Empty,
             Name = KnownModelNames.OlympicCoder_7b,
-            FileName = "olympiccoder-7b.gguf",
+            FileName = "Olympiccoder-7b.gguf",
             DownloadUrl = string.Empty,
         },
         new Model()
@@ -127,28 +127,28 @@ public static class KnownModels
         {
             Description = string.Empty,
             Name = KnownModelNames.Yi_6b,
-            FileName = "yi-6b.gguf",
+            FileName = "Yi-6b.gguf",
             DownloadUrl = string.Empty
         },
         new Model()
         {
             Description = string.Empty,
             Name = KnownModelNames.Smollm2_0_1b,
-            FileName = "smollm2-0.1b.gguf",
+            FileName = "Smollm2-0.1b.gguf",
             DownloadUrl = string.Empty
         },
         new Model()
         {
             Description = string.Empty,
             Name = KnownModelNames.Olmo2_7b,
-            FileName = "olmo2-7b.gguf",
+            FileName = "Olmo2-7b.gguf",
             DownloadUrl = string.Empty
         },
         new Model()
         {
             Description = string.Empty,
             Name = KnownModelNames.QwQ_7b,
-            FileName = "qwq-7b.gguf",
+            FileName = "QwQ-7b.gguf",
             DownloadUrl = string.Empty,
             AdditionalPrompt = "- Output nothing before <think>, enclose all step-by-step reasoning (excluding the final answer) within <think>...</think>, and place the final answer immediately after the closing </think>",
             ReasonFunction = ReasoningFunctions.ProcessQwQ_QwenModToken
@@ -237,8 +237,8 @@ public struct KnownModelNames
     public const string OlympicCoder_7b = "olympiccoder:7b";
     public const string Llama3_1_8b = "llama3.1:8b";
     public const string Llama3_2_3b = "llama3.2:3b";
-    public const string Hermes3_3b = "Hermes3:3b";
-    public const string Hermes3_8b = "Hermes3:8b";
+    public const string Hermes3_3b = "hermes3:3b";
+    public const string Hermes3_8b = "hermes3:8b";
     public const string Llava_7b = "llava:7b";
     public const string Qwen2_5_0_5b = "qwen2.5:0.5b";
     public const string Qwen2_5_coder_3b = "qwen2.5-coder:3b";

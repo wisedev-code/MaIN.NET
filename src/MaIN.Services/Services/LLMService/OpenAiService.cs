@@ -39,13 +39,11 @@ public class OpenAiService(
             throw new Exception("OpenAI API key is not configured.");
         }
 
-        if (chat == null || chat.Messages.Count == 0)
+        if (chat.Messages.Count == 0)
             return null;
 
-        if (chat.Model == KnownModelNames.Llava_7b)
-            throw new NotSupportedException("Image processing is not supported with ChatGPT models.");
-
-        // Build the conversation history.
+        List<LLMTokenValue> tokens = new();
+        
         List<ChatMessage> conversation;
         if (createSession)
         {
@@ -75,7 +73,6 @@ public class OpenAiService(
         {
             if (interactiveUpdates || changeOfValue != null)
             {
-                // Streaming mode.
                 var requestBody = new
                 {
                     model = chat.Model,
@@ -117,6 +114,7 @@ public class OpenAiService(
                             if (!string.IsNullOrEmpty(content))
                             {
                                 var token = new LLMTokenValue() { Text = content, Type = TokenType.Message };
+                                tokens.Add(token);
                                 changeOfValue?.Invoke(token);
                                 resultBuilder.Append(content);
                                 await notificationService.DispatchNotification(
@@ -157,6 +155,7 @@ public class OpenAiService(
         }
         
         var finalToken = new LLMTokenValue() { Text = resultBuilder.ToString(), Type = TokenType.FullAnswer};
+        tokens.Add(finalToken);
         if (interactiveUpdates)
         {
             await notificationService.DispatchNotification(
@@ -180,6 +179,7 @@ public class OpenAiService(
             Message = new Message
             {
                 Content = resultBuilder.ToString(),
+                Tokens = tokens,
                 Role = AuthorRole.Assistant.ToString()
             }
         };

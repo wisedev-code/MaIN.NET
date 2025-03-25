@@ -201,9 +201,13 @@
             : Utils.Path != null
                 ? AIHub.Chat().WithCustomModel(model: Utils.Model!, path: Utils.Path)
                 : AIHub.Chat().WithModel(Utils.Model!); //If that grows with different chat types we can consider switch ex
-        
-        _reasoning = !Utils.Visual && KnownModels.GetModel(Utils.Model!).HasReasoning();
-        Utils.Reason = _reasoning;
+
+        if (!Utils.OpenAi)
+        {
+            _reasoning = !Utils.Visual && KnownModels.GetModel(Utils.Model!).HasReasoning();
+            Utils.Reason = _reasoning;
+        }
+
         return base.OnInitializedAsync();
     }
 
