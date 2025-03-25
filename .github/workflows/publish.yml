@@ -44,12 +44,13 @@ jobs:
               repo: context.repo.repo
             });
             return response.data.tag_name;
+            core.exportVariable('LATEST_VERSION', response.data.tag_name);
           result-encoding: string
 
-      - name: Save the version
-        run: |
-          LATEST_VERSION="${{steps.get-version.outputs.result}}"
-          echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_ENV 
+      # - name: Save the version
+      #   run: |
+      #     LATEST_VERSION="${{steps.get-version.outputs.result}}"
+      #     echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_ENV 
 
       - name: Compare versions
         id: compare-versions
