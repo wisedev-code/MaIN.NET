@@ -27,23 +27,64 @@ jobs:
         run: dotnet build --configuration Release --no-restore
 
       - name: Run tests
-        run: dotnet test --configuration Release --no-build --verbosity normal
+        run: dotnet test --configuration Release --no-build --verbosity normal --filter FullyQualifiedName\!~IntegrationTests
+
+      - name: Get version from .nupsec file
+        run: |
+          NUSPEC_VERSION=$(grep -oP '(?<=<version>).*?(?=</version>)' src/MaIN.Core/.nuspec | head -1)
+          echo "NUSPEC_VERSION=${NUSPEC_VERSION}" >> $GITHUB_ENV
+
+      - name: Get latest release version
+        id: get-version
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const response = await github.rest.repos.getLatestRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+            return response.data.tag_name;
+          result-encoding: string
+
+      - name: Save the version
+        run: |
+          LATEST_VERSION="${{steps.get-version.outputs.result}}"
+          echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_ENV 
+
+      - name: Compare versions
+        id: compare-versions
+        run: |
+          echo "Nuspec version: ${{ env.NUSPEC_VERSION }}"
+          echo "Latest release version: ${{ env.LATEST_VERSION }}"
+          
+          if [ "${{ env.NUSPEC_VERSION }}" != "${{ env.LATEST_VERSION }}" ]; then
+            echo "Versions are different - creating a new release"
+            echo "CREATE_RELEASE=true" >> $GITHUB_ENV
+            echo "create_release=true" >> $GITHUB_OUTPUT
+          else
+            echo "Versions are the same - skipping release"
+            echo "CREATE_RELEASE=false" >> $GITHUB_ENV
+            echo "create_release=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Pack NuGet package
+        if: env.CREATE_RELEASE == 'true'
         run: dotnet pack --configuration Release --output ./artifacts
 
       - name: Push package to NuGet
+        if: env.CREATE_RELEASE == 'true'
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: dotnet nuget push "./artifacts/*.nupkg" --source "https://api.nuget.org/v3/index.json" --api-key "$NUGET_API_KEY" --skip-duplicate
 
       - name: Create GitHub Release
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && env.CREATE_RELEASE == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Create a tag using today's date
-          TAG_NAME="v$(date +'%Y.%m.%d')"
+          # TAG_NAME="v$(date +'%Y.%m.%d')"
+          TAG_NAME="${{env.NUSPEC_VERSION}}"
           # Get the NuGet package file name from the artifacts folder and remove its extension for the release title
           NUPKG_FILE=$(basename $(find ./artifacts -name "*.nupkg" | head -n1))
           RELEASE_NAME="${NUPKG_FILE%.*}"

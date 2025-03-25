@@ -14,6 +14,7 @@ public interface ILLMService
     Task<ChatResult?> AskMemory(Chat chat,
         Dictionary<string, string>? textData = null,
         Dictionary<string, string>? fileData = null,
+        Dictionary<string, FileStream>? streamData = null,
         List<string>? webUrls = null,
         List<string>? memory = null);
     Task<List<string?>> GetCurrentModels();

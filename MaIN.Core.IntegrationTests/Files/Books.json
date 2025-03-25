@@ -1,0 +1,84 @@
+{
+  "books": [
+    {
+      "title": "The Hobbit",
+      "author": "J.R.R. Tolkien",
+      "year": 1937,
+      "pages": 310,
+      "series": "Middle-earth",
+      "genre": "Fantasy"
+    },
+    {
+      "title": "A Game of Thrones",
+      "author": "George R.R. Martin",
+      "year": 1996,
+      "pages": 694,
+      "series": "A Song of Ice and Fire",
+      "genre": "Fantasy"
+    },
+    {
+      "title": "The Name of the Wind",
+      "author": "Patrick Rothfuss",
+      "year": 2007,
+      "pages": 662,
+      "series": "The Kingkiller Chronicle",
+      "genre": "Fantasy"
+    },
+    {
+      "title": "The Way of Kings",
+      "author": "Brandon Sanderson",
+      "year": 2010,
+      "pages": 1007,
+      "series": "The Stormlight Archive",
+      "genre": "Fantasy"
+    },
+    {
+      "title": "Harry Potter and the Sorcerer's Stone",
+      "author": "J.K. Rowling",
+      "year": 1997,
+      "pages": 309,
+      "series": "Harry Potter",
+      "genre": "Fantasy"
+    },
+    {
+      "title": "Mistborn: The Final Empire",
+      "author": "Brandon Sanderson",
+      "year": 2006,
+      "pages": 541,
+      "series": "Mistborn",
+      "genre": "Fantasy"
+    },
+    {
+      "title": "The Lies of Locke Lamora",
+      "author": "Scott Lynch",
+      "year": 2006,
+      "pages": 722,
+      "series": "Gentleman Bastard",
+      "genre": "Fantasy"
+    },
+    {
+      "title": "Eragon",
+      "author": "Christopher Paolini",
+      "year": 2002,
+      "pages": 503,
+      "series": "The Inheritance Cycle",
+      "genre": "Fantasy"
+    },
+    {
+      "title": "The Black Prism",
+      "author": "Brent Weeks",
+      "year": 2010,
+      "pages": 629,
+      "series": "Lightbringer",
+      "genre": "Fantasy"
+    },
+    {
+      "title": "The Blade Itself",
+      "author": "Joe Abercrombie",
+      "year": 2006,
+      "pages": 517,
+      "series": "The First Law",
+      "genre": "Fantasy"
+    }
+  ]
+}

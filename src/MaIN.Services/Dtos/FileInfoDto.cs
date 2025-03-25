@@ -12,4 +12,6 @@ public class FileInfoDto
 
     [JsonPropertyName("content")]
     public string? Content { get; init; }
+
+    public FileStream? StreamContent { get; set; }
 }
