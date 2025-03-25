@@ -32,6 +32,7 @@ public static class ChatMapper
             Files = message.Files?.Select(x => new FileInfoDto()
             {
                 Content = x.Content ?? string.Empty,
+                StreamContent = x.StreamContent,
                 Name = x.Name,
                 Extension = x.Extension
             }) as FileInfoDto[]
