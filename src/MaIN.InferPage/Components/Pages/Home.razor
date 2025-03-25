@@ -196,13 +196,14 @@
 
     protected override Task OnInitializedAsync()
     {
-        _reasoning = KnownModels.GetModel(Utils.Model!).HasReasoning();
-        Utils.Reason = _reasoning;
         ctx = Utils.Visual
             ? AIHub.Chat().EnableVisual()
             : Utils.Path != null
                 ? AIHub.Chat().WithCustomModel(model: Utils.Model!, path: Utils.Path)
                 : AIHub.Chat().WithModel(Utils.Model!); //If that grows with different chat types we can consider switch ex
+        
+        _reasoning = !Utils.Visual && KnownModels.GetModel(Utils.Model!).HasReasoning();
+        Utils.Reason = _reasoning;
         return base.OnInitializedAsync();
     }
 
