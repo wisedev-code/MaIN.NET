@@ -33,7 +33,6 @@ jobs:
         run: |
           NUSPEC_VERSION=$(grep -oP '(?<=<version>).*?(?=</version>)' src/MaIN.Core/.nuspec | head -1)
           echo "NUSPEC_VERSION=${NUSPEC_VERSION}" >> $GITHUB_ENV
-          echo "nuspec_version=${NUSPEC_VERSION}" >> $GITHUB_OUTPUT
 
       - name: Get latest release version
         id: get-version
@@ -47,31 +46,8 @@ jobs:
             return response.data.tag_name;
           result-encoding: string
 
-      - name: Output the version
-        run: echo "Latest release version is ${{ steps.get-version.outputs.result }}"
-
-      # - name: Get latest release version
-      #   uses: octokit/request-action@v2.x
-      #   with:
-      #     route: GET /repos/{owner}/{repo}/releases/latest
-      #     owner: ${{ github.repository_owner }}
-      #     repo: ${{ github.event.repository.name }}
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   continue-on-error: true
-
-      # - name: Extract latest version
-      #   id: extract-latest
-      #   run: |
-      #     if [ "${{ steps.latest-release.outcome }}" == "success" ]; then
-      #       LATEST_VERSION=$(echo '${{ steps.latest-release.outputs.data }}' | jq -r '.tag_name' | sed 's/^v//')
-      #       echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_ENV
-      #       echo "latest_version=${LATEST_VERSION}" >> $GITHUB_OUTPUT
-      #     else
-      #       echo "No previous release found"
-      #       echo "LATEST_VERSION=0.0.0" >> $GITHUB_ENV
-      #       echo "latest_version=0.0.0" >> $GITHUB_OUTPUT
-      #     fi
+      - name: Save the version
+        run: echo "LATEST_VERSION=${steps.get-version.outputs.result}" >> $GITHUB_ENV 
 
       - name: Compare versions
         id: compare-versions
