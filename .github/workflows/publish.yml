@@ -43,7 +43,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo
             });
-            return response.data.tag_name;
+            return response.data.name;
           result-encoding: string
 
       - name: Output the version
