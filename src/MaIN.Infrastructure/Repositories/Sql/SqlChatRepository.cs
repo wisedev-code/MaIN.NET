@@ -113,7 +113,7 @@ public class SqlChatRepository(IDbConnection connection) : IChatRepository
             WHERE Id = @Id",
             new { Id = id });
 
-    // Optional: Add methods for JSON-specific queries
+    // TODO nice idea but does it even work? nothing using it can be removed as well probably
     public async Task<IEnumerable<ChatDocument>> GetChatsByProperty(string key, string value)
     {
         var rows = await connection.QueryAsync(@"
