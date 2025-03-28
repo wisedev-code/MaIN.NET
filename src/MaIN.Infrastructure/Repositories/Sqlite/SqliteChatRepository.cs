@@ -60,7 +60,7 @@ public class SqliteChatRepository(IDbConnection connection) : IChatRepository
         return rows.Select(MapChatDocument);
     }
 
-    public async Task<ChatDocument?> GetChatById(string? id)
+    public async Task<ChatDocument?> GetChatById(string id)
     {
         var row = await connection.QueryFirstOrDefaultAsync(
             "SELECT * FROM Chats WHERE Id = @Id",
@@ -76,7 +76,7 @@ public class SqliteChatRepository(IDbConnection connection) : IChatRepository
                  @Visual, @InferenceParams, @Interactive)", parameters);
     }
 
-    public async Task UpdateChat(string? id, ChatDocument chat)
+    public async Task UpdateChat(string id, ChatDocument chat)
     {
         var parameters = MapChatToParameters(chat);
         await connection.ExecuteAsync(@"
@@ -90,7 +90,7 @@ public class SqliteChatRepository(IDbConnection connection) : IChatRepository
             WHERE Id = @Id", parameters);
     }
 
-    public async Task DeleteChat(string? id) =>
+    public async Task DeleteChat(string id) =>
         await connection.ExecuteAsync(
             "DELETE FROM Chats WHERE Id = @Id",
             new { Id = id });

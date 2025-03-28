@@ -1,7 +1,8 @@
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
-using MaIN.Services.Models;
+using MaIN.Services.Dtos;
 using MaIN.Services.Services.Abstract;
+using MaIN.Services.Services.Models;
 
 namespace MaIN.Services.Services.ImageGenServices;
 
@@ -16,7 +17,7 @@ public class ImageGenService(
         var constructedMessage = (chat.Messages
             .Select((msg, index) => index == 0 ? msg.Content
                 : $"&& {msg.Content}")
-            .Aggregate((current, next) => $"{current} {next}"))!;
+            .Aggregate((current, next) => $"{current} {next}"));
         var response = await client.PostAsync($"{options.ImageGenUrl}/generate/{constructedMessage}", null);
         
         if (!response.IsSuccessStatusCode)
@@ -29,7 +30,7 @@ public class ImageGenService(
         var result = new ChatResult()
         {
             Done = true,
-            Message = new MessageDto()
+            Message = new Message()
             {
                 Content = "Generated Image:",
                 Role = "Assistant",

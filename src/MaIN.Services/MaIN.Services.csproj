@@ -15,9 +15,9 @@
     <ItemGroup>
       <PackageReference Include="GTranslate" Version="2.2.0" />
       <PackageReference Include="HtmlAgilityPack" Version="1.11.72" />
-      <PackageReference Include="LLamaSharp" Version="0.21.0" />
-      <PackageReference Include="LLamaSharp.Backend.Cuda12" Version="0.21.0" />
-      <PackageReference Include="LLamaSharp.kernel-memory" Version="0.21.0" />
+      <PackageReference Include="LLamaSharp" Version="0.23.0" />
+      <PackageReference Include="LLamaSharp.Backend.Cuda12" Version="0.23.0" />
+      <PackageReference Include="LLamaSharp.kernel-memory" Version="0.23.0" />
       <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.1" />
       <PackageReference Include="Microsoft.KernelMemory" Version="0.96.250120.1" />
       <PackageReference Include="Microsoft.SemanticKernel" Version="1.30.0" />

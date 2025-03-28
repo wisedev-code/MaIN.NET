@@ -8,11 +8,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 builder.Services.AddFluentUIComponents();
-// --- Additional Parameter Processing Logic ---
 
 try
 {
-    // Retrieve parameters from configuration (e.g. command-line arguments)
     var modelArg = builder.Configuration["model"];
     var modelPathArg = builder.Configuration["path"];
     var backendArg = builder.Configuration["backend"];
@@ -20,10 +18,8 @@ try
 
     if (!string.IsNullOrEmpty(modelArg))
     {
-        // Set the model value
         Utils.Model = modelArg;
 
-        // A model path is required if a model is provided
         if (string.IsNullOrEmpty(modelPathArg))
         {
             Console.WriteLine("Error: A model path must be provided using --path when a model is specified.");
@@ -31,7 +27,6 @@ try
         }
         Utils.Path = modelPathArg;
 
-        // Check if the environment variable for models path is set; if not, prompt the user to input it
         var envModelsPath = Environment.GetEnvironmentVariable("MaIN_ModelsPath");
         if (string.IsNullOrEmpty(envModelsPath))
         {
@@ -48,7 +43,6 @@ try
     if (openAiFlag)
     {
         Utils.OpenAi = true;
-        // Check if the OpenAI key is set in the environment variables
         var openAiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
         if (string.IsNullOrEmpty(openAiKey))
         {

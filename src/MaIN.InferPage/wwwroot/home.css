@@ -41,6 +41,13 @@
     padding: 10px;
 }
 
+.thinker
+{
+    font-style: italic;
+    color: var(--accent-base-color);
+    font-size: smaller !important;
+}
+
 .message-card-img {
     margin-bottom: 15px;
     width: 80%;

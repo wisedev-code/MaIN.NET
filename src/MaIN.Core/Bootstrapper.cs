@@ -5,7 +5,6 @@ using MaIN.Domain.Configuration;
 using MaIN.Services;
 using MaIN.Services.Services;
 using MaIN.Services.Services.Abstract;
-using MaIN.Services.Steps;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -26,7 +25,6 @@ public static class Bootstrapper
     public static IServiceProvider UseMaIN(this IServiceProvider sp)
     {
         _ = sp.GetRequiredService<IAIHubServices>();
-        sp.InitializeAgents();
         return sp;
     }
     

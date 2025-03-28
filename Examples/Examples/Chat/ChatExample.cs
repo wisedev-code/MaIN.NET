@@ -7,11 +7,11 @@ public class ChatExample : IExample
     public async Task Start()
     {
         Console.WriteLine("ChatExample is running!");
-        
+
         var context = AIHub.Chat().WithModel("gemma2:2b");
         
         await context
-            .WithMessage("Where the hedgehog goes at night?")
+            .WithMessage("Where do hedgehogs goes at night?")
             .CompleteAsync(interactive: true);
     }
 }

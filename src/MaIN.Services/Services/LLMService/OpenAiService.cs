@@ -2,8 +2,9 @@ using LLama.Common;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Models;
-using MaIN.Services.Models;
+using MaIN.Services.Dtos;
 using MaIN.Services.Services.Abstract;
+using MaIN.Services.Services.Models;
 using MaIN.Services.Utils;
 using Microsoft.KernelMemory;
 
@@ -26,26 +27,23 @@ public class OpenAiService(
     : ILLMService
 {
     private readonly HttpClient _httpClient = new();
-    private static readonly ConcurrentDictionary<string?, List<ChatMessage>> SessionCache = new();
+    private static readonly ConcurrentDictionary<string, List<ChatMessage>> SessionCache = new();
     
-    public async Task<ChatResult?> Send(
-        Chat chat,
+    public async Task<ChatResult?> Send(Chat chat,
         bool interactiveUpdates = false,
         bool createSession = false,
-        Func<string?, Task>? changeOfValue = null)
+        Func<LLMTokenValue, Task>? changeOfValue = null)
     {
         if (string.IsNullOrEmpty(options.OpenAiKey) && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OPENAI_API_KEY")))
         {
             throw new Exception("OpenAI API key is not configured.");
         }
 
-        if (chat == null || chat.Messages.Count == 0)
+        if (chat.Messages.Count == 0)
             return null;
 
-        if (chat.Model == KnownModelNames.Llava_7b)
-            throw new NotSupportedException("Image processing is not supported with ChatGPT models.");
-
-        // Build the conversation history.
+        List<LLMTokenValue> tokens = new();
+        
         List<ChatMessage> conversation;
         if (createSession)
         {
@@ -82,7 +80,6 @@ public class OpenAiService(
         {
             if (interactiveUpdates || changeOfValue != null)
             {
-                // Streaming mode.
                 var requestBody = new
                 {
                     model = chat.Model,
@@ -123,10 +120,12 @@ public class OpenAiService(
                             var content = chunk?.Choices?.FirstOrDefault()?.Delta?.Content;
                             if (!string.IsNullOrEmpty(content))
                             {
-                                changeOfValue?.Invoke(content);
+                                var token = new LLMTokenValue() { Text = content, Type = TokenType.Message };
+                                tokens.Add(token);
+                                changeOfValue?.Invoke(token);
                                 resultBuilder.Append(content);
                                 await notificationService.DispatchNotification(
-                                    NotificationMessageBuilder.CreateChatCompletion(chat.Id, content, false),
+                                    NotificationMessageBuilder.CreateChatCompletion(chat.Id, token, false),
                                     "ReceiveMessageUpdate");
                             }
                         }
@@ -162,10 +161,12 @@ public class OpenAiService(
             }
         }
         
+        var finalToken = new LLMTokenValue() { Text = resultBuilder.ToString(), Type = TokenType.FullAnswer};
+        tokens.Add(finalToken);
         if (interactiveUpdates)
         {
             await notificationService.DispatchNotification(
-                NotificationMessageBuilder.CreateChatCompletion(chat.Id, resultBuilder.ToString(), true),
+                NotificationMessageBuilder.CreateChatCompletion(chat.Id, finalToken, true),
                 "ReceiveMessageUpdate");
         }
 
@@ -182,9 +183,10 @@ public class OpenAiService(
             Done = true,
             CreatedAt = DateTime.Now,
             Model = chat.Model,
-            Message = new MessageDto
+            Message = new Message
             {
                 Content = resultBuilder.ToString(),
+                Tokens = tokens,
                 Role = AuthorRole.Assistant.ToString()
             }
         };
@@ -197,7 +199,7 @@ public class OpenAiService(
         List<string>? webUrls = null,
         List<string>? memory = null)
     {
-        if (chat == null || chat.Messages == null || !chat.Messages.Any())
+        if (!chat.Messages.Any())
             return null;
 
         var kernelMemory = new KernelMemoryBuilder()
@@ -261,7 +263,7 @@ public class OpenAiService(
             Done = true,
             CreatedAt = DateTime.Now,
             Model = chat.Model,
-            Message = new MessageDto
+            Message = new Message
             {
                 Content = retrievedContext.Result,
                 Role = AuthorRole.Assistant.ToString()
@@ -280,14 +282,14 @@ public class OpenAiService(
         var modelsResponse = JsonSerializer.Deserialize<OpenAiModelsResponse>(responseJson);
 
         List<string?> models = modelsResponse?.Data?
-            .Where(m => m.Id.StartsWith("gpt-", StringComparison.InvariantCultureIgnoreCase))
+            .Where(m => m.Id!.StartsWith("gpt-", StringComparison.InvariantCultureIgnoreCase))
             .Select(m => m.Id)
             .ToList() ?? new List<string?>();
 
         return models;
     }
 
-    public Task CleanSessionCache(string? id)
+    public Task CleanSessionCache(string id)
     {
         SessionCache.TryRemove(id, out _);
         return Task.CompletedTask;

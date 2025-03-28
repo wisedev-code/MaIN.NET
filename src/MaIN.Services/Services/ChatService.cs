@@ -1,10 +1,10 @@
 using MaIN.Domain.Entities;
-using MaIN.Infrastructure.Models;
+using MaIN.Domain.Models;
 using MaIN.Infrastructure.Repositories.Abstract;
 using MaIN.Services.Mappers;
-using MaIN.Services.Models;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.ImageGenServices;
+using MaIN.Services.Services.Models;
 
 namespace MaIN.Services.Services;
 
@@ -24,7 +24,7 @@ public class ChatService(
         Chat chat,
         bool translate = false,
         bool interactiveUpdates = false,
-        Func<string?, Task>? changeOfValue = null)
+        Func<LLMTokenValue?, Task>? changeOfValue = null)
     {
         if (chat.Model == ImageGenService.Models.FLUX)
         {
@@ -33,7 +33,7 @@ public class ChatService(
         
         translate = translate || chat.Translate;
         interactiveUpdates = interactiveUpdates || chat.Interactive;
-        var newMsg = chat.Messages!.Last();
+        var newMsg = chat.Messages.Last();
         newMsg.Time = DateTime.Now;
         var lng = await translatorService.DetectLanguage(newMsg.Content);
 
@@ -56,31 +56,26 @@ public class ChatService(
         if (translate)
         {
             result!.Message.Content = (await translatorService.Translate(result.Message.Content, lng));
-            result!.Message.Time = DateTime.Now;
+            result.Message.Time = DateTime.Now;
         }
         
-        originalMessages.Add(new Message()
-        {
-            Content = result!.Message.Content,
-            Role = result.Message.Role,
-            Images = result.Message.Images,
-            Time = result.Message.Time
-        });
+        originalMessages.Add(result!.Message);
         chat.Messages = originalMessages;
 
-        await chatProvider.UpdateChat(chat.Id, chat.ToDocument());
+        await chatProvider.UpdateChat(chat.Id!, chat.ToDocument());
         return result;
     }
 
-    public async Task Delete(string? id)
+    public async Task Delete(string id)
     {
         await llmService.CleanSessionCache(id);
         await chatProvider.DeleteChat(id);
     }
     
-    public async Task<Chat> GetById(string? id)
+    public async Task<Chat> GetById(string id)
     {
         var chatDocument = await chatProvider.GetChatById(id);
+        if(chatDocument == null) throw new Exception("Chat not found"); //TODO good candidate for custom exception
         return chatDocument.ToDomain();
     }
 

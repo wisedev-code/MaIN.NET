@@ -11,15 +11,15 @@ public class MongoChatRepository(IMongoDatabase database, string collectionName)
     public async Task<IEnumerable<ChatDocument>> GetAllChats() =>
         await _chats.Find(chat => true).ToListAsync();
 
-    public async Task<ChatDocument?> GetChatById(string? id) =>
+    public async Task<ChatDocument?> GetChatById(string id) =>
         await _chats.Find<ChatDocument>(chat => chat.Id == id).FirstOrDefaultAsync();
 
     public async Task AddChat(ChatDocument chat) =>
         await _chats.InsertOneAsync(chat);
 
-    public async Task UpdateChat(string? id, ChatDocument chat) =>
+    public async Task UpdateChat(string id, ChatDocument chat) =>
         await _chats.ReplaceOneAsync(x => x.Id == id, chat);
     
-    public async Task DeleteChat(string? id) =>
+    public async Task DeleteChat(string id) =>
         await _chats.DeleteOneAsync(x => x.Id == id);
 }

@@ -1,7 +1,8 @@
 using MaIN.Core.Hub.Contexts;
 using MaIN.Domain.Entities;
-using MaIN.Services.Models;
+using MaIN.Services.Dtos;
 using MaIN.Services.Services.Abstract;
+using MaIN.Services.Services.Models;
 using Moq;
 using FileInfo = MaIN.Domain.Entities.FileInfo;
 
@@ -75,7 +76,12 @@ public class ChatContextTests
     public async Task CompleteAsync_ShouldCallChatService()
     {
         // Arrange
-        var chatResult = new ChatResult(){ Model = "test-model", Message = new MessageDto() };
+        var chatResult = new ChatResult(){ Model = "test-model", Message = new Message
+            {
+                Role = "Assistant",
+                Content = "test-message"
+            }
+        };
         _mockChatService.Setup(s => s.Completions(It.IsAny<Chat>(), It.IsAny<bool>(), It.IsAny<bool>(), null))
             .ReturnsAsync(chatResult);
         
@@ -91,7 +97,7 @@ public class ChatContextTests
     public async Task GetCurrentChat_ShouldCallChatService()
     {
         // Arrange
-        var chat = new Chat { Id = _chatContext.GetChatId() };
+        var chat = new Chat { Id = _chatContext.GetChatId(), Model = "default", Name = "test"};
         _mockChatService.Setup(s => s.GetById(chat.Id)).ReturnsAsync(chat);
         
         // Act
