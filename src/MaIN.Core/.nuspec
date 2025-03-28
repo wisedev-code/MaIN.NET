@@ -2,7 +2,7 @@
 <package>
   <metadata>
     <id>MaIN.NET</id>
-    <version>0.0.12-pre</version>
+    <version>0.0.13-pre</version>
     <authors>Wisedev</authors>
     <owners>Wisedev</owners>
     <icon>favicon.png</icon>
@@ -11,7 +11,6 @@
     <projectUrl>https://github.com/wisedev-code/M.A.I.N</projectUrl>
     <repository url="https://github.com/wisedev-code/M.A.I.N" type="git" />
     <dependencies>
-      <dependency id="Microsoft.Extensions.DependencyInjection.Abstractions" version="9.0.1" />
       <dependency id="GTranslate" version="2.2.0" />
       <dependency id="HtmlAgilityPack" version="1.11.72" />
       <dependency id="LLamaSharp" version="0.23.0" />
