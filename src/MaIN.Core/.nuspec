@@ -14,9 +14,9 @@
       <dependency id="Microsoft.Extensions.DependencyInjection.Abstractions" version="9.0.1" />
       <dependency id="GTranslate" version="2.2.0" />
       <dependency id="HtmlAgilityPack" version="1.11.72" />
-      <dependency id="LLamaSharp" version="0.21.0" />
-      <dependency id="LLamaSharp.Backend.Cuda12" version="0.21.0" />
-      <dependency id="LLamaSharp.kernel-memory" version="0.21.0" />
+      <dependency id="LLamaSharp" version="0.23.0" />
+      <dependency id="LLamaSharp.Backend.Cuda12" version="0.23.0" />
+      <dependency id="LLamaSharp.kernel-memory" version="0.23.0" />
       <dependency id="Microsoft.Extensions.Http" version="9.0.1" />
       <dependency id="Microsoft.KernelMemory" version="0.96.250120.1" />
       <dependency id="Microsoft.SemanticKernel" version="1.30.0" />
