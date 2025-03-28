@@ -1,10 +1,13 @@
 using MaIN.Domain.Configuration;
+using MaIN.Domain.Entities;
 using MaIN.Infrastructure;
 using MaIN.Services.Services;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.ImageGenServices;
 using MaIN.Services.Services.LLMService;
+using MaIN.Services.Services.Models.Commands;
 using MaIN.Services.Services.Steps;
+using MaIN.Services.Services.Steps.Commands;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -47,6 +50,7 @@ public static class Bootstrapper
         serviceCollection.AddSingleton<IStepHandler, AnswerStepHandler>();
         serviceCollection.AddSingleton<IStepHandler, BecomeStepHandler>();
         serviceCollection.AddSingleton<IStepHandler, CleanupStepHandler>();
+        serviceCollection.AddCommandHandlers();
         
         // Register the step processor
         serviceCollection.AddSingleton<IStepProcessor, StepProcessor>();
@@ -55,6 +59,36 @@ public static class Bootstrapper
         serviceCollection.ConfigureInfrastructure(configuration);
         
         return serviceCollection;
+    }
+    
+    public static IServiceCollection AddCommandHandlers(this IServiceCollection services)
+    {
+        services.AddSingleton<IDataSourceProvider, DataSourceProvider>();
+        
+        services.AddSingleton<ICommandHandler<StartCommand, Message?>, StartCommandHandler>();
+        services.AddSingleton<ICommandHandler<RedirectCommand, Message?>, RedirectCommandHandler>();
+        services.AddSingleton<ICommandHandler<FetchCommand, Message?>, FetchCommandHandler>();
+        services.AddSingleton<ICommandHandler<AnswerCommand, Message?>, AnswerCommandHandler>();
+
+        services.AddSingleton<ICommandDispatcher, CommandDispatcher>(provider =>
+        {
+            var dispatcher = new CommandDispatcher(provider);
+            
+            dispatcher.RegisterNamedHandler<StartCommand, Message?, StartCommandHandler>("START");
+            dispatcher.RegisterNamedHandler<RedirectCommand, Message?, RedirectCommandHandler>("REDIRECT");
+            dispatcher.RegisterNamedHandler<FetchCommand, Message?, FetchCommandHandler>("FETCH_DATA");
+            dispatcher.RegisterNamedHandler<FetchCommand, Message?, FetchCommandHandler>("FETCH_DATA*");
+            dispatcher.RegisterNamedHandler<AnswerCommand, Message?, AnswerCommandHandler>("ANSWER");
+            
+            return dispatcher;
+        });
+        
+        services.AddSingleton<StartCommandHandler>();
+        services.AddSingleton<RedirectCommandHandler>();
+        services.AddSingleton<FetchCommandHandler>();
+        services.AddSingleton<AnswerCommandHandler>();
+
+        return services;
     }
 
     private const string MainSectionName = "MaIN";

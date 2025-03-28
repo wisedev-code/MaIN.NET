@@ -65,7 +65,7 @@ public class SqlChatRepository(IDbConnection connection) : IChatRepository
         return rows.Select(MapChatDocument);
     }
 
-    public async Task<ChatDocument?> GetChatById(string? id)
+    public async Task<ChatDocument?> GetChatById(string id)
     {
         var row = await connection.QueryFirstOrDefaultAsync(@"
             SELECT * FROM Chats 
@@ -75,8 +75,7 @@ public class SqlChatRepository(IDbConnection connection) : IChatRepository
 
     public async Task AddChat(ChatDocument chat)
     {
-        if (chat == null)
-            throw new ArgumentNullException(nameof(chat));
+        ArgumentNullException.ThrowIfNull(chat);
 
         var parameters = MapChatToParameters(chat);
         await connection.ExecuteAsync(@"
@@ -89,10 +88,9 @@ public class SqlChatRepository(IDbConnection connection) : IChatRepository
             parameters);
     }
 
-    public async Task UpdateChat(string? id, ChatDocument chat)
+    public async Task UpdateChat(string id, ChatDocument chat)
     {
-        if (chat == null)
-            throw new ArgumentNullException(nameof(chat));
+        ArgumentNullException.ThrowIfNull(chat);
 
         var parameters = MapChatToParameters(chat);
         await connection.ExecuteAsync(@"
@@ -107,13 +105,13 @@ public class SqlChatRepository(IDbConnection connection) : IChatRepository
             parameters);
     }
 
-    public async Task DeleteChat(string? id) =>
+    public async Task DeleteChat(string id) =>
         await connection.ExecuteAsync(@"
             DELETE FROM Chats 
             WHERE Id = @Id",
             new { Id = id });
 
-    // Optional: Add methods for JSON-specific queries
+    // TODO nice idea but does it even work? nothing using it can be removed as well probably
     public async Task<IEnumerable<ChatDocument>> GetChatsByProperty(string key, string value)
     {
         var rows = await connection.QueryAsync(@"

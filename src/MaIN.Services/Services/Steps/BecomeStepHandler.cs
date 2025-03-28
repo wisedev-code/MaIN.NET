@@ -11,7 +11,7 @@ public class BecomeStepHandler : IStepHandler
 
     public async Task<StepResult> Handle(StepContext context)
     {
-        if (context.StepName == "BECOME*" && context.Chat!.Properties.ContainsKey("BECOME*"))
+        if (context.StepName == "BECOME*" && context.Chat.Properties.ContainsKey("BECOME*"))
         {
             return new StepResult { Chat = context.Chat };
         }
@@ -20,7 +20,7 @@ public class BecomeStepHandler : IStepHandler
         var messageFilter = context.Agent.Behaviours.GetValueOrDefault(newBehaviour) ?? 
                             context.Agent.Context!.Instruction;
 
-        if (context.Chat.Properties!.TryGetValue("data_filter", out var filterQuery))
+        if (context.Chat.Properties.TryGetValue("data_filter", out var filterQuery))
         {
             messageFilter = context.Agent.Behaviours.GetValueOrDefault(newBehaviour)!
                 .Replace("@filter@", filterQuery);
@@ -28,11 +28,11 @@ public class BecomeStepHandler : IStepHandler
         }
 
         context.Agent.CurrentBehaviour = newBehaviour;
-        context.Chat.Messages![0].Content = messageFilter;
+        context.Chat.Messages[0].Content = messageFilter ?? context.Agent.Context!.Instruction!;
         
         await context.NotifyProgress("true", context.Agent.Id, null, context.Agent.CurrentBehaviour);
 
-        context.Chat.Messages?.Add(new()
+        context.Chat.Messages.Add(new()
         {
             Role = "System",
             Content = $"Now - {messageFilter}",

@@ -1,5 +1,7 @@
 using MaIN.Domain.Entities;
-using MaIN.Services.Models;
+using MaIN.Domain.Models;
+using MaIN.Services.Dtos;
+using MaIN.Services.Services.Models;
 
 namespace MaIN.Services.Services.Abstract;
 
@@ -10,8 +12,8 @@ public interface IChatService
         Chat chat,
         bool translatePrompt = false,
         bool interactiveUpdates = false,
-        Func<string?, Task>? changeOfValue = null);
-    Task Delete(string? id);
-    Task<Chat> GetById(string? id);
+        Func<LLMTokenValue?, Task>? changeOfValue = null);
+    Task Delete(string id);
+    Task<Chat> GetById(string id);
     Task<List<Chat>> GetAll();
 }

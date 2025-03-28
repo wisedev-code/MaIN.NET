@@ -1,4 +1,5 @@
 using System.Text.Json;
+using MaIN.Domain.Models;
 using MaIN.Services.Services.Abstract;
 
 namespace MaIN.Services.Services;
@@ -12,9 +13,17 @@ public class NotificationService : INotificationService
         {
             var msg = message as Dictionary<string,string>;
             var done = msg!["Done"] == "True";
+            var type = msg["Type"];
             if (!done)
             {
-                Console.ForegroundColor = ConsoleColor.Green;
+                if (type == TokenType.Reason.ToString())
+                {
+                    Console.ForegroundColor = ConsoleColor.Blue;
+                }
+                else
+                {
+                    Console.ForegroundColor = ConsoleColor.Green;
+                }
                 Console.Write(msg["Content"]);
                 Console.ForegroundColor = originalColor;
             }

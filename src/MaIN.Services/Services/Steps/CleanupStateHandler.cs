@@ -10,7 +10,7 @@ public class CleanupStepHandler : IStepHandler
 
     public Task<StepResult> Handle(StepContext context)
     {
-        AgentStateManager.ClearState(context.Agent, context.Chat!);
+        AgentStateManager.ClearState(context.Agent, context.Chat);
         return Task.FromResult(new StepResult { Chat = context.Chat });
     }
 }

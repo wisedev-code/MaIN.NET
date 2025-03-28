@@ -3,9 +3,10 @@ using System.Text.Json;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
 using MaIN.Domain.Entities.Agents.AgentSource;
+using MaIN.Services.Dtos;
 using MaIN.Services.Mappers;
-using MaIN.Services.Models;
 using MaIN.Services.Services.Abstract;
+using MaIN.Services.Services.Models;
 
 namespace MaIN.Core.Hub.Contexts;
 
@@ -142,11 +143,11 @@ public class FlowContext
     public async Task<ChatResult> ProcessAsync(Chat chat, bool translate = false)
     {
         var result = await _agentService.Process(chat, _firstAgent!.Id, translate);
-        var message = result!.Messages!.LastOrDefault()!.ToDto();
+        var message = result.Messages.LastOrDefault()!;
         return new ChatResult()
         {
             Done = true,
-            Model = result!.Model,
+            Model = result.Model,
             Message = message,
             CreatedAt = DateTime.Now
         };
@@ -155,18 +156,18 @@ public class FlowContext
     public async Task<ChatResult> ProcessAsync(string message, bool translate = false)
     {
         var chat = await _agentService.GetChatByAgent(_firstAgent!.Id);
-        chat?.Messages.Add(new Message()
+        chat.Messages.Add(new Message()
         {
             Content = message,
             Role = "User",
             Time = DateTime.Now
         });
         var result = await _agentService.Process(chat, _firstAgent.Id, translate);
-        var messageResult = result!.Messages!.LastOrDefault()!.ToDto();
+        var messageResult = result.Messages.LastOrDefault()!;
         return new ChatResult()
         {
             Done = true,
-            Model = result!.Model,
+            Model = result.Model,
             Message = messageResult,
             CreatedAt = DateTime.Now
         };
@@ -175,13 +176,13 @@ public class FlowContext
     public async Task<ChatResult> ProcessAsync(Message message, bool translate = false)
     {
         var chat = await _agentService.GetChatByAgent(_firstAgent!.Id);
-        chat?.Messages.Add(message);
+        chat.Messages.Add(message);
         var result = await _agentService.Process(chat, _firstAgent.Id, translate);
-        var messageResult = result!.Messages.LastOrDefault()!.ToDto();
+        var messageResult = result.Messages.LastOrDefault()!;
         return new ChatResult()
         {
             Done = true,
-            Model = result!.Model,
+            Model = result.Model,
             Message = messageResult,
             CreatedAt = DateTime.Now
         };

@@ -23,7 +23,7 @@ public class StepProcessor : IStepProcessor
         }
     }
 
-    public async Task<Chat> ProcessSteps(
+    public async Task<Chat> ProcessSteps( //TODO try without delegates
         AgentContextDocument context,
         AgentDocument agent,
         Chat chat,
@@ -31,7 +31,7 @@ public class StepProcessor : IStepProcessor
         Func<Chat, Task> updateChat,
         ILogger logger)
     {
-        Message redirectMessage = chat.Messages.Last()!;
+        Message redirectMessage = chat.Messages.Last();
         var tagsToReplaceWithFilter = new List<string>();
         foreach (var step in context.Steps!)
         {
@@ -61,10 +61,10 @@ public class StepProcessor : IStepProcessor
             
             chat = result.Chat;
 
-            await updateChat(chat!);
+            await updateChat(chat);
         }
 
-        await CleanupBehaviors(agent, tagsToReplaceWithFilter);
+        CleanupBehaviors(agent, tagsToReplaceWithFilter);
         
         return chat;
     }
@@ -80,15 +80,13 @@ public class StepProcessor : IStepProcessor
             ? handler
             : throw new InvalidOperationException($"Unknown step: {stepName}");
 
-    private static Task CleanupBehaviors(AgentDocument agent, List<string> tagsToReplaceWithFilter)
+    private static void CleanupBehaviors(AgentDocument agent, List<string> tagsToReplaceWithFilter)
     {
-        foreach (var key in agent.Behaviours!.Keys.ToList())
+        foreach (var key in agent.Behaviours.Keys.ToList())
         {
             agent.Behaviours[key] = tagsToReplaceWithFilter.Aggregate(
                 agent.Behaviours[key],
                 (current, tag) => current.Replace(tag, "@filter@"));
         }
-
-        return Task.CompletedTask;
     }
 }

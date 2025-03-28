@@ -12,7 +12,7 @@ public class MongoAgentRepository(IMongoDatabase database, string collectionName
         await _agents.Find(chat => true).ToListAsync();
 
     public async Task<AgentDocument?> GetAgentById(string id) => 
-        await _agents!.Find<AgentDocument>(agent => agent.Id == id).FirstOrDefaultAsync();
+        await _agents.Find<AgentDocument>(agent => agent.Id == id).FirstOrDefaultAsync();
 
     public async Task AddAgent(AgentDocument agent) =>
         await _agents.InsertOneAsync(agent);    

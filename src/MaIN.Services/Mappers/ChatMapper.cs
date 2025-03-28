@@ -1,6 +1,7 @@
 using MaIN.Domain.Entities;
+using MaIN.Domain.Models;
 using MaIN.Infrastructure.Models;
-using MaIN.Services.Models;
+using MaIN.Services.Dtos;
 using MaIN.Services.Services.ImageGenServices;
 using FileInfo = MaIN.Domain.Entities.FileInfo;
 
@@ -9,7 +10,7 @@ namespace MaIN.Services.Mappers;
 public static class ChatMapper
 {
     public static ChatDto ToDto(this Chat chat)
-        => new ChatDto()
+        => new()
         {
             Id = chat.Id,
             Name = chat.Name,
@@ -20,7 +21,7 @@ public static class ChatMapper
             Properties = chat.Properties
         };
 
-    public static MessageDto ToDto(this Message message)
+    private static MessageDto ToDto(this Message message)
         => new MessageDto()
         {
             Content = message.Content,
@@ -38,19 +39,19 @@ public static class ChatMapper
         };
 
     public static Chat ToDomain(this ChatDto chat)
-        => new Chat()
+        => new()
         {
-            Id = chat.Id,
-            Name = chat.Name,
-            Model = chat.Model,
+            Id = chat.Id!,
+            Name = chat.Name!,
+            Model = chat.Model!,
             Messages = chat.Messages?.Select(m => m.ToDomain()).ToList()!,
             Visual = chat.Model == ImageGenService.Models.FLUX,
             Type = Enum.Parse<ChatType>(chat.Type.ToString()),
             Properties = chat.Properties
         };
 
-    public static Message ToDomain(this MessageDto message)
-        => new Message()
+    private static Message ToDomain(this MessageDto message)
+        => new()
         {
             Content = message.Content,
             Role = message.Role,
@@ -65,13 +66,14 @@ public static class ChatMapper
             }).ToList()
         };
 
-    public static MessageDocument ToDocument(this Message message)
+    private static MessageDocument ToDocument(this Message message)
         => new MessageDocument()
         {
             Content = message.Content,
             Role = message.Role,
             Time = message.Time,
             Images = message.Images,
+            Tokens = message.Tokens.Select(x => x.ToDocument()).ToList(),
             Properties = message.Properties,
             Tool = message.Tool,
             Files = (message.Files?.Select(x => x.Content).ToArray() ?? [])!
@@ -93,7 +95,7 @@ public static class ChatMapper
         };
 
     public static Chat ToDomain(this ChatDocument chat)
-        => new Chat()
+        => new()
         {
             Id = chat.Id,
             Name = chat.Name,
@@ -107,25 +109,40 @@ public static class ChatMapper
             Type = Enum.Parse<ChatType>(chat.Type.ToString())
         };
 
-    public static Message ToDomain(this MessageDocument message)
+    private static Message ToDomain(this MessageDocument message)
         => new Message()
         {
             Content = message.Content,
             Tool = message.Tool,
             Time = message.Time,
+            Tokens = message.Tokens.Select(x => x.ToDomain()).ToList(),
             Role = message.Role,
             Images = message.Images,
             Properties = message.Properties,
         };
-    
-    public static InferenceParams ToDomain(this InferenceParamsDocument inferenceParams)
+
+    private static LLMTokenValueDocument ToDocument(this LLMTokenValue llmTokenValue)
+        => new()
+        {
+            Text = llmTokenValue.Text,
+            Type = llmTokenValue.Type
+        };
+
+    private static LLMTokenValue ToDomain(this LLMTokenValueDocument llmTokenValue)
+        => new LLMTokenValue()
+        {
+            Text = llmTokenValue.Text,
+            Type = llmTokenValue.Type
+        };
+
+    private static InferenceParams ToDomain(this InferenceParamsDocument inferenceParams)
         => new InferenceParams()
         {
             Temperature = inferenceParams.Temperature,
             ContextSize = inferenceParams.ContextSize
         };
-    
-    public static InferenceParamsDocument ToDocument(this InferenceParams inferenceParams)
+
+    private static InferenceParamsDocument ToDocument(this InferenceParams inferenceParams)
         => new InferenceParamsDocument()
         {
             Temperature = inferenceParams.Temperature,

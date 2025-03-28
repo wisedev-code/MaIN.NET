@@ -1,7 +1,8 @@
 using MaIN.Domain.Entities;
 using MaIN.Domain.Models;
-using MaIN.Services.Models;
+using MaIN.Services.Dtos;
 using MaIN.Services.Services.Abstract;
+using MaIN.Services.Services.Models;
 using FileInfo = MaIN.Domain.Entities.FileInfo;
 
 namespace MaIN.Core.Hub.Contexts;
@@ -18,7 +19,8 @@ public class ChatContext
         {
             Name = "New Chat",
             Id = Guid.NewGuid().ToString(),
-            Messages = new List<Message>()
+            Messages = new List<Message>(),
+            Model = string.Empty
         };
     }
 
@@ -28,7 +30,7 @@ public class ChatContext
         _chat = existingChat;
     }
 
-    public ChatContext WithModel(string? model)
+    public ChatContext WithModel(string model)
     {
         _chat.Model = model;
         return this;
@@ -40,7 +42,7 @@ public class ChatContext
         return this;
     }
     
-    public ChatContext WithCustomModel(string? model, string path)
+    public ChatContext WithCustomModel(string model, string path)
     {
         KnownModels.AddModel(model, path);
         _chat.Model = model;
@@ -125,12 +127,12 @@ public class ChatContext
         return this;
     }
     
-    public string? GetChatId() => _chat.Id;
+    public string GetChatId() => _chat.Id;
 
     public async Task<ChatResult> CompleteAsync(
         bool translate = false,
         bool interactive = false,
-        Func<string?, Task>? changeOfValue = null)
+        Func<LLMTokenValue?, Task>? changeOfValue = null)
     {
         if (!await ChatExists(_chat.Id))
         {
@@ -161,7 +163,7 @@ public class ChatContext
         await _chatService.Delete(_chat.Id);
     }
 
-    private async Task<bool> ChatExists(string? id)
+    private async Task<bool> ChatExists(string id)
     {
         try
         {
@@ -175,7 +177,7 @@ public class ChatContext
     }
 
     // Static methods to create builder from existing chat
-    public async Task<ChatContext> FromExisting(string? chatId)
+    public async Task<ChatContext> FromExisting(string chatId)
     {
         var existingChat = await _chatService.GetById(chatId);
         if (existingChat == null)
@@ -187,7 +189,7 @@ public class ChatContext
 
     public List<MessageShort> GetChatHistory()
     {
-        return _chat.Messages!.Select(x => new MessageShort()
+        return _chat.Messages.Select(x => new MessageShort()
         {
             Content = x.Content,
             Role = x.Role,

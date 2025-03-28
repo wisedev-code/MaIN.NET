@@ -10,8 +10,9 @@ using LLamaSharp.KernelMemory;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Models;
-using MaIN.Services.Models;
+using MaIN.Services.Dtos;
 using MaIN.Services.Services.Abstract;
+using MaIN.Services.Services.Models;
 using MaIN.Services.Utils;
 using Microsoft.KernelMemory;
 using Microsoft.KernelMemory.AI;
@@ -24,36 +25,34 @@ public class LLMService(MaINSettings options, INotificationService notificationS
 {
     private const string DefaultModelEnvPath = "MaIN_ModelsPath";
     private static readonly ConcurrentDictionary<string, LLamaWeights> modelCache = new();
-    private static readonly ConcurrentDictionary<string?, ChatSession> sessionCache = new(); // Cache for chat sessions
+    private static readonly ConcurrentDictionary<string, ChatSession> sessionCache = new(); // Cache for chat sessions
 
-    public async Task<ChatResult?> Send(
-        Chat chat, 
+    public async Task<ChatResult?> Send(Chat chat,
         bool interactiveUpdates = false,
         bool newSession = false,
-        Func<string?, Task>? changeOfValue = null)
+        Func<LLMTokenValue, Task>? changeOfValue = null)
     {
         if (!chat.Messages.Any())
             return null;
 
-        if (chat.Model == KnownModelNames.Llava_7b) //TODO include better support for vision models
+        var path = options.ModelsPath ?? Environment.GetEnvironmentVariable(DefaultModelEnvPath);
+        if (path == null)
         {
-            return await HandleImageInterpreter(chat)!;
+            throw new Exception("ModelsPath setting is not present in configuration");
         }
-
-        var path = options.ModelsPath ?? Environment.GetEnvironmentVariable(DefaultModelEnvPath); //TODO add handling for null path
-        var model = KnownModels.GetModel(path!, chat.Model);
+        
+        var model = KnownModels.GetModel(path, chat.Model);
+        var thinkingState = new ThinkingState();
         var modelKey = model.FileName;
 
-        // Get or load the model asynchronously.
-        var llmModel = await GetOrLoadModelAsync(path, modelKey);
+        var llmModel = await GetOrLoadModelAsync(path!, modelKey);
         var inferenceParams = new InferenceParams
         {
             SamplingPipeline = new DefaultSamplingPipeline
             {
-                Temperature = chat.InterferenceParams.Temperature
+                Temperature = chat.InterferenceParams.Temperature, 
             },
-            MaxTokens = chat.InterferenceParams.ContextSize,
-            AntiPrompts = new[] { llmModel.Vocab.EOT?.ToString() ?? "User:" }
+            AntiPrompts = [llmModel.Vocab.EOT?.ToString() ?? "User:"]
         };
 
         var parameters = new ModelParams(Path.Combine(path, modelKey))
@@ -72,18 +71,17 @@ public class LLMService(MaINSettings options, INotificationService notificationS
             })
             : new ChatSession(new InteractiveExecutor(llmModel.CreateContext(parameters)));
 
-        // Add all messages to the session history.
+        var startSession = session.History.Messages.Count == 0;
         AddMessagesToHistory(session, chat.Messages);
 
-        // Generate a response.
         session.WithHistoryTransform(new PromptTemplateTransformer(llmModel, withAssistant: true));
         session.WithOutputTransform(new LLamaTransforms.KeywordTextOutputStreamTransform(
-            new[] { llmModel.Vocab.EOT.ToString() ?? "User:", "�" },
+            new[] { llmModel.Vocab.EOT.ToString() ?? "User:", "�"},
             redundancyLength: 5));
 
-        var resultBuilder = new StringBuilder();
-
+        var listOfTokens = new List<LLMTokenValue>();
         var lastMessage = chat.Messages.Last();
+        var finalPrompt = startSession && model.AdditionalPrompt is not null ? $"{lastMessage.Content}{model.AdditionalPrompt}" : lastMessage.Content;
 
         if (lastMessage.Files?.Any() ?? false)
         {
@@ -102,35 +100,51 @@ public class LLMService(MaINSettings options, INotificationService notificationS
             
             var result = await AskMemory(chat, textData!, fileData!, streamData!); 
             
-            resultBuilder.Append(result!.Message.Content);
-#pragma warning restore SKEXP0001
+            listOfTokens.Add(new LLMTokenValue()
+            {
+                Type = TokenType.FullAnswer,
+                Text = result!.Message.Content
+            });
         }
         else
         {
             await foreach (var text in session.ChatAsync(
-                               new ChatHistory.Message(AuthorRole.User, chat.Messages.Last().Content),
+                               new ChatHistory.Message(AuthorRole.User, finalPrompt),
                                inferenceParams))
             {
+                var token = model.ReasonFunction is not null
+                    ? model.ReasonFunction(text, thinkingState)
+                    : new LLMTokenValue()
+                    {
+                        Type = TokenType.Message,
+                        Text = text
+                    };
+                
                 if (interactiveUpdates)
                 {
                     await notificationService.DispatchNotification(
                         NotificationMessageBuilder.CreateChatCompletion(
                             chat.Id,
-                            text,
+                            token,
                             false),
                         "ReceiveMessageUpdate");
                 }
 
-                changeOfValue?.Invoke(text);
-                resultBuilder.Append(text);
+                changeOfValue?.Invoke(token);
+                listOfTokens.Add(token);
             }
         }
 
+        var stringToReturn = string.Concat(listOfTokens.Select(x => x.Text));
         if (interactiveUpdates)
         {
             await notificationService.DispatchNotification(NotificationMessageBuilder.CreateChatCompletion(
                 chat.Id,
-                resultBuilder.ToString(),
+                new LLMTokenValue()
+                {
+                    Type = TokenType.FullAnswer,
+                    Text = stringToReturn
+                },
                 true), "ReceiveMessageUpdate");
         }
 
@@ -139,55 +153,18 @@ public class LLMService(MaINSettings options, INotificationService notificationS
             Done = true,
             CreatedAt = DateTime.Now,
             Model = chat.Model,
-            Message = new MessageDto
+            Message = new Message
             {
-                Content = resultBuilder.ToString(),
+                Content = stringToReturn,
+                Tokens = listOfTokens,
                 Role = AuthorRole.Assistant.ToString()
             }
         };
 
         return chatResult;
     }
-
-    private async Task<ChatResult> HandleImageInterpreter(Chat chat)
-    {
-        var path = options.ModelsPath ?? Environment.GetEnvironmentVariable(DefaultModelEnvPath); //TODO add handling for null path
-        var modelConfig = KnownModels.GetModel(path!, chat.Model);
-        var modelKey = modelConfig.FileName;
-
-        var parameters = new ModelParams(Path.Combine(path!, modelKey));
-
-        using var model = LLamaWeights.LoadFromFile(parameters);
-        using var context = model.CreateContext(parameters);
-
-        // Llava Init
-        var inferenceParams = new InferenceParams() { AntiPrompts = new[] { model.Vocab.EOT.ToString() ?? "User:" } };
-        var ex = new InteractiveExecutor(context);
-        ex.Context.NativeHandle.KvCacheRemove(LLamaSeqId.Zero, -1, -1);
-        ex.Images.Add(chat.Messages.Last().Images!);
-        var result = new StringBuilder();
-        await foreach (var text in ex.InferAsync(chat.Messages!.Last().Content, inferenceParams))
-        {
-            Console.Write(text);
-            result.Append(text);
-        }
-
-        var chatResult = new ChatResult
-        {
-            Done = true,
-            CreatedAt = DateTime.Now,
-            Model = chat.Model,
-            Message = new MessageDto
-            {
-                Content = result.ToString(),
-                Role = AuthorRole.Assistant.ToString()
-            }
-        };
-
-        return chatResult;
-    }
-
-    private ChatSession GetOrCreateSession(string? chatId, Func<ChatSession> createSession)
+    
+    private ChatSession GetOrCreateSession(string chatId, Func<ChatSession> createSession)
     {
         if (!sessionCache.TryGetValue(chatId, out var session))
         {
@@ -223,11 +200,14 @@ public class LLMService(MaINSettings options, INotificationService notificationS
         List<string>? webUrls = null,
         List<string>? memory = null)
     {
-        var path = options.ModelsPath ?? Environment.GetEnvironmentVariable(DefaultModelEnvPath); //TODO add handling for null path
-        var model = KnownModels.GetModel(path!, chat!.Model);
+        var path = options.ModelsPath ?? Environment.GetEnvironmentVariable(DefaultModelEnvPath);
+        if (path == null)
+            throw new Exception("ModelsPath setting is not present in configuration"); //TODO good candidate for custom exception
+        
+        var model = KnownModels.GetModel(path, chat.Model);
         var modelKey = model.FileName;
 
-        var kernelMemory = CreateMemory(modelKey, path, out var generator);
+        var kernelMemory = CreateMemory(modelKey, path);
 
         if (textData != null)
         {
@@ -269,7 +249,7 @@ public class LLMService(MaINSettings options, INotificationService notificationS
             }
         }
 
-        var userMsg = chat.Messages!.Last();
+        var userMsg = chat.Messages.Last();
         var result = await kernelMemory.AskAsync(userMsg.Content);
 
         await kernelMemory.DeleteIndexAsync();
@@ -279,28 +259,25 @@ public class LLMService(MaINSettings options, INotificationService notificationS
             Done = true,
             CreatedAt = DateTime.Now,
             Model = chat.Model,
-            Message = new MessageDto()
+            Message = new Message
             {
                 Content = result.Result.Replace("Question:", string.Empty).Replace("Assistant:", string.Empty),
                 Role = AuthorRole.Assistant.ToString()
             }
         };
-
-        generator.Dispose();
-
+        
         return chatResult;
     }
 
 
     [Experimental("KMEXP01")]
-    private static IKernelMemory CreateMemory(string modelName, string path,
-        out KernelMemFix.LlamaSharpTextGenerator generator)
+    private static IKernelMemory CreateMemory(string modelName, string path)
     {
         InferenceParams infParams = new() { AntiPrompts = ["INFO", "<|im_end|>", "Question:"] };
 
         LLamaSharpConfig lsConfig = new(Path.Combine(path, KnownModels.GetEmbeddingModel().FileName))
             { DefaultInferenceParams = infParams };
-
+        
         SearchClientConfig searchClientConfig = new()
         {
             MaxMatchesCount = 5,
@@ -316,8 +293,9 @@ public class LLMService(MaINSettings options, INotificationService notificationS
         };
 
         return new KernelMemoryBuilder()
+            //.WithLLamaSharpDefaults(lsConfig)
             //.WithLLamaSharpDefaults2(lsConfig)
-            .WithLLamaSharpMaINTemp(lsConfig, path, modelName, out generator)
+            .WithLLamaSharpMaINTemp(lsConfig, path, modelName, out var generator)
             .WithSearchClientConfig(searchClientConfig)
             .WithCustomImageOcr(new OcrWrapper())
             .With(parseOptions)
@@ -355,7 +333,7 @@ public class LLMService(MaINSettings options, INotificationService notificationS
 
     public Task CleanSessionCache(string? id)
     {
-        sessionCache.Remove(id, out var session);
+        sessionCache!.Remove(id, out var session);
         session?.Executor.Context.NativeHandle.KvCacheClear();
         session?.Executor.Context.Dispose();
         return Task.CompletedTask;
@@ -466,10 +444,8 @@ internal static class KernelMemFix
     public static IKernelMemoryBuilder WithLLamaSharpMaINTemp(this IKernelMemoryBuilder builder,
         LLamaSharpConfig config, string? path, string modelName, out LlamaSharpTextGenerator generator)
     {
-        // Load the first model with caching.
-        var model = LLMService.GetOrLoadModelAsync(path, modelName).Result;
+        var model = LLMService.GetOrLoadModelAsync(path!, modelName).Result;
 
-        // Create ModelParams for the second model.
         ModelParams parameters2 = new ModelParams(config.ModelPath)
         {
             ContextSize = new uint?(config.ContextSize.GetValueOrDefault(2048U)),
