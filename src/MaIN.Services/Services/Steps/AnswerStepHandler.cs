@@ -18,16 +18,14 @@ public class AnswerStepHandler(ICommandDispatcher commandDispatcher) : IStepHand
         
         var answerCommand = new AnswerCommand { Chat = context.Chat, UseMemory = useMemory };
         var answerResponse = await commandDispatcher.DispatchAsync(answerCommand);
-        if (answerResponse == null)
-        {
+        if (answerResponse == null) 
             throw new Exception("Answer command failed"); //TODO proper candidate for custom exception
-        }
+        
         
         var filterVal = GetFilter(answerResponse.Content);
         if (!string.IsNullOrEmpty(filterVal))
-        {
             context.Chat.Properties.TryAdd("data_filter", filterVal);
-        }
+        
 
         answerResponse.Time = DateTime.Now;
         context.Chat.Messages.Add(answerResponse);

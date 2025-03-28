@@ -11,11 +11,13 @@ namespace MaIN.Services.Services;
 
 public class DataSourceProvider : IDataSourceProvider
 {
+    private static readonly JsonSerializerOptions JsonSerializerOptions = new() { PropertyNameCaseInsensitive = true };
+
     public async Task<string> FetchFileData(object? sourceDetails)
     {
         var fileDetails = JsonSerializer.Deserialize<AgentFileSourceDetails>(
             sourceDetails?.ToString() ?? "{}")!;
-        
+
         return await File.ReadAllTextAsync(fileDetails.Path);
     }
 
@@ -25,40 +27,46 @@ public class DataSourceProvider : IDataSourceProvider
         {
             return textDetails.Text;
         }
-        
+
         return sourceDetails?.ToString() ?? string.Empty;
     }
 
-    public async Task<string> FetchApiData(object? details, string? filter, 
+    public async Task<string> FetchApiData(object? details, string? filter,
         IHttpClientFactory httpClientFactory, Dictionary<string, string> properties)
     {
-        var apiDetails = JsonSerializer.Deserialize<AgentApiSourceDetails>(details!.ToString()!, 
+        var apiDetails = JsonSerializer.Deserialize<AgentApiSourceDetails>(details!.ToString()!,
             new JsonSerializerOptions()
             {
                 PropertyNameCaseInsensitive = true,
             });
-        
+
         var httpClient = httpClientFactory.CreateClient();
-        
+
         apiDetails!.Payload = apiDetails.Payload?.Replace("@filter@", filter);
         apiDetails.Query = apiDetails.Query?.Replace("@filter@", filter);
         apiDetails.Url = apiDetails.Url.Replace("@filter@", filter);
-        
+
         var request = new HttpRequestMessage(
-            HttpMethod.Parse(apiDetails?.Method), 
+            HttpMethod.Parse(apiDetails?.Method),
             apiDetails?.Url + apiDetails?.Query);
-        
+
         if (!string.IsNullOrEmpty(apiDetails?.Payload))
         {
             request.Content = new StringContent(
-                JsonSerializer.Serialize(apiDetails.Payload), 
-                Encoding.UTF8, 
+                JsonSerializer.Serialize(apiDetails.Payload),
+                Encoding.UTF8,
                 "application/json");
         }
-            
+
         var result = await httpClient.SendAsync(request);
+        if (!result.IsSuccessStatusCode)
+        {
+            throw new Exception(
+                $"API request failed with status code: {result.StatusCode}"); //TODO candidate for domain exception
+        }
+
         var data = await result.Content.ReadAsStringAsync();
-        
+
         properties.TryAdd("api_response_type", apiDetails?.ResponseType ?? "JSON");
         if (apiDetails?.ChunkLimit != null)
         {
@@ -68,50 +76,45 @@ public class DataSourceProvider : IDataSourceProvider
         return apiDetails?.ResponseType == "HTML" ? HtmlContentCleaner.CleanHtml(data) : data;
     }
 
-    public async Task<string> FetchSqlData(object? sourceDetails, string? filter,
-        Dictionary<string, string> properties)
+    public async Task<string> FetchSqlData(object? sourceDetails, string? filter, Dictionary<string, string> properties)
     {
         var sqlDetails = JsonSerializer.Deserialize<AgentSqlSourceDetails>(sourceDetails!.ToString()!);
-        
         sqlDetails!.ConnectionString = sqlDetails.ConnectionString.Replace("@filter@", filter);
         sqlDetails.Query = sqlDetails.Query.Replace("@filter@", filter);
-        
+
         await using SqlConnection connection = new SqlConnection(sqlDetails.ConnectionString);
         await connection.OpenAsync();
-
-        var command = new SqlCommand(sqlDetails.Query, connection);
-        var reader = await command.ExecuteReaderAsync();
+        await using SqlCommand command = new SqlCommand(sqlDetails.Query, connection);
+        await using SqlDataReader reader = await command.ExecuteReaderAsync();
         var data = new List<Dictionary<string, object>>();
+
+        if (!reader.HasRows) 
+            return JsonSerializer.Serialize(data, JsonSerializerOptions);
         
-        if (reader.HasRows)
+        var columns = reader.GetColumnSchema();
+        while (await reader.ReadAsync())
         {
-            var columns = reader.GetColumnSchema();
-            while (await reader.ReadAsync())
+            Dictionary<string, object> row = new Dictionary<string, object>();
+            foreach (var column in columns)
             {
-                Dictionary<string, object> row = new Dictionary<string, object>();
-
-                foreach (var column in columns)
-                {
-                    row[column.ColumnName] = reader[column.ColumnName];
-                }
-
-                data.Add(row);
+                row[column.ColumnName] = reader[column.ColumnName];
             }
+
+            data.Add(row);
         }
 
-        await reader.CloseAsync();
-        return JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
+        return JsonSerializer.Serialize(data, JsonSerializerOptions);
     }
 
     public async Task<string> FetchNoSqlData(object? sourceDetails, string? filter,
         Dictionary<string, string> properties)
     {
         var noSqlDetails = JsonSerializer.Deserialize<AgentNoSqlSourceDetails>(sourceDetails!.ToString()!);
-        
+
         noSqlDetails!.ConnectionString = noSqlDetails.ConnectionString.Replace("@filter@", filter);
         noSqlDetails.Query = noSqlDetails.Query.Replace("@filter@", filter);
         noSqlDetails.Collection = noSqlDetails.Collection.Replace("@filter@", filter);
-        
+
         var clientSettings = MongoClientSettings.FromConnectionString(noSqlDetails.ConnectionString);
         var client = new MongoClient(clientSettings);
 

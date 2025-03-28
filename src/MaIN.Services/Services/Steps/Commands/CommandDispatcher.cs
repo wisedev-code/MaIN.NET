@@ -27,27 +27,18 @@ public class CommandDispatcher(IServiceProvider serviceProvider) : ICommandDispa
             var handlerInterfaceType = typeof(ICommandHandler<,>).MakeGenericType(commandType, typeof(TResult));
             
             var handler = serviceProvider.GetService(handlerInterfaceType);
-            if (handler == null)
-            {
-                throw new InvalidOperationException($"No handler registered for command type {commandType.Name}");
-            }
             
-            return await ((ICommandHandler<ICommand<TResult>, TResult>)handler).HandleAsync(command);
+            var resolvedHandler = handler ?? throw new InvalidOperationException($"No handler registered for command type {commandType.Name}");
+            return await ((ICommandHandler<ICommand<TResult>, TResult>)resolvedHandler).HandleAsync(command);
         }
 
         var namedHandler = serviceProvider.GetService(handlerType);
-        if (namedHandler == null)
-        {
-            throw new InvalidOperationException($"No handler registered with name '{commandName}'");
-        }
+        var resolvedNamedHandler = namedHandler ?? throw new InvalidOperationException($"No handler registered for command name {commandName}");
 
         var method = handlerType.GetMethod("HandleAsync");
-        if (method == null)
-        {
-            throw new InvalidOperationException($"HandleAsync method not found on handler {handlerType.Name}");
-        }
+        var resolvedMethod = method ?? throw new InvalidOperationException($"HandleAsync method not found on handler {handlerType.Name}");
 
-        var task = (Task<TResult>)method.Invoke(namedHandler, [command])!;
+        var task = (Task<TResult>)resolvedMethod.Invoke(resolvedNamedHandler, [command])!;
         return await task;
     }
 }

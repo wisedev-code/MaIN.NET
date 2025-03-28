@@ -15,6 +15,6 @@ public class RedirectCommand : BaseCommand, ICommand<Message?>
 
 public enum OutputTypeOfRedirect
 {
-    AS_Filter,
-    AS_Output
+    AS_Filter = 0,
+    AS_Output = 1
 }

@@ -11,7 +11,7 @@ public class ChatExample : IExample
         var context = AIHub.Chat().WithModel("gemma2:2b");
         
         await context
-            .WithMessage("Where do hedgehog goes at night?")
+            .WithMessage("Where do hedgehogs goes at night?")
             .CompleteAsync(interactive: true);
     }
 }

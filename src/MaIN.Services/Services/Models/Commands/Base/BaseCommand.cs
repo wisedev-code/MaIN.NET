@@ -4,5 +4,5 @@ namespace MaIN.Services.Services.Models.Commands.Base;
 
 public class BaseCommand
 {
-    public Chat Chat { get; init; } = null!;
+    public required Chat Chat { get; init; }
 }

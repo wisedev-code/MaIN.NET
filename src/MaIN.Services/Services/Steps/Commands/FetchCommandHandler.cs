@@ -1,4 +1,3 @@
-// FetchCommandHandler.cs
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents.AgentSource;
 using MaIN.Services.Services.Abstract;
@@ -64,7 +63,7 @@ public class FetchCommandHandler(
                 break;
                 
             default:
-                throw new ArgumentOutOfRangeException();
+                throw new ArgumentOutOfRangeException(command.Context.Source!.Type.ToString());
         }
         
         // Process JSON response if needed

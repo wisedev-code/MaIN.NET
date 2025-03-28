@@ -53,6 +53,7 @@ public class RedirectStepHandler(ICommandDispatcher commandDispatcher) : IStepHa
     {
         return new RedirectCommand
         {
+            Chat = context.Chat,
             Message = context.RedirectMessage,
             RelatedAgentId = context.Arguments[0],
             SaveAs = Enum.Parse<OutputTypeOfRedirect>(context.Arguments[1]),

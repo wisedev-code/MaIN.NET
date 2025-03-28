@@ -64,7 +64,7 @@ public class StepProcessor : IStepProcessor
             await updateChat(chat);
         }
 
-        await CleanupBehaviors(agent, tagsToReplaceWithFilter);
+        CleanupBehaviors(agent, tagsToReplaceWithFilter);
         
         return chat;
     }
@@ -80,7 +80,7 @@ public class StepProcessor : IStepProcessor
             ? handler
             : throw new InvalidOperationException($"Unknown step: {stepName}");
 
-    private static Task CleanupBehaviors(AgentDocument agent, List<string> tagsToReplaceWithFilter)
+    private static void CleanupBehaviors(AgentDocument agent, List<string> tagsToReplaceWithFilter)
     {
         foreach (var key in agent.Behaviours.Keys.ToList())
         {
@@ -88,7 +88,5 @@ public class StepProcessor : IStepProcessor
                 agent.Behaviours[key],
                 (current, tag) => current.Replace(tag, "@filter@"));
         }
-
-        return Task.CompletedTask;
     }
 }

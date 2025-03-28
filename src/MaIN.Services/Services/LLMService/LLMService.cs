@@ -200,11 +200,10 @@ public class LLMService(MaINSettings options, INotificationService notificationS
         List<string>? webUrls = null,
         List<string>? memory = null)
     {
-        var path = options.ModelsPath ?? Environment.GetEnvironmentVariable(DefaultModelEnvPath); //TODO add handling for null path
+        var path = options.ModelsPath ?? Environment.GetEnvironmentVariable(DefaultModelEnvPath);
         if (path == null)
-        {
-            throw new Exception("ModelsPath setting is not present in configuration");
-        }
+            throw new Exception("ModelsPath setting is not present in configuration"); //TODO good candidate for custom exception
+        
         var model = KnownModels.GetModel(path, chat.Model);
         var modelKey = model.FileName;
 
@@ -334,7 +333,7 @@ public class LLMService(MaINSettings options, INotificationService notificationS
 
     public Task CleanSessionCache(string? id)
     {
-        sessionCache.Remove(id, out var session);
+        sessionCache!.Remove(id, out var session);
         session?.Executor.Context.NativeHandle.KvCacheClear();
         session?.Executor.Context.Dispose();
         return Task.CompletedTask;
