@@ -19,13 +19,12 @@ public class AnswerCommandHandler(
         if (command.UseMemory)
         {
             result = await llmService.AskMemory(command.Chat!, memory: command.Chat?.Memory);
+            return result!.Message;
         }
-        else
-        {
-            result = command.Chat!.Visual
-                ? await imageGenService.Send(command.Chat)
-                : await llmService.Send(command.Chat, interactiveUpdates: command.Chat.Interactive);
-        }
+
+        result = command.Chat!.Visual
+            ? await imageGenService.Send(command.Chat)
+            : await llmService.Send(command.Chat, interactiveUpdates: command.Chat.Interactive);
 
         return result!.Message;
     }

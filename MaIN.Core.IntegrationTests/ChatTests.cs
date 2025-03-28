@@ -77,7 +77,7 @@ public class ChatTests : IntegrationTestBase
         Assert.Contains("call of duty", result.Message.Content.ToLower());
     }
 
-    //[Fact]
+    [Fact(Skip = "Require powerful GPU")]
     public async Task Should_GenerateImage_BasedOnPrompt()
     {
         Assert.True(PingHost("127.0.0.1", 5003, 5), "Please make sure ImageGen service is running on port 5003");

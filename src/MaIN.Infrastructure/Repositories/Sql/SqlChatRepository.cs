@@ -75,8 +75,7 @@ public class SqlChatRepository(IDbConnection connection) : IChatRepository
 
     public async Task AddChat(ChatDocument chat)
     {
-        if (chat == null)
-            throw new ArgumentNullException(nameof(chat));
+        ArgumentNullException.ThrowIfNull(chat);
 
         var parameters = MapChatToParameters(chat);
         await connection.ExecuteAsync(@"
@@ -91,8 +90,7 @@ public class SqlChatRepository(IDbConnection connection) : IChatRepository
 
     public async Task UpdateChat(string id, ChatDocument chat)
     {
-        if (chat == null)
-            throw new ArgumentNullException(nameof(chat));
+        ArgumentNullException.ThrowIfNull(chat);
 
         var parameters = MapChatToParameters(chat);
         await connection.ExecuteAsync(@"

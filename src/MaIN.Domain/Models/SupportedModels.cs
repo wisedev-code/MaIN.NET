@@ -221,7 +221,7 @@ public static class KnownModels
         if (model is null)
         {
             //todo support domain specific exceptions
-            throw new Exception($"Model {modelName} is not supported");
+            throw new NotSupportedException($"Model {modelName} is not supported");
         }
 
         return model;

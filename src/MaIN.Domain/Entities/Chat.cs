@@ -2,7 +2,7 @@ namespace MaIN.Domain.Entities;
 
 public class Chat
 {
-    public string Id { get; init; } = null!;
+    public string Id { get; init; } = string.Empty;
     public required string Name { get; init; }
     public required string Model { get; set; }
     public List<Message> Messages { get; set; } = [];

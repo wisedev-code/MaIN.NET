@@ -24,8 +24,10 @@ public class AgentService(
     public async Task<Chat> Process(Chat chat, string agentId, bool translatePrompt = false)
     {
         var agent = await agentRepository.GetAgentById(agentId);
-        if (agent == null) throw new ArgumentException("Agent not found.");
-        if (agent.Context == null) throw new ArgumentException("Agent context not found.");
+        if (agent == null) 
+            throw new ArgumentException("Agent not found."); //TODO candidate for NotFound domain exception
+        if (agent.Context == null) 
+            throw new ArgumentException("Agent context not found.");
 
         await notificationService.DispatchNotification(
             NotificationMessageBuilder.ProcessingStarted(agentId, agent.CurrentBehaviour), "ReceiveAgentUpdate");
@@ -39,7 +41,7 @@ public class AgentService(
                 async (status, id, progress, behaviour) =>
                 {
                     await notificationService.DispatchNotification(
-                        NotificationMessageBuilder.CreateActorProgress(id, status, progress, behaviour), "ReceiveAgentUpdate");
+                        NotificationMessageBuilder.CreateActorProgress(id, status, progress, behaviour), "ReceiveAgentUpdate"); //TODO prepare static lookup for magic string :) 
                 },
                 async c => await chatRepository.UpdateChat(c.Id, c.ToDocument()),
                 logger
@@ -102,9 +104,8 @@ public class AgentService(
     {
         var agent = await agentRepository.GetAgentById(agentId);
         if (agent == null)
-        {
             throw new Exception("Agent not found."); //TODO good candidate for custom exception
-        }
+        
         var chat = await chatRepository.GetChatById(agent.ChatId);
         return chat!.ToDomain();
     }
@@ -113,14 +114,13 @@ public class AgentService(
     {
         var agent = await agentRepository.GetAgentById(agentId);
         if (agent == null)
-        {
             throw new Exception("Agent not found."); //TODO good candidate for custom exception
-        }
+        
         var chat = (await chatRepository.GetChatById(agent.ChatId))!.ToDomain();
-        await llmService.CleanSessionCache(chat.Id);
+        await llmService.CleanSessionCache(chat.Id!);
         AgentStateManager.ClearState(agent, chat);
 
-        await chatRepository.UpdateChat(chat.Id, chat.ToDocument());
+        await chatRepository.UpdateChat(chat.Id!, chat.ToDocument());
         await agentRepository.UpdateAgent(agent.Id, agent);
 
         return chat;

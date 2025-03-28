@@ -10,7 +10,7 @@ namespace MaIN.Services.Mappers;
 public static class ChatMapper
 {
     public static ChatDto ToDto(this Chat chat)
-        => new ChatDto()
+        => new()
         {
             Id = chat.Id,
             Name = chat.Name,
@@ -21,7 +21,7 @@ public static class ChatMapper
             Properties = chat.Properties
         };
 
-    public static MessageDto ToDto(this Message message)
+    private static MessageDto ToDto(this Message message)
         => new MessageDto()
         {
             Content = message.Content,
@@ -50,7 +50,7 @@ public static class ChatMapper
             Properties = chat.Properties
         };
 
-    public static Message ToDomain(this MessageDto message)
+    private static Message ToDomain(this MessageDto message)
         => new()
         {
             Content = message.Content,
@@ -66,7 +66,7 @@ public static class ChatMapper
             }).ToList()
         };
 
-    public static MessageDocument ToDocument(this Message message)
+    private static MessageDocument ToDocument(this Message message)
         => new MessageDocument()
         {
             Content = message.Content,
@@ -109,7 +109,7 @@ public static class ChatMapper
             Type = Enum.Parse<ChatType>(chat.Type.ToString())
         };
 
-    public static Message ToDomain(this MessageDocument message)
+    private static Message ToDomain(this MessageDocument message)
         => new Message()
         {
             Content = message.Content,
@@ -120,29 +120,29 @@ public static class ChatMapper
             Images = message.Images,
             Properties = message.Properties,
         };
-    
-    public static LLMTokenValueDocument ToDocument(this LLMTokenValue llmTokenValue)
-    => new LLMTokenValueDocument()
-    {
-        Text = llmTokenValue.Text,
-        Type = llmTokenValue.Type
-    };
-    
-    public static LLMTokenValue ToDomain(this LLMTokenValueDocument llmTokenValue)
+
+    private static LLMTokenValueDocument ToDocument(this LLMTokenValue llmTokenValue)
+        => new()
+        {
+            Text = llmTokenValue.Text,
+            Type = llmTokenValue.Type
+        };
+
+    private static LLMTokenValue ToDomain(this LLMTokenValueDocument llmTokenValue)
         => new LLMTokenValue()
         {
             Text = llmTokenValue.Text,
             Type = llmTokenValue.Type
         };
-    
-    public static InferenceParams ToDomain(this InferenceParamsDocument inferenceParams)
+
+    private static InferenceParams ToDomain(this InferenceParamsDocument inferenceParams)
         => new InferenceParams()
         {
             Temperature = inferenceParams.Temperature,
             ContextSize = inferenceParams.ContextSize
         };
-    
-    public static InferenceParamsDocument ToDocument(this InferenceParams inferenceParams)
+
+    private static InferenceParamsDocument ToDocument(this InferenceParams inferenceParams)
         => new InferenceParamsDocument()
         {
             Temperature = inferenceParams.Temperature,

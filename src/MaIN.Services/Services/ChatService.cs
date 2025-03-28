@@ -1,8 +1,6 @@
 using MaIN.Domain.Entities;
 using MaIN.Domain.Models;
-using MaIN.Infrastructure.Models;
 using MaIN.Infrastructure.Repositories.Abstract;
-using MaIN.Services.Dtos;
 using MaIN.Services.Mappers;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.ImageGenServices;
@@ -64,7 +62,7 @@ public class ChatService(
         originalMessages.Add(result!.Message);
         chat.Messages = originalMessages;
 
-        await chatProvider.UpdateChat(chat.Id, chat.ToDocument());
+        await chatProvider.UpdateChat(chat.Id!, chat.ToDocument());
         return result;
     }
 
