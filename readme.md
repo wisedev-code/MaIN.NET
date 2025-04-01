@@ -66,6 +66,6 @@ We welcome contributions from developers, researchers, and AI enthusiasts. Join 
   Connect with us on [Discord](https://discord.gg/5ZhJUYZh) to share ideas, ask questions, and collaborate.
 
 - **Follow Us on X (ex Twitter):**  
-  Stay updated with the latest news and announcements by following us on [X](https://x.com/maIN_wiseDev).
+  Stay updated with the latest news and announcements by following us on [X](https://x.com/wiseDev_coder).
 
 Thank you for being part of our journey. If you like the idea, smash star button!
