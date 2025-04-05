@@ -2,7 +2,7 @@
 
 M.A.I.N (Modular Artificial Intelligence Network) is a versatile .NET package designed to streamline the integration of large language models (LLMs) into advanced AI workflows. Whether you're developing chatbots, automating processes, or exploring innovative AI techniques, M.A.I.N offers a flexible and robust foundation to build upon. The name reflects our core vision—a modular network connecting diverse AI methods into one unified ecosystem.
 
-Please star the repo to show your support for this project! ⭐️
+***Please star the repo to show your support for this project! ⭐️***
 
 The work on the package started with the learning and inspiration gained by using the [LLamaSharp](https://github.com/SciSharp/LLamaSharp) project and currently this project powers the local models. If you like this project, show your love also to them ❤️
 
