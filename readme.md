@@ -65,7 +65,7 @@ M.A.I.N is more than just a package—it's a stepping stone towards a complete A
 We welcome contributions from developers, researchers, and AI enthusiasts. Join our community and help shape the future of M.A.I.N!
 
 - **Join our Community:**  
-  Connect with us on [Discord]([https://discord.gg/5ZhJUYZh](https://discord.gg/73feG7zPqW)) to share ideas, ask questions, and collaborate.
+  Connect with us on [Discord](https://discord.gg/73feG7zPqW) to share ideas, ask questions, and collaborate.
 
 - **Follow Us on X (ex Twitter):**  
   Stay updated with the latest news and announcements by following us on [X](https://x.com/wiseDev_coder).
