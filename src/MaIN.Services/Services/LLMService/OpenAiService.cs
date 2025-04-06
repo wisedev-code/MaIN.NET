@@ -53,7 +53,7 @@ public class OpenAiService(
         else
         {
             conversation = new List<ChatMessage>();
-            MergeMessages(conversation, chat.Messages.Take(chat.Messages.Count - 1).ToList());
+            MergeMessages(conversation, chat.Messages);
         }
         
         var resultBuilder = new StringBuilder();
