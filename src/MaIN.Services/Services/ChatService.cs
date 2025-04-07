@@ -26,7 +26,7 @@ public class ChatService(
         bool interactiveUpdates = false,
         Func<LLMTokenValue?, Task>? changeOfValue = null)
     {
-        if (chat.Model == ImageGenService.Models.FLUX)
+        if (chat.Model == ImageGenService.LocalImageModels.FLUX)
         {
             chat.Visual = true;
         }
