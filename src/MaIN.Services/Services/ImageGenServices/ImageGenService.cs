@@ -1,6 +1,10 @@
+using System;
+using System.Linq;
+using System.Net.Http;
+using System.Threading.Tasks;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
-using MaIN.Services.Dtos;
+using MaIN.Services.Constants;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
 
@@ -8,42 +12,51 @@ namespace MaIN.Services.Services.ImageGenServices;
 
 public class ImageGenService(
     IHttpClientFactory httpClientFactory,
-    MaINSettings options) : IImageGenService
+    MaINSettings settings)
+    : IImageGenService
 {
+    private readonly IHttpClientFactory _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
+    private readonly MaINSettings _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+
     public async Task<ChatResult?> Send(Chat chat)
     {
-        using var client = httpClientFactory.CreateClient();
-        client.Timeout = TimeSpan.FromMinutes(5);
-        var constructedMessage = (chat.Messages
-            .Select((msg, index) => index == 0 ? msg.Content
-                : $"&& {msg.Content}")
-            .Aggregate((current, next) => $"{current} {next}"));
-        var response = await client.PostAsync($"{options.ImageGenUrl}/generate/{constructedMessage}", null);
+        var client = _httpClientFactory.CreateClient(ServiceConstants.HttpClients.ImageGenClient);
+        client.Timeout = TimeSpan.FromMinutes(ServiceConstants.Defaults.HttpImageModelTimeoutInMinutes);
         
-        if (!response.IsSuccessStatusCode)
-        {
-            throw new Exception($"Failed to create completion for chat {chat.Id} with message " +
-                                $"{chat.Messages.Last().Content}, status code {response.StatusCode}");
-        }
-
+        string constructedMessage = BuildMessageContent(chat.Messages);
+        string requestUrl = $"{_settings.ImageGenUrl}/generate/{constructedMessage}";
+        
+        using var response = await client.PostAsync(requestUrl, null);
+        response.EnsureSuccessStatusCode(); 
+        
         byte[] imageBytes = await response.Content.ReadAsByteArrayAsync();
-        var result = new ChatResult()
-        {
-            Done = true,
-            Message = new Message()
-            {
-                Content = "Generated Image:",
-                Role = "Assistant",
-                Images = imageBytes
-            },
-            Model = Models.FLUX,
-            CreatedAt = DateTime.Now
-        };
-        
-        return result;
+        return CreateChatResult(imageBytes);
+    }
+    
+    private static string BuildMessageContent(ICollection<Message> messages)
+    {
+        return messages
+            .Select((msg, index) => index == 0 ? msg.Content : $"&& {msg.Content}")
+            .Aggregate((current, next) => $"{current} {next}");
     }
 
-    public struct Models
+    private static ChatResult CreateChatResult(byte[] imageBytes)
+    {
+        return new ChatResult
+        {
+            Done = true,
+            Message = new Message
+            {
+                Content = ServiceConstants.Messages.GeneratedImageContent,
+                Role = ServiceConstants.Messages.AssistantRole,
+                Images = imageBytes
+            },
+            Model = LocalImageModels.FLUX,
+            CreatedAt = DateTime.UtcNow
+        };
+    }
+    
+    internal struct LocalImageModels
     {
         public const string FLUX = "FLUX.1_Shnell";
     }

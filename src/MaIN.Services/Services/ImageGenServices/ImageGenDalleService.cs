@@ -1,7 +1,8 @@
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
-using MaIN.Services.Dtos;
+using MaIN.Services.Constants;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
 
@@ -9,79 +10,86 @@ namespace MaIN.Services.Services.ImageGenServices;
 
 public class OpenAiImageGenService(
     IHttpClientFactory httpClientFactory,
-    MaINSettings options) : IImageGenService
+    MaINSettings settings)
+    : IImageGenService
 {
-  public async Task<ChatResult?> Send(Chat chat)
-{
-    using var client = httpClientFactory.CreateClient();
-    client.Timeout = TimeSpan.FromMinutes(5);
-    client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", options.OpenAiKey ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY"));
+    private readonly IHttpClientFactory _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
+    private readonly MaINSettings _settings = settings ?? throw new ArgumentNullException(nameof(settings));
     
-    var prompt = (chat.Messages
-        .Select((msg, index) => index == 0 ? msg.Content
-            : $"&& {msg.Content}")
-        .Aggregate((current, next) => $"{current} {next}"));
-    
-    var requestBody = new
+    public async Task<ChatResult?> Send(Chat chat)
     {
-        model = Models.DALLE,
-        prompt = prompt,
-        size = "1024x1024"
-    };
-
-    var response = await client.PostAsJsonAsync("https://api.openai.com/v1/images/generations", requestBody);
-
-    if (!response.IsSuccessStatusCode)
-    {
-        throw new Exception($"Failed to create image for chat {chat.Id} with message " +
-                            $"{chat.Messages.Last().Content}, status code {response.StatusCode}");
-    }
-
-    var responseData = await response.Content.ReadFromJsonAsync<OpenAiImageResponse>();
-    if (responseData == null || responseData.Data.Length == 0)
-    {
-        throw new Exception("No image URL returned from OpenAI.");
-    }
-
-    using var imageClient = new HttpClient();
-    using var imageResponse = await imageClient.GetAsync(responseData.Data[0].Url);
-
-    if (!imageResponse.IsSuccessStatusCode)
-    {
-        throw new Exception($"Failed to download image, status code {imageResponse.StatusCode}");
-    }
-
-    var imageBytes = await imageResponse.Content.ReadAsByteArrayAsync();
-
-    var result = new ChatResult()
-    {
-        Done = true,
-        Message = new Message()
+        var client = _httpClientFactory.CreateClient(ServiceConstants.HttpClients.OpenAiClient);
+        string apiKey = _settings.OpenAiKey ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY") 
+            ?? throw new InvalidOperationException("OpenAI API key is not configured");
+        
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+        
+        string prompt = BuildPromptFromChat(chat);
+        var requestBody = new
         {
-            Content = "Generated Image:",
-            Role = "Assistant",
-            Images = imageBytes
-        },
-        Model = Models.DALLE,
-        CreatedAt = DateTime.Now
-    };
+            model = Models.DALLE,
+            prompt = prompt,
+            size = ServiceConstants.Defaults.ImageSize
+        };
 
-    return result;
-}
+        using var response = await client.PostAsJsonAsync(ServiceConstants.ApiUrls.OpenAiImageGenerations, requestBody);
+        response.EnsureSuccessStatusCode();
+        var responseData = await response.Content.ReadFromJsonAsync<OpenAiImageResponse>();
+        if (responseData?.Data == null || responseData.Data.Length == 0 || string.IsNullOrEmpty(responseData.Data[0].Url))
+        {
+            throw new InvalidOperationException("No image URL returned from OpenAI");
+        }
 
+        byte[] imageBytes = await DownloadImageAsync(responseData.Data[0].Url);
+        return CreateChatResult(imageBytes);
+    }
     
-    public struct Models
+    private static string BuildPromptFromChat(Chat chat)
+    {
+        return chat.Messages
+            .Select((msg, index) => index == 0 ? msg.Content : $"&& {msg.Content}")
+            .Aggregate((current, next) => $"{current} {next}");
+    }
+    
+    private async Task<byte[]> DownloadImageAsync(string imageUrl)
+    {
+        var imageClient = _httpClientFactory.CreateClient(ServiceConstants.HttpClients.ImageDownloadClient);
+        
+        using var imageResponse = await imageClient.GetAsync(imageUrl);
+        imageResponse.EnsureSuccessStatusCode();
+        
+        return await imageResponse.Content.ReadAsByteArrayAsync();
+    }
+    
+    private static ChatResult CreateChatResult(byte[] imageBytes)
+    {
+        return new ChatResult
+        {
+            Done = true,
+            Message = new Message
+            {
+                Content = ServiceConstants.Messages.GeneratedImageContent,
+                Role = ServiceConstants.Messages.AssistantRole,
+                Images = imageBytes
+            },
+            Model = Models.DALLE,
+            CreatedAt = DateTime.UtcNow
+        };
+    }
+    
+    private struct Models
     {
         public const string DALLE = "dall-e-3";
     }
 }
 
-public class OpenAiImageResponse
+
+file class OpenAiImageResponse
 {
     public ImageData[] Data { get; set; } = [];
 }
 
-public class ImageData
+file class ImageData
 {
     public string Url { get; set; } = string.Empty;
 }

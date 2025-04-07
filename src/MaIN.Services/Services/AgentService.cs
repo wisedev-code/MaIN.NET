@@ -70,7 +70,7 @@ public class AgentService(
             Id = Guid.NewGuid().ToString(),
             Model = agent.Model,
             Name = agent.Name,
-            Visual = agent.Model == ImageGenService.Models.FLUX,
+            Visual = agent.Model == ImageGenService.LocalImageModels.FLUX,
             InterferenceParams = inferenceParams ?? new InferenceParams(),
             Messages = new List<Message>(),
             Interactive = interactiveResponse,
