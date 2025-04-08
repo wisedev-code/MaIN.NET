@@ -9,6 +9,7 @@ public class Chat
     public ChatType Type { get; set; } = ChatType.Conversation;
     public bool Visual { get; set; }
     public InferenceParams InterferenceParams { get; set; } = new();
+    public MemoryParams MemoryParams { get; set; } = new();
     public Dictionary<string, string> Properties { get; init; } = [];
     public List<string> Memory { get; } = [];
 
