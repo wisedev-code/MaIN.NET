@@ -1,4 +1,6 @@
-# M.A.I.N
+<h1 align="center" style="color: yellow">MaIN.NET</h1>
+
+![Build Status](https://github.com/wisedev-code/MaIN.NET/actions/workflows/publish.yml/badge.svg) ![Download Count](https://img.shields.io/nuget/dt/MaIN.NET?label=Nuget%3A&style=plastic)
 
 M.A.I.N (Modular Artificial Intelligence Network) is a versatile .NET package designed to streamline the integration of large language models (LLMs) into advanced AI workflows. Whether you're developing chatbots, automating processes, or exploring innovative AI techniques, M.A.I.N offers a flexible and robust foundation to build upon. The name reflects our core vision—a modular network connecting diverse AI methods into one unified ecosystem.
 
