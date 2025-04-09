@@ -12,6 +12,7 @@ using System.Net.Http.Headers;
 using System.Net.Mime;
 using System.Text;
 using System.Text.Json;
+using DocumentFormat.OpenXml.Office2010.ExcelAc;
 using MaIN.Services.Constants;
 
 namespace MaIN.Services.Services.LLMService;
@@ -29,7 +30,7 @@ public class OpenAiService(
     private static readonly ConcurrentDictionary<string, List<ChatMessage>> SessionCache = new();
     private bool _disposed;
     
-    public async Task<ChatResult?> SendAsync(
+    public async Task<ChatResult?> Send(
         Chat chat,
         ChatRequestOptions options,
         CancellationToken cancellationToken = default)
@@ -74,7 +75,6 @@ public class OpenAiService(
             }
         }
         
-        // Add final token and send notification if needed
         var finalToken = new LLMTokenValue { Text = resultBuilder.ToString(), Type = TokenType.FullAnswer };
         tokens.Add(finalToken);
         
@@ -85,15 +85,10 @@ public class OpenAiService(
                 ServiceConstants.Notifications.ReceiveMessageUpdate);
         }
 
-        // Update session cache if needed
         UpdateSessionCache(chat.Id, resultBuilder.ToString(), options.CreateSession);
-
         return CreateChatResult(chat, resultBuilder.ToString(), tokens);
     }
-
-    /// <summary>
-    /// Legacy method for compatibility - delegates to the new async method
-    /// </summary>
+    
     public async Task<ChatResult?> Send(
         Chat chat,
         bool interactiveUpdates = false,
@@ -110,7 +105,7 @@ public class OpenAiService(
         return await SendAsync(chat, options);
     }
 
-    private async Task<ChatResult?> AskMemoryAsync(
+    private async Task<ChatResult?> AskMemory(
         Chat chat,
         ChatMemoryOptions memoryOptions,
         CancellationToken cancellationToken = default)
@@ -131,30 +126,7 @@ public class OpenAiService(
         return CreateChatResult(chat, retrievedContext.Result, []);
     }
     
-    public async Task<ChatResult?> AskMemory(
-        Chat chat,
-        Dictionary<string, string>? textData = null,
-        Dictionary<string, string>? fileData = null,
-        Dictionary<string, FileStream>? streamData = null,
-        List<string>? webUrls = null,
-        List<string>? memory = null)
-    {
-        var options = new ChatMemoryOptions
-        {
-            TextData = textData,
-            FileData = fileData,
-            StreamData = streamData,
-            WebUrls = webUrls,
-            Memory = memory
-        };
-        
-        return await AskMemoryAsync(chat, options);
-    }
-
-    /// <summary>
-    /// Gets the current available models from OpenAI.
-    /// </summary>
-    public async Task<IReadOnlyList<string>> GetCurrentModelsAsync(CancellationToken cancellationToken = default)
+    public async Task<string[]> GetCurrentModels()
     {
         ValidateApiKey();
         
@@ -163,44 +135,26 @@ public class OpenAiService(
             "Bearer", 
             GetApiKey());
 
-        using var response = await client.GetAsync(ServiceConstants.ApiUrls.OpenAiModels, cancellationToken);
+        using var response = await client.GetAsync(ServiceConstants.ApiUrls.OpenAiModels);
         response.EnsureSuccessStatusCode();
         
-        var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
+        var responseJson = await response.Content.ReadAsStringAsync();
         var modelsResponse = JsonSerializer.Deserialize<OpenAiModelsResponse>(responseJson);
 
-        return modelsResponse?.Data?
-            .Where(m => m.Id!.StartsWith("gpt-", StringComparison.InvariantCultureIgnoreCase))
-            .Select(m => m.Id)
-            .Where(id => id != null)
-            .Cast<string>()
-            .ToList() 
-            ?? new List<string>();
+        return (modelsResponse?.Data?
+                    .Where(m => m.Id!.StartsWith("gpt-", StringComparison.InvariantCultureIgnoreCase))
+                    .Select(m => m.Id)
+                    .Where(id => id != null)
+                    .ToArray() 
+                ?? [])!;
     }
-
-    /// <summary>
-    /// Legacy method for compatibility - delegates to the new async method
-    /// </summary>
-    public async Task<List<string?>> GetCurrentModels()
-    {
-        var models = await GetCurrentModelsAsync();
-        return models.Cast<string?>().ToList();
-    }
-
-    /// <summary>
-    /// Cleans the session cache for a specific chat ID.
-    /// </summary>
-    public Task CleanSessionCacheAsync(string id)
+    
+    public Task CleanSessionCache(string id)
     {
         SessionCache.TryRemove(id, out _);
         return Task.CompletedTask;
     }
-
-    /// <summary>
-    /// Legacy method for compatibility - delegates to the new async method
-    /// </summary>
-    public Task CleanSessionCache(string id) => CleanSessionCacheAsync(id);
-
+    
     public void Dispose()
     {
         Dispose(true);
@@ -219,8 +173,7 @@ public class OpenAiService(
 
         _disposed = true;
     }
-
-    #region Private Methods
+    
 
     private string GetApiKey()
     {
@@ -288,7 +241,7 @@ public class OpenAiService(
             StreamData = streamData
         };
         
-        return await AskMemoryAsync(chat, memoryOptions, cancellationToken);
+        return await AskMemory(chat, memoryOptions, cancellationToken);
     }
 
     private async Task ProcessStreamingChatAsync(
@@ -494,58 +447,23 @@ public class OpenAiService(
         }
     }
 
-    #endregion
 }
 
-/// <summary>
-/// Options for chat requests to the OpenAI API.
-/// </summary>
+
 public class ChatRequestOptions
 {
-    /// <summary>
-    /// Whether to provide interactive updates during the chat completion.
-    /// </summary>
     public bool InteractiveUpdates { get; set; }
-    
-    /// <summary>
-    /// Whether to create a session for this chat.
-    /// </summary>
     public bool CreateSession { get; set; }
-    
-    /// <summary>
-    /// Callback function for token updates.
-    /// </summary>
     public Func<LLMTokenValue, Task>? TokenCallback { get; set; }
 }
 
-/// <summary>
-/// Options for memory-based chat requests.
-/// </summary>
+
 public class ChatMemoryOptions
 {
-    /// <summary>
-    /// Dictionary of text data to process.
-    /// </summary>
     public Dictionary<string, string>? TextData { get; set; }
-    
-    /// <summary>
-    /// Dictionary of file paths to process.
-    /// </summary>
     public Dictionary<string, string>? FileData { get; set; }
-    
-    /// <summary>
-    /// Dictionary of file streams to process.
-    /// </summary>
     public Dictionary<string, FileStream>? StreamData { get; set; }
-    
-    /// <summary>
-    /// List of web URLs to process.
-    /// </summary>
     public List<string>? WebUrls { get; set; }
-    
-    /// <summary>
-    /// List of memory items to process.
-    /// </summary>
     public List<string>? Memory { get; set; }
 }
 
@@ -559,6 +477,7 @@ file class ChatCompletionResponse
 {
     public List<Choice>? Choices { get; set; }
 }
+
 
 file class Choice
 {

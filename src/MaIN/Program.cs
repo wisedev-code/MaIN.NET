@@ -17,5 +17,4 @@ app.MapInitialAgents();
 
 app.Run();
 
-// Grants Program.cs visibility in Integration Tests project assembly
 public partial class Program {}

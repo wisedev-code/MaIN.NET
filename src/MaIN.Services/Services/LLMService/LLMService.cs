@@ -314,17 +314,17 @@ public class LLMService(MaINSettings options, INotificationService notificationS
         return modelCache.GetOrAdd(modelKey, loadedModel);
     }
 
-    public Task<List<string?>> GetCurrentModels()
+    public Task<string[]> GetCurrentModels()
     {
-        var path = options.ModelsPath ?? Environment.GetEnvironmentVariable(DefaultModelEnvPath); //TODO add handling for null path
+        var path = options.ModelsPath ?? Environment.GetEnvironmentVariable(DefaultModelEnvPath);
         var files = Directory.GetFiles(path!, "*.gguf", SearchOption.AllDirectories).ToList();
-        var models = new List<string?>();
+        var models = Array.Empty<string>();
         foreach (var file in files)
         {
             var model = KnownModels.GetModelByFileName(path!, Path.GetFileName(file));
             if (model != null)
             {
-                models.Add(model.Name);
+                models = models.Append(model.Name).ToArray();
             }
         }
 
