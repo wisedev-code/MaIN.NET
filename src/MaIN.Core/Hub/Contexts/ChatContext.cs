@@ -41,7 +41,13 @@ public class ChatContext
         _chat.InterferenceParams = inferenceParams;
         return this;
     }
-    
+
+    public ChatContext WithMemoryParams(MemoryParams memoryParams)
+    {
+        _chat.MemoryParams = memoryParams;
+        return this;
+    }
+
     public ChatContext WithCustomModel(string model, string path)
     {
         KnownModels.AddModel(model, path);

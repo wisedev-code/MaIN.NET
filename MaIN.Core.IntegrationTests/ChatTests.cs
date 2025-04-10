@@ -1,6 +1,7 @@
 ﻿using System.Text.Json;
 using MaIN.Core.Hub;
 using MaIN.Domain.Configuration;
+using MaIN.Domain.Entities;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 
@@ -67,6 +68,10 @@ public class ChatTests : IntegrationTestBase
         
         var result = await AIHub.Chat()
             .WithModel("llama3.2:3b")
+            .WithMemoryParams(new MemoryParams
+            {
+                AnswerTokens = 1000
+            })
             .WithMessage("What is the title of game?")
             .WithFiles(images)
             .CompleteAsync();
