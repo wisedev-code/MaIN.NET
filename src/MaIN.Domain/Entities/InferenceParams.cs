@@ -13,7 +13,7 @@ public class InferenceParams
     public int TypeV { get; init; } = 0;
     
     public int TokensKeep { get; set; }
-    public int MaxTokens { get; set; }
+    public int MaxTokens { get; set; } = 5000;
     
     public int TopK { get; init; } = 40;
     public float TopP { get; init; } = 0.9f;
