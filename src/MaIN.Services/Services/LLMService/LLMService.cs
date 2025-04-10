@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
-using System.Text;
 using LLama;
 using LLama.Common;
 using LLama.Native;
@@ -10,7 +9,6 @@ using LLamaSharp.KernelMemory;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Models;
-using MaIN.Services.Dtos;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
 using MaIN.Services.Utils;
@@ -49,15 +47,25 @@ public class LLMService(MaINSettings options, INotificationService notificationS
         {
             SamplingPipeline = new DefaultSamplingPipeline
             {
-                Temperature = chat.InterferenceParams.Temperature, 
+                Temperature = chat.InterferenceParams.Temperature,
+                TopK = chat.InterferenceParams.TopK,
+                TopP = chat.InterferenceParams.TopP
             },
-            AntiPrompts = [llmModel.Vocab.EOT?.ToString() ?? "User:"]
+            AntiPrompts = [llmModel.Vocab.EOT?.ToString() ?? "User:"],
+            TokensKeep = chat.InterferenceParams.TokensKeep,
+            MaxTokens = chat.InterferenceParams.MaxTokens
         };
 
         var parameters = new ModelParams(Path.Combine(path, modelKey))
         {
             ContextSize = (uint?)chat.InterferenceParams.ContextSize,
-            GpuLayerCount = 30,
+            GpuLayerCount = chat.InterferenceParams.GpuLayerCount,
+            SeqMax = chat.InterferenceParams.SeqMax,
+            BatchSize = chat.InterferenceParams.BatchSize,
+            UBatchSize = chat.InterferenceParams.UBatchSize,
+            Embeddings = chat.InterferenceParams.Embeddings,
+            TypeK = (GGMLType)chat.InterferenceParams.TypeK,
+            TypeV = (GGMLType)chat.InterferenceParams.TypeV,
         };
 
         var session = GetOrCreateSession(chat.Id, () =>
@@ -205,7 +213,7 @@ public class LLMService(MaINSettings options, INotificationService notificationS
         var model = KnownModels.GetModel(path, chat.Model);
         var modelKey = model.FileName;
 
-        var kernelMemory = CreateMemory(modelKey, path);
+        var kernelMemory = CreateMemory(modelKey, path, chat.MemoryParams);
 
         if (chatMemoryOptions.TextData != null)
         {
@@ -269,7 +277,7 @@ public class LLMService(MaINSettings options, INotificationService notificationS
 
 
     [Experimental("KMEXP01")]
-    private static IKernelMemory CreateMemory(string modelName, string path)
+    private static IKernelMemory CreateMemory(string modelName, string path, MemoryParams memoryParams)
     {
         InferenceParams infParams = new() { AntiPrompts = ["INFO", "<|im_end|>", "Question:"] };
 
@@ -278,10 +286,10 @@ public class LLMService(MaINSettings options, INotificationService notificationS
         
         SearchClientConfig searchClientConfig = new()
         {
-            MaxMatchesCount = 5,
-            FrequencyPenalty = 1,
-            Temperature = 0.6f,
-            AnswerTokens = 500,
+            MaxMatchesCount = memoryParams.MaxMatchesCount,
+            FrequencyPenalty = memoryParams.FrequencyPenalty,
+            Temperature = memoryParams.Temperature,
+            AnswerTokens = memoryParams.AnswerTokens,
         };
 
         TextPartitioningOptions parseOptions = new()

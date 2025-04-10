@@ -2,8 +2,6 @@ using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
 using MaIN.Domain.Entities.Agents.AgentSource;
 using MaIN.Domain.Models;
-using MaIN.Services.Dtos;
-using MaIN.Services.Mappers;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
 
@@ -13,6 +11,7 @@ public class AgentContext
 {
     private readonly IAgentService _agentService;
     private InferenceParams? _inferenceParams;
+    private MemoryParams? _memoryParams;
     private Agent _agent;
 
     internal AgentContext(IAgentService agentService)
@@ -84,7 +83,13 @@ public class AgentContext
         _inferenceParams = inferenceParams;
         return this;
     }
-    
+
+    public AgentContext WithMemoryParams(MemoryParams memoryParams)
+    {
+        _memoryParams = memoryParams;
+        return this;
+    }
+
     public AgentContext WithCustomModel(string model, string path)
     {
         KnownModels.AddModel(model, path);
@@ -115,13 +120,13 @@ public class AgentContext
 
     public async Task<AgentContext> CreateAsync(bool flow = false, bool interactiveResponse = false)
     {
-        await _agentService.CreateAgent(_agent, flow, interactiveResponse, _inferenceParams);
+        await _agentService.CreateAgent(_agent, flow, interactiveResponse, _inferenceParams, _memoryParams);
         return this;
     }
     
     public AgentContext Create(bool flow = false, bool interactiveResponse = false)
     {
-        _ = _agentService.CreateAgent(_agent, flow, interactiveResponse, _inferenceParams).Result;
+        _ = _agentService.CreateAgent(_agent, flow, interactiveResponse, _inferenceParams, _memoryParams).Result;
         return this;
     }
     
