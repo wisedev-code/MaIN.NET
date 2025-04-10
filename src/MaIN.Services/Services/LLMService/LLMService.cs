@@ -28,9 +28,8 @@ public class LLMService(MaINSettings options, INotificationService notificationS
     private static readonly ConcurrentDictionary<string, ChatSession> sessionCache = new(); // Cache for chat sessions
 
     public async Task<ChatResult?> Send(Chat chat,
-        bool interactiveUpdates = false,
-        bool newSession = false,
-        Func<LLMTokenValue, Task>? changeOfValue = null)
+        ChatRequestOptions chatRequestOptions,
+        CancellationToken cancellationToken = default)
     {
         if (!chat.Messages.Any())
             return null;
@@ -61,22 +60,21 @@ public class LLMService(MaINSettings options, INotificationService notificationS
             GpuLayerCount = 30,
         };
 
-        var session = newSession
-            ? GetOrCreateSession(chat.Id, () =>
-            {
-                var context = llmModel.CreateContext(parameters);
-                var history = new ChatHistory();
-                var executor = new InteractiveExecutor(context);
-                return new ChatSession(executor, history);
-            })
-            : new ChatSession(new InteractiveExecutor(llmModel.CreateContext(parameters)));
+        var session = GetOrCreateSession(chat.Id, () =>
+        {
+            var context = llmModel.CreateContext(parameters);
+            var history = new ChatHistory();
+            var executor = new InteractiveExecutor(context);
+            return new ChatSession(executor, history);
+        });
+            // new ChatSession(new InteractiveExecutor(llmModel.CreateContext(parameters)));
 
         var startSession = session.History.Messages.Count == 0;
         AddMessagesToHistory(session, chat.Messages);
 
         session.WithHistoryTransform(new PromptTemplateTransformer(llmModel, withAssistant: true));
         session.WithOutputTransform(new LLamaTransforms.KeywordTextOutputStreamTransform(
-            new[] { llmModel.Vocab.EOT.ToString() ?? "User:", "�"},
+            [llmModel.Vocab.EOT.ToString() ?? "User:", "�"],
             redundancyLength: 5));
 
         var listOfTokens = new List<LLMTokenValue>();
@@ -88,17 +86,22 @@ public class LLMService(MaINSettings options, INotificationService notificationS
 #pragma warning disable SKEXP0001
             var textData = lastMessage.Files
                 .Where(x => x.Content is not null)
-                .ToDictionary(x => x.Name, x => x.Content);
+                .ToDictionary(x => x.Name, x => x.Content!);
             
             var fileData = lastMessage.Files
                 .Where(x => x.Path is not null)
-                .ToDictionary(x => x.Name, x => x.Path); //shity coode TODO
+                .ToDictionary(x => x.Name, x => x.Path!); //shity coode TODO
             
             var streamData = lastMessage.Files
                 .Where(x => x.StreamContent is not null)
-                .ToDictionary(x => x.Name, x => x.StreamContent);
+                .ToDictionary(x => x.Name, x => x.StreamContent!);
             
-            var result = await AskMemory(chat, textData!, fileData!, streamData!); 
+            var result = await AskMemory(chat, new ChatMemoryOptions()
+            {
+                TextData = textData,
+                FileData = fileData,
+                StreamData = streamData
+            }, cancellationToken: cancellationToken); 
             
             listOfTokens.Add(new LLMTokenValue()
             {
@@ -110,7 +113,7 @@ public class LLMService(MaINSettings options, INotificationService notificationS
         {
             await foreach (var text in session.ChatAsync(
                                new ChatHistory.Message(AuthorRole.User, finalPrompt),
-                               inferenceParams))
+                               inferenceParams, cancellationToken))
             {
                 var token = model.ReasonFunction is not null
                     ? model.ReasonFunction(text, thinkingState)
@@ -120,7 +123,7 @@ public class LLMService(MaINSettings options, INotificationService notificationS
                         Text = text
                     };
                 
-                if (interactiveUpdates)
+                if (chatRequestOptions.InteractiveUpdates)
                 {
                     await notificationService.DispatchNotification(
                         NotificationMessageBuilder.CreateChatCompletion(
@@ -130,13 +133,13 @@ public class LLMService(MaINSettings options, INotificationService notificationS
                         "ReceiveMessageUpdate");
                 }
 
-                changeOfValue?.Invoke(token);
+                chatRequestOptions.TokenCallback?.Invoke(token);
                 listOfTokens.Add(token);
             }
         }
 
         var stringToReturn = string.Concat(listOfTokens.Select(x => x.Text));
-        if (interactiveUpdates)
+        if (chatRequestOptions.InteractiveUpdates)
         {
             await notificationService.DispatchNotification(NotificationMessageBuilder.CreateChatCompletion(
                 chat.Id,
@@ -166,11 +169,9 @@ public class LLMService(MaINSettings options, INotificationService notificationS
     
     private ChatSession GetOrCreateSession(string chatId, Func<ChatSession> createSession)
     {
-        if (!sessionCache.TryGetValue(chatId, out var session))
-        {
-            session = createSession();
-            sessionCache[chatId] = session;
-        }
+        if (sessionCache.TryGetValue(chatId, out var session)) return session;
+        session = createSession();
+        sessionCache[chatId] = session;
 
         return session;
     }
@@ -194,11 +195,8 @@ public class LLMService(MaINSettings options, INotificationService notificationS
 
     [Experimental("SKEXP0001")]
     public async Task<ChatResult?> AskMemory(Chat chat,
-        Dictionary<string, string>? textData = null,
-        Dictionary<string, string>? fileData = null,
-        Dictionary<string, FileStream>? streamData = null,
-        List<string>? webUrls = null,
-        List<string>? memory = null)
+        ChatMemoryOptions chatMemoryOptions,
+        CancellationToken cancellationToken = default)
     {
         var path = options.ModelsPath ?? Environment.GetEnvironmentVariable(DefaultModelEnvPath);
         if (path == null)
@@ -209,50 +207,50 @@ public class LLMService(MaINSettings options, INotificationService notificationS
 
         var kernelMemory = CreateMemory(modelKey, path);
 
-        if (textData != null)
+        if (chatMemoryOptions.TextData != null)
         {
-            foreach (var item in textData)
+            foreach (var item in chatMemoryOptions.TextData)
             {
-                await kernelMemory.ImportTextAsync(item.Value, item.Key);
+                await kernelMemory.ImportTextAsync(item.Value, item.Key, cancellationToken: cancellationToken);
             }
         }
 
-        if (fileData != null)
+        if (chatMemoryOptions.FileData != null)
         {
-            foreach (var item in fileData)
+            foreach (var item in chatMemoryOptions.FileData)
             {
-                await kernelMemory.ImportDocumentAsync(item.Value, item.Key);
+                await kernelMemory.ImportDocumentAsync(item.Value, item.Key, cancellationToken: cancellationToken);
             }
         }
 
-        if (streamData != null)
+        if (chatMemoryOptions.StreamData != null)
         {
-            foreach (var item in streamData)
+            foreach (var item in chatMemoryOptions.StreamData)
             {
-                await kernelMemory.ImportDocumentAsync(item.Value, item.Key);
+                await kernelMemory.ImportDocumentAsync(item.Value, item.Key, cancellationToken: cancellationToken);
             }
         }
 
-        if (webUrls != null)
+        if (chatMemoryOptions.WebUrls != null)
         {
-            foreach (var url in webUrls)
+            foreach (var url in chatMemoryOptions.WebUrls)
             {
-                await kernelMemory.ImportWebPageAsync(url);
+                await kernelMemory.ImportWebPageAsync(url, cancellationToken: cancellationToken);
             }
         }
 
-        if (memory != null)
+        if (chatMemoryOptions.Memory != null)
         {
-            for (var index = 0; index < memory.Count; index++)
+            for (var index = 0; index < chatMemoryOptions.Memory.Count; index++)
             {
-                await kernelMemory.ImportTextAsync(memory[index], $"ANSWER_MEMORY_{index + 1}-{memory.Count}");
+                await kernelMemory.ImportTextAsync(chatMemoryOptions.Memory[index], $"ANSWER_MEMORY_{index + 1}-{chatMemoryOptions.Memory.Count}", cancellationToken: cancellationToken);
             }
         }
 
         var userMsg = chat.Messages.Last();
-        var result = await kernelMemory.AskAsync(userMsg.Content);
+        var result = await kernelMemory.AskAsync(userMsg.Content, cancellationToken: cancellationToken);
 
-        await kernelMemory.DeleteIndexAsync();
+        await kernelMemory.DeleteIndexAsync(cancellationToken: cancellationToken);
 
         var chatResult = new ChatResult()
         {

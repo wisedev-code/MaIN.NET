@@ -2,6 +2,7 @@ using MaIN.Domain.Entities;
 using MaIN.Services.Dtos;
 using MaIN.Services.Mappers;
 using MaIN.Services.Services.Abstract;
+using MaIN.Services.Services.LLMService;
 using MaIN.Services.Services.Models;
 using MaIN.Services.Services.Models.Commands;
 
@@ -18,13 +19,13 @@ public class AnswerCommandHandler(
         
         if (command.UseMemory)
         {
-            result = await llmService.AskMemory(command.Chat!, memory: command.Chat?.Memory);
+            result = await llmService.AskMemory(command.Chat, new ChatMemoryOptions { Memory = command.Chat.Memory});
             return result!.Message;
         }
 
         result = command.Chat!.Visual
             ? await imageGenService.Send(command.Chat)
-            : await llmService.Send(command.Chat, interactiveUpdates: command.Chat.Interactive);
+            : await llmService.Send(command.Chat, new ChatRequestOptions { InteractiveUpdates = command.Chat.Interactive });
 
         return result!.Message;
     }
