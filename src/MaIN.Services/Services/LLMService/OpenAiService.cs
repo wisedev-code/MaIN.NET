@@ -102,10 +102,10 @@ public class OpenAiService(
             TokenCallback = changeOfValue
         };
         
-        return await SendAsync(chat, options);
+        return await Send(chat, options);
     }
 
-    private async Task<ChatResult?> AskMemory(
+    public async Task<ChatResult?> AskMemory(
         Chat chat,
         ChatMemoryOptions memoryOptions,
         CancellationToken cancellationToken = default)
@@ -402,7 +402,7 @@ public class OpenAiService(
 
         if (options.Memory != null)
         {
-            for (int i = 0; i < options.Memory.Count; i++)
+            for (var i = 0; i < options.Memory.Count; i++)
             {
                 await kernelMemory.ImportTextAsync(options.Memory[i], $"memory_{i + 1}", cancellationToken: cancellationToken);
             }

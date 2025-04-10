@@ -4,6 +4,7 @@ using MaIN.Infrastructure.Repositories.Abstract;
 using MaIN.Services.Mappers;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.ImageGenServices;
+using MaIN.Services.Services.LLMService;
 using MaIN.Services.Services.Models;
 
 namespace MaIN.Services.Services;
@@ -51,7 +52,11 @@ public class ChatService(
 
         var result = chat.Visual 
             ? await imageGenService.Send(chat) 
-            : await llmService.Send(chat, interactiveUpdates, true, changeOfValue);
+            : await llmService.Send(chat, new ChatRequestOptions()
+            {
+                InteractiveUpdates = interactiveUpdates,
+                TokenCallback = changeOfValue
+            });
     
         if (translate)
         {
