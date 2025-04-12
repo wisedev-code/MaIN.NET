@@ -3,6 +3,7 @@ using LLama.Common;
 using LLamaSharp.KernelMemory;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
+using MaIN.Domain.Models;
 using MaIN.Services.Utils;
 using Microsoft.KernelMemory;
 using Microsoft.KernelMemory.Configuration;
@@ -26,7 +27,7 @@ public class MemoryFactory(MaINSettings settings) : IMemoryFactory
     public IKernelMemory CreateMemoryWithModel(string? modelsPath, string modelName, MemoryParams memoryParams)
     {
         var path = ResolvePath(modelsPath);
-        var embeddingModel = ModelHelper.GetEmbeddingModel();
+        var embeddingModel = KnownModels.GetEmbeddingModel();
         var embeddingModelPath = Path.Combine(path, embeddingModel.FileName);
 
         var generator = ConfigureGeneratorOptions(embeddingModelPath);

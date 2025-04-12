@@ -2,7 +2,7 @@ using Microsoft.KernelMemory;
 
 namespace MaIN.Services.Services.LLMService.Memory;
 
-public class MemoryService(IMemoryFactory memoryFactory) : IMemoryService
+public class MemoryService : IMemoryService
 {
     public async Task ImportDataToMemory(
         IKernelMemory memory,
@@ -26,7 +26,7 @@ public class MemoryService(IMemoryFactory memoryFactory) : IMemoryService
     private async Task ImportTextData(IKernelMemory memory, Dictionary<string, string>? textData,
         CancellationToken cancellationToken)
     {
-        if (textData?.Count == 0)
+        if (textData is null || textData.Count == 0)
             return;
 
         foreach (var item in textData)
