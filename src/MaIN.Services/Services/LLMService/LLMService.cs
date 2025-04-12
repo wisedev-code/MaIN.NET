@@ -49,7 +49,7 @@ public class LLMService : ILLMService
         if (chat.Messages.Count == 0)
             return null;
 
-        var model = ModelHelper.GetModel(chat.Model);
+        var model = KnownModels.GetModel(chat.Model);
         var modelKey = model.FileName;
         var thinkingState = new ThinkingState();
 
@@ -99,7 +99,7 @@ public class LLMService : ILLMService
         ChatMemoryOptions memoryOptions,
         CancellationToken cancellationToken = default)
     {
-        var model = ModelHelper.GetModel(chat.Model);
+        var model = KnownModels.GetModel(chat.Model);
         var kernelMemory = memoryFactory.CreateMemoryWithModel(
             modelsPath,
             model.FileName,
