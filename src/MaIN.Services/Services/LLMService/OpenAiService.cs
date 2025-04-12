@@ -12,8 +12,9 @@ using System.Net.Http.Headers;
 using System.Net.Mime;
 using System.Text;
 using System.Text.Json;
-using DocumentFormat.OpenXml.Office2010.ExcelAc;
 using MaIN.Services.Constants;
+using MaIN.Services.Services.LLMService.Memory;
+using MaIN.Services.Services.LLMService.Utils;
 
 namespace MaIN.Services.Services.LLMService;
 
@@ -21,14 +22,15 @@ public class OpenAiService(
     MaINSettings settings,
     INotificationService notificationService,
     IHttpClientFactory httpClientFactory,
+    IMemoryFactory memoryFactory,
+    IMemoryService memoryService,
     ILogger<OpenAiService>? logger = null)
-    : ILLMService, IDisposable
+    : ILLMService
 {
     private readonly MaINSettings _settings = settings ?? throw new ArgumentNullException(nameof(settings));
     private readonly INotificationService _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
     private readonly IHttpClientFactory _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
     private static readonly ConcurrentDictionary<string, List<ChatMessage>> SessionCache = new();
-    private bool _disposed;
     
     public async Task<ChatResult?> Send(
         Chat chat,
@@ -45,10 +47,12 @@ public class OpenAiService(
         List<ChatMessage> conversation = GetOrCreateConversation(chat, options.CreateSession);
         StringBuilder resultBuilder = new();
 
-        if (HasFiles(chat.Messages.Last()))
+        var lastMessage = chat.Messages.Last();
+        if (HasFiles(lastMessage))
         {
-            var result = await ProcessFilesAsync(chat, cancellationToken);
-            resultBuilder.Append(result?.Message.Content);
+            var result = ChatHelper.ExtractMemoryOptions(lastMessage);
+            var memoryResult = await AskMemory(chat, result, cancellationToken);
+            resultBuilder.Append(memoryResult);
         }
         else
         {
@@ -89,22 +93,6 @@ public class OpenAiService(
         return CreateChatResult(chat, resultBuilder.ToString(), tokens);
     }
     
-    public async Task<ChatResult?> Send(
-        Chat chat,
-        bool interactiveUpdates = false,
-        bool createSession = false,
-        Func<LLMTokenValue, Task>? changeOfValue = null)
-    {
-        var options = new ChatRequestOptions
-        {
-            InteractiveUpdates = interactiveUpdates,
-            CreateSession = createSession,
-            TokenCallback = changeOfValue
-        };
-        
-        return await Send(chat, options);
-    }
-
     public async Task<ChatResult?> AskMemory(
         Chat chat,
         ChatMemoryOptions memoryOptions,
@@ -113,16 +101,14 @@ public class OpenAiService(
         if (!chat.Messages.Any())
             return null;
 
-        var kernelMemory = new KernelMemoryBuilder()
-            .WithOpenAIDefaults(GetApiKey())
-            .Build();
+        var kernel = memoryFactory.CreateMemoryWithOpenAi(GetApiKey(), chat.MemoryParams);
 
-        await ImportDataToMemory(kernelMemory, memoryOptions, cancellationToken);
+        await memoryService.ImportDataToMemory(kernel, memoryOptions, cancellationToken);
 
         var userQuery = chat.Messages.Last().Content;
-        var retrievedContext = await kernelMemory.AskAsync(userQuery, cancellationToken: cancellationToken);
+        var retrievedContext = await kernel.AskAsync(userQuery, cancellationToken: cancellationToken);
 
-        await kernelMemory.DeleteIndexAsync(cancellationToken: cancellationToken);
+        await kernel.DeleteIndexAsync(cancellationToken: cancellationToken);
         return CreateChatResult(chat, retrievedContext.Result, []);
     }
     
@@ -155,26 +141,6 @@ public class OpenAiService(
         return Task.CompletedTask;
     }
     
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
-    protected virtual void Dispose(bool disposing)
-    {
-        if (_disposed)
-            return;
-
-        if (disposing)
-        {
-            // Nothing to dispose in this class
-        }
-
-        _disposed = true;
-    }
-    
-
     private string GetApiKey()
     {
         return _settings.OpenAiKey ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? 
@@ -217,33 +183,7 @@ public class OpenAiService(
     {
         return message.Files != null && message.Files.Count > 0;
     }
-
-    private async Task<ChatResult?> ProcessFilesAsync(Chat chat, CancellationToken cancellationToken)
-    {
-        var lastMessage = chat.Messages.Last();
-        
-        var textData = lastMessage.Files!
-            .Where(x => x.Content is not null)
-            .ToDictionary(x => x.Name, x => x.Content!);
-        
-        var fileData = lastMessage.Files!
-            .Where(x => x.Path is not null)
-            .ToDictionary(x => x.Name, x => x.Path!);
-        
-        var streamData = lastMessage.Files!
-            .Where(x => x.StreamContent is not null)
-            .ToDictionary(x => x.Name, x => x.StreamContent!);
-
-        var memoryOptions = new ChatMemoryOptions
-        {
-            TextData = textData,
-            FileData = fileData,
-            StreamData = streamData
-        };
-        
-        return await AskMemory(chat, memoryOptions, cancellationToken);
-    }
-
+    
     private async Task ProcessStreamingChatAsync(
         Chat chat,
         List<ChatMessage> conversation, 
@@ -353,59 +293,6 @@ public class OpenAiService(
         if (responseContent != null)
         {
             resultBuilder.Append(responseContent);
-        }
-    }
-
-    private async Task ImportDataToMemory(
-        IKernelMemory kernelMemory, 
-        ChatMemoryOptions options,
-        CancellationToken cancellationToken)
-    {
-        if (options.TextData != null)
-        {
-            foreach (var item in options.TextData)
-            {
-                await kernelMemory.ImportTextAsync(item.Value, item.Key, cancellationToken: cancellationToken);
-            }
-        }
-
-        if (options.FileData != null)
-        {
-            foreach (var item in options.FileData)
-            {
-                try
-                {
-                    await kernelMemory.ImportDocumentAsync(item.Value, item.Key, cancellationToken: cancellationToken);
-                }
-                catch (Exception ex)
-                {
-                    logger?.LogError(ex, "Error importing file '{FileName}'", item.Key);
-                }
-            }
-        }
-        
-        if (options.StreamData != null)
-        {
-            foreach (var item in options.StreamData)
-            {
-                await kernelMemory.ImportDocumentAsync(item.Value, item.Key, cancellationToken: cancellationToken);
-            }
-        }
-        
-        if (options.WebUrls != null)
-        {
-            foreach (var url in options.WebUrls)
-            {
-                await kernelMemory.ImportWebPageAsync(url, cancellationToken: cancellationToken);
-            }
-        }
-
-        if (options.Memory != null)
-        {
-            for (var i = 0; i < options.Memory.Count; i++)
-            {
-                await kernelMemory.ImportTextAsync(options.Memory[i], $"memory_{i + 1}", cancellationToken: cancellationToken);
-            }
         }
     }
 

@@ -7,6 +7,7 @@ using LLama.Transformers;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Models;
+using MaIN.Services.Constants;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.LLMService.Memory;
 using MaIN.Services.Services.LLMService.Utils;
@@ -21,11 +22,11 @@ public class LLMService : ILLMService
     private const string DEFAULT_MODEL_ENV_PATH = "MaIN_ModelsPath";
     private static readonly ConcurrentDictionary<string, ChatSession> _sessionCache = new();
     
-    private readonly MaINSettings _options;
-    private readonly INotificationService _notificationService;
-    private readonly IMemoryService _memoryService;
-    private readonly IMemoryFactory _memoryFactory;
-    private readonly string _modelsPath;
+    private readonly MaINSettings options;
+    private readonly INotificationService notificationService;
+    private readonly IMemoryService memoryService;
+    private readonly IMemoryFactory memoryFactory;
+    private readonly string modelsPath;
 
     public LLMService(
         MaINSettings options, 
@@ -33,11 +34,11 @@ public class LLMService : ILLMService
         IMemoryService memoryService,
         IMemoryFactory memoryFactory)
     {
-        _options = options;
-        _notificationService = notificationService;
-        _memoryService = memoryService;
-        _memoryFactory = memoryFactory;
-        _modelsPath = GetModelsPath();
+        this.options = options;
+        this.notificationService = notificationService;
+        this.memoryService = memoryService;
+        this.memoryFactory = memoryFactory;
+        modelsPath = GetModelsPath();
     }
     
     public async Task<ChatResult?> Send(
@@ -52,12 +53,12 @@ public class LLMService : ILLMService
         var modelKey = model.FileName;
         var thinkingState = new ThinkingState();
 
-        var llmModel = await ModelLoader.GetOrLoadModelAsync(_modelsPath, modelKey);
+        var llmModel = await ModelLoader.GetOrLoadModelAsync(modelsPath, modelKey);
         var session = GetOrCreateSession(chat.Id, () => CreateNewSession(llmModel, chat));
         var startSession = session.History.Messages.Count == 0;
         
         AddMessagesToHistory(session, chat.Messages);
-        ConfigureSession(session, llmModel); //This makes significant performance difference TODO
+        ConfigureSession(session, llmModel); //This makes significant performance difference TBD: validate
 
         var tokens = await ProcessChatRequest(
             chat, 
@@ -69,15 +70,15 @@ public class LLMService : ILLMService
             requestOptions, 
             cancellationToken);
 
-        return CreateChatResult(chat, tokens, requestOptions);
+        return await CreateChatResult(chat, tokens, requestOptions);
     }
     
     public Task<string[]> GetCurrentModels()
     {
-        var models = Directory.GetFiles(_modelsPath, "*.gguf", SearchOption.AllDirectories)
+        var models = Directory.GetFiles(modelsPath, "*.gguf", SearchOption.AllDirectories)
             .Select(Path.GetFileName)
-            .Where(fileName => KnownModels.GetModelByFileName(_modelsPath, fileName!) != null)
-            .Select(fileName => KnownModels.GetModelByFileName(_modelsPath, fileName!)!.Name)
+            .Where(fileName => KnownModels.GetModelByFileName(modelsPath, fileName!) != null)
+            .Select(fileName => KnownModels.GetModelByFileName(modelsPath, fileName!)!.Name)
             .ToArray();
 
         return Task.FromResult(models);
@@ -99,12 +100,12 @@ public class LLMService : ILLMService
         CancellationToken cancellationToken = default)
     {
         var model = ModelHelper.GetModel(chat.Model);
-        var kernelMemory = _memoryFactory.CreateMemoryWithParams(
-            _modelsPath,
+        var kernelMemory = memoryFactory.CreateMemoryWithModel(
+            modelsPath,
             model.FileName,
             chat.MemoryParams);
 
-        await _memoryService.ImportDataToMemory(kernelMemory, memoryOptions, cancellationToken);
+        await memoryService.ImportDataToMemory(kernelMemory, memoryOptions, cancellationToken);
 
         var userMessage = chat.Messages.Last();
         var result = await kernelMemory.AskAsync(userMessage.Content, cancellationToken: cancellationToken);
@@ -117,7 +118,7 @@ public class LLMService : ILLMService
             Model = chat.Model,
             Message = new Message
             {
-                Content = _memoryService.CleanResponseText(result.Result),
+                Content = memoryService.CleanResponseText(result.Result),
                 Role = AuthorRole.Assistant.ToString()
             }
         };
@@ -125,7 +126,7 @@ public class LLMService : ILLMService
 
     private string GetModelsPath()
     {
-        var path = _options.ModelsPath ?? Environment.GetEnvironmentVariable(DEFAULT_MODEL_ENV_PATH);
+        var path = options.ModelsPath ?? Environment.GetEnvironmentVariable(DEFAULT_MODEL_ENV_PATH);
         if (string.IsNullOrEmpty(path))
         {
             throw new InvalidOperationException("Models path not found in configuration or environment variables");
@@ -149,7 +150,7 @@ public class LLMService : ILLMService
 
     private ModelParams CreateModelParameters(LLamaWeights model, Chat chat)
     {
-        return new ModelParams(Path.Combine(_modelsPath, chat.Model))
+        return new ModelParams(Path.Combine(modelsPath, chat.Model))
         {
             ContextSize = (uint?)chat.InterferenceParams.ContextSize,
             GpuLayerCount = chat.InterferenceParams.GpuLayerCount,
@@ -245,17 +246,17 @@ public class LLMService : ILLMService
         return tokens;
     }
 
-    private ChatResult CreateChatResult(Chat chat, List<LLMTokenValue> tokens, ChatRequestOptions requestOptions)
+    private async Task<ChatResult> CreateChatResult(Chat chat, List<LLMTokenValue> tokens, ChatRequestOptions requestOptions)
     {
         var responseText = string.Concat(tokens.Select(x => x.Text));
         
         if (requestOptions.InteractiveUpdates)
         {
-            SendNotification(chat.Id, new LLMTokenValue
+            await SendNotification(chat.Id, new LLMTokenValue
             {
                 Type = TokenType.FullAnswer,
                 Text = responseText
-            }, true).GetAwaiter().GetResult();
+            }, true);
         }
 
         return new ChatResult
@@ -274,8 +275,8 @@ public class LLMService : ILLMService
 
     private async Task SendNotification(string chatId, LLMTokenValue token, bool isComplete)
     {
-        await _notificationService.DispatchNotification(
+        await notificationService.DispatchNotification(
             NotificationMessageBuilder.CreateChatCompletion(chatId, token, isComplete), 
-            "ReceiveMessageUpdate");
+            ServiceConstants.Notifications.ReceiveMessageUpdate);
     }
 }

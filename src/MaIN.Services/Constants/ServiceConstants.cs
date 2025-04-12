@@ -20,7 +20,6 @@ public static class ServiceConstants
     public static class Messages
     {
         public const string GeneratedImageContent = "Generated Image:";
-        public const string AssistantRole = "Assistant";
     }
     
     public static class Defaults
