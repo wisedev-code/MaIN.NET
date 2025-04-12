@@ -9,11 +9,5 @@ public interface IMemoryService
         ChatMemoryOptions options, 
         CancellationToken cancellationToken);
     
-    Task<string> ProcessMemoryRequest(
-        string modelName, 
-        string query, 
-        ChatMemoryOptions options, 
-        CancellationToken cancellationToken);
-    
     string CleanResponseText(string text);
 }

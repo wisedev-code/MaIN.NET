@@ -10,11 +10,11 @@ using InferenceParams = LLama.Common.InferenceParams;
 
 namespace MaIN.Services.Services.LLMService.Memory;
 
-public class MemoryFactory(MaINSettings settings) : IMemoryFactory, IDisposable
+public class MemoryFactory(MaINSettings settings) : IMemoryFactory
 {
     public IKernelMemory CreateMemory(string? modelsPath, string modelName)
     {
-        return CreateMemoryWithParams(modelsPath, modelName, new MemoryParams
+        return CreateMemoryWithModel(modelsPath, modelName, new MemoryParams
         {
             MaxMatchesCount = 5,
             FrequencyPenalty = 1,
@@ -23,7 +23,7 @@ public class MemoryFactory(MaINSettings settings) : IMemoryFactory, IDisposable
         });
     }
 
-    public IKernelMemory CreateMemoryWithParams(string? modelsPath, string modelName, MemoryParams memoryParams)
+    public IKernelMemory CreateMemoryWithModel(string? modelsPath, string modelName, MemoryParams memoryParams)
     {
         var path = ResolvePath(modelsPath);
         var embeddingModel = ModelHelper.GetEmbeddingModel();
@@ -41,9 +41,15 @@ public class MemoryFactory(MaINSettings settings) : IMemoryFactory, IDisposable
             .With(parsingOptions)
             .Build();
     }
-    
-    public void Dispose()
-    { }
+
+    public IKernelMemory CreateMemoryWithOpenAi(string openAiKey, MemoryParams memoryParams)
+    {
+        var kernelMemory = new KernelMemoryBuilder()
+            .WithOpenAIDefaults(openAiKey)
+            .Build();
+        
+        return kernelMemory;
+    }
     
     #region Private Configuration Methods
 

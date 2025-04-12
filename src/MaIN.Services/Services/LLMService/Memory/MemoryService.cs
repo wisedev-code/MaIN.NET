@@ -4,22 +4,6 @@ namespace MaIN.Services.Services.LLMService.Memory;
 
 public class MemoryService(IMemoryFactory memoryFactory) : IMemoryService
 {
-    public async Task<string> ProcessMemoryRequest(
-        string modelName,
-        string query,
-        ChatMemoryOptions options,
-        CancellationToken cancellationToken)
-    {
-        var memory = memoryFactory.CreateMemory(null, modelName);
-
-        await ImportDataToMemory(memory, options, cancellationToken);
-
-        var result = await memory.AskAsync(query, cancellationToken: cancellationToken);
-        await memory.DeleteIndexAsync(cancellationToken: cancellationToken);
-
-        return CleanResponseText(result.Result);
-    }
-
     public async Task ImportDataToMemory(
         IKernelMemory memory,
         ChatMemoryOptions options,
@@ -39,16 +23,16 @@ public class MemoryService(IMemoryFactory memoryFactory) : IMemoryService
             .Replace("Assistant:", string.Empty);
     }
 
-    private Task ImportTextData(IKernelMemory memory, Dictionary<string, string>? textData,
+    private async Task ImportTextData(IKernelMemory memory, Dictionary<string, string>? textData,
         CancellationToken cancellationToken)
     {
-        if (textData?.Any() != true)
-            return Task.CompletedTask;
+        if (textData?.Count == 0)
+            return;
 
-        return Task.WhenAll(
-            textData.Select(item =>
-                memory.ImportTextAsync(item.Value, item.Key, cancellationToken: cancellationToken))
-        );
+        foreach (var item in textData)
+        {
+            await memory.ImportTextAsync(item.Value, item.Key, cancellationToken: cancellationToken);
+        }
     }
 
     private async Task ImportFileData(IKernelMemory memory, Dictionary<string, string>? fileData,

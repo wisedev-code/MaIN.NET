@@ -80,7 +80,7 @@ public class FetchCommandHandler(
     {
         var fileData = JsonSerializer.Deserialize<AgentFileSourceDetails>(command.Context.Source!.Details?.ToString()!);
 
-        if (command.Chat?.Messages.Count > 0)
+        if (command.Chat.Messages.Count > 0)
         {
             var memoryChat = command.MemoryChat;
             var result = await llmService.AskMemory(
