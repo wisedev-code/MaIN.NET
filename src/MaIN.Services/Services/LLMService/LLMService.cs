@@ -45,7 +45,7 @@ public class LLMService : ILLMService
         ChatRequestOptions requestOptions,
         CancellationToken cancellationToken = default)
     {
-        if (!chat.Messages.Any())
+        if (chat.Messages.Count == 0)
             return null;
 
         var model = ModelHelper.GetModel(chat.Model);
@@ -57,7 +57,7 @@ public class LLMService : ILLMService
         var startSession = session.History.Messages.Count == 0;
         
         AddMessagesToHistory(session, chat.Messages);
-        ConfigureSession(session, llmModel); //This makes significant performance difference
+        ConfigureSession(session, llmModel); //This makes significant performance difference TODO
 
         var tokens = await ProcessChatRequest(
             chat, 
@@ -76,8 +76,8 @@ public class LLMService : ILLMService
     {
         var models = Directory.GetFiles(_modelsPath, "*.gguf", SearchOption.AllDirectories)
             .Select(Path.GetFileName)
-            .Where(fileName => ModelHelper.GetModelByFileName(fileName) != null)
-            .Select(fileName => ModelHelper.GetModelByFileName(fileName!).Name)
+            .Where(fileName => KnownModels.GetModelByFileName(_modelsPath, fileName!) != null)
+            .Select(fileName => KnownModels.GetModelByFileName(_modelsPath, fileName!)!.Name)
             .ToArray();
 
         return Task.FromResult(models);
