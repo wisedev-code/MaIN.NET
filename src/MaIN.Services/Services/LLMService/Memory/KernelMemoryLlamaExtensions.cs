@@ -39,11 +39,12 @@ public static class KernelMemoryLlamaExtensions
 
         generator = new LlamaSharpTextGenerator(model, context, executor, inferenceParams);
 
-        var modelPath = Path.Combine(path, modelName);
-        builder.WithLLamaSharpTextEmbeddingGeneration(
-            new LLamaSharpTextEmbeddingGenerator(
-                new LLamaSharpConfig(modelPath) { DefaultInferenceParams = inferenceParams }, 
-                _sharedWeights
+        builder.WithLLamaSharpTextGeneration(
+            new LLamaSharp.KernelMemory.LlamaSharpTextGenerator(
+                _sharedWeights,
+                context,
+                executor,
+                inferenceParams
             )
         );
         

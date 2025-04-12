@@ -1,3 +1,5 @@
+using LLama;
+using LLama.Common;
 using LLamaSharp.KernelMemory;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
@@ -27,13 +29,13 @@ public class MemoryFactory(MaINSettings settings) : IMemoryFactory, IDisposable
         var embeddingModel = ModelHelper.GetEmbeddingModel();
         var embeddingModelPath = Path.Combine(path, embeddingModel.FileName);
 
-        var generatorOptions = ConfigureGeneratorOptions(embeddingModelPath);
+        var generator = ConfigureGeneratorOptions(embeddingModelPath);
         var searchOptions = ConfigureSearchOptions(memoryParams);
         var parsingOptions = ConfigureParsingOptions();
             
         return new KernelMemoryBuilder()
             .WithLLamaSharpTextGeneration(path, modelName, out _)
-            .WithLLamaSharpTextEmbeddingGeneration(generatorOptions)
+            .WithLLamaSharpTextEmbeddingGeneration(generator)
             .WithSearchClientConfig(searchOptions)
             .WithCustomImageOcr(new OcrWrapper())
             .With(parsingOptions)
@@ -58,17 +60,27 @@ public class MemoryFactory(MaINSettings settings) : IMemoryFactory, IDisposable
         return path;
     }
     
-    private static LLamaSharpConfig ConfigureGeneratorOptions(string embeddingModelPath)
+    private static LLamaSharpTextEmbeddingGenerator ConfigureGeneratorOptions(string embeddingModelPath)
     {
         var inferenceParams = new InferenceParams 
         { 
             AntiPrompts = ["INFO", "<|im_end|>", "Question:"] 
         };
 
-        return new LLamaSharpConfig(embeddingModelPath)
+        var config = new LLamaSharpConfig(embeddingModelPath)
         { 
             DefaultInferenceParams = inferenceParams 
         };
+        
+        var parameters = new ModelParams(config.ModelPath)
+        {
+            ContextSize = new uint?(config.ContextSize.GetValueOrDefault(2048U)),
+            GpuLayerCount = config.GpuLayerCount.GetValueOrDefault(20),
+        };
+        
+        var weights = LLamaWeights.LoadFromFile(parameters);
+
+        return new LLamaSharpTextEmbeddingGenerator(config, weights);
     }
     
     private static SearchClientConfig ConfigureSearchOptions(MemoryParams memoryParams)
