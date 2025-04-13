@@ -23,24 +23,16 @@ public class OpenAiImageGenService(
             ?? throw new InvalidOperationException("OpenAI API key is not configured");
         
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
-        
-        string prompt = BuildPromptFromChat(chat);
         var requestBody = new
         {
             model = Models.DALLE,
-            prompt = prompt,
+            prompt = BuildPromptFromChat(chat),
             size = ServiceConstants.Defaults.ImageSize
         };
 
         using var response = await client.PostAsJsonAsync(ServiceConstants.ApiUrls.OpenAiImageGenerations, requestBody);
-        response.EnsureSuccessStatusCode();
-        var responseData = await response.Content.ReadFromJsonAsync<OpenAiImageResponse>();
-        if (responseData?.Data == null || responseData.Data.Length == 0 || string.IsNullOrEmpty(responseData.Data[0].Url))
-        {
-            throw new InvalidOperationException("No image URL returned from OpenAI");
-        }
-
-        byte[] imageBytes = await DownloadImageAsync(responseData.Data[0].Url);
+        var imageUrl = await ProcessOpenAiResponse(response);
+        byte[] imageBytes = await DownloadImageAsync(imageUrl);
         return CreateChatResult(imageBytes);
     }
     
@@ -59,6 +51,14 @@ public class OpenAiImageGenService(
         imageResponse.EnsureSuccessStatusCode();
         
         return await imageResponse.Content.ReadAsByteArrayAsync();
+    }
+    
+    private async Task<string> ProcessOpenAiResponse(HttpResponseMessage response)
+    {
+        response.EnsureSuccessStatusCode();
+        var responseData = await response.Content.ReadFromJsonAsync<OpenAiImageResponse>();
+        return responseData?.Data.FirstOrDefault()?.Url 
+               ?? throw new InvalidOperationException("No image URL returned from OpenAI");
     }
     
     private static ChatResult CreateChatResult(byte[] imageBytes)

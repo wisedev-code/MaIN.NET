@@ -4,7 +4,7 @@ using LLamaSharp.KernelMemory;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Models;
-using MaIN.Services.Utils;
+using MaIN.Services.Services.LLMService.Utils;
 using Microsoft.KernelMemory;
 using Microsoft.KernelMemory.Configuration;
 using InferenceParams = LLama.Common.InferenceParams;
@@ -13,9 +13,10 @@ namespace MaIN.Services.Services.LLMService.Memory;
 
 public class MemoryFactory(MaINSettings settings) : IMemoryFactory
 {
-    public IKernelMemory CreateMemory(string? modelsPath, string modelName)
+    public IKernelMemory CreateMemory(string modelsPath, string modelName)
     {
-        return CreateMemoryWithModel(modelsPath, modelName, new MemoryParams
+        var model = ModelLoader.GetOrLoadModel(modelsPath, modelName);
+        return CreateMemoryWithModel(modelsPath, model, new MemoryParams
         {
             MaxMatchesCount = 5,
             FrequencyPenalty = 1,
@@ -24,7 +25,9 @@ public class MemoryFactory(MaINSettings settings) : IMemoryFactory
         });
     }
 
-    public IKernelMemory CreateMemoryWithModel(string? modelsPath, string modelName, MemoryParams memoryParams)
+    public IKernelMemory CreateMemoryWithModel(string modelsPath,
+        LLamaWeights model,
+        MemoryParams memoryParams)
     {
         var path = ResolvePath(modelsPath);
         var embeddingModel = KnownModels.GetEmbeddingModel();
@@ -33,9 +36,10 @@ public class MemoryFactory(MaINSettings settings) : IMemoryFactory
         var generator = ConfigureGeneratorOptions(embeddingModelPath);
         var searchOptions = ConfigureSearchOptions(memoryParams);
         var parsingOptions = ConfigureParsingOptions();
+        var modelParams = new ModelParams(modelsPath);
             
         return new KernelMemoryBuilder()
-            .WithLLamaSharpTextGeneration(path, modelName, out _)
+            .WithLLamaSharpTextGeneration(model, modelParams)
             .WithLLamaSharpTextEmbeddingGeneration(generator)
             .WithSearchClientConfig(searchOptions)
             .WithCustomImageOcr(new OcrWrapper())
@@ -54,7 +58,7 @@ public class MemoryFactory(MaINSettings settings) : IMemoryFactory
     
     #region Private Configuration Methods
 
-    private string ResolvePath(string? modelsPath)
+    private string ResolvePath(string modelsPath)
     {
         var path = modelsPath ?? settings.ModelsPath ?? 
             Environment.GetEnvironmentVariable("MaIN_ModelsPath");

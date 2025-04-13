@@ -100,9 +100,10 @@ public class LLMService : ILLMService
         CancellationToken cancellationToken = default)
     {
         var model = KnownModels.GetModel(chat.Model);
+        var llmModel = await ModelLoader.GetOrLoadModelAsync(modelsPath, model.FileName);
         var kernelMemory = memoryFactory.CreateMemoryWithModel(
             modelsPath,
-            model.FileName,
+            llmModel,
             chat.MemoryParams);
 
         await memoryService.ImportDataToMemory(kernelMemory, memoryOptions, cancellationToken);
