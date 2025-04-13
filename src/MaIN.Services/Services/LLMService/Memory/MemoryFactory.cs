@@ -36,7 +36,11 @@ public class MemoryFactory(MaINSettings settings) : IMemoryFactory
         var generator = ConfigureGeneratorOptions(embeddingModelPath);
         var searchOptions = ConfigureSearchOptions(memoryParams);
         var parsingOptions = ConfigureParsingOptions();
-        var modelParams = new ModelParams(modelsPath);
+        var modelParams = new ModelParams(modelsPath)
+        {
+            ContextSize = (uint)memoryParams.ContextSize,
+            GpuLayerCount = memoryParams.GpuLayerCount,
+        };
             
         return new KernelMemoryBuilder()
             .WithLLamaSharpTextGeneration(model, modelParams)

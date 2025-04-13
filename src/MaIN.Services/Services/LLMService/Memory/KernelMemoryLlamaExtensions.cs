@@ -2,11 +2,7 @@ using LLama;
 using LLama.Common;
 using LLama.Sampling;
 using LLamaSharp.KernelMemory;
-using MaIN.Domain.Entities;
-using MaIN.Services.Services.LLMService.Utils;
-using MaIN.Services.Utils;
 using Microsoft.KernelMemory;
-using Microsoft.KernelMemory.AI;
 using InferenceParams = LLama.Common.InferenceParams;
 
 namespace MaIN.Services.Services.LLMService.Memory;
@@ -27,7 +23,7 @@ public static class KernelMemoryLlamaExtensions
         };
 
         builder.WithLLamaSharpTextGeneration(
-            new LLamaSharp.KernelMemory.LlamaSharpTextGenerator(
+            new LlamaSharpTextGenerator(
                 model,
                 context,
                 executor,
