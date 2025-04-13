@@ -20,19 +20,15 @@ public static class ModelLoader
         return ModelCache.GetOrAdd(modelKey, loadedModel);
     }
     
-    public static void ClearCache()
+    public static LLamaWeights GetOrLoadModel(string path, string modelKey)
     {
-        foreach (var model in ModelCache.Values)
+        if (ModelCache.TryGetValue(modelKey, out var cachedModel))
         {
-            try
-            {
-                model.Dispose();
-            }
-            catch
-            {
-                // Continue if a model cannot be disposed
-            }
+            return cachedModel;
         }
-        ModelCache.Clear();
+
+        var parameters = new ModelParams(Path.Combine(path, modelKey));
+        var loadedModel = LLamaWeights.LoadFromFile(parameters);
+        return ModelCache.GetOrAdd(modelKey, loadedModel);
     }
 }
