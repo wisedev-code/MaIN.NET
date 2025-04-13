@@ -1,10 +1,12 @@
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Infrastructure;
+using MaIN.Services.Constants;
 using MaIN.Services.Services;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.ImageGenServices;
 using MaIN.Services.Services.LLMService;
+using MaIN.Services.Services.LLMService.Memory;
 using MaIN.Services.Services.Models.Commands;
 using MaIN.Services.Services.Steps;
 using MaIN.Services.Services.Steps.Commands;
@@ -20,13 +22,9 @@ public static class Bootstrapper
         IConfiguration configuration,
         Action<MaINSettings>? configureSettings = null)
     {
-        // Load settings from configuration
         var settings = configuration.GetSection(MainSectionName).Get<MaINSettings>() ?? new MaINSettings();
         
-        // Apply additional configuration if provided
         configureSettings?.Invoke(settings);
-
-        // Register the updated settings
         serviceCollection.AddSingleton(settings);
         
         serviceCollection.AddSingleton<IChatService, ChatService>();
@@ -34,6 +32,8 @@ public static class Bootstrapper
         serviceCollection.AddSingleton<INotificationService, NotificationService>();
         serviceCollection.AddSingleton<IAgentFlowService, AgentFlowService>();
         serviceCollection.AddSingleton<ITranslatorService, TranslatorService>();
+        serviceCollection.AddSingleton<IMemoryService, MemoryService>();
+        serviceCollection.AddSingleton<IMemoryFactory, MemoryFactory>();
         serviceCollection.AddSingleton<ILLMService, LLMService>();
         serviceCollection.AddSingleton<IImageGenService, ImageGenService>();
 
@@ -52,6 +52,9 @@ public static class Bootstrapper
         serviceCollection.AddSingleton<IStepHandler, CleanupStepHandler>();
         serviceCollection.AddCommandHandlers();
         
+        //AddHttpClients
+        serviceCollection.AddHttpClients();
+        
         // Register the step processor
         serviceCollection.AddSingleton<IStepProcessor, StepProcessor>();
 
@@ -60,8 +63,8 @@ public static class Bootstrapper
         
         return serviceCollection;
     }
-    
-    public static IServiceCollection AddCommandHandlers(this IServiceCollection services)
+
+    private static IServiceCollection AddCommandHandlers(this IServiceCollection services)
     {
         services.AddSingleton<IDataSourceProvider, DataSourceProvider>();
         
@@ -88,6 +91,17 @@ public static class Bootstrapper
         services.AddSingleton<FetchCommandHandler>();
         services.AddSingleton<AnswerCommandHandler>();
 
+        return services;
+    }
+    
+    private static IServiceCollection AddHttpClients(this IServiceCollection services)
+    {
+        services.AddHttpClient(ServiceConstants.HttpClients.ImageGenClient, client =>
+        {
+            client.Timeout = TimeSpan.FromMinutes(5);
+        });
+        services.AddHttpClient(ServiceConstants.HttpClients.OpenAiClient);
+        services.AddHttpClient(ServiceConstants.HttpClients.ImageDownloadClient);
         return services;
     }
 

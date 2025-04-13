@@ -45,7 +45,7 @@ public static class ChatMapper
             Name = chat.Name!,
             Model = chat.Model!,
             Messages = chat.Messages?.Select(m => m.ToDomain()).ToList()!,
-            Visual = chat.Model == ImageGenService.Models.FLUX,
+            Visual = chat.Model == ImageGenService.LocalImageModels.FLUX,
             Type = Enum.Parse<ChatType>(chat.Type.ToString()),
             Properties = chat.Properties
         };
