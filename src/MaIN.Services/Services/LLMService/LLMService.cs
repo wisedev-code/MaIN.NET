@@ -107,7 +107,6 @@ public class LLMService : ILLMService
             chat.MemoryParams);
 
         await memoryService.ImportDataToMemory(kernelMemory, memoryOptions, cancellationToken);
-
         var userMessage = chat.Messages.Last();
         var result = await kernelMemory.AskAsync(userMessage.Content, cancellationToken: cancellationToken);
         await kernelMemory.DeleteIndexAsync(cancellationToken: cancellationToken);
