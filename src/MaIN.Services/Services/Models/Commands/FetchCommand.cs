@@ -11,4 +11,11 @@ public class FetchCommand : BaseCommand, ICommand<Message?>
     public required AgentData Context { get; init; }
     public string CommandName => "FETCH_DATA";
     public Chat? MemoryChat { get; set; }
+    public FetchResponseType ResponseType { get; set; }
+}
+
+public enum FetchResponseType
+{
+    AS_Answer = 1,
+    AS_System = 2
 }
