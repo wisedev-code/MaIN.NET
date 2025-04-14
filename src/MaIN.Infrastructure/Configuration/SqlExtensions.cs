@@ -48,7 +48,8 @@ public static class SqlRegistrationExtensions
                     [Type] NVARCHAR(MAX) NOT NULL,      -- Stored as JSON
                     [Properties] NVARCHAR(MAX) NULL,    -- Stored as JSON
                     [Visual] BIT NOT NULL DEFAULT 0,
-                    [InferenceParams] NVARCHAR(MAX) NULL,    -- Stored as JSON
+                    [InferenceParams] NVARCHAR(MAX) NULL,    -- Stored as JSON,
+                    [MemoryParams] NVARCHAR(MAX) NULL,    -- Stored as JSON
                     [Interactive] BIT NOT NULL DEFAULT 0
                 );
             END

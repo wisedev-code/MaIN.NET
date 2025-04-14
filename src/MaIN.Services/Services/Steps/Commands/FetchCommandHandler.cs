@@ -90,8 +90,8 @@ public class FetchCommandHandler(
                     FileData = new Dictionary<string, string> { { fileData!.Name, fileData.Path } }
                 }
             );
-
-            return result!.Message;
+            result!.Message.Role = command.ResponseType == FetchResponseType.AS_System ? "System" : "Assistant";
+            return result.Message;
         }
 
         var data = await dataSourceService.FetchFileData(command.Context.Source.Details);
@@ -106,7 +106,8 @@ public class FetchCommandHandler(
         {
             var memoryChat = command.MemoryChat;
             var result = await llmService.AskMemory(memoryChat!, new ChatMemoryOptions { WebUrls = [webData!.Url] });
-            return result!.Message;
+            result!.Message.Role = command.ResponseType == FetchResponseType.AS_System ? "System" : "Assistant";
+            return result.Message;
         }
 
         return CreateMessage($"Web data from {webData!.Url}", properties);
@@ -124,7 +125,7 @@ public class FetchCommandHandler(
         {
             TextData = chunks
         });
-        
+        result!.Message.Role = command.ResponseType == FetchResponseType.AS_System ? "System" : "Assistant";
         var newMessage = result!.Message;
         newMessage.Properties = new() { { "agent_internal", "true" } };
         return newMessage;
@@ -135,7 +136,7 @@ public class FetchCommandHandler(
         return new Message
         {
             Content = content,
-            Role = "User",
+            Role = "System",
             Properties = properties
         };
     }
