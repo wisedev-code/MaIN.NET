@@ -53,7 +53,10 @@ public class MemoryFactory(MaINSettings settings) : IMemoryFactory
 
     public IKernelMemory CreateMemoryWithOpenAi(string openAiKey, MemoryParams memoryParams)
     {
+        var searchOptions = ConfigureSearchOptions(memoryParams);
+
         var kernelMemory = new KernelMemoryBuilder()
+            .WithSearchClientConfig(searchOptions)
             .WithOpenAIDefaults(openAiKey)
             .Build();
         
