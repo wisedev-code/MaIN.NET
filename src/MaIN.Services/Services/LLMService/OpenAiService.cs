@@ -52,7 +52,7 @@ public class OpenAiService(
         {
             var result = ChatHelper.ExtractMemoryOptions(lastMessage);
             var memoryResult = await AskMemory(chat, result, cancellationToken);
-            resultBuilder.Append(memoryResult);
+            resultBuilder.Append(memoryResult!.Message.Content);
         }
         else
         {
