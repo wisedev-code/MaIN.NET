@@ -11,6 +11,7 @@ public class ChatContext
 {
     private readonly IChatService _chatService;
     private Chat _chat { get; set; }
+    private List<FileInfo> _files { get; set; }
 
     internal ChatContext(IChatService chatService)
     {
@@ -22,6 +23,7 @@ public class ChatContext
             Messages = new List<Message>(),
             Model = string.Empty
         };
+        _files = [];
     }
 
     internal ChatContext(IChatService chatService, Chat existingChat)
@@ -91,22 +93,14 @@ public class ChatContext
             Extension = Path.GetExtension(p.Name),
             StreamContent = p 
         }).ToList();
-        
-        var lastMessage = _chat.Messages?.LastOrDefault();
-        if (lastMessage != null)
-        {
-            lastMessage.Files = files;
-        }
+
+        _files = files;
         return this;
     }
 
     public ChatContext WithFiles(List<FileInfo> files)
     {
-        var lastMessage = _chat.Messages?.LastOrDefault();
-        if (lastMessage != null)
-        {
-            lastMessage.Files = files;
-        }
+        _files = files;
         return this;
     }
     
@@ -118,12 +112,8 @@ public class ChatContext
             Path = p,
             Extension = Path.GetExtension(p)
         }).ToList();
-        
-        var lastMessage = _chat.Messages?.LastOrDefault();
-        if (lastMessage != null)
-        {
-            lastMessage.Files = files;
-        }
+
+        _files = files;
         return this;
     }
 
@@ -140,11 +130,14 @@ public class ChatContext
         bool interactive = false,
         Func<LLMTokenValue?, Task>? changeOfValue = null)
     {
+        _chat.Messages.Last().Files = _files;
         if (!await ChatExists(_chat.Id))
         {
             await _chatService.Create(_chat);
         }
-        return await _chatService.Completions(_chat, translate, interactive, changeOfValue);
+        var result = await _chatService.Completions(_chat, translate, interactive, changeOfValue);
+        _files = [];
+        return result;
     }
     
 
