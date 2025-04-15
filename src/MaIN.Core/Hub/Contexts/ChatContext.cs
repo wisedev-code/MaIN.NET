@@ -130,6 +130,10 @@ public class ChatContext
         bool interactive = false,
         Func<LLMTokenValue?, Task>? changeOfValue = null)
     {
+        if (_chat.Messages.Count == 0)
+        {
+            throw new InvalidOperationException("Chat has no messages."); //TODO good candidate for domain exception
+        }
         _chat.Messages.Last().Files = _files;
         if (!await ChatExists(_chat.Id))
         {
