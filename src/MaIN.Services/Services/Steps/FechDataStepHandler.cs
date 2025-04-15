@@ -15,6 +15,7 @@ public class FetchDataStepHandler(
     
     public async Task<StepResult> Handle(StepContext context)
     {
+        var respondAsSystem = context.Arguments.Contains("AS_SYSTEM");
         if (context.StepName == "FETCH_DATA*" && context.Chat.Properties.ContainsKey("FETCH_DATA*"))
         {
             return new StepResult { Chat = context.Chat };
@@ -26,6 +27,7 @@ public class FetchDataStepHandler(
             Chat = context.Chat,
             Filter = filter ?? string.Empty,
             Context = context.Agent.Context!.ToDomain(),
+            ResponseType = respondAsSystem ? FetchResponseType.AS_System : FetchResponseType.AS_Answer,
             MemoryChat = CreateMemoryChat(context, filter)
         };
 
@@ -62,6 +64,8 @@ public class FetchDataStepHandler(
             },
             Model = context.Chat.Model,
             Properties = context.Chat.Properties,
+            MemoryParams = context.Chat.MemoryParams,
+            InterferenceParams = context.Chat.InterferenceParams,
             Name = "Memory Chat",
             Id = Guid.NewGuid().ToString()
         };

@@ -3,6 +3,7 @@ using MaIN.Domain.Models;
 using MaIN.Infrastructure.Models;
 using MaIN.Services.Dtos;
 using MaIN.Services.Services.ImageGenServices;
+using MongoDB.Bson;
 using FileInfo = MaIN.Domain.Entities.FileInfo;
 
 namespace MaIN.Services.Mappers;
@@ -88,6 +89,7 @@ public static class ChatMapper
             Messages = chat.Messages.Select(m => m.ToDocument()).ToList(),
             Visual = chat.Visual,
             InferenceParams = chat.InterferenceParams.ToDocument(),
+            MemoryParams = chat.MemoryParams.ToDocument(),
             Properties = chat.Properties,
             Interactive = chat.Interactive,
             Translate = chat.Translate,
@@ -104,6 +106,7 @@ public static class ChatMapper
             Visual = chat.Visual,
             Properties = chat.Properties,
             InterferenceParams = chat.InferenceParams!.ToDomain(),
+            MemoryParams = chat.MemoryParams!.ToDomain(),
             Interactive = chat.Interactive,
             Translate = chat.Translate,
             Type = Enum.Parse<ChatType>(chat.Type.ToString())
@@ -136,16 +139,60 @@ public static class ChatMapper
         };
 
     private static InferenceParams ToDomain(this InferenceParamsDocument inferenceParams)
-        => new InferenceParams()
+        => new InferenceParams
         {
             Temperature = inferenceParams.Temperature,
-            ContextSize = inferenceParams.ContextSize
+            ContextSize = inferenceParams.ContextSize,
+            GpuLayerCount = inferenceParams.GpuLayerCount,
+            SeqMax = inferenceParams.SeqMax,
+            BatchSize = inferenceParams.BatchSize,
+            UBatchSize = inferenceParams.UBatchSize,
+            Embeddings = inferenceParams.Embeddings,
+            TypeK = inferenceParams.TypeK,
+            TypeV = inferenceParams.TypeV,
+            TokensKeep = inferenceParams.TokensKeep,
+            MaxTokens = inferenceParams.MaxTokens,
+            TopK = inferenceParams.TopK,
+            TopP = inferenceParams.TopP,
+        };
+    
+    private static MemoryParams ToDomain(this MemoryParamsDocument memoryParams)
+        => new MemoryParams
+        {
+            Temperature = memoryParams.Temperature,
+            AnswerTokens = memoryParams.AnswerTokens,
+            ContextSize = memoryParams.ContextSize,
+            GpuLayerCount = memoryParams.GpuLayerCount,
+            MaxMatchesCount = memoryParams.MaxMatchesCount,
+            FrequencyPenalty = memoryParams.FrequencyPenalty,
         };
 
     private static InferenceParamsDocument ToDocument(this InferenceParams inferenceParams)
-        => new InferenceParamsDocument()
+        => new InferenceParamsDocument
         {
             Temperature = inferenceParams.Temperature,
-            ContextSize = inferenceParams.ContextSize
+            ContextSize = inferenceParams.ContextSize,
+            GpuLayerCount = inferenceParams.GpuLayerCount,
+            SeqMax = inferenceParams.SeqMax,
+            BatchSize = inferenceParams.BatchSize,
+            UBatchSize = inferenceParams.UBatchSize,
+            Embeddings = inferenceParams.Embeddings,
+            TypeK = inferenceParams.TypeK,
+            TypeV = inferenceParams.TypeV,
+            TokensKeep = inferenceParams.TokensKeep,
+            MaxTokens = inferenceParams.MaxTokens,
+            TopK = inferenceParams.TopK,
+            TopP = inferenceParams.TopP,
+        };
+    
+    private static MemoryParamsDocument ToDocument(this MemoryParams memoryParams)
+        => new MemoryParamsDocument
+        {
+            Temperature = memoryParams.Temperature,
+            AnswerTokens = memoryParams.AnswerTokens,
+            ContextSize = memoryParams.ContextSize,
+            GpuLayerCount = memoryParams.GpuLayerCount,
+            MaxMatchesCount = memoryParams.MaxMatchesCount,
+            FrequencyPenalty = memoryParams.FrequencyPenalty,
         };
 }

@@ -1,3 +1,5 @@
+using MaIN.Services.Services.Models.Commands;
+
 namespace MaIN.Core.Hub.Utils;
 
 public class StepBuilder
@@ -23,9 +25,10 @@ public class StepBuilder
         return this;
     }
 
-    public StepBuilder FetchData()
+    public StepBuilder FetchData(FetchResponseType fetchResponseType = FetchResponseType.AS_Answer)
     {
-        Steps.Add("FETCH_DATA");
+        var stepToAdd = fetchResponseType == FetchResponseType.AS_System ? "FETCH_DATA+AS_SYSTEM" : "FETCH_DATA";
+        Steps.Add(stepToAdd);
         return this;
     }
 
