@@ -1,9 +1,11 @@
+using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
 using MaIN.Infrastructure.Repositories.Abstract;
 using MaIN.Services.Mappers;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.ImageGenServices;
+using MaIN.Services.Services.LLMService.Factory;
 using MaIN.Services.Services.Models.Commands;
 using MaIN.Services.Services.Steps.Commands;
 using MaIN.Services.Utils;
@@ -18,7 +20,8 @@ public class AgentService(
     INotificationService notificationService,
     IStepProcessor stepProcessor,
     ICommandDispatcher commandDispatcher,
-    ILLMService llmService)
+    ILLMServiceFactory llmServiceFactory,
+    MaINSettings maInSettings)
     : IAgentService
 {
     public async Task<Chat> Process(Chat chat, string agentId, bool translatePrompt = false)
@@ -75,6 +78,7 @@ public class AgentService(
             MemoryParams = memoryParams ?? new MemoryParams(),
             Messages = new List<Message>(),
             Interactive = interactiveResponse,
+            Backend = agent.Backend,
             Type = flow ? ChatType.Flow : ChatType.Rag,
         };
 
@@ -118,6 +122,7 @@ public class AgentService(
             throw new Exception("Agent not found."); //TODO good candidate for custom exception
         
         var chat = (await chatRepository.GetChatById(agent.ChatId))!.ToDomain();
+        var llmService = llmServiceFactory.CreateService(agent.Backend ?? maInSettings.BackendType);
         await llmService.CleanSessionCache(chat.Id!);
         AgentStateManager.ClearState(agent, chat);
 
@@ -138,6 +143,7 @@ public class AgentService(
     public async Task DeleteAgent(string id)
     {
         var chat = await GetChatByAgent(id);
+        var llmService = llmServiceFactory.CreateService(chat.Backend ?? maInSettings.BackendType);
         await llmService.CleanSessionCache(chat.Id);
         await chatRepository.DeleteChat(chat.Id);
         await agentRepository.DeleteAgent(id);

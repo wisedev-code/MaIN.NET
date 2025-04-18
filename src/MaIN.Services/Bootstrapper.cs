@@ -6,6 +6,7 @@ using MaIN.Services.Services;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.ImageGenServices;
 using MaIN.Services.Services.LLMService;
+using MaIN.Services.Services.LLMService.Factory;
 using MaIN.Services.Services.LLMService.Memory;
 using MaIN.Services.Services.Models.Commands;
 using MaIN.Services.Services.Steps;
@@ -34,15 +35,14 @@ public static class Bootstrapper
         serviceCollection.AddSingleton<ITranslatorService, TranslatorService>();
         serviceCollection.AddSingleton<IMemoryService, MemoryService>();
         serviceCollection.AddSingleton<IMemoryFactory, MemoryFactory>();
-        serviceCollection.AddSingleton<ILLMService, LLMService>();
-        serviceCollection.AddSingleton<IImageGenService, ImageGenService>();
+        serviceCollection.AddSingleton<ILLMServiceFactory, LLMServiceFactory>();
+        serviceCollection.AddSingleton<IImageGenServiceFactory, ImageGenServiceFactory>();
 
-
-        if (settings.BackendType == BackendType.OpenAi)
-        {
-            serviceCollection.AddSingleton<ILLMService, OpenAiService>();
-            serviceCollection.AddSingleton<IImageGenService, OpenAiImageGenService>();
-        }
+// Register all concrete implementations as transient
+        serviceCollection.AddTransient<LLMService>();
+        serviceCollection.AddTransient<OpenAiService>();
+        serviceCollection.AddTransient<ImageGenService>();
+        serviceCollection.AddTransient<OpenAiImageGenService>();
         
         // Register all step handlers
         serviceCollection.AddSingleton<IStepHandler, RedirectStepHandler>();

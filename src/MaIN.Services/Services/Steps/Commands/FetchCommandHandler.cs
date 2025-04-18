@@ -3,8 +3,10 @@ using MaIN.Domain.Entities.Agents.AgentSource;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models.Commands;
 using System.Text.Json;
+using MaIN.Domain.Configuration;
 using MaIN.Services.Mappers;
 using MaIN.Services.Services.LLMService;
+using MaIN.Services.Services.LLMService.Factory;
 using MaIN.Services.Utils;
 
 namespace MaIN.Services.Services.Steps.Commands;
@@ -12,7 +14,8 @@ namespace MaIN.Services.Services.Steps.Commands;
 public class FetchCommandHandler(
     IHttpClientFactory httpClientFactory,
     IDataSourceProvider dataSourceService,
-    ILLMService llmService) : ICommandHandler<FetchCommand, Message?>
+    ILLMServiceFactory llmServiceFactory,
+    MaINSettings settings) : ICommandHandler<FetchCommand, Message?>
 {
     public async Task<Message?> HandleAsync(FetchCommand command)
     {
@@ -83,13 +86,14 @@ public class FetchCommandHandler(
         if (command.Chat.Messages.Count > 0)
         {
             var memoryChat = command.MemoryChat;
-            var result = await llmService.AskMemory(
-                memoryChat!,
-                new ChatMemoryOptions
-                {
-                    FileData = new Dictionary<string, string> { { fileData!.Name, fileData.Path } }
-                }
-            );
+            var result = await llmServiceFactory.CreateService(command.Chat.Backend ?? settings.BackendType)
+                .AskMemory(
+                    memoryChat!,
+                    new ChatMemoryOptions
+                    {
+                        FileData = new Dictionary<string, string> { { fileData!.Name, fileData.Path } }
+                    }
+                );
 
             return result!.Message;
         }
@@ -105,7 +109,8 @@ public class FetchCommandHandler(
         if (command.Chat.Messages.Count > 0)
         {
             var memoryChat = command.MemoryChat;
-            var result = await llmService.AskMemory(memoryChat!, new ChatMemoryOptions { WebUrls = [webData!.Url] });
+            var result = await llmServiceFactory.CreateService(command.Chat.Backend ?? settings.BackendType)
+                .AskMemory(memoryChat!, new ChatMemoryOptions { WebUrls = [webData!.Url] });
             return result!.Message;
         }
 
@@ -120,11 +125,11 @@ public class FetchCommandHandler(
             .Select((chunk, index) => new { Key = $"CHUNK_{index + 1}-{chunksAsList.Count}", Value = chunk })
             .ToDictionary(item => item.Key, item => item.Value);
 
-        var result = await llmService.AskMemory(command.MemoryChat!, new ChatMemoryOptions
+        var result = await llmServiceFactory.CreateService(command.Chat.Backend ?? settings.BackendType).AskMemory(command.MemoryChat!, new ChatMemoryOptions
         {
             TextData = chunks
         });
-        
+
         var newMessage = result!.Message;
         newMessage.Properties = new() { { "agent_internal", "true" } };
         return newMessage;

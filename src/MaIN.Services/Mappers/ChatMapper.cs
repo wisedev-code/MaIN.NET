@@ -89,6 +89,7 @@ public static class ChatMapper
             Visual = chat.Visual,
             InferenceParams = chat.InterferenceParams.ToDocument(),
             Properties = chat.Properties,
+            Backend = chat.Backend,
             Interactive = chat.Interactive,
             Translate = chat.Translate,
             Type = Enum.Parse<ChatTypeDocument>(chat.Type.ToString())
@@ -104,6 +105,7 @@ public static class ChatMapper
             Visual = chat.Visual,
             Properties = chat.Properties,
             InterferenceParams = chat.InferenceParams!.ToDomain(),
+            Backend = chat.Backend,
             Interactive = chat.Interactive,
             Translate = chat.Translate,
             Type = Enum.Parse<ChatType>(chat.Type.ToString())
