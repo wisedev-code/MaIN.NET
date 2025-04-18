@@ -6,6 +6,7 @@ using LLama.Native;
 using LLama.Transformers;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
+using MaIN.Domain.Extensions;
 using MaIN.Domain.Models;
 using MaIN.Services.Constants;
 using MaIN.Services.Services.Abstract;
@@ -106,9 +107,16 @@ public class LLMService : ILLMService
             llmModel,
             chat.MemoryParams);
 
+        // if (chat.UsePreProcessorDocuments())
+        // {
+        //     memoryOptions = memoryService.ProcessMemoryOptions(memoryOptions);
+        // }
+        
         await memoryService.ImportDataToMemory(kernelMemory, memoryOptions, cancellationToken);
         var userMessage = chat.Messages.Last();
-        var result = await kernelMemory.AskAsync(userMessage.Content, cancellationToken: cancellationToken);
+        var result = await kernelMemory.AskAsync(
+            userMessage.Content,
+            cancellationToken: cancellationToken);
         await kernelMemory.DeleteIndexAsync(cancellationToken: cancellationToken);
 
         return new ChatResult

@@ -104,6 +104,7 @@ public static class AgentMapper
             Order = agent.Order,
             Started = agent.Started,
             Flow = agent.Flow,
+            Backend = agent.Backend,
             ChatId = agent.ChatId,
             Description = agent.Description,
             Behaviours = agent.Behaviours,
