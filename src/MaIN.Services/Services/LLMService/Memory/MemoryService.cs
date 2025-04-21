@@ -9,13 +9,17 @@ public class MemoryService : IMemoryService
         ChatMemoryOptions options,
         CancellationToken cancellationToken)
     {
+        if (options.PreProcess)
+        {
+            await PreprocessAvailableDocuments(options, cancellationToken);
+        }
         await ImportTextData(memory, options.TextData, cancellationToken);
         await ImportFileData(memory, options.FileData, cancellationToken);
         await ImportStreamData(memory, options.StreamData, cancellationToken);
         await ImportWebUrls(memory, options.WebUrls, cancellationToken);
         await ImportMemoryItems(memory, options.Memory, cancellationToken);
     }
-
+    
     public string CleanResponseText(string text)
     {
         return text
@@ -85,4 +89,23 @@ public class MemoryService : IMemoryService
                 cancellationToken: cancellationToken);
         }
     }
+    
+    private static async Task PreprocessAvailableDocuments(ChatMemoryOptions options, CancellationToken cancellationToken)
+    {
+        foreach (var file in options.FileData!)
+        {
+            options.TextData!.Add(file.Key ,DocumentProcessor.ProcessDocument(file.Value));
+            options.FileData = [];
+        }
+
+        foreach (var stream in options.StreamData!)
+        {
+            var fileStream = new FileStream(Path.GetTempPath()+$".{stream.Key}", FileMode.Create, FileAccess.Write);
+            await stream.Value.CopyToAsync(fileStream, cancellationToken);
+            await fileStream.DisposeAsync();
+            options.TextData!.Add(stream.Key, DocumentProcessor.ProcessDocument(Path.GetTempPath()+$".{stream.Key}"));
+            options.StreamData = [];
+        }
+    }
+
 }
