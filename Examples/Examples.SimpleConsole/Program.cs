@@ -10,13 +10,12 @@ MaINBootstrapper.Initialize();
 //     .CompleteAsync(interactive: true);
 
 var result = AIHub.Chat()
-    .WithModel("llama3.2:3b")
-    .WithMessage(
-        "Write this invoice as JSON.")
+    .WithModel("llama3.1:8b")
+    .WithMessage("Output this invoice as JSON")
     .WithMemoryParams(new MemoryParams()
     {
-        AnswerTokens = 2000,
-        ContextSize = 4500,
+        AnswerTokens = 1024,
+        ContextSize = 4096
     })
     .WithFiles(["3.pdf"], preProcess: true);
     
