@@ -6,8 +6,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using Tesseract;
 using UglyToad.PdfPig;
 using UglyToad.PdfPig.Content;
-using UglyToad.PdfPig.Core;
-using UglyToad.PdfPig.Geometry;
+using Page = UglyToad.PdfPig.Content.Page;
 using Text = DocumentFormat.OpenXml.Wordprocessing.Text;
 
 namespace MaIN.Services.Services.LLMService.Memory;
@@ -35,331 +34,163 @@ public static class DocumentProcessor
     {
         var result = new StringBuilder();
 
-        using var document = PdfDocument.Open(pdfPath);
-        foreach (var page in document.GetPages())
+        using (var document = PdfDocument.Open(pdfPath))
         {
-            var words = page.GetWords().ToList();
-            var tableRegions = FindTableRegions(words);
-
-            var nonTableWords = words.Where(w =>
-                !tableRegions.Any(r => r.Contains(w.BoundingBox))).ToList();
-
-            if (nonTableWords.Any())
+            foreach (var page in document.GetPages())
             {
-                var textContent = ProcessTextContent(nonTableWords);
-                result.AppendLine(textContent);
+                var pageText = ExtractPageText(page);
+                result.Append(pageText);
             }
-            
-            foreach (var region in tableRegions)
-            {
-                var tableWords = words.Where(w => region.Contains(w.BoundingBox)).ToList();
-                var tableMarkdown = CreateMarkdownTable(tableWords);
-                result.AppendLine(tableMarkdown);
-                result.AppendLine();
-            }
-            
-            result.AppendLine("---");
         }
 
         return result.ToString();
     }
 
-    private static List<PdfRectangle> FindTableRegions(List<Word> words)
+    private static string ExtractPageText(Page page)
     {
-        var regions = new List<PdfRectangle>();
+        var words = page.GetWords().ToList();
+        var sb = new StringBuilder();
+
         var rows = words
             .GroupBy(w => Math.Round(w.BoundingBox.Bottom, 1))
             .OrderByDescending(g => g.Key)
             .ToList();
 
-        for (int i = 0; i < rows.Count - 2; i++)
-        {
-            var row1 = rows[i].OrderBy(w => w.BoundingBox.Left).ToList();
-            var row2 = rows[i + 1].OrderBy(w => w.BoundingBox.Left).ToList();
-            var row3 = rows[i + 2].OrderBy(w => w.BoundingBox.Left).ToList();
-
-            if (HasColumnAlignment(row1, row2, row3))
-            {
-                int startRow = i;
-                int endRow = i + 2;
-
-                for (int j = i + 3; j < rows.Count; j++)
-                {
-                    var nextRow = rows[j].OrderBy(w => w.BoundingBox.Left).ToList();
-                    if (HasColumnAlignment(row3, rows[j - 1].OrderBy(w => w.BoundingBox.Left).ToList(), nextRow))
-                    {
-                        endRow = j;
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
-
-                var tableWords = new List<Word>();
-                for (int r = startRow; r <= endRow; r++)
-                {
-                    tableWords.AddRange(rows[r]);
-                }
-
-                double left = tableWords.Min(w => w.BoundingBox.Left) - 5;
-                double bottom = tableWords.Min(w => w.BoundingBox.Bottom) - 5;
-                double right = tableWords.Max(w => w.BoundingBox.Right) + 5;
-                double top = tableWords.Max(w => w.BoundingBox.Top) + 5;
-
-                regions.Add(new PdfRectangle(left, bottom, right, top));
-                i = endRow;
-            }
-        }
-
-        return regions;
-    }
-
-    private static bool HasColumnAlignment(List<Word> row1, List<Word> row2, List<Word> row3)
-    {
-        var xPos1 = row1.Select(w => w.BoundingBox.Left).ToList();
-        var xPos2 = row2.Select(w => w.BoundingBox.Left).ToList();
-        var xPos3 = row3.Select(w => w.BoundingBox.Left).ToList();
-
-        double tolerance = 10.0;
-        int alignedCount = 0;
-
-        foreach (var x1 in xPos1)
-        {
-            bool aligned2 = xPos2.Any(x2 => Math.Abs(x1 - x2) < tolerance);
-            bool aligned3 = xPos3.Any(x3 => Math.Abs(x1 - x3) < tolerance);
-
-            if (aligned2 && aligned3)
-            {
-                alignedCount++;
-            }
-        }
-
-        return alignedCount >= 2 && row1.Count >= 2 && row2.Count >= 2 && row3.Count >= 2;
-    }
-
-    private static string CreateMarkdownTable(List<Word> tableWords)
-    {
-        var rows = tableWords
-            .GroupBy(w => Math.Round(w.BoundingBox.Bottom, 1))
-            .OrderByDescending(g => g.Key)
-            .ToList();
-
-        if (!rows.Any()) return string.Empty;
-
-        var columnPositions = GetColumnPositions(rows);
-        int columnCount = columnPositions.Count;
-
-        if (columnCount < 2)
-        {
-            columnCount = 2;
-            columnPositions = new List<double> { tableWords.Max(w => w.BoundingBox.Left) / 2 };
-        }
-
-        var sb = new StringBuilder();
-        sb.Append("|");
-        var headerRow = rows.First().OrderBy(w => w.BoundingBox.Left).ToList();
-
-        for (int i = 0; i < columnCount; i++)
-        {
-            double start = i == 0 ? 0 : columnPositions[i - 1];
-            double end = i < columnPositions.Count - 1 ? columnPositions[i] : double.MaxValue;
-
-            var cellWords = headerRow
-                .Where(w => w.BoundingBox.Left >= start && w.BoundingBox.Left < end)
-                .OrderBy(w => w.BoundingBox.Left)
-                .ToList();
-
-            string cellText = string.Join(" ", cellWords.Select(w => w.Text));
-            sb.Append($" {CleanCellText(cellText)} ;");
-        }
-
-        sb.AppendLine();
-        sb.Append("|");
-        
-        for (int i = 0; i < columnCount; i++)
-        {
-            sb.Append(" --- |");
-        }
-
-        sb.AppendLine();
-
-        foreach (var row in rows.Skip(1))
-        {
-            sb.Append("|");
-            var rowWords = row.OrderBy(w => w.BoundingBox.Left).ToList();
-
-            for (int i = 0; i < columnCount; i++)
-            {
-                double start = i == 0 ? 0 : columnPositions[i - 1];
-                double end = i < columnPositions.Count - 1 ? columnPositions[i] : double.MaxValue;
-
-                var cellWords = rowWords
-                    .Where(w => w.BoundingBox.Left >= start && w.BoundingBox.Left < end)
-                    .OrderBy(w => w.BoundingBox.Left)
-                    .ToList();
-
-                string cellText = string.Join(" ", cellWords.Select(w => w.Text));
-                sb.Append($" {CleanCellText(cellText)} |");
-            }
-
-            sb.AppendLine();
-        }
-
-        return sb.ToString();
-    }
-
-    private static List<double> GetColumnPositions(List<IGrouping<double, Word>> rows)
-    {
-        var allPositions = new List<double>();
         foreach (var row in rows)
         {
-            allPositions.AddRange(row.Select(w => w.BoundingBox.Left));
-        }
-
-        var tolerance = 10.0;
-        var clusters = new List<List<double>>();
-
-        foreach (var pos in allPositions.OrderBy(p => p))
-        {
-            bool added = false;
-            foreach (var cluster in clusters)
-            {
-                if (Math.Abs(cluster.Average() - pos) < tolerance)
-                {
-                    cluster.Add(pos);
-                    added = true;
-                    break;
-                }
-            }
-
-            if (!added)
-            {
-                clusters.Add(new List<double> { pos });
-            }
-        }
-
-        return clusters
-            .Where(c => c.Count > Math.Max(2, rows.Count / 4))
-            .OrderBy(c => c.Average())
-            .Select(c => c.Average())
-            .ToList();
-    }
-
-    private static string ProcessTextContent(List<Word> words)
-    {
-        var sb = new StringBuilder();
-        var rows = words
-            .GroupBy(w => Math.Round(w.BoundingBox.Bottom, 1))
-            .OrderByDescending(g => g.Key);
-
-        double prevRowHeight = 0;
-
-        foreach (var row in rows)
-        {
-            string line = string.Join(" ", row.OrderBy(w => w.BoundingBox.Left).Select(w => w.Text));
+            var lineWords = row.OrderBy(w => w.BoundingBox.Left).ToList();
+            string line = string.Join(" ", lineWords.Select(w => w.Text)).Trim();
 
             if (string.IsNullOrWhiteSpace(line)) continue;
 
-            var firstWord = row.OrderBy(w => w.BoundingBox.Left).FirstOrDefault();
-            double wordHeight = 0;
-
-            if (firstWord != null)
+            if (IsPotentialHeader(lineWords))
             {
-                wordHeight = firstWord.BoundingBox.Height;
-                var letters = firstWord.Letters.ToList();
-                
-                if (letters.Any())
-                {
-                    double estimatedFontSize = letters.First().FontSize;
-                    if (estimatedFontSize > 0)
-                    {
-                        wordHeight = estimatedFontSize;
-                    }
-                }
+                sb.AppendLine($"# {line}");
             }
-
-            if (wordHeight > prevRowHeight * 1.2 && wordHeight > 10)
+            else if (IsLabelValuePair(line))
             {
-                if (wordHeight > 14)
-                {
-                    sb.AppendLine($"## {line}");
-                }
-                else
-                {
-                    sb.AppendLine($"### {line}");
-                }
+                var parts = SplitLabelValue(line);
+                sb.AppendLine($"{parts.Item1}: {parts.Item2}");
             }
-            else if (line.TrimStart().StartsWith("•") || line.TrimStart().StartsWith("-") ||
-                     Regex.IsMatch(line.TrimStart(), @"^\d+\."))
+            else if (IsListItem(line))
             {
-                int index = Math.Max(1, line.TrimStart().IndexOfAny(['•', '-', '.']));
-                if (index < line.TrimStart().Length - 1)
-                {
-                    sb.AppendLine($"* {line.TrimStart().Substring(index + 1).Trim()}");
-                }
-                else
-                {
-                    sb.AppendLine($"* {line.TrimStart()}");
-                }
+                sb.AppendLine($"- {line}");
+            }
+            else if (IsDataRow(line))
+            {
+                sb.AppendLine(FormatDataRowConcise(line));
             }
             else
             {
                 sb.AppendLine(line);
-                sb.AppendLine();
             }
-
-            prevRowHeight = wordHeight;
         }
 
         return sb.ToString();
     }
 
-    private static string CleanCellText(string text)
+    private static bool IsPotentialHeader(List<Word> words)
     {
-        if (string.IsNullOrWhiteSpace(text)) return "";
+        if (!words.Any()) return false;
 
-        text = text.Trim();
-        text = Regex.Replace(text, @"\s+", " ");
-        text = text.Replace("|", "\\|");
+        var firstWord = words.First();
+        double fontSize = 0;
 
-        return text;
-    }
-
-    private static bool IsLikelyHeader(IEnumerable<Word> row, IEnumerable<Word> nextRow)
-    {
-        var enumerable = row.ToList();
-        var words = nextRow as Word[] ?? nextRow.ToArray();
-        if (!enumerable.Any() || !words.Any())
-            return false;
-
-        bool hasLettersFontInfo = enumerable.Any(w => w.Letters.Any());
-        bool nextHasLettersFontInfo = words.Any(w => w.Letters.Any());
-
-        if (hasLettersFontInfo && nextHasLettersFontInfo)
+        if (firstWord.Letters.Any())
         {
-            double rowAvgFontSize = enumerable
-                .SelectMany(w => w.Letters)
-                .Where(l => l.FontSize > 0)
-                .Select(l => l.FontSize)
-                .DefaultIfEmpty(0)
-                .Average();
-
-            double nextRowAvgFontSize = words
-                .SelectMany(w => w.Letters)
-                .Where(l => l.FontSize > 0)
-                .Select(l => l.FontSize)
-                .DefaultIfEmpty(0)
-                .Average();
-
-            return rowAvgFontSize > nextRowAvgFontSize * 1.2;
+            fontSize = firstWord.Letters.First().FontSize;
+        }
+        else
+        {
+            fontSize = firstWord.BoundingBox.Height;
         }
 
-        double rowAvgHeight = enumerable.Average(w => w.BoundingBox.Height);
-        double nextRowAvgHeight = words.Average(w => w.BoundingBox.Height);
+        bool isBold = firstWord.Letters.Any() &&
+                      firstWord.Letters.First().FontName!.ToLower().Contains("bold");
 
-        return rowAvgHeight > nextRowAvgHeight * 1.2;
+        return fontSize > 12 || isBold;
     }
+
+    private static bool IsLabelValuePair(string line)
+    {
+        return Regex.IsMatch(line, @"^.+:.+$");
+    }
+
+    private static Tuple<string, string> SplitLabelValue(string line)
+    {
+        var parts = line.Split([':'], 2);
+
+        if (parts.Length == 2)
+        {
+            return new Tuple<string, string>(parts[0].Trim(), parts[1].Trim());
+        }
+
+        return new Tuple<string, string>(line, "");
+    }
+
+    private static bool IsListItem(string line)
+    {
+        return line.TrimStart().StartsWith("•") ||
+               line.TrimStart().StartsWith("-") ||
+               line.TrimStart().StartsWith("*") ||
+               Regex.IsMatch(line.TrimStart(), @"^\d+\.\s");
+    }
+
+    private static bool IsDataRow(string line)
+    {
+        return ContainsNumberWithUnit(line) && Regex.Matches(line, @"\b\d+([.,]\d+)?\b").Count >= 2;
+    }
+
+    private static bool ContainsNumberWithUnit(string line)
+    {
+        return Regex.IsMatch(line, @"\b\d+\s*[a-zA-Z]{1,3}\b");
+    }
+
+    private static string FormatDataRowConcise(string line)
+    {
+        var textMatch = Regex.Match(line, @"^(.*?)\s*\d");
+        string descriptorText = textMatch.Success ? textMatch.Groups[1].Value.Trim() : "";
+
+        var numUnitMatches = Regex.Matches(line, @"\b(\d+)\s*([a-zA-Z]{1,3})\b");
+
+        var numberMatches = Regex.Matches(line, @"\b(\d+([.,]\d+)?)\b");
+
+        var sb = new StringBuilder();
+        sb.Append("- ");
+        sb.Append(descriptorText);
+
+        if (numUnitMatches.Count > 0)
+        {
+            foreach (Match m in numUnitMatches)
+            {
+                sb.Append($" | {m.Groups[1].Value} {m.Groups[2].Value}");
+            }
+        }
+
+        var processedIndices = new HashSet<int>();
+        foreach (Match numUnitMatch in numUnitMatches)
+        {
+            foreach (Match numMatch in numberMatches)
+            {
+                if (numMatch.Index >= numUnitMatch.Index &&
+                    numMatch.Index < numUnitMatch.Index + numUnitMatch.Length)
+                {
+                    processedIndices.Add(numMatch.Index);
+                }
+            }
+        }
+
+        foreach (Match numMatch in numberMatches)
+        {
+            if (!processedIndices.Contains(numMatch.Index))
+            {
+                sb.Append($" | {numMatch.Value}");
+            }
+        }
+
+        return sb.ToString();
+    }
+
 
     private static string ProcessExcel(string filePath)
     {
@@ -403,7 +234,7 @@ public static class DocumentProcessor
                 {
                     string cellValue = "";
                     var cell = cells.FirstOrDefault(c => GetColumnIndex(GetColumnId(c.CellReference!)) == i);
-                    
+
                     if (cell != null)
                     {
                         cellValue = GetCellValue(cell, sharedStringTable!);
@@ -724,7 +555,7 @@ public static class DocumentProcessor
             string rtfText = File.ReadAllText(filePath);
             string plainText = ConvertRtfToPlainText(rtfText);
             string[] lines = plainText.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
-            
+
             foreach (var line in lines)
             {
                 if (!string.IsNullOrWhiteSpace(line))
@@ -746,7 +577,7 @@ public static class DocumentProcessor
     {
         string plainText = rtfText;
         int headerEnd = plainText.IndexOf("\\viewkind4", StringComparison.Ordinal);
-        
+
         if (headerEnd > 0)
         {
             plainText = plainText.Substring(headerEnd);
