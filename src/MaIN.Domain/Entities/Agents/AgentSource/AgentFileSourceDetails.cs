@@ -4,4 +4,5 @@ public class AgentFileSourceDetails : AgentSourceDetailsBase, IAgentSource
 {
     public required string Path { get; init; }
     public required string Name { get; init; }
+    public bool PreProcess { get; init; } = false;
 }

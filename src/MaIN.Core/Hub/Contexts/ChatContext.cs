@@ -13,7 +13,7 @@ public class ChatContext
     private readonly IChatService _chatService;
     private bool _preProcess;
     private Chat _chat { get; set; }
-    private List<FileInfo> _files { get; set; }
+    private List<FileInfo> _files { get; set; } = [];
 
     internal ChatContext(IChatService chatService)
     {
