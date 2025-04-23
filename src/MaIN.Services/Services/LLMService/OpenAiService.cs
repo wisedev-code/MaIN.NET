@@ -344,16 +344,6 @@ public class ChatRequestOptions
     public Func<LLMTokenValue, Task>? TokenCallback { get; set; }
 }
 
-
-public class ChatMemoryOptions
-{
-    public Dictionary<string, string>? TextData { get; set; }
-    public Dictionary<string, string>? FileData { get; set; }
-    public Dictionary<string, FileStream>? StreamData { get; set; }
-    public List<string>? WebUrls { get; set; }
-    public List<string>? Memory { get; set; }
-}
-
 internal class ChatMessage(string role, string content)
 {
     public string Role { get; set; } = role;

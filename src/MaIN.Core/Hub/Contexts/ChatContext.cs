@@ -1,5 +1,6 @@
 using MaIN.Domain.Entities;
 using MaIN.Domain.Models;
+using MaIN.Services.Constants;
 using MaIN.Services.Dtos;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
@@ -10,8 +11,9 @@ namespace MaIN.Core.Hub.Contexts;
 public class ChatContext
 {
     private readonly IChatService _chatService;
+    private bool _preProcess;
     private Chat _chat { get; set; }
-    private List<FileInfo> _files { get; set; }
+    private List<FileInfo> _files { get; set; } = [];
 
     internal ChatContext(IChatService chatService)
     {
@@ -84,7 +86,7 @@ public class ChatContext
         return this;
     }
 
-    public ChatContext WithFiles(List<FileStream> fileStreams)
+    public ChatContext WithFiles(List<FileStream> fileStreams, bool preProcess = false)
     {
         var files = fileStreams.Select(p => new FileInfo()
         {
@@ -94,17 +96,19 @@ public class ChatContext
             StreamContent = p 
         }).ToList();
 
+        _preProcess = preProcess;
         _files = files;
         return this;
     }
 
-    public ChatContext WithFiles(List<FileInfo> files)
+    public ChatContext WithFiles(List<FileInfo> files, bool preProcess = false)
     {
         _files = files;
+        _preProcess = preProcess;
         return this;
     }
     
-    public ChatContext WithFiles(List<string> filePaths)
+    public ChatContext WithFiles(List<string> filePaths, bool preProcess = false)
     {
         var files = filePaths.Select(p => new FileInfo()
         {
@@ -113,6 +117,7 @@ public class ChatContext
             Extension = Path.GetExtension(p)
         }).ToList();
 
+        _preProcess = preProcess;
         _files = files;
         return this;
     }
@@ -135,6 +140,11 @@ public class ChatContext
             throw new InvalidOperationException("Chat has no messages."); //TODO good candidate for domain exception
         }
         _chat.Messages.Last().Files = _files;
+        if(_preProcess)
+        {
+            _chat.Messages.Last().Properties.Add(ServiceConstants.Messages.PreProcessProperty, string.Empty);
+        }
+        
         if (!await ChatExists(_chat.Id))
         {
             await _chatService.Create(_chat);
