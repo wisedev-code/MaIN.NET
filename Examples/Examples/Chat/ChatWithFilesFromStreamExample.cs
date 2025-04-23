@@ -34,7 +34,7 @@ public class ChatWithFilesFromStreamExample : IExample
         }
         
         var result = await AIHub.Chat()
-            .WithModel("gemma2:2b")
+            .WithModel("qwen2.5:0.5b")
             .WithMessage("You have 2 documents in memory. Whats the difference of work between Galileo and Copernicus?. Give answer based on the documents.")
             .WithFiles(fileStreams)
             .CompleteAsync();

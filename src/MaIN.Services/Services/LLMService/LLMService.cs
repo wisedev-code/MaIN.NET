@@ -100,7 +100,12 @@ public class LLMService : ILLMService
         CancellationToken cancellationToken = default)
     {
         var model = KnownModels.GetModel(chat.Model);
-        var parameters = new ModelParams(Path.Combine(modelsPath, model.FileName));
+        var parameters = new ModelParams(Path.Combine(modelsPath, model.FileName))
+        {
+            GpuLayerCount = chat.MemoryParams.GpuLayerCount,
+            ContextSize = (uint)chat.MemoryParams.ContextSize,
+            Embeddings = true
+        };
         var llmModel = await LLamaWeights.LoadFromFileAsync(parameters, cancellationToken);
         var kernelMemory = memoryFactory.CreateMemoryWithModel(
             modelsPath,

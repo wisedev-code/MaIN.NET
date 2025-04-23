@@ -87,7 +87,8 @@ public class FetchCommandHandler(
                 memoryChat!,
                 new ChatMemoryOptions
                 {
-                    FileData = new Dictionary<string, string> { { fileData!.Name, fileData.Path } }
+                    FileData = new Dictionary<string, string> { { fileData!.Name, fileData.Path } },
+                    PreProcess = fileData.PreProcess
                 }
             );
             result!.Message.Role = command.ResponseType == FetchResponseType.AS_System ? "System" : "Assistant";
