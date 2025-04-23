@@ -103,7 +103,8 @@ public class LLMService : ILLMService
         var parameters = new ModelParams(Path.Combine(modelsPath, model.FileName))
         {
             GpuLayerCount = chat.MemoryParams.GpuLayerCount,
-            ContextSize = (uint)chat.MemoryParams.ContextSize
+            ContextSize = (uint)chat.MemoryParams.ContextSize,
+            Embeddings = true
         };
         var llmModel = await LLamaWeights.LoadFromFileAsync(parameters, cancellationToken);
         var kernelMemory = memoryFactory.CreateMemoryWithModel(
