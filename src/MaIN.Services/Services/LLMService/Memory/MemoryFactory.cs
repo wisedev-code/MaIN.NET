@@ -21,7 +21,7 @@ public class MemoryFactory(MaINSettings settings) : IMemoryFactory
             MaxMatchesCount = 5,
             FrequencyPenalty = 1,
             Temperature = 0.6f,
-            AnswerTokens = 500
+            AnswerTokens = 1024
         });
     }
 
@@ -50,10 +50,13 @@ public class MemoryFactory(MaINSettings settings) : IMemoryFactory
             .With(parsingOptions)
             .Build();
     }
-
+    
     public IKernelMemory CreateMemoryWithOpenAi(string openAiKey, MemoryParams memoryParams)
     {
+        var searchOptions = ConfigureSearchOptions(memoryParams);
+
         var kernelMemory = new KernelMemoryBuilder()
+            .WithSearchClientConfig(searchOptions)
             .WithOpenAIDefaults(openAiKey)
             .Build();
         
@@ -84,7 +87,8 @@ public class MemoryFactory(MaINSettings settings) : IMemoryFactory
 
         var config = new LLamaSharpConfig(embeddingModelPath)
         { 
-            DefaultInferenceParams = inferenceParams 
+            DefaultInferenceParams = inferenceParams,
+            GpuLayerCount = 20,
         };
         
         var parameters = new ModelParams(config.ModelPath)
@@ -114,7 +118,6 @@ public class MemoryFactory(MaINSettings settings) : IMemoryFactory
         return new TextPartitioningOptions
         {
             MaxTokensPerParagraph = 300,
-            MaxTokensPerLine = 100,
         };
     }
     

@@ -91,7 +91,8 @@ public class FetchCommandHandler(
                     memoryChat!,
                     new ChatMemoryOptions
                     {
-                        FileData = new Dictionary<string, string> { { fileData!.Name, fileData.Path } }
+                        FileData = new Dictionary<string, string> { { fileData!.Name, fileData.Path } },
+                        PreProcess = fileData.PreProcess
                     }
                 );
 
@@ -111,6 +112,7 @@ public class FetchCommandHandler(
             var memoryChat = command.MemoryChat;
             var result = await llmServiceFactory.CreateService(command.Chat.Backend ?? settings.BackendType)
                 .AskMemory(memoryChat!, new ChatMemoryOptions { WebUrls = [webData!.Url] });
+            result!.Message.Role = command.ResponseType == FetchResponseType.AS_System ? "System" : "Assistant";
             return result!.Message;
         }
 
@@ -130,6 +132,7 @@ public class FetchCommandHandler(
             TextData = chunks
         });
 
+        result!.Message.Role = command.ResponseType == FetchResponseType.AS_System ? "System" : "Assistant";
         var newMessage = result!.Message;
         newMessage.Properties = new() { { "agent_internal", "true" } };
         return newMessage;
@@ -140,7 +143,7 @@ public class FetchCommandHandler(
         return new Message
         {
             Content = content,
-            Role = "User",
+            Role = "System",
             Properties = properties
         };
     }

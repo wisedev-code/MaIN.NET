@@ -82,9 +82,13 @@ public class ChatContextTests
                 Content = "test-message"
             }
         };
+        
+
         _mockChatService.Setup(s => s.Completions(It.IsAny<Chat>(), It.IsAny<bool>(), It.IsAny<bool>(), null))
             .ReturnsAsync(chatResult);
         
+        _chatContext.WithMessage("User message");
+
         // Act
         var result = await _chatContext.CompleteAsync();
         

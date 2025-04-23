@@ -17,4 +17,5 @@ public class ChatDocument
     public bool Interactive { get; init; }
     public bool Translate { get; init; }
     public InferenceParamsDocument? InferenceParams { get; init; }
+    public MemoryParamsDocument? MemoryParams { get; init; }
 }
