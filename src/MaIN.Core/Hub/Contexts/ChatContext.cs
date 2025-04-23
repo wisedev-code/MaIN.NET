@@ -1,3 +1,4 @@
+using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Models;
 using MaIN.Services.Constants;
@@ -56,6 +57,12 @@ public class ChatContext
     {
         KnownModels.AddModel(model, path);
         _chat.Model = model;
+        return this;
+    }
+
+    public ChatContext WithBackend(BackendType backendType)
+    {
+        _chat.Backend = backendType;
         return this;
     }
 
