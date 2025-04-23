@@ -52,7 +52,7 @@ public class OpenAiService(
         {
             var result = ChatHelper.ExtractMemoryOptions(lastMessage);
             var memoryResult = await AskMemory(chat, result, cancellationToken);
-            resultBuilder.Append(memoryResult);
+            resultBuilder.Append(memoryResult!.Message.Content);
         }
         else
         {
@@ -342,16 +342,6 @@ public class ChatRequestOptions
     public bool InteractiveUpdates { get; set; }
     public bool CreateSession { get; set; }
     public Func<LLMTokenValue, Task>? TokenCallback { get; set; }
-}
-
-
-public class ChatMemoryOptions
-{
-    public Dictionary<string, string>? TextData { get; set; }
-    public Dictionary<string, string>? FileData { get; set; }
-    public Dictionary<string, FileStream>? StreamData { get; set; }
-    public List<string>? WebUrls { get; set; }
-    public List<string>? Memory { get; set; }
 }
 
 internal class ChatMessage(string role, string content)

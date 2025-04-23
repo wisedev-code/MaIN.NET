@@ -29,6 +29,9 @@ public class SqlChatRepository(IDbConnection connection) : IChatRepository
             InferenceParams = row.InferenceParams != null ? 
                 JsonSerializer.Deserialize<InferenceParamsDocument>(row.InferenceParams.ToString(), _jsonOptions) : 
                 default,
+            MemoryParams = row.MemoryParams != null ? 
+                JsonSerializer.Deserialize<MemoryParamsDocument>(row.MemoryParams.ToString(), _jsonOptions) : 
+                default,
             Properties = row.Properties != null ? 
                 JsonSerializer.Deserialize<Dictionary<string, string>>(row.Properties.ToString(), _jsonOptions) : 
                 new Dictionary<string, string>(),
@@ -48,11 +51,11 @@ public class SqlChatRepository(IDbConnection connection) : IChatRepository
             chat.Id,
             chat.Name,
             chat.Model,
-            Messages = JsonSerializer.Serialize(chat.Messages ?? new List<MessageDocument>(), _jsonOptions),
+            Messages = JsonSerializer.Serialize(chat.Messages, _jsonOptions),
             Type = JsonSerializer.Serialize(chat.Type, _jsonOptions),
             InferenceParams = JsonSerializer.Serialize(chat.InferenceParams, _jsonOptions),
-            Properties = chat.Properties != null ? 
-                JsonSerializer.Serialize(chat.Properties, _jsonOptions) : null,
+            MemoryParams = JsonSerializer.Serialize(chat.MemoryParams, _jsonOptions),
+            Properties = JsonSerializer.Serialize(chat.Properties, _jsonOptions),
             chat.Visual,
             chat.Interactive
         };
@@ -81,10 +84,10 @@ public class SqlChatRepository(IDbConnection connection) : IChatRepository
         await connection.ExecuteAsync(@"
             INSERT INTO Chats (
                 Id, Name, Model, Messages, Type, Properties, 
-                Stream, Visual, InferenceParams, Interactive
+                Stream, Visual, InferenceParams, MemoryParams, Interactive
             ) VALUES (
                 @Id, @Name, @Model, @Messages, @Type, @Properties, 
-                 @Visual, @InferenceParams, @Interactive)", 
+                 @Visual, @InferenceParams, @MemoryParams, @Interactive)", 
             parameters);
     }
 

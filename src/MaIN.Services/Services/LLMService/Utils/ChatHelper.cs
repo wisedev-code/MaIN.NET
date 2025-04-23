@@ -67,12 +67,15 @@ public static class ChatHelper
         var streamData = message.Files
             .Where(x => x.StreamContent != null)
             .ToDictionary(x => x.Name, x => x.StreamContent!);
+
+        var preProcess = message.Properties.ContainsKey(Constants.ServiceConstants.Messages.PreProcessProperty);
         
         return new ChatMemoryOptions
         {
             TextData = textData,
             FileData = fileData,
-            StreamData = streamData
+            StreamData = streamData,
+            PreProcess = preProcess
         };
     }
 }
