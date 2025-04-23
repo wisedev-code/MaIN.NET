@@ -50,7 +50,7 @@ public class MemoryFactory(MaINSettings settings) : IMemoryFactory
             .With(parsingOptions)
             .Build();
     }
-
+    
     public IKernelMemory CreateMemoryWithOpenAi(string openAiKey, MemoryParams memoryParams)
     {
         var searchOptions = ConfigureSearchOptions(memoryParams);
@@ -118,7 +118,6 @@ public class MemoryFactory(MaINSettings settings) : IMemoryFactory
         return new TextPartitioningOptions
         {
             MaxTokensPerParagraph = 300,
-            MaxTokensPerLine = 100,
         };
     }
     
