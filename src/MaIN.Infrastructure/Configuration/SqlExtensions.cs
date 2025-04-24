@@ -48,6 +48,7 @@ public static class SqlRegistrationExtensions
                     [Type] NVARCHAR(MAX) NOT NULL,      -- Stored as JSON
                     [Properties] NVARCHAR(MAX) NULL,    -- Stored as JSON
                     [Visual] BIT NOT NULL DEFAULT 0,
+                    [BackendType] INT NOT NULL DEFAULT 0,
                     [InferenceParams] NVARCHAR(MAX) NULL,    -- Stored as JSON,
                     [MemoryParams] NVARCHAR(MAX) NULL,    -- Stored as JSON
                     [Interactive] BIT NOT NULL DEFAULT 0
@@ -75,6 +76,7 @@ public static class SqlRegistrationExtensions
                     [Context] NVARCHAR(MAX) NULL,       -- Stored as JSON
                     [ChatId] NVARCHAR(450) NOT NULL,
                     [Order] INT NOT NULL DEFAULT 0,
+                    [BackendType] INT NOT NULL DEFAULT 0,
                     [Behaviours] NVARCHAR(MAX) NULL,    -- Stored as JSON
                     [CurrentBehaviour] NVARCHAR(MAX) NULL,
                     [Flow] BIT NOT NULL DEFAULT 0

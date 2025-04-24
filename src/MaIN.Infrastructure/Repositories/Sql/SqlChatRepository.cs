@@ -1,6 +1,7 @@
 using System.Data;
 using System.Text.Json;
 using Dapper;
+using MaIN.Domain.Configuration;
 using MaIN.Infrastructure.Models;
 using MaIN.Infrastructure.Repositories.Abstract;
 
@@ -36,6 +37,7 @@ public class SqlChatRepository(IDbConnection connection) : IChatRepository
                 JsonSerializer.Deserialize<Dictionary<string, string>>(row.Properties.ToString(), _jsonOptions) : 
                 new Dictionary<string, string>(),
             Visual = row.Visual,
+            Backend = (BackendType)row.BackendType,
             Interactive = row.Interactive
         };
         return chat;
@@ -57,6 +59,7 @@ public class SqlChatRepository(IDbConnection connection) : IChatRepository
             MemoryParams = JsonSerializer.Serialize(chat.MemoryParams, _jsonOptions),
             Properties = JsonSerializer.Serialize(chat.Properties, _jsonOptions),
             chat.Visual,
+            BackendType = chat.Backend ?? 0,
             chat.Interactive
         };
     }
