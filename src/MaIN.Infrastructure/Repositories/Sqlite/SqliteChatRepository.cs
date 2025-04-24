@@ -35,6 +35,7 @@ public class SqliteChatRepository(IDbConnection connection) : IChatRepository
                 JsonSerializer.Deserialize<Dictionary<string, string>>(row.Properties, _jsonOptions) : 
                 new Dictionary<string, string>(),
             Visual = Convert.ToBoolean(row.Visual),
+            Backend = row.BackendType,
             Interactive = Convert.ToBoolean(row.Interactive)
         };
         return chat;
@@ -53,6 +54,7 @@ public class SqliteChatRepository(IDbConnection connection) : IChatRepository
             Type = JsonSerializer.Serialize(chat.Type, _jsonOptions),
             Properties = JsonSerializer.Serialize(chat.Properties, _jsonOptions),
             Visual = chat.Visual ? 1 : 0,
+            BackendType = chat.Backend ?? 0,
             Interactive = chat.Interactive ? 1 : 0
         };
     }
