@@ -8,7 +8,7 @@ public class MultiBackendAgentWithRedirectExample : IExample
 {
     public async Task Start()
     {
-        Console.WriteLine("Basic agent&friends example is running!");
+        Console.WriteLine("Basic multi backend agent&friends example is running!");
 
         var systemPrompt =
             """
