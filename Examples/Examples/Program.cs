@@ -37,7 +37,6 @@ serviceProvider.UseMaIN();
 
 await RunSelectedExample(serviceProvider);
 
-
 static void RegisterExamples(IServiceCollection services)
 {
     services.AddTransient<ExampleRegistry>();
