@@ -46,6 +46,7 @@ public static class SqliteRegistrationExtensions
             Type TEXT NOT NULL,      -- Stored as JSON
             Properties TEXT,         -- Stored as JSON
             Visual INTEGER NOT NULL DEFAULT 0,
+            BackendType INTEGER NOT NULL DEFAULT 0,
             InferenceParams TEXT,         -- Stored as JSON
             MemoryParams TEXT,         -- Stored as JSON
             Interactive INTEGER NOT NULL DEFAULT 0
@@ -67,6 +68,7 @@ public static class SqliteRegistrationExtensions
             Context TEXT,           -- Stored as JSON
             ChatId TEXT NOT NULL,
             [Order] INTEGER NOT NULL DEFAULT 0,
+            BackendType INTEGER NOT NULL DEFAULT 0,
             Behaviours TEXT,        -- Stored as JSON
             CurrentBehaviour TEXT,
             Flow INTEGER NOT NULL DEFAULT 0,

@@ -1,3 +1,4 @@
+using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
 using MaIN.Domain.Entities.Agents.AgentSource;
@@ -69,6 +70,12 @@ public class AgentContext
     public AgentContext WithName(string name)
     {
         _agent.Name = name;
+        return this;
+    }
+
+    public AgentContext WithBackend(BackendType backendType)
+    {
+        _agent.Backend = backendType;
         return this;
     }
 

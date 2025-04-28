@@ -3,8 +3,10 @@ using MaIN.Domain.Entities.Agents.AgentSource;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models.Commands;
 using System.Text.Json;
+using MaIN.Domain.Configuration;
 using MaIN.Services.Mappers;
 using MaIN.Services.Services.LLMService;
+using MaIN.Services.Services.LLMService.Factory;
 using MaIN.Services.Utils;
 
 namespace MaIN.Services.Services.Steps.Commands;
@@ -12,7 +14,8 @@ namespace MaIN.Services.Services.Steps.Commands;
 public class FetchCommandHandler(
     IHttpClientFactory httpClientFactory,
     IDataSourceProvider dataSourceService,
-    ILLMService llmService) : ICommandHandler<FetchCommand, Message?>
+    ILLMServiceFactory llmServiceFactory,
+    MaINSettings settings) : ICommandHandler<FetchCommand, Message?>
 {
     public async Task<Message?> HandleAsync(FetchCommand command)
     {
@@ -83,16 +86,17 @@ public class FetchCommandHandler(
         if (command.Chat.Messages.Count > 0)
         {
             var memoryChat = command.MemoryChat;
-            var result = await llmService.AskMemory(
-                memoryChat!,
-                new ChatMemoryOptions
-                {
-                    FileData = new Dictionary<string, string> { { fileData!.Name, fileData.Path } },
-                    PreProcess = fileData.PreProcess
-                }
-            );
-            result!.Message.Role = command.ResponseType == FetchResponseType.AS_System ? "System" : "Assistant";
-            return result.Message;
+            var result = await llmServiceFactory.CreateService(command.Chat.Backend ?? settings.BackendType)
+                .AskMemory(
+                    memoryChat!,
+                    new ChatMemoryOptions
+                    {
+                        FileData = new Dictionary<string, string> { { fileData!.Name, fileData.Path } },
+                        PreProcess = fileData.PreProcess
+                    }
+                );
+
+            return result!.Message;
         }
 
         var data = await dataSourceService.FetchFileData(command.Context.Source.Details);
@@ -106,9 +110,10 @@ public class FetchCommandHandler(
         if (command.Chat.Messages.Count > 0)
         {
             var memoryChat = command.MemoryChat;
-            var result = await llmService.AskMemory(memoryChat!, new ChatMemoryOptions { WebUrls = [webData!.Url] });
+            var result = await llmServiceFactory.CreateService(command.Chat.Backend ?? settings.BackendType)
+                .AskMemory(memoryChat!, new ChatMemoryOptions { WebUrls = [webData!.Url] });
             result!.Message.Role = command.ResponseType == FetchResponseType.AS_System ? "System" : "Assistant";
-            return result.Message;
+            return result!.Message;
         }
 
         return CreateMessage($"Web data from {webData!.Url}", properties);
@@ -122,10 +127,11 @@ public class FetchCommandHandler(
             .Select((chunk, index) => new { Key = $"CHUNK_{index + 1}-{chunksAsList.Count}", Value = chunk })
             .ToDictionary(item => item.Key, item => item.Value);
 
-        var result = await llmService.AskMemory(command.MemoryChat!, new ChatMemoryOptions
+        var result = await llmServiceFactory.CreateService(command.Chat.Backend ?? settings.BackendType).AskMemory(command.MemoryChat!, new ChatMemoryOptions
         {
             TextData = chunks
         });
+
         result!.Message.Role = command.ResponseType == FetchResponseType.AS_System ? "System" : "Assistant";
         var newMessage = result!.Message;
         newMessage.Properties = new() { { "agent_internal", "true" } };

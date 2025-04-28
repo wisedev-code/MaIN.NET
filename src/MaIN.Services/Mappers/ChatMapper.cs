@@ -3,7 +3,6 @@ using MaIN.Domain.Models;
 using MaIN.Infrastructure.Models;
 using MaIN.Services.Dtos;
 using MaIN.Services.Services.ImageGenServices;
-using MongoDB.Bson;
 using FileInfo = MaIN.Domain.Entities.FileInfo;
 
 namespace MaIN.Services.Mappers;
@@ -88,8 +87,8 @@ public static class ChatMapper
             Model = chat.Model,
             Messages = chat.Messages.Select(m => m.ToDocument()).ToList(),
             Visual = chat.Visual,
+            Backend = chat.Backend,
             InferenceParams = chat.InterferenceParams.ToDocument(),
-            MemoryParams = chat.MemoryParams.ToDocument(),
             Properties = chat.Properties,
             Interactive = chat.Interactive,
             Translate = chat.Translate,
@@ -104,9 +103,9 @@ public static class ChatMapper
             Model = chat.Model,
             Messages = chat.Messages.Select(m => m.ToDomain()).ToList(),
             Visual = chat.Visual,
+            Backend = chat.Backend,
             Properties = chat.Properties,
             InterferenceParams = chat.InferenceParams!.ToDomain(),
-            MemoryParams = chat.MemoryParams!.ToDomain(),
             Interactive = chat.Interactive,
             Translate = chat.Translate,
             Type = Enum.Parse<ChatType>(chat.Type.ToString())
