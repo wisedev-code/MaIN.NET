@@ -1,6 +1,7 @@
 using System.Data;
 using System.Text.Json;
 using Dapper;
+using MaIN.Domain.Configuration;
 using MaIN.Infrastructure.Models;
 using MaIN.Infrastructure.Repositories.Abstract;
 
@@ -27,6 +28,7 @@ public class SqliteAgentRepository(IDbConnection connection) : IAgentRepository
                 null,
             ChatId = row.ChatId,
             Order = (int)row.Order,
+            Backend = (BackendType)row.BackendType,
             Behaviours = row.Behaviours != null ? 
                 JsonSerializer.Deserialize<Dictionary<string, string>>(row.Behaviours, _jsonOptions) : 
                 new Dictionary<string, string>(),
@@ -52,6 +54,7 @@ public class SqliteAgentRepository(IDbConnection connection) : IAgentRepository
                 JsonSerializer.Serialize(agent.Context, _jsonOptions) : null,
             agent.ChatId,
             agent.Order,
+            BackendType = agent.Backend,
             Behaviours = agent.Behaviours != null ? 
                 JsonSerializer.Serialize(agent.Behaviours, _jsonOptions) : null,
             agent.CurrentBehaviour,

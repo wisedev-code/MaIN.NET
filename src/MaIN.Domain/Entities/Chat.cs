@@ -1,3 +1,5 @@
+using MaIN.Domain.Configuration;
+
 namespace MaIN.Domain.Entities;
 
 public class Chat
@@ -12,7 +14,9 @@ public class Chat
     public MemoryParams MemoryParams { get; set; } = new();
     public Dictionary<string, string> Properties { get; init; } = [];
     public List<string> Memory { get; } = [];
+    public BackendType? Backend { get; set; }
 
     public bool Interactive = false;
     public bool Translate = false;
+    
 }

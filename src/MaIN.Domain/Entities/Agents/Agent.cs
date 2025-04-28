@@ -1,3 +1,5 @@
+using MaIN.Domain.Configuration;
+
 namespace MaIN.Domain.Entities.Agents;
 
 public class Agent
@@ -11,6 +13,7 @@ public class Agent
     public required AgentData Context { get; init; }
     public string ChatId => string.Empty;
     public int Order { get; set; }
+    public BackendType? Backend { get; set; }
     public Dictionary<string, string> Behaviours { get; set; } = [];
     public required string CurrentBehaviour { get; set; }
 }

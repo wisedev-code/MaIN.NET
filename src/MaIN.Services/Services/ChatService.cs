@@ -1,3 +1,4 @@
+using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Models;
 using MaIN.Infrastructure.Repositories.Abstract;
@@ -5,6 +6,7 @@ using MaIN.Services.Mappers;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.ImageGenServices;
 using MaIN.Services.Services.LLMService;
+using MaIN.Services.Services.LLMService.Factory;
 using MaIN.Services.Services.Models;
 
 namespace MaIN.Services.Services;
@@ -12,8 +14,9 @@ namespace MaIN.Services.Services;
 public class ChatService(
     ITranslatorService translatorService,
     IChatRepository chatProvider,
-    ILLMService llmService,
-    IImageGenService imageGenService) : IChatService
+    ILLMServiceFactory llmServiceFactory,
+    IImageGenServiceFactory imageGenServiceFactory,
+    MaINSettings settings) : IChatService
 {
     public async Task Create(Chat chat)
     {
@@ -51,8 +54,8 @@ public class ChatService(
         }
 
         var result = chat.Visual 
-            ? await imageGenService.Send(chat) 
-            : await llmService.Send(chat, new ChatRequestOptions()
+            ? await imageGenServiceFactory.CreateService(chat.Backend ?? settings.BackendType).Send(chat) 
+            : await llmServiceFactory.CreateService(chat.Backend ?? settings.BackendType).Send(chat, new ChatRequestOptions()
             {
                 InteractiveUpdates = interactiveUpdates,
                 TokenCallback = changeOfValue
@@ -73,6 +76,8 @@ public class ChatService(
 
     public async Task Delete(string id)
     {
+        var chat = await chatProvider.GetChatById(id);
+        var llmService = llmServiceFactory.CreateService(chat?.Backend ?? settings.BackendType);
         await llmService.CleanSessionCache(id);
         await chatProvider.DeleteChat(id);
     }

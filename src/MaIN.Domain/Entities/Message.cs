@@ -11,6 +11,6 @@ public class Message
     public bool Tool { get; init; }
     public DateTime Time { get; set; }
     public byte[]? Images { get; init; }
-    public List<FileInfo>? Files { get; set; } //Temporary solution TODO
+    public List<FileInfo>? Files { get; set; } 
     public Dictionary<string, string> Properties { get; set; } = [];
 }
