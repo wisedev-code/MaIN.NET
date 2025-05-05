@@ -1,12 +1,17 @@
 using MaIN.Services.Services.Abstract;
 using Microsoft.AspNetCore.SignalR;
 
-namespace MaIN.Services.Services;
+namespace MaIN;
 
 public class SignalRNotificationService(IHubContext<NotificationHub> hub) : INotificationService
 {
     public async Task DispatchNotification(object message, string messageType)
     {
+        if (INotificationService.Disable)
+        {
+            return;
+        }
+        
         var msg = message as Dictionary<string,string>;
         object? payload = null;
 
