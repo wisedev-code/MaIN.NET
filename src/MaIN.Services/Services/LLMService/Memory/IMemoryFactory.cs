@@ -10,6 +10,8 @@ public interface IMemoryFactory
     IKernelMemory CreateMemory(string modelsPath, string modelName);
     IKernelMemory CreateMemoryWithModel(string modelsPath, LLamaWeights llmModel,
         MemoryParams memoryParams);
+    IKernelMemory CreateMemoryWithModelKM(string modelsPath, string model,
+        MemoryParams memoryParams);
     IKernelMemory CreateMemoryWithOpenAi(string openAiKey, MemoryParams memoryParams);
 
 }

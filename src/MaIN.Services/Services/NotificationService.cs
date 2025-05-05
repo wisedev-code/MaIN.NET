@@ -34,6 +34,10 @@ public class NotificationService : INotificationService
         }
         else
         {
+            if (INotificationService.Disable)
+            {
+                return Task.CompletedTask;
+            }
             var msg = JsonSerializer.Serialize(message);
             Console.ForegroundColor = ConsoleColor.Blue;
             Console.WriteLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - {msg}");
