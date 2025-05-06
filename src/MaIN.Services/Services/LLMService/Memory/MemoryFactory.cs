@@ -130,7 +130,7 @@ public class MemoryFactory(MaINSettings settings) : IMemoryFactory
             GpuLayerCount = config.GpuLayerCount.GetValueOrDefault(20),
         };
         
-        var weights = LLamaWeights.LoadFromFile(parameters);
+        using var weights = LLamaWeights.LoadFromFile(parameters);
 
         return new LLamaSharpTextEmbeddingGenerator(config, weights);
     }

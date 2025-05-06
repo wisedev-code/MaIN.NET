@@ -1,3 +1,5 @@
+using System.Text.Json;
+using LLama.Batched;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Models;
 using MaIN.Infrastructure.Models;
@@ -89,6 +91,7 @@ public static class ChatMapper
             Visual = chat.Visual,
             Backend = chat.Backend,
             InferenceParams = chat.InterferenceParams.ToDocument(),
+            ConvState = chat.ConversationState,
             Properties = chat.Properties,
             Interactive = chat.Interactive,
             Translate = chat.Translate,
@@ -105,6 +108,7 @@ public static class ChatMapper
             Visual = chat.Visual,
             Backend = chat.Backend,
             Properties = chat.Properties,
+            ConversationState = chat.ConvState as Conversation.State,
             InterferenceParams = chat.InferenceParams!.ToDomain(),
             Interactive = chat.Interactive,
             Translate = chat.Translate,
@@ -112,7 +116,7 @@ public static class ChatMapper
         };
 
     private static Message ToDomain(this MessageDocument message)
-        => new Message()
+        => new()
         {
             Content = message.Content,
             Tool = message.Tool,

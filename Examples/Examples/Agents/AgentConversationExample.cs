@@ -4,7 +4,7 @@ namespace Examples.Agents;
 
 public class AgentConversationExample : IExample
 {
-    private static readonly ConsoleColor UserColor = ConsoleColor.Cyan;
+    private static readonly ConsoleColor UserColor = ConsoleColor.Magenta;
     private static readonly ConsoleColor AgentColor = ConsoleColor.Green;
     private static readonly ConsoleColor SystemColor = ConsoleColor.Yellow;
 
