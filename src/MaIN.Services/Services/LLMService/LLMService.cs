@@ -76,7 +76,7 @@ public class LLMService : ILLMService
             TypeV = (GGMLType)chat.InterferenceParams.TypeV,
         };
 
-        using var llmModel = await LLamaWeights.LoadFromFileAsync(parameters, cancellationToken);
+        var llmModel = await ModelLoader.GetOrLoadModelAsync(modelsPath, modelKey);    
         using var executor = new BatchedExecutor(llmModel, parameters);
 
         Conversation conversation;
@@ -91,7 +91,12 @@ public class LLMService : ILLMService
             {
                 template.Add(systemMsg.Role, systemMsg.Content);
             }
-            template.Add(lastMsg.Role, finalPrompt);
+
+            // if (model.AdditionalPrompt != null)
+            // {
+            //     template.Add("system", model.AdditionalPrompt);
+            // }
+            template.Add("user", finalPrompt);
             template.AddAssistant = true;
 
             var templatedMessage = Encoding.UTF8.GetString(template.Apply());
@@ -101,10 +106,13 @@ public class LLMService : ILLMService
         else
         {
             conversation = executor.Load(chat.ConversationState!);
-
+            var template = new LLamaTemplate(llmModel);
             var finalPrompt = ChatHelper.GetFinalPrompt(lastMsg, model, false);
-            var tokenizedInput = executor.Context.Tokenize(finalPrompt, addBos: false, special: true);
-            conversation.Prompt(tokenizedInput);
+            template.Add("user", finalPrompt);
+            template.AddAssistant = true;
+            var templatedMessage = Encoding.UTF8.GetString(template.Apply());
+
+            conversation.Prompt(executor.Context.Tokenize(templatedMessage));
         }
 
         using var sampler = CreateSampler(chat.InterferenceParams);
@@ -135,15 +143,16 @@ public class LLMService : ILLMService
             var token = conversation.Sample(sampler);
             var vocab = executor.Context.NativeHandle.ModelHandle.Vocab;
 
-            if (token.IsEndOfGeneration(vocab) && false)
+            if (token.IsEndOfGeneration(vocab))
             {
                 isComplete = true;
             }
             else
             {
                 decoder.Add(token);
-                var tokenTxt = decoder.Read().ReplaceLineEndings(" ");
-
+                var tokenTxt = decoder.Read();
+                
+                conversation.Prompt(token);
                 var tokenValue = model.ReasonFunction != null
                     ? model.ReasonFunction(tokenTxt, thinkingState)
                     : new LLMTokenValue()
@@ -160,7 +169,6 @@ public class LLMService : ILLMService
                 }
 
                 requestOptions.TokenCallback?.Invoke(tokenValue);
-                conversation.Prompt(token);
             }
         }
 
@@ -222,7 +230,7 @@ public class LLMService : ILLMService
         {
             GpuLayerCount = chat.MemoryParams.GpuLayerCount,
             ContextSize = (uint)chat.MemoryParams.ContextSize,
-            //Embeddings = true
+            Embeddings = true
         };
         using var llmModel = await LLamaWeights.LoadFromFileAsync(parameters, cancellationToken);
         var kernelMemory = memoryFactory.CreateMemoryWithModel(
