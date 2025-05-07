@@ -76,11 +76,14 @@ public class LLMService : ILLMService
             TypeV = (GGMLType)chat.InterferenceParams.TypeV,
         };
 
-        var llmModel = await ModelLoader.GetOrLoadModelAsync(modelsPath, modelKey);    
+        var useCache = chat.Properties.CheckProperty(ServiceConstants.Properties.UseCacheProperty);
+        using var llmModel = useCache ? 
+            await ModelLoader.GetOrLoadModelAsync(modelsPath, modelKey)
+            : await LLamaWeights.LoadFromFileAsync(parameters, cancellationToken);    
         using var executor = new BatchedExecutor(llmModel, parameters);
 
         Conversation conversation;
-        bool isNewConversation = chat.ConversationState == null;
+        var isNewConversation = chat.ConversationState == null;
 
         if (isNewConversation)
         {
@@ -228,19 +231,23 @@ public class LLMService : ILLMService
             ContextSize = (uint)chat.MemoryParams.ContextSize,
             Embeddings = true
         };
-        using var llmModel = await LLamaWeights.LoadFromFileAsync(parameters, cancellationToken);
-        var kernelMemory = memoryFactory.CreateMemoryWithModel(
+        var useCache = chat.Properties.CheckProperty(ServiceConstants.Properties.UseCacheProperty);
+        using var llmModel = useCache ? 
+            await ModelLoader.GetOrLoadModelAsync(modelsPath, model.FileName)
+            : await LLamaWeights.LoadFromFileAsync(parameters, cancellationToken);        
+        
+        var memory = memoryFactory.CreateMemoryWithModel(
             modelsPath,
             llmModel,
             chat.MemoryParams);
 
-        await memoryService.ImportDataToMemory(kernelMemory, memoryOptions, cancellationToken);
+        await memoryService.ImportDataToMemory(memory.KM, memoryOptions, cancellationToken);
         var userMessage = chat.Messages.Last();
-        var result = await kernelMemory.AskAsync(
+        var result = await memory.KM.AskAsync(
             userMessage.Content,
             cancellationToken: cancellationToken);
-        await kernelMemory.DeleteIndexAsync(cancellationToken: cancellationToken);
-
+        await memory.KM.DeleteIndexAsync(cancellationToken: cancellationToken);
+        memory.TextGenerationContext.Dispose();
         return new ChatResult
         {
             Done = true,

@@ -1,3 +1,4 @@
+using Elastic.Clients.Elasticsearch.Core.GetScriptContext;
 using LLama;
 using LLama.Common;
 using LLamaSharp.KernelMemory;
@@ -22,10 +23,10 @@ public class MemoryFactory(MaINSettings settings) : IMemoryFactory
             FrequencyPenalty = 1,
             Temperature = 0.6f,
             AnswerTokens = 1024
-        });
+        }).KM;
     }
 
-    public IKernelMemory CreateMemoryWithModel(string modelsPath,
+    public (IKernelMemory KM, LLamaContext TextGenerationContext) CreateMemoryWithModel(string modelsPath,
         LLamaWeights model,
         MemoryParams memoryParams)
     {
@@ -41,14 +42,15 @@ public class MemoryFactory(MaINSettings settings) : IMemoryFactory
             ContextSize = (uint)memoryParams.ContextSize,
             GpuLayerCount = memoryParams.GpuLayerCount,
         };
-            
-        return new KernelMemoryBuilder()
-            .WithLLamaSharpTextGeneration(model, modelParams)
+        var km = new KernelMemoryBuilder()
+            .WithLLamaSharpTextGeneration(model, modelParams, out var context)
             .WithLLamaSharpTextEmbeddingGeneration(generator)
             .WithSearchClientConfig(searchOptions)
             .WithCustomImageOcr(new OcrWrapper())
             .With(parsingOptions)
             .Build();
+        var result = (KM: km, TextGenerationContext: context);        
+        return result;
     }
     
     public IKernelMemory CreateMemoryWithModelKM(string modelsPath,

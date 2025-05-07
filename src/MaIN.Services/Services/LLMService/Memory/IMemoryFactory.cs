@@ -8,7 +8,7 @@ namespace MaIN.Services.Services.LLMService.Memory;
 public interface IMemoryFactory
 {
     IKernelMemory CreateMemory(string modelsPath, string modelName);
-    IKernelMemory CreateMemoryWithModel(string modelsPath, LLamaWeights llmModel,
+    (IKernelMemory KM, LLamaContext TextGenerationContext) CreateMemoryWithModel(string modelsPath, LLamaWeights llmModel,
         MemoryParams memoryParams);
     IKernelMemory CreateMemoryWithModelKM(string modelsPath, string model,
         MemoryParams memoryParams);
