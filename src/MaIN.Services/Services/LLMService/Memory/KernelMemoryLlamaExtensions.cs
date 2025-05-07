@@ -12,9 +12,10 @@ public static class KernelMemoryLlamaExtensions
     public static IKernelMemoryBuilder WithLLamaSharpTextGeneration(
         this IKernelMemoryBuilder builder,
         LLamaWeights model, 
-        ModelParams memoryParams)
+        ModelParams memoryParams,
+        out LLamaContext context)
     {
-        var context = model.CreateContext(memoryParams);
+        context = model.CreateContext(memoryParams);
         var executor = new StatelessExecutor(model, memoryParams);
         
         var inferenceParams = new InferenceParams 
