@@ -13,6 +13,7 @@ public class AgentContext
     private readonly IAgentService _agentService;
     private InferenceParams? _inferenceParams;
     private MemoryParams? _memoryParams;
+    private bool _useCache;
     private Agent _agent;
 
     internal AgentContext(IAgentService agentService)
@@ -55,6 +56,12 @@ public class AgentContext
     public AgentContext WithOrder(int order)
     {
         _agent.Order = order;
+        return this;
+    }
+
+    public AgentContext WithCache()
+    {
+        _useCache = true;
         return this;
     }
     public AgentContext WithSource(IAgentSource source, AgentSourceType type)
@@ -127,13 +134,13 @@ public class AgentContext
 
     public async Task<AgentContext> CreateAsync(bool flow = false, bool interactiveResponse = false)
     {
-        await _agentService.CreateAgent(_agent, flow, interactiveResponse, _inferenceParams, _memoryParams);
+        await _agentService.CreateAgent(_agent, flow, interactiveResponse, _inferenceParams, _memoryParams, _useCache);
         return this;
     }
     
     public AgentContext Create(bool flow = false, bool interactiveResponse = false)
     {
-        _ = _agentService.CreateAgent(_agent, flow, interactiveResponse, _inferenceParams, _memoryParams).Result;
+        _ = _agentService.CreateAgent(_agent, flow, interactiveResponse, _inferenceParams, _memoryParams, _useCache).Result;
         return this;
     }
     
