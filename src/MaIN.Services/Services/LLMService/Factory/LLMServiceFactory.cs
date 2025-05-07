@@ -17,11 +17,19 @@ public class LLMServiceFactory(IServiceProvider serviceProvider) : ILLMServiceFa
                 serviceProvider.GetRequiredService<IHttpClientFactory>(),
                 serviceProvider.GetRequiredService<IMemoryFactory>(),
                 serviceProvider.GetRequiredService<IMemoryService>()),
-            
+
+            BackendType.Gemini => new GeminiService(
+                serviceProvider.GetRequiredService<MaINSettings>(),
+                serviceProvider.GetRequiredService<INotificationService>(),
+                serviceProvider.GetRequiredService<IHttpClientFactory>(),
+                serviceProvider.GetRequiredService<IMemoryFactory>(),
+                serviceProvider.GetRequiredService<IMemoryService>()),
+
             BackendType.Self => new LLMService(serviceProvider.GetRequiredService<MaINSettings>(),
                 serviceProvider.GetRequiredService<INotificationService>(),
                 serviceProvider.GetRequiredService<IMemoryService>(),
                 serviceProvider.GetRequiredService<IMemoryFactory>()),
+
             _ => throw new ArgumentOutOfRangeException(nameof(backendType))
         };
     }
