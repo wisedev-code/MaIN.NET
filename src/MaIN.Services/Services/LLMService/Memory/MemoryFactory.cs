@@ -12,7 +12,7 @@ using InferenceParams = LLama.Common.InferenceParams;
 
 namespace MaIN.Services.Services.LLMService.Memory;
 
-public class MemoryFactory(MaINSettings settings) : IMemoryFactory
+public class MemoryFactory() : IMemoryFactory
 {
     public IKernelMemory CreateMemory(string modelsPath, string modelName)
     {

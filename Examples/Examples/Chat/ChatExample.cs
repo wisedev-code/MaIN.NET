@@ -13,7 +13,5 @@ public class ChatExample : IExample
         await context
             .WithMessage("Where do hedgehogs goes at night?")
             .CompleteAsync(interactive: true);
-
-        Console.ReadLine();
     }
 }
