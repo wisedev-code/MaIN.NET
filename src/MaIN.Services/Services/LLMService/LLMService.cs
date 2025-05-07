@@ -91,12 +91,8 @@ public class LLMService : ILLMService
             {
                 template.Add(systemMsg.Role, systemMsg.Content);
             }
-
-            // if (model.AdditionalPrompt != null)
-            // {
-            //     template.Add("system", model.AdditionalPrompt);
-            // }
-            template.Add("user", finalPrompt);
+            
+            template.Add(ServiceConstants.Roles.User, finalPrompt);
             template.AddAssistant = true;
 
             var templatedMessage = Encoding.UTF8.GetString(template.Apply());
@@ -108,7 +104,7 @@ public class LLMService : ILLMService
             conversation = executor.Load(chat.ConversationState!);
             var template = new LLamaTemplate(llmModel);
             var finalPrompt = ChatHelper.GetFinalPrompt(lastMsg, model, false);
-            template.Add("user", finalPrompt);
+            template.Add(ServiceConstants.Roles.User, finalPrompt);
             template.AddAssistant = true;
             var templatedMessage = Encoding.UTF8.GetString(template.Apply());
 
