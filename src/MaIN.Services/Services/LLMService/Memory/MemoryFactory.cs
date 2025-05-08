@@ -53,40 +53,6 @@ public class MemoryFactory() : IMemoryFactory
         return result;
     }
     
-    public IKernelMemory CreateMemoryWithModelKM(string modelsPath,
-        string model,
-        MemoryParams memoryParams)
-    {
-        var path = ResolvePath(modelsPath);
-        var embeddingModel = KnownModels.GetEmbeddingModel();
-        var embeddingModelPath = Path.Combine(path, embeddingModel.FileName);
-
-        var llmModel = Path.Combine(path, model);
-        var searchOptions = ConfigureSearchOptions(memoryParams);
-        var parsingOptions = ConfigureParsingOptions();
-        var config = new LlamaSharpConfig()
-        {
-            EmbeddingModel = new LlamaSharpModelConfig()
-            {
-                ModelPath = embeddingModelPath
-            },
-            TextModel = new LlamaSharpModelConfig()
-            {
-                ModelPath = llmModel
-            }
-        };
-            
-        return new KernelMemoryBuilder()
-            .WithLlamaTextEmbeddingGeneration(config)
-            .WithLlamaTextGeneration(config)
-            .WithSearchClientConfig(searchOptions)
-            .WithCustomImageOcr(new OcrWrapper())
-            .With(parsingOptions)
-            .Build();
-    }
-    
-    
-    
     public IKernelMemory CreateMemoryWithOpenAi(string openAiKey, MemoryParams memoryParams)
     {
         var searchOptions = ConfigureSearchOptions(memoryParams);
