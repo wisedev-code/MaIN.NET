@@ -2,6 +2,7 @@ using LLama;
 using LLama.Sampling;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Models;
+using MaIN.Services.Constants;
 using InferenceParams = LLama.Common.InferenceParams;
 
 namespace MaIN.Services.Services.LLMService.Utils;
@@ -68,7 +69,7 @@ public static class ChatHelper
             .Where(x => x.StreamContent != null)
             .ToDictionary(x => x.Name, x => x.StreamContent!);
 
-        var preProcess = message.Properties.ContainsKey(Constants.ServiceConstants.Messages.PreProcessProperty);
+        var preProcess = message.Properties.CheckProperty(ServiceConstants.Properties.PreProcessProperty);
         
         return new ChatMemoryOptions
         {

@@ -2,6 +2,7 @@ using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
 using MaIN.Infrastructure.Repositories.Abstract;
+using MaIN.Services.Constants;
 using MaIN.Services.Mappers;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.ImageGenServices;
@@ -66,7 +67,7 @@ public class AgentService(
     }
 
     public async Task<Agent> CreateAgent(Agent agent, bool flow = false, bool interactiveResponse = false,
-        InferenceParams? inferenceParams = null, MemoryParams? memoryParams = null)
+        InferenceParams? inferenceParams = null, MemoryParams? memoryParams = null, bool disableCache = false)
     {
         var chat = new Chat
         {
@@ -81,6 +82,11 @@ public class AgentService(
             Backend = agent.Backend,
             Type = flow ? ChatType.Flow : ChatType.Rag,
         };
+
+        if (disableCache)
+        {
+            chat.Properties.AddProperty(ServiceConstants.Properties.DisableCacheProperty);
+        }
 
         var startCommand = new StartCommand
         {

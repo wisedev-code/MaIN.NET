@@ -1,3 +1,4 @@
+using LLama.Batched;
 using MaIN.Domain.Configuration;
 
 namespace MaIN.Domain.Entities;
@@ -15,6 +16,7 @@ public class Chat
     public Dictionary<string, string> Properties { get; init; } = [];
     public List<string> Memory { get; } = [];
     public BackendType? Backend { get; set; }
+    public Conversation.State? ConversationState { get; set; }
 
     public bool Interactive = false;
     public bool Translate = false;

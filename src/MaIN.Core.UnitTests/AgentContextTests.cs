@@ -133,7 +133,8 @@ public class AgentContextTests
                 It.IsAny<bool>(), 
                 It.IsAny<bool>(), 
                 It.IsAny<InferenceParams>(),
-                It.IsAny<MemoryParams>()))
+                It.IsAny<MemoryParams>(),
+                It.IsAny<bool>()))
             .ReturnsAsync(agent);
 
         // Act
@@ -146,7 +147,8 @@ public class AgentContextTests
                 It.Is<bool>(f => f == true), 
                 It.Is<bool>(r => r == false), 
                 It.IsAny<InferenceParams>(),
-                It.IsAny<MemoryParams>()),
+                It.IsAny<MemoryParams>(),
+                It.IsAny<bool>()),
             Times.Once);
         Assert.Equal(_agentContext, result);
     }

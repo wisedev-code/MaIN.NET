@@ -1,6 +1,7 @@
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Models;
+using MaIN.Services;
 using MaIN.Services.Constants;
 using MaIN.Services.Dtos;
 using MaIN.Services.Services.Abstract;
@@ -134,6 +135,12 @@ public class ChatContext
         _chat.Visual = true;
         return this;
     }
+
+    public ChatContext DisableCache()
+    {
+        _chat.Properties.AddProperty(ServiceConstants.Properties.DisableCacheProperty);
+        return this;
+    }
     
     public string GetChatId() => _chat.Id;
 
@@ -149,7 +156,7 @@ public class ChatContext
         _chat.Messages.Last().Files = _files;
         if(_preProcess)
         {
-            _chat.Messages.Last().Properties.Add(ServiceConstants.Messages.PreProcessProperty, string.Empty);
+            _chat.Messages.Last().Properties.AddProperty(ServiceConstants.Properties.PreProcessProperty);
         }
         
         if (!await ChatExists(_chat.Id))
