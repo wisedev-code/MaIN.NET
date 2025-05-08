@@ -67,7 +67,7 @@ public class AgentService(
     }
 
     public async Task<Agent> CreateAgent(Agent agent, bool flow = false, bool interactiveResponse = false,
-        InferenceParams? inferenceParams = null, MemoryParams? memoryParams = null, bool useCache = false)
+        InferenceParams? inferenceParams = null, MemoryParams? memoryParams = null, bool disableCache = false)
     {
         var chat = new Chat
         {
@@ -83,9 +83,9 @@ public class AgentService(
             Type = flow ? ChatType.Flow : ChatType.Rag,
         };
 
-        if (useCache)
+        if (disableCache)
         {
-            chat.Properties.AddProperty(ServiceConstants.Properties.UseCacheProperty);
+            chat.Properties.AddProperty(ServiceConstants.Properties.DisableCacheProperty);
         }
 
         var startCommand = new StartCommand

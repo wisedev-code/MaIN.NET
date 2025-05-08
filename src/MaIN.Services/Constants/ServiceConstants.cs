@@ -25,7 +25,7 @@ public static class ServiceConstants
     public static class Properties
     {
         public const string PreProcessProperty = "Pre_Process";
-        public const string UseCacheProperty = "UseCache";
+        public const string DisableCacheProperty = "DisableCache";
     }
     
     public static class Defaults

@@ -13,7 +13,7 @@ public class AgentContext
     private readonly IAgentService _agentService;
     private InferenceParams? _inferenceParams;
     private MemoryParams? _memoryParams;
-    private bool _useCache;
+    private bool _disableCache;
     private Agent _agent;
 
     internal AgentContext(IAgentService agentService)
@@ -59,9 +59,9 @@ public class AgentContext
         return this;
     }
 
-    public AgentContext WithCache()
+    public AgentContext DisableCache()
     {
-        _useCache = true;
+        _disableCache = true;
         return this;
     }
     public AgentContext WithSource(IAgentSource source, AgentSourceType type)
@@ -134,13 +134,13 @@ public class AgentContext
 
     public async Task<AgentContext> CreateAsync(bool flow = false, bool interactiveResponse = false)
     {
-        await _agentService.CreateAgent(_agent, flow, interactiveResponse, _inferenceParams, _memoryParams, _useCache);
+        await _agentService.CreateAgent(_agent, flow, interactiveResponse, _inferenceParams, _memoryParams, _disableCache);
         return this;
     }
     
     public AgentContext Create(bool flow = false, bool interactiveResponse = false)
     {
-        _ = _agentService.CreateAgent(_agent, flow, interactiveResponse, _inferenceParams, _memoryParams, _useCache).Result;
+        _ = _agentService.CreateAgent(_agent, flow, interactiveResponse, _inferenceParams, _memoryParams, _disableCache).Result;
         return this;
     }
     
