@@ -1,5 +1,4 @@
 using LLama;
-using LLama.Common;
 using MaIN.Domain.Entities;
 using Microsoft.KernelMemory;
 
