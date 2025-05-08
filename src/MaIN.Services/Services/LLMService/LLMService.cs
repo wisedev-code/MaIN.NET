@@ -141,7 +141,7 @@ public class LLMService : ILLMService
 
         var parameters = CreateModelParameters(chat, modelKey);
         var disableCache = chat.Properties.CheckProperty(ServiceConstants.Properties.DisableCacheProperty);
-        using var llmModel = disableCache
+        var llmModel = disableCache
             ? await LLamaWeights.LoadFromFileAsync(parameters, cancellationToken)
             : await ModelLoader.GetOrLoadModelAsync(modelsPath, modelKey);
 
@@ -162,6 +162,10 @@ public class LLMService : ILLMService
             if (isComplete)
             {
                 conversation.Dispose();
+                if (disableCache)
+                {
+                    llmModel.Dispose();
+                }
             }
         }
 
