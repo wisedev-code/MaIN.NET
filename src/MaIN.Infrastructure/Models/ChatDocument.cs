@@ -18,4 +18,5 @@ public class ChatDocument
     public bool Translate { get; init; }
     public InferenceParamsDocument? InferenceParams { get; init; }
     public MemoryParamsDocument? MemoryParams { get; init; }
+    public object? ConvState { get; init; }
 }

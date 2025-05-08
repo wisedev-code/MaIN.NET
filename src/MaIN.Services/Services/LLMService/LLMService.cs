@@ -1,9 +1,10 @@
 using System.Collections.Concurrent;
-
+using System.Text;
 using LLama;
+using LLama.Batched;
 using LLama.Common;
 using LLama.Native;
-using LLama.Transformers;
+using LLama.Sampling;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Models;
@@ -14,6 +15,7 @@ using MaIN.Services.Services.LLMService.Utils;
 using MaIN.Services.Services.Models;
 using MaIN.Services.Utils;
 using Microsoft.KernelMemory;
+using InferenceParams = MaIN.Domain.Entities.InferenceParams;
 
 namespace MaIN.Services.Services.LLMService;
 
@@ -21,7 +23,7 @@ public class LLMService : ILLMService
 {
     private const string DEFAULT_MODEL_ENV_PATH = "MaIN_ModelsPath";
     private static readonly ConcurrentDictionary<string, ChatSession> _sessionCache = new();
-    
+
     private readonly MaINSettings options;
     private readonly INotificationService notificationService;
     private readonly IMemoryService memoryService;
@@ -29,7 +31,7 @@ public class LLMService : ILLMService
     private readonly string modelsPath;
 
     public LLMService(
-        MaINSettings options, 
+        MaINSettings options,
         INotificationService notificationService,
         IMemoryService memoryService,
         IMemoryFactory memoryFactory)
@@ -40,7 +42,7 @@ public class LLMService : ILLMService
         this.memoryFactory = memoryFactory;
         modelsPath = GetModelsPath();
     }
-    
+
     public async Task<ChatResult?> Send(
         Chat chat,
         ChatRequestOptions requestOptions,
@@ -49,30 +51,20 @@ public class LLMService : ILLMService
         if (chat.Messages.Count == 0)
             return null;
 
+        var lastMsg = chat.Messages.Last();
+
+        if (ChatHelper.HasFiles(lastMsg))
+        {
+            var memoryOptions = ChatHelper.ExtractMemoryOptions(lastMsg);
+            return await AskMemory(chat, memoryOptions, cancellationToken);
+        }
+
         var model = KnownModels.GetModel(chat.Model);
-        var modelKey = model.FileName;
-        var thinkingState = new ThinkingState();
-
-        var llmModel = await ModelLoader.GetOrLoadModelAsync(modelsPath, modelKey);
-        var session = GetOrCreateSession(chat.Id, () => CreateNewSession(llmModel, chat));
-        var startSession = session.History.Messages.Count == 0;
-        
-        AddMessagesToHistory(session, chat.Messages);
-        ConfigureSession(session, llmModel); //This makes significant performance difference TBD: validate
-
-        var tokens = await ProcessChatRequest(
-            chat, 
-            session, 
-            model, 
-            llmModel, 
-            startSession, 
-            thinkingState,
-            requestOptions, 
-            cancellationToken);
+        var tokens = await ProcessChatRequest(chat, model, lastMsg, requestOptions, cancellationToken);
 
         return await CreateChatResult(chat, tokens, requestOptions);
     }
-    
+
     public Task<string[]> GetCurrentModels()
     {
         var models = Directory.GetFiles(modelsPath, "*.gguf", SearchOption.AllDirectories)
@@ -83,17 +75,17 @@ public class LLMService : ILLMService
 
         return Task.FromResult(models);
     }
-    
+
     public Task CleanSessionCache(string? id)
     {
         if (string.IsNullOrEmpty(id) || !_sessionCache.TryRemove(id, out var session))
             return Task.CompletedTask;
-            
+
         session.Executor.Context.NativeHandle.KvCacheClear();
         session.Executor.Context.Dispose();
         return Task.CompletedTask;
     }
-    
+
     public async Task<ChatResult?> AskMemory(
         Chat chat,
         ChatMemoryOptions memoryOptions,
@@ -106,19 +98,23 @@ public class LLMService : ILLMService
             ContextSize = (uint)chat.MemoryParams.ContextSize,
             Embeddings = true
         };
-        var llmModel = await LLamaWeights.LoadFromFileAsync(parameters, cancellationToken);
-        var kernelMemory = memoryFactory.CreateMemoryWithModel(
+        var disableCache = chat.Properties.CheckProperty(ServiceConstants.Properties.DisableCacheProperty);
+        using var llmModel = disableCache
+            ? await LLamaWeights.LoadFromFileAsync(parameters, cancellationToken)
+            : await ModelLoader.GetOrLoadModelAsync(modelsPath, model.FileName);
+
+        var memory = memoryFactory.CreateMemoryWithModel(
             modelsPath,
             llmModel,
             chat.MemoryParams);
-        
-        await memoryService.ImportDataToMemory(kernelMemory, memoryOptions, cancellationToken);
+
+        await memoryService.ImportDataToMemory(memory.KM, memoryOptions, cancellationToken);
         var userMessage = chat.Messages.Last();
-        var result = await kernelMemory.AskAsync(
+        var result = await memory.KM.AskAsync(
             userMessage.Content,
             cancellationToken: cancellationToken);
-        await kernelMemory.DeleteIndexAsync(cancellationToken: cancellationToken);
-
+        await memory.KM.DeleteIndexAsync(cancellationToken: cancellationToken);
+        memory.TextGenerationContext.Dispose();
         return new ChatResult
         {
             Done = true,
@@ -127,38 +123,58 @@ public class LLMService : ILLMService
             Message = new Message
             {
                 Content = memoryService.CleanResponseText(result.Result),
-                Role = AuthorRole.Assistant.ToString()
+                Role = nameof(AuthorRole.Assistant)
             }
         };
     }
 
-    private string GetModelsPath()
+    private async Task<List<LLMTokenValue>> ProcessChatRequest(
+        Chat chat,
+        Model model,
+        Message lastMsg,
+        ChatRequestOptions requestOptions,
+        CancellationToken cancellationToken)
     {
-        var path = options.ModelsPath ?? Environment.GetEnvironmentVariable(DEFAULT_MODEL_ENV_PATH);
-        if (string.IsNullOrEmpty(path))
+        var modelKey = model.FileName;
+        var thinkingState = new ThinkingState();
+        var tokens = new List<LLMTokenValue>();
+
+        var parameters = CreateModelParameters(chat, modelKey);
+        var disableCache = chat.Properties.CheckProperty(ServiceConstants.Properties.DisableCacheProperty);
+        var llmModel = disableCache
+            ? await LLamaWeights.LoadFromFileAsync(parameters, cancellationToken)
+            : await ModelLoader.GetOrLoadModelAsync(modelsPath, modelKey);
+
+        using var executor = new BatchedExecutor(llmModel, parameters);
+
+        var (conversation, isComplete, hasFailed) = InitializeConversation(
+            chat, lastMsg, model, llmModel, executor, cancellationToken);
+
+        if (!isComplete)
         {
-            throw new InvalidOperationException("Models path not found in configuration or environment variables");
+            (tokens, isComplete, hasFailed) = await ProcessTokens(
+                chat, conversation, model, llmModel, executor, thinkingState, requestOptions, cancellationToken);
         }
-        return path;
+
+        if (isComplete && !hasFailed)
+        {
+            chat.ConversationState = conversation.Save();
+            if (isComplete)
+            {
+                conversation.Dispose();
+                if (disableCache)
+                {
+                    llmModel.Dispose();
+                }
+            }
+        }
+
+        return tokens;
     }
 
-    private ChatSession GetOrCreateSession(string chatId, Func<ChatSession> createSession)
+    private ModelParams CreateModelParameters(Chat chat, string modelKey)
     {
-        return _sessionCache.GetOrAdd(chatId, _ => createSession());
-    }
-
-    private ChatSession CreateNewSession(LLamaWeights model, Chat chat)
-    {
-        var parameters = CreateModelParameters(model, chat);
-        var context = model.CreateContext(parameters);
-        var history = new ChatHistory();
-        var executor = new InteractiveExecutor(context);
-        return new ChatSession(executor, history);
-    }
-
-    private ModelParams CreateModelParameters(LLamaWeights model, Chat chat)
-    {
-        return new ModelParams(Path.Combine(modelsPath, chat.Model))
+        return new ModelParams(Path.Combine(modelsPath, modelKey))
         {
             ContextSize = (uint?)chat.InterferenceParams.ContextSize,
             GpuLayerCount = chat.InterferenceParams.GpuLayerCount,
@@ -171,93 +187,156 @@ public class LLMService : ILLMService
         };
     }
 
-    private void ConfigureSession(ChatSession session, LLamaWeights model)
-    {
-        session.WithHistoryTransform(new PromptTemplateTransformer(model, withAssistant: true));
-        session.WithOutputTransform(new LLamaTransforms.KeywordTextOutputStreamTransform(
-            [model.Vocab.EOT.ToString() ?? "User:", "�", "Assistant:"],
-            redundancyLength: 5));
-    }
-
-    private void AddMessagesToHistory(ChatSession session, List<Message> messages)
-    {
-        var existingMessages = session.History.Messages
-            .Select(m => new { m.AuthorRole, m.Content })
-            .ToHashSet();
-
-        foreach (var message in messages.SkipLast(1))
-        {
-            var messageKey = new { AuthorRole = Enum.Parse<AuthorRole>(message.Role), message.Content };
-
-            if (!existingMessages.Contains(messageKey))
-            {
-                session.History.AddMessage(messageKey.AuthorRole, message.Content);
-            }
-        }
-    }
-
-    private async Task<List<LLMTokenValue>> ProcessChatRequest(
+    private (Conversation Conversation, bool IsComplete, bool HasFailed) InitializeConversation(
         Chat chat,
-        ChatSession session,
+        Message lastMsg,
         Model model,
-        LLamaWeights llmModel, 
-        bool startSession,
+        LLamaWeights llmModel,
+        BatchedExecutor executor,
+        CancellationToken cancellationToken)
+    {
+        var isNewConversation = chat.ConversationState == null;
+        Conversation conversation;
+
+        if (isNewConversation)
+        {
+            var systemMsg = chat.Messages.FirstOrDefault(x => x.Role == nameof(AuthorRole.System));
+            var template = new LLamaTemplate(llmModel);
+            var finalPrompt = ChatHelper.GetFinalPrompt(lastMsg, model, true);
+
+            if (systemMsg != null)
+            {
+                template.Add(systemMsg.Role, systemMsg.Content);
+            }
+
+            template.Add(ServiceConstants.Roles.User, finalPrompt);
+            template.AddAssistant = true;
+
+            var templatedMessage = Encoding.UTF8.GetString(template.Apply());
+            conversation = executor.Create();
+            conversation.Prompt(executor.Context.Tokenize(templatedMessage, addBos: true, special: true));
+        }
+        else
+        {
+            conversation = executor.Load(chat.ConversationState!);
+            var template = new LLamaTemplate(llmModel);
+            var finalPrompt = ChatHelper.GetFinalPrompt(lastMsg, model, false);
+
+            template.Add(ServiceConstants.Roles.User, finalPrompt);
+            template.AddAssistant = true;
+
+            var templatedMessage = Encoding.UTF8.GetString(template.Apply());
+            conversation.Prompt(executor.Context.Tokenize(templatedMessage));
+        }
+
+        return (conversation, false, false);
+    }
+
+    private async Task<(List<LLMTokenValue> Tokens, bool IsComplete, bool HasFailed)> ProcessTokens(
+        Chat chat,
+        Conversation conversation,
+        Model model,
+        LLamaWeights llmModel,
+        BatchedExecutor executor,
         ThinkingState thinkingState,
         ChatRequestOptions requestOptions,
         CancellationToken cancellationToken)
     {
         var tokens = new List<LLMTokenValue>();
-        var lastMessage = chat.Messages.Last();
-        
-        if (ChatHelper.HasFiles(lastMessage))
-        {
-            var memoryOptions = ChatHelper.ExtractMemoryOptions(lastMessage);
-            var result = await AskMemory(chat, memoryOptions, cancellationToken);
-            
-            if (result?.Message.Content != null)
-            {
-                tokens.Add(new LLMTokenValue
-                {
-                    Type = TokenType.FullAnswer,
-                    Text = result.Message.Content
-                });
-            }
-            
-            return tokens;
-        }
-        
-        var finalPrompt = ChatHelper.GetFinalPrompt(lastMessage, model, startSession);
+        var isComplete = false;
+        var hasFailed = false;
+
+        using var sampler = CreateSampler(chat.InterferenceParams);
+        var decoder = new StreamingTokenDecoder(executor.Context);
+
         var inferenceParams = ChatHelper.CreateInferenceParams(chat, llmModel);
+        var maxTokens = inferenceParams.MaxTokens == -1 ? int.MaxValue : inferenceParams.MaxTokens;
 
-        await foreach (var text in session.ChatAsync(
-                        new ChatHistory.Message(AuthorRole.User, finalPrompt),
-                        inferenceParams, 
-                        cancellationToken))
+        for (var i = 0; i < maxTokens && !isComplete; i++)
         {
-            var token = model.ReasonFunction != null
-                ? model.ReasonFunction(text, thinkingState)
-                : new LLMTokenValue
-                {
-                    Type = TokenType.Message,
-                    Text = text
-                };
-            
-            if (requestOptions.InteractiveUpdates)
+            var decodeResult = await executor.Infer(cancellationToken);
+
+            if (decodeResult == DecodeResult.NoKvSlot)
             {
-                await SendNotification(chat.Id, token, false);
+                isComplete = true;
+                hasFailed = true;
+                chat.ConversationState = null;
+                break;
             }
 
-            requestOptions.TokenCallback?.Invoke(token);
-            tokens.Add(token);
+            if (decodeResult == DecodeResult.Error)
+                throw new Exception("Unknown error occurred while inferring.");
+
+            if (!conversation.RequiresSampling)
+                continue;
+
+            var token = conversation.Sample(sampler);
+            var vocab = executor.Context.NativeHandle.ModelHandle.Vocab;
+
+            if (token.IsEndOfGeneration(vocab))
+            {
+                isComplete = true;
+            }
+            else
+            {
+                decoder.Add(token);
+                var tokenTxt = decoder.Read();
+
+                conversation.Prompt(token);
+                var tokenValue = model.ReasonFunction != null
+                    ? model.ReasonFunction(tokenTxt, thinkingState)
+                    : new LLMTokenValue()
+                    {
+                        Text = tokenTxt,
+                        Type = TokenType.Message
+                    };
+
+                tokens.Add(tokenValue);
+
+                if (requestOptions.InteractiveUpdates)
+                {
+                    await SendNotification(chat.Id, tokenValue, false);
+                }
+
+                requestOptions.TokenCallback?.Invoke(tokenValue);
+            }
         }
-        
-        return tokens;
+
+        return (tokens, isComplete, hasFailed);
     }
 
-    private async Task<ChatResult> CreateChatResult(Chat chat, List<LLMTokenValue> tokens, ChatRequestOptions requestOptions)
+    private BaseSamplingPipeline CreateSampler(InferenceParams interferenceParams)
+    {
+        if (interferenceParams.Temperature == 0)
+        {
+            return new GreedySamplingPipeline();
+        }
+
+        return new DefaultSamplingPipeline()
+        {
+            Temperature = interferenceParams.Temperature,
+            TopP = interferenceParams.TopP,
+            TopK = interferenceParams.TopK
+        };
+    }
+
+
+    private string GetModelsPath()
+    {
+        var path = options.ModelsPath ?? Environment.GetEnvironmentVariable(DEFAULT_MODEL_ENV_PATH);
+        if (string.IsNullOrEmpty(path))
+        {
+            throw new InvalidOperationException("Models path not found in configuration or environment variables");
+        }
+
+        return path;
+    }
+    
+    private async Task<ChatResult> CreateChatResult(Chat chat, List<LLMTokenValue> tokens,
+        ChatRequestOptions requestOptions)
     {
         var responseText = string.Concat(tokens.Select(x => x.Text));
-        
+
         if (requestOptions.InteractiveUpdates)
         {
             await SendNotification(chat.Id, new LLMTokenValue
@@ -284,7 +363,7 @@ public class LLMService : ILLMService
     private async Task SendNotification(string chatId, LLMTokenValue token, bool isComplete)
     {
         await notificationService.DispatchNotification(
-            NotificationMessageBuilder.CreateChatCompletion(chatId, token, isComplete), 
+            NotificationMessageBuilder.CreateChatCompletion(chatId, token, isComplete),
             ServiceConstants.Notifications.ReceiveMessageUpdate);
     }
 }

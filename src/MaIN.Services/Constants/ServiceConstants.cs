@@ -20,7 +20,12 @@ public static class ServiceConstants
     public static class Messages
     {
         public const string GeneratedImageContent = "Generated Image:";
+    }
+
+    public static class Properties
+    {
         public const string PreProcessProperty = "Pre_Process";
+        public const string DisableCacheProperty = "DisableCache";
     }
     
     public static class Defaults
