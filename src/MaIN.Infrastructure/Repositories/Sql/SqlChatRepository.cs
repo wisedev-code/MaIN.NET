@@ -27,6 +27,9 @@ public class SqlChatRepository(IDbConnection connection) : IChatRepository
             Type = row.Type != null ? 
                 JsonSerializer.Deserialize<ChatTypeDocument>(row.Type.ToString(), _jsonOptions) : 
                 default,
+            ConvState = row.ConvState != null ? 
+                JsonSerializer.Deserialize<dynamic>(row.ConvState.ToString(), _jsonOptions) : 
+                default,
             InferenceParams = row.InferenceParams != null ? 
                 JsonSerializer.Deserialize<InferenceParamsDocument>(row.InferenceParams.ToString(), _jsonOptions) : 
                 default,
@@ -55,6 +58,7 @@ public class SqlChatRepository(IDbConnection connection) : IChatRepository
             chat.Model,
             Messages = JsonSerializer.Serialize(chat.Messages, _jsonOptions),
             Type = JsonSerializer.Serialize(chat.Type, _jsonOptions),
+            ConvState = JsonSerializer.Serialize(chat.ConvState, _jsonOptions),
             InferenceParams = JsonSerializer.Serialize(chat.InferenceParams, _jsonOptions),
             MemoryParams = JsonSerializer.Serialize(chat.MemoryParams, _jsonOptions),
             Properties = JsonSerializer.Serialize(chat.Properties, _jsonOptions),
@@ -87,10 +91,10 @@ public class SqlChatRepository(IDbConnection connection) : IChatRepository
         await connection.ExecuteAsync(@"
             INSERT INTO Chats (
                 Id, Name, Model, Messages, Type, Properties, 
-                Stream, Visual, InferenceParams, MemoryParams, Interactive
+                Stream, Visual, ConvState, InferenceParams, MemoryParams, Interactive
             ) VALUES (
                 @Id, @Name, @Model, @Messages, @Type, @Properties, 
-                 @Visual, @InferenceParams, @MemoryParams, @Interactive)", 
+                 @Visual, @ConvState, @InferenceParams, @MemoryParams, @Interactive)", 
             parameters);
     }
 
@@ -106,6 +110,7 @@ public class SqlChatRepository(IDbConnection connection) : IChatRepository
                 Messages = @Messages,
                 Type = @Type,
                 Properties = @Properties,
+                ConvState = @ConvState,
                 Visual = @Visual
             WHERE Id = @Id",
             parameters);
