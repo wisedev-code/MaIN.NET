@@ -98,10 +98,10 @@ public class LLMService : ILLMService
             ContextSize = (uint)chat.MemoryParams.ContextSize,
             Embeddings = true
         };
-        var useCache = chat.Properties.CheckProperty(ServiceConstants.Properties.UseCacheProperty);
-        using var llmModel = useCache
-            ? await ModelLoader.GetOrLoadModelAsync(modelsPath, model.FileName)
-            : await LLamaWeights.LoadFromFileAsync(parameters, cancellationToken);
+        var disableCache = chat.Properties.CheckProperty(ServiceConstants.Properties.DisableCacheProperty);
+        using var llmModel = disableCache
+            ? await LLamaWeights.LoadFromFileAsync(parameters, cancellationToken)
+            : await ModelLoader.GetOrLoadModelAsync(modelsPath, model.FileName);
 
         var memory = memoryFactory.CreateMemoryWithModel(
             modelsPath,
@@ -140,10 +140,10 @@ public class LLMService : ILLMService
         var tokens = new List<LLMTokenValue>();
 
         var parameters = CreateModelParameters(chat, modelKey);
-        var useCache = chat.Properties.CheckProperty(ServiceConstants.Properties.UseCacheProperty);
-        using var llmModel = useCache
-            ? await ModelLoader.GetOrLoadModelAsync(modelsPath, modelKey)
-            : await LLamaWeights.LoadFromFileAsync(parameters, cancellationToken);
+        var disableCache = chat.Properties.CheckProperty(ServiceConstants.Properties.DisableCacheProperty);
+        using var llmModel = disableCache
+            ? await LLamaWeights.LoadFromFileAsync(parameters, cancellationToken)
+            : await ModelLoader.GetOrLoadModelAsync(modelsPath, modelKey);
 
         using var executor = new BatchedExecutor(llmModel, parameters);
 

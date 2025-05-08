@@ -136,9 +136,9 @@ public class ChatContext
         return this;
     }
 
-    public ChatContext WithCache()
+    public ChatContext DisableCache()
     {
-        _chat.Properties.AddProperty(ServiceConstants.Properties.UseCacheProperty);
+        _chat.Properties.AddProperty(ServiceConstants.Properties.DisableCacheProperty);
         return this;
     }
     

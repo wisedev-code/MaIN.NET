@@ -7,7 +7,7 @@ public interface IAgentService
 {
     Task<Chat> Process(Chat chat, string agentId, bool translatePrompt = false);
     Task<Agent> CreateAgent(Agent agent, bool flow = false, bool interactiveResponse = false,
-        InferenceParams? inferenceParams = null, MemoryParams? memoryParams = null, bool useCache = false);
+        InferenceParams? inferenceParams = null, MemoryParams? memoryParams = null, bool disableCache = false);
     Task<Chat> GetChatByAgent(string agentId);
     Task<Chat> Restart(string agentId);
     Task<List<Agent>> GetAgents();
