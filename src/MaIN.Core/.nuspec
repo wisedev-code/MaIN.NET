@@ -2,7 +2,7 @@
 <package>
   <metadata>
     <id>MaIN.NET</id>
-    <version>0.1.9</version>
+    <version>0.2.0</version>
     <authors>Wisedev</authors>
     <owners>Wisedev</owners>
     <icon>favicon.png</icon>
@@ -21,6 +21,8 @@
       <dependency id="System.Data.SqlClient" version="4.8.6" />
       <dependency id="Tesseract" version="5.2.0" />
       <dependency id="Tesseract.Data.English" version="4.0.0" />
+	  <dependency id="Microsoft.SemanticKernel" Version="1.49.0" />
+	  <dependency id="Microsoft.SemanticKernel.Connectors.Google" Version="1.48.0-alpha" />
     </dependencies>
   </metadata>
   <files>

@@ -1,5 +1,4 @@
-﻿using DocumentFormat.OpenXml.Office2019.Drawing.Model3D;
-using Microsoft.SemanticKernel;
+﻿using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.TextGeneration;
 
@@ -37,25 +36,14 @@ internal class GeminiTextGeneratorAdapter : ITextGenerationService
         var chatHistory = new ChatHistory();
         chatHistory.AddUserMessage(prompt);
 
-        // Ensure executionSettings includes the model ID if the service needs it for routing
         var currentExecutionSettings = executionSettings ?? new PromptExecutionSettings();
-        //currentExecutionSettings.ServiceId = _modelId;
-
+        
         await foreach (var streamingChatMessageContent in _geminiChatService.GetStreamingChatMessageContentsAsync(
                            chatHistory,
                            currentExecutionSettings,
                            kernel,
                            cancellationToken))
         {
-            //// Create StreamingTextContent from StreamingChatMessageContent
-            //yield return new StreamingTextContent(
-            //    text: streamingChatMessageContent.Content,
-            //    choiceIndex: streamingChatMessageContent.ChoiceIndex,
-            //    modelId: streamingChatMessageContent.ModelId ?? _modelId, // Use chunk's modelId or fallback to service's
-            //    metadata: streamingChatMessageContent.Metadata?.ToDictionary(kv => kv.Key, kv => kv.Value), // Convert to mutable dictionary if needed
-            //    toolCallUpdate: streamingChatMessageContent.ToolCallUpdate // Pass tool call updates if present
-            //);
-
             yield return new StreamingTextContent(
                 text: streamingChatMessageContent.Content,
                 choiceIndex: streamingChatMessageContent.ChoiceIndex,
