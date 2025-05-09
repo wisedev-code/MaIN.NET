@@ -96,7 +96,7 @@ public abstract class OpenAiCompatibleService(
         return CreateChatResult(chat, resultBuilder.ToString(), tokens);
     }
 
-    public async Task<ChatResult?> AskMemory(
+    public virtual async Task<ChatResult?> AskMemory(
         Chat chat,
         ChatMemoryOptions memoryOptions,
         CancellationToken cancellationToken = default)
@@ -299,7 +299,7 @@ public abstract class OpenAiCompatibleService(
         }
     }
 
-    private static ChatResult CreateChatResult(Chat chat, string content, List<LLMTokenValue> tokens)
+    protected static ChatResult CreateChatResult(Chat chat, string content, List<LLMTokenValue> tokens)
     {
         return new ChatResult
         {

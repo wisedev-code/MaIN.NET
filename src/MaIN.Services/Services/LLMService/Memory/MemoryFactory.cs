@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using LLama;
 using LLama.Common;
 using LLamaSharp.KernelMemory;
@@ -7,6 +8,8 @@ using MaIN.Domain.Models;
 using MaIN.Services.Services.LLMService.Utils;
 using Microsoft.KernelMemory;
 using Microsoft.KernelMemory.Configuration;
+using Microsoft.KernelMemory.SemanticKernel;
+using Microsoft.SemanticKernel.Connectors.Google;
 using InferenceParams = LLama.Common.InferenceParams;
 
 namespace MaIN.Services.Services.LLMService.Memory;
@@ -62,7 +65,23 @@ public class MemoryFactory(MaINSettings settings) : IMemoryFactory
         
         return kernelMemory;
     }
-    
+
+    public IKernelMemory CreateMemoryWithGemini(string geminiKey, MemoryParams memoryParams)
+    {
+        var searchOptions = ConfigureSearchOptions(memoryParams);
+
+        var kernelMemory = new KernelMemoryBuilder()
+            .WithSearchClientConfig(searchOptions)
+#pragma warning disable SKEXP0070 // For evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+            .WithSemanticKernelTextGenerationService(new GeminiTextGeneratorAdapter(new GoogleAIGeminiChatCompletionService("gemini-2.0-flash", geminiKey)), new SemanticKernelConfig())
+            .WithSemanticKernelTextEmbeddingGenerationService(new GoogleAITextEmbeddingGenerationService("embedding-001", geminiKey), new SemanticKernelConfig())
+#pragma warning restore SKEXP0070
+            .WithSimpleVectorDb()
+            .Build();
+
+        return kernelMemory;
+    }
+
     #region Private Configuration Methods
 
     private string ResolvePath(string modelsPath)
