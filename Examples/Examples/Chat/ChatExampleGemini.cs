@@ -7,13 +7,19 @@ public class ChatExampleGemini : IExample
 {
     public async Task Start()
     {
-        GeminiExample.Setup(); //We need to provide Gemini API key
-
         Console.WriteLine("(Gemini) ChatExample is running!");
 
-        await AIHub.Chat()
+        GeminiExample.Setup(); //We need to provide Gemini API key
+
+        List<string> files = ["./Files/Nicolaus_Copernicus.pdf", "./Files/Galileo_Galilei.pdf"];
+
+       var result = await AIHub.Chat()
             .WithModel("gemini-2.0-flash")
-            .WithMessage("What is the smartest animal on earth?")
+            .WithMessage("You have 2 documents in memory. Whats the difference of work between Galileo and Copernicus?. Give answer based on the documents.")
+            .WithFiles(files)
             .CompleteAsync(interactive: true);
+
+        Console.WriteLine(result.Message.Content);
+        Console.ReadKey();
     }
 }

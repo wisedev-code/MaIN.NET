@@ -59,6 +59,7 @@ static void RegisterExamples(IServiceCollection services)
     services.AddTransient<ChatExampleOpenAi>();
     services.AddTransient<AgentWithWebDataSourceOpenAiExample>();
     services.AddTransient<ChatWithImageGenOpenAiExample>();
+    services.AddTransient<ChatExampleGemini>();
 }
 
 async Task RunSelectedExample(IServiceProvider serviceProvider)
@@ -140,8 +141,8 @@ public class ExampleRegistry(IServiceProvider serviceProvider)
             ("\u25a0 Agents Flow Loaded", _serviceProvider.GetRequiredService<AgentsFlowLoadedExample>()),
             ("\u25a0 OpenAi Chat", _serviceProvider.GetRequiredService<ChatExampleOpenAi>()),
             ("\u25a0 OpenAi Chat with image", _serviceProvider.GetRequiredService<ChatWithImageGenOpenAiExample>()),
-            ("\u25a0 OpenAi Agent with Web Data Source", _serviceProvider.GetRequiredService<AgentWithWebDataSourceOpenAiExample>())
-
+            ("\u25a0 OpenAi Agent with Web Data Source", _serviceProvider.GetRequiredService<AgentWithWebDataSourceOpenAiExample>()),
+            ("\u25a0 Gemini Chat", _serviceProvider.GetRequiredService<ChatExampleGemini>()),
         };
     }
 }

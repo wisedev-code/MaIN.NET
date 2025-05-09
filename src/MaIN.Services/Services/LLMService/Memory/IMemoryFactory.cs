@@ -10,5 +10,5 @@ public interface IMemoryFactory
     IKernelMemory CreateMemoryWithModel(string modelsPath, LLamaWeights llmModel,
         MemoryParams memoryParams);
     IKernelMemory CreateMemoryWithOpenAi(string openAiKey, MemoryParams memoryParams);
-
+    IKernelMemory CreateMemoryWithGemini(string geminiKey, MemoryParams memoryParams);
 }
