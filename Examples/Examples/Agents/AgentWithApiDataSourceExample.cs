@@ -29,6 +29,5 @@ public class AgentWithApiDataSourceExample : IExample
         var result = await context
             .ProcessAsync("I am looking for work as javascript developer");
         Console.WriteLine(result.Message.Content);
-
     }
 }

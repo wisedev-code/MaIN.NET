@@ -47,6 +47,7 @@ public static class SqliteRegistrationExtensions
             Properties TEXT,         -- Stored as JSON
             Visual INTEGER NOT NULL DEFAULT 0,
             BackendType INTEGER NOT NULL DEFAULT 0,
+            ConvState TEXT,         -- Stored as JSON
             InferenceParams TEXT,         -- Stored as JSON
             MemoryParams TEXT,         -- Stored as JSON
             Interactive INTEGER NOT NULL DEFAULT 0
