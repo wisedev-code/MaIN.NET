@@ -7,4 +7,8 @@
         <IsPackable>false</IsPackable>
     </PropertyGroup>
 
+    <ItemGroup>
+      <PackageReference Include="LLamaSharp" Version="0.23.0" />
+    </ItemGroup>
+
 </Project>

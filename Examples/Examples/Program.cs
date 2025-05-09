@@ -48,6 +48,7 @@ static void RegisterExamples(IServiceCollection services)
     services.AddTransient<ChatFromExistingExample>();
     services.AddTransient<ChatWithReasoningExample>();
     services.AddTransient<AgentExample>();
+    services.AddTransient<AgentConversationExample>();
     services.AddTransient<AgentWithRedirectExample>();
     services.AddTransient<MultiBackendAgentWithRedirectExample>();
     services.AddTransient<AgentWithRedirectImageExample>();
@@ -131,6 +132,7 @@ public class ExampleRegistry(IServiceProvider serviceProvider)
             ("\u25a0 Chat from Existing", _serviceProvider.GetRequiredService<ChatFromExistingExample>()),
             ("\u25a0 Chat with reasoning", _serviceProvider.GetRequiredService<ChatWithReasoningExample>()),
             ("\u25a0 Basic Agent", _serviceProvider.GetRequiredService<AgentExample>()),
+            ("\u25a0 Conversation Agent", _serviceProvider.GetRequiredService<AgentConversationExample>()),
             ("\u25a0 Agent with Redirect", _serviceProvider.GetRequiredService<AgentWithRedirectExample>()),
             ("\u25a0 Agent with Redirect (Multi backends)", _serviceProvider.GetRequiredService<MultiBackendAgentWithRedirectExample>()),
             ("\u25a0 Agent with Redirect Image", _serviceProvider.GetRequiredService<AgentWithRedirectImageExample>()),

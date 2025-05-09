@@ -25,6 +25,9 @@ public class SqliteChatRepository(IDbConnection connection) : IChatRepository
             Type = row.Type != null ? 
                 JsonSerializer.Deserialize<ChatTypeDocument>(row.Type, _jsonOptions) : 
                 default,
+            ConvState = row.Type != null ? 
+                JsonSerializer.Deserialize<dynamic>(row.ConvState, _jsonOptions) : 
+                default,
             InferenceParams = row.Type != null ? 
                 JsonSerializer.Deserialize<InferenceParamsDocument>(row.InferenceParams, _jsonOptions) : 
                 default,
@@ -49,6 +52,7 @@ public class SqliteChatRepository(IDbConnection connection) : IChatRepository
             chat.Name,
             chat.Model,
             Messages = JsonSerializer.Serialize(chat.Messages, _jsonOptions),
+            ConvState = JsonSerializer.Serialize(chat.ConvState, _jsonOptions),
             InferenceParams = JsonSerializer.Serialize(chat.InferenceParams, _jsonOptions),
             MemoryParams = JsonSerializer.Serialize(chat.MemoryParams, _jsonOptions),
             Type = JsonSerializer.Serialize(chat.Type, _jsonOptions),
@@ -78,8 +82,8 @@ public class SqliteChatRepository(IDbConnection connection) : IChatRepository
     {
         var parameters = MapChatToParameters(chat);
         await connection.ExecuteAsync(@"
-            INSERT INTO Chats (Id, Name, Model, Messages, [Type], Properties, Visual, InferenceParams, MemoryParams, Interactive) VALUES (@Id, @Name, @Model, @Messages, @Type, @Properties, 
-                 @Visual, @InferenceParams, @MemoryParams, @Interactive)", parameters);
+            INSERT INTO Chats (Id, Name, Model, Messages, [Type], Properties, Visual, ConvState, InferenceParams, MemoryParams, Interactive) VALUES (@Id, @Name, @Model, @Messages, @Type, @Properties, 
+                 @Visual, @ConvState, @InferenceParams, @MemoryParams, @Interactive)", parameters);
     }
 
     public async Task UpdateChat(string id, ChatDocument chat)
@@ -92,6 +96,7 @@ public class SqliteChatRepository(IDbConnection connection) : IChatRepository
                 Messages = @Messages,
                 Type = @Type,
                 Properties = @Properties,
+                ConvState = @ConvState,
                 Visual = @Visual
             WHERE Id = @Id", parameters);
     }
