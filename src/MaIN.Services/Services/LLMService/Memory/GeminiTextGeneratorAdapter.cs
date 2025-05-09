@@ -3,7 +3,7 @@ using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.TextGeneration;
 
-namespace MaIN.Services.Services.LLMService.Utils;
+namespace MaIN.Services.Services.LLMService.Memory;
 
 internal class GeminiTextGeneratorAdapter : ITextGenerationService
 {
