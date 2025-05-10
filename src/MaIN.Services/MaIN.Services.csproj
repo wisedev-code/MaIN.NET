@@ -20,6 +20,8 @@
       <PackageReference Include="LLamaSharp.kernel-memory" Version="0.23.0" />
       <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.3" />
       <PackageReference Include="Microsoft.KernelMemory" Version="0.98.250324.1" />
+      <PackageReference Include="Microsoft.SemanticKernel" Version="1.49.0" />
+      <PackageReference Include="Microsoft.SemanticKernel.Connectors.Google" Version="1.48.0-alpha" />
       <PackageReference Include="System.Data.SqlClient" Version="4.8.6" />
       <PackageReference Include="Tesseract" Version="5.2.0" />
       <PackageReference Include="Tesseract.Data.English" Version="4.0.0" />

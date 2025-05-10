@@ -13,6 +13,8 @@ public class ImageGenServiceFactory(IServiceProvider serviceProvider) : IImageGe
         {
             BackendType.OpenAi => new OpenAiImageGenService(serviceProvider.GetRequiredService<IHttpClientFactory>(),
                 serviceProvider.GetRequiredService<MaINSettings>()),
+            BackendType.Gemini => new GeminiImageGenService(serviceProvider.GetRequiredService<IHttpClientFactory>(),
+                serviceProvider.GetRequiredService<MaINSettings>()),
             BackendType.Self => new ImageGenService(serviceProvider.GetRequiredService<IHttpClientFactory>(),
                 serviceProvider.GetRequiredService<MaINSettings>()),
             

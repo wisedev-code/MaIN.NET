@@ -14,7 +14,6 @@ try
     var modelArg = builder.Configuration["model"];
     var modelPathArg = builder.Configuration["path"];
     var backendArg = builder.Configuration["backend"];
-    bool openAiFlag = backendArg != null && backendArg.Equals("openai", StringComparison.OrdinalIgnoreCase);
 
     if (!string.IsNullOrEmpty(modelArg))
     {
@@ -40,15 +39,32 @@ try
         Console.WriteLine("No model argument provided. Continuing without model configuration.");
     }
 
-    if (openAiFlag)
+    if (backendArg != null)
     {
-        Utils.OpenAi = true;
-        var openAiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
-        if (string.IsNullOrEmpty(openAiKey))
+        var apiKeyVariable = "";
+        var apiName = "";
+
+        switch (backendArg.ToLower())
         {
-            Console.Write("Please enter your OpenAI API key: ");
-            openAiKey = Console.ReadLine();
-            Environment.SetEnvironmentVariable("OPENAI_API_KEY", openAiKey );
+            case "openai":
+                Utils.OpenAi = true;
+                apiKeyVariable = "OPENAI_API_KEY";
+                apiName = "OpenAI";
+                break;
+
+            case "gemini":
+                Utils.Gemini = true;
+                apiKeyVariable = "GEMINI_API_KEY";
+                apiName = "Gemini";
+                break;
+        }
+
+        var key = Environment.GetEnvironmentVariable(apiKeyVariable);
+        if (string.IsNullOrEmpty(key) && !string.IsNullOrEmpty(apiName) && !string.IsNullOrEmpty(apiKeyVariable))
+        {
+            Console.Write($"Please enter your {apiName} API key: ");
+            key = Console.ReadLine();
+            Environment.SetEnvironmentVariable(apiKeyVariable, key);
         }
     }
 }

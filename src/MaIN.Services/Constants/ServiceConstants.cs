@@ -7,6 +7,7 @@ public static class ServiceConstants
     {
         public const string ImageGenClient = "ImageGenClient";
         public const string OpenAiClient = "OpenAiClient";
+        public const string GeminiClient = "GeminiClient";
         public const string ImageDownloadClient = "ImageDownloadClient";
     }
     
@@ -15,6 +16,10 @@ public static class ServiceConstants
         public const string OpenAiImageGenerations = "https://api.openai.com/v1/images/generations";
         public const string OpenAiChatCompletions = "https://api.openai.com/v1/chat/completions";
         public const string OpenAiModels = "https://api.openai.com/v1/models";
+
+        public const string GeminiImageGenerations = "https://generativelanguage.googleapis.com/v1beta/openai/images/generations";
+        public const string GeminiOpenAiChatCompletions = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"; 
+        public const string GeminiModels = "https://generativelanguage.googleapis.com/v1beta/models";
     }
 
     public static class Messages

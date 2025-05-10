@@ -101,6 +101,7 @@ public static class Bootstrapper
             client.Timeout = TimeSpan.FromMinutes(5);
         });
         services.AddHttpClient(ServiceConstants.HttpClients.OpenAiClient);
+        services.AddHttpClient(ServiceConstants.HttpClients.GeminiClient);
         services.AddHttpClient(ServiceConstants.HttpClients.ImageDownloadClient);
         return services;
     }

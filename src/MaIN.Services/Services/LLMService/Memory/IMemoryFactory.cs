@@ -1,5 +1,4 @@
 using LLama;
-using LLama.Common;
 using MaIN.Domain.Entities;
 using Microsoft.KernelMemory;
 
@@ -11,5 +10,5 @@ public interface IMemoryFactory
     (IKernelMemory KM, LLamaContext TextGenerationContext) CreateMemoryWithModel(string modelsPath, LLamaWeights llmModel,
         MemoryParams memoryParams);
     IKernelMemory CreateMemoryWithOpenAi(string openAiKey, MemoryParams memoryParams);
-
+    IKernelMemory CreateMemoryWithGemini(string geminiKey, MemoryParams memoryParams);
 }
