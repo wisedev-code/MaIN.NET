@@ -16,8 +16,12 @@ public class OcrWrapper : IOcrEngine
             await imageContent.CopyToAsync(memoryStream, cancellationToken);
             imageBytes = memoryStream.ToArray();
         }
-
-        using var engine = new TesseractEngine("./tessdata", "eng", EngineMode.TesseractAndLstm);
+        
+        using var engine = new TesseractEngine(
+            Path.Combine(Environment.CurrentDirectory, "tessdata"),
+            "eng",
+            EngineMode.TesseractAndLstm);
+        
         using var img = Pix.LoadFromMemory(imageBytes);
         using var page = engine.Process(img);
 
