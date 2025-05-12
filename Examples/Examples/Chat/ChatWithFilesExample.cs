@@ -8,7 +8,10 @@ public class ChatWithFilesExample : IExample
     {
         Console.WriteLine("ChatExample with files is running!");
 
-        List<string> files = ["./Files/Nicolaus_Copernicus.pdf", "./Files/Galileo_Galilei.pdf"];
+        List<string> files = [
+            Path.Combine(AppContext.BaseDirectory, "Files", "Nicolaus_Copernicus.pdf"),
+            Path.Combine(AppContext.BaseDirectory, "Files", "Galileo_Galilei.pdf"),
+        ];
         
         var result = await AIHub.Chat()
             .WithModel("gemma3:4b")
