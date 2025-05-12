@@ -28,6 +28,7 @@ public abstract class OpenAiCompatibleService(
     private readonly INotificationService _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
     private readonly IHttpClientFactory _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
     private static readonly ConcurrentDictionary<string, List<ChatMessage>> SessionCache = new();
+    private static readonly JsonSerializerOptions DefaultJsonSerializerOptions  = new() { PropertyNameCaseInsensitive = true };
 
     protected abstract string GetApiKey();
     protected abstract void ValidateApiKey();
@@ -276,7 +277,7 @@ public abstract class OpenAiCompatibleService(
         response.EnsureSuccessStatusCode();
 
         var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
-        var chatResponse = JsonSerializer.Deserialize<ChatCompletionResponse>(responseJson);
+        var chatResponse = JsonSerializer.Deserialize<ChatCompletionResponse>(responseJson, DefaultJsonSerializerOptions);
         var responseContent = chatResponse?.Choices?.FirstOrDefault()?.Message?.Content;
 
         if (responseContent != null)
