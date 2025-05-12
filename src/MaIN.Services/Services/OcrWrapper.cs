@@ -18,7 +18,7 @@ public class OcrWrapper : IOcrEngine
         }
         
         using var engine = new TesseractEngine(
-            Path.Combine(Environment.CurrentDirectory, "tessdata"),
+            Path.Combine(AppContext.BaseDirectory, "tessdata"),
             "eng",
             EngineMode.TesseractAndLstm);
         
