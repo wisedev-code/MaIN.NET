@@ -90,6 +90,7 @@ public static class ChatMapper
             Messages = chat.Messages.Select(m => m.ToDocument()).ToList(),
             Visual = chat.Visual,
             Backend = chat.Backend,
+            MemoryParams = chat.MemoryParams.ToDocument(),
             InferenceParams = chat.InterferenceParams.ToDocument(),
             ConvState = chat.ConversationState,
             Properties = chat.Properties,
@@ -109,6 +110,7 @@ public static class ChatMapper
             Backend = chat.Backend,
             Properties = chat.Properties,
             ConversationState = chat.ConvState as Conversation.State,
+            MemoryParams = chat.MemoryParams!.ToDomain(),
             InterferenceParams = chat.InferenceParams!.ToDomain(),
             Interactive = chat.Interactive,
             Translate = chat.Translate,
@@ -164,6 +166,7 @@ public static class ChatMapper
         {
             Temperature = memoryParams.Temperature,
             AnswerTokens = memoryParams.AnswerTokens,
+            MultiModalMode = memoryParams.MultiModalMode,
             ContextSize = memoryParams.ContextSize,
             GpuLayerCount = memoryParams.GpuLayerCount,
             MaxMatchesCount = memoryParams.MaxMatchesCount,
@@ -193,6 +196,7 @@ public static class ChatMapper
         {
             Temperature = memoryParams.Temperature,
             AnswerTokens = memoryParams.AnswerTokens,
+            MultiModalMode = memoryParams.MultiModalMode,
             ContextSize = memoryParams.ContextSize,
             GpuLayerCount = memoryParams.GpuLayerCount,
             MaxMatchesCount = memoryParams.MaxMatchesCount,

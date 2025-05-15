@@ -1,5 +1,6 @@
 using MaIN.Core.Hub;
 using MaIN.Core.Hub.Utils;
+using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents.AgentSource;
 using MaIN.Domain.Models;
 
@@ -17,6 +18,10 @@ public class AgentWithBecomeExample : IExample
                 Path = "./Files/Books.json",
                 Name = "Books.json"
             }, AgentSourceType.File)
+            .WithMemoryParams(new MemoryParams()
+            {
+                MultiModalMode = true
+            })
             .WithBehaviour("SalesGod", 
                 """
                 You are SalesGod, the ultimate AI sales expert with unmatched persuasion skills, deep psychological insight,

@@ -40,6 +40,22 @@ public static class KnownModels
         new Model()
         {
             Description = string.Empty,
+            Name = KnownModelNames.Qwen3_8b,
+            FileName = "Qwen3-8b.gguf",
+            DownloadUrl = string.Empty,
+            ReasonFunction = ReasoningFunctions.ProcessDeepSeekToken
+        },
+        new Model()
+        {
+            Description = string.Empty,
+            Name = KnownModelNames.Qwen3_14b,
+            FileName = "Qwen3-14b.gguf",
+            DownloadUrl = string.Empty,
+            ReasonFunction = ReasoningFunctions.ProcessDeepSeekToken
+        },
+        new Model()
+        {
+            Description = string.Empty,
             Name = KnownModelNames.OlympicCoder_7b,
             FileName = "Olympiccoder-7b.gguf",
             DownloadUrl = string.Empty,
@@ -247,6 +263,8 @@ public struct KnownModelNames
     public const string DeepSeek_R1_8b = "deepseekR1:8b";
     public const string DeepSeek_R1_1_5b = "deepseekR1:1.5b";
     public const string QwQ_7b = "qwq:7b";
+    public const string Qwen3_8b = "qwen3:8b";
+    public const string Qwen3_14b = "qwen3:14b";
     public const string Olmo2_7b = "olmo2:7b";
     public const string Smollm2_0_1b = "smollm2:0.1b";
     public const string Yi_6b = "yi:6b";
