@@ -126,6 +126,20 @@ public static class KnownModels
         new Model()
         {
             Description = string.Empty,
+            Name = KnownModelNames.Phi3_5_3b,
+            FileName = "phi3.5-3b.gguf",
+            DownloadUrl = string.Empty
+        },
+        new Model()
+        {
+            Description = string.Empty,
+            Name = KnownModelNames.Phi4_4b,
+            FileName = "phi4-4b.gguf",
+            DownloadUrl = string.Empty
+        },
+        new Model()
+        {
+            Description = string.Empty,
             Name = KnownModelNames.DeepSeek_R1_8b,
             FileName = "DeepSeekR1-8b.gguf",
             DownloadUrl = string.Empty,
@@ -266,6 +280,8 @@ public struct KnownModelNames
     public const string Qwen3_8b = "qwen3:8b";
     public const string Qwen3_14b = "qwen3:14b";
     public const string Olmo2_7b = "olmo2:7b";
+    public const string Phi3_5_3b = "phi3.5:3b";
+    public const string Phi4_4b = "phi4:4b";
     public const string Smollm2_0_1b = "smollm2:0.1b";
     public const string Yi_6b = "yi:6b";
 
