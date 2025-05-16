@@ -81,6 +81,13 @@ if (Utils.OpenAi)
         settings.BackendType = BackendType.OpenAi;
     });
 }
+if (Utils.Gemini)
+{
+    builder.Services.AddMaIN(builder.Configuration, settings =>
+    {
+        settings.BackendType = BackendType.Gemini;
+    });
+}
 else
 {
     builder.Services.AddMaIN(builder.Configuration);
