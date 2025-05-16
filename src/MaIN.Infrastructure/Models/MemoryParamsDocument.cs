@@ -8,4 +8,5 @@ public class MemoryParamsDocument
     public float FrequencyPenalty { get; set; }
     public float Temperature { get; set; } 
     public int AnswerTokens { get; set; }
+    public bool MultiModalMode { get; set; }
 }
