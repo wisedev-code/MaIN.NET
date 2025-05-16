@@ -35,13 +35,7 @@ public class MemoryFactory() : IMemoryFactory
             ContextSize = (uint)memoryParams.ContextSize,
             GpuLayerCount = memoryParams.GpuLayerCount,
         };
-
-        // var config = new LLamaSharpConfig(modelPath)
-        // {
-        //     GpuLayerCount = memoryParams.GpuLayerCount,
-        // };
-
-        //var embeddingGenerator = new LLamaSharpTextEmbeddingGenerator(config, model);
+        
         var km = new KernelMemoryBuilder()
             .WithLLamaSharpTextGeneration(model, modelParams, out var context)
             .WithLLamaSharpTextEmbeddingGeneration(generator)
