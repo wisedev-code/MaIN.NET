@@ -17,34 +17,25 @@ namespace MaIN.Services.Services.LLMService.Memory;
 
 public class MemoryFactory() : IMemoryFactory
 {
-    public IKernelMemory CreateMemory(string modelsPath, string modelName)
-    {
-        var model = ModelLoader.GetOrLoadModel(modelsPath, modelName);
-        return CreateMemoryWithModel(modelsPath, model, new MemoryParams
-        {
-            MaxMatchesCount = 5,
-            FrequencyPenalty = 1,
-            Temperature = 0.6f,
-            AnswerTokens = 1024
-        }).KM;
-    }
-
-    public (IKernelMemory KM, LLamaContext TextGenerationContext) CreateMemoryWithModel(string modelsPath,
-        LLamaWeights model,
-        MemoryParams memoryParams)
+    public (IKernelMemory KM, LLamaContext TextGenerationContext, LLamaSharpTextEmbeddingGenerator EmbeddingGenerator)
+        CreateMemoryWithModel(string modelsPath,
+            LLamaWeights model,
+            string modelName,
+            MemoryParams memoryParams)
     {
         var path = ResolvePath(modelsPath);
         var embeddingModel = KnownModels.GetEmbeddingModel();
         var embeddingModelPath = Path.Combine(path, embeddingModel.FileName);
-
-        var generator = ConfigureGeneratorOptions(embeddingModelPath);
+        var modelPath = Path.Combine(path, modelName);
+        var generator = ConfigureGeneratorOptions(embeddingModelPath, modelPath, memoryParams);
         var searchOptions = ConfigureSearchOptions(memoryParams);
         var parsingOptions = ConfigureParsingOptions();
-        var modelParams = new ModelParams(modelsPath)
+        var modelParams = new ModelParams(modelPath)
         {
             ContextSize = (uint)memoryParams.ContextSize,
             GpuLayerCount = memoryParams.GpuLayerCount,
         };
+        
         var km = new KernelMemoryBuilder()
             .WithLLamaSharpTextGeneration(model, modelParams, out var context)
             .WithLLamaSharpTextEmbeddingGeneration(generator)
@@ -52,10 +43,10 @@ public class MemoryFactory() : IMemoryFactory
             .WithCustomImageOcr(new OcrWrapper())
             .With(parsingOptions)
             .Build();
-        var result = (KM: km, TextGenerationContext: context);        
+        var result = (KM: km, TextGenerationContext: context, EmbeddingGenerator: generator);
         return result;
     }
-    
+
     public IKernelMemory CreateMemoryWithOpenAi(string openAiKey, MemoryParams memoryParams)
     {
         var searchOptions = ConfigureSearchOptions(memoryParams);
@@ -64,7 +55,7 @@ public class MemoryFactory() : IMemoryFactory
             .WithSearchClientConfig(searchOptions)
             .WithOpenAIDefaults(openAiKey)
             .Build();
-        
+
         return kernelMemory;
     }
 
@@ -75,8 +66,11 @@ public class MemoryFactory() : IMemoryFactory
         var kernelMemory = new KernelMemoryBuilder()
             .WithSearchClientConfig(searchOptions)
 #pragma warning disable SKEXP0070 // For evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-            .WithSemanticKernelTextGenerationService(new GeminiTextGeneratorAdapter(new GoogleAIGeminiChatCompletionService("gemini-2.0-flash", geminiKey)), new SemanticKernelConfig())
-            .WithSemanticKernelTextEmbeddingGenerationService(new GoogleAITextEmbeddingGenerationService("embedding-001", geminiKey), new SemanticKernelConfig())
+            .WithSemanticKernelTextGenerationService(
+                new GeminiTextGeneratorAdapter(new GoogleAIGeminiChatCompletionService("gemini-2.0-flash", geminiKey)),
+                new SemanticKernelConfig())
+            .WithSemanticKernelTextEmbeddingGenerationService(
+                new GoogleAITextEmbeddingGenerationService("embedding-001", geminiKey), new SemanticKernelConfig())
 #pragma warning restore SKEXP0070
             .WithSimpleVectorDb()
             .Build();
@@ -89,39 +83,41 @@ public class MemoryFactory() : IMemoryFactory
     private string ResolvePath(string modelsPath)
     {
         var path = modelsPath;
-            
+
         if (string.IsNullOrEmpty(path))
         {
             throw new InvalidOperationException("Models path not found");
         }
-        
+
         return path;
     }
-    
-    private static LLamaSharpTextEmbeddingGenerator ConfigureGeneratorOptions(string embeddingModelPath)
+
+    private static LLamaSharpTextEmbeddingGenerator ConfigureGeneratorOptions(string embeddingModelPath,
+        string modelPath, MemoryParams memoryParams)
     {
-        var inferenceParams = new InferenceParams 
-        { 
-            AntiPrompts = ["INFO", "<|im_end|>", "Question:"] 
+        var inferenceParams = new InferenceParams
+        {
+            AntiPrompts = ["INFO", "<|im_end|>", "Question:"]
         };
 
-        var config = new LLamaSharpConfig(embeddingModelPath)
-        { 
+        var desiredPath = memoryParams.MultiModalMode ? modelPath : embeddingModelPath;
+        var config = new LLamaSharpConfig(desiredPath)
+        {
             DefaultInferenceParams = inferenceParams,
-            GpuLayerCount = 20,
+            GpuLayerCount = memoryParams.GpuLayerCount,
         };
-        
+
         var parameters = new ModelParams(config.ModelPath)
         {
             ContextSize = new uint?(config.ContextSize.GetValueOrDefault(2048U)),
             GpuLayerCount = config.GpuLayerCount.GetValueOrDefault(20),
         };
-        
+
         using var weights = LLamaWeights.LoadFromFile(parameters);
 
         return new LLamaSharpTextEmbeddingGenerator(config, weights);
     }
-    
+
     private static SearchClientConfig ConfigureSearchOptions(MemoryParams memoryParams)
     {
         return new SearchClientConfig
@@ -132,7 +128,7 @@ public class MemoryFactory() : IMemoryFactory
             AnswerTokens = memoryParams.AnswerTokens,
         };
     }
-    
+
     private static TextPartitioningOptions ConfigureParsingOptions()
     {
         return new TextPartitioningOptions
@@ -140,6 +136,6 @@ public class MemoryFactory() : IMemoryFactory
             MaxTokensPerParagraph = 300,
         };
     }
-    
+
     #endregion
 }

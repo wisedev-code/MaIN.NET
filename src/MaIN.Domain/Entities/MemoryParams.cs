@@ -14,4 +14,6 @@ public class MemoryParams
     /// If your response is invalid make sure you meet those limits.
     /// </summary>
     public int AnswerTokens { get; set; } = 500;
+
+    public bool MultiModalMode { get; set; } = false;
 }
