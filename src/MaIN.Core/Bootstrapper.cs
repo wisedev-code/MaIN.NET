@@ -34,14 +34,16 @@ public static class Bootstrapper
         services.AddSingleton<IChatService, ChatService>();
         services.AddSingleton<IAgentService, AgentService>();
         services.AddSingleton<IAgentFlowService, AgentFlowService>();
-        
+        services.AddSingleton<IMcpService, McpService>();
+
         // Register service provider for AIHub
         services.AddSingleton<IAIHubServices>(sp =>
             {
                 var aiServices = new AIHubServices(
                     sp.GetRequiredService<IChatService>(),
                     sp.GetRequiredService<IAgentService>(),
-                    sp.GetRequiredService<IAgentFlowService>()
+                    sp.GetRequiredService<IAgentFlowService>(),
+                    sp.GetRequiredService<IMcpService>()
                 );
             
                 // Initialize AIHub with the services
