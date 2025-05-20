@@ -1,13 +1,7 @@
-using System.IO.Compression;
-using System.Text.Json;
+
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
-using MaIN.Domain.Entities.Agents;
-using MaIN.Domain.Entities.Agents.AgentSource;
-using MaIN.Services.Dtos;
-using MaIN.Services.Mappers;
 using MaIN.Services.Services;
-using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
 
 namespace MaIN.Core.Hub.Contexts;
@@ -15,13 +9,17 @@ namespace MaIN.Core.Hub.Contexts;
 public class McpContext
 {
     private readonly IMcpService _mcpService;
-    private BackendType _backendType;
     private Mcp? _mcpConfig;
 
-    internal McpContext(IMcpService mcpService, Mcp config)
+    internal McpContext(IMcpService mcpService)
     {
-        _mcpService = new McpService();
-        _mcpConfig = config;
+        _mcpService = mcpService;
+    }
+    
+    public McpContext WithConfig(Mcp mcpConfig)
+    {
+        _mcpConfig = mcpConfig;
+        return this;
     }
     
     public McpContext WithBackend(BackendType backendType)
@@ -30,6 +28,13 @@ public class McpContext
         return this;
     }
 
-    public async Task<McpResult> PromptAsync(string prompt) => 
-        await _mcpService.Prompt(_mcpConfig!, prompt);
+    public async Task<McpResult> PromptAsync(string prompt)
+    {
+        if (_mcpConfig == null)
+        {
+            throw new InvalidOperationException("MCP config not found");
+        }
+        
+        return await _mcpService.Prompt(_mcpConfig!, prompt);
+    }
 }
