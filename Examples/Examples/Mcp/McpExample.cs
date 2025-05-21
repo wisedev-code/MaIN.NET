@@ -17,12 +17,12 @@ public class McpExample : IExample
             .WithConfig(
             new Mcp
             {
-                Name = "Git-Ingest",
-                Arguments = ["--from", "git+https://github.com/adhikasp/mcp-git-ingest", "mcp-git-ingest"],
-                Command = "uvx",
+                Name = "AirBnB",
+                Arguments = ["-y", "@openbnb/mcp-server-airbnb"],
+                Command = "npx",
                 Model = "gpt-4o-mini"
             })
-            .PromptAsync("How many stars does MaIN.NET repository have?");
+            .PromptAsync("Show a listing of Madagascar properties");
         
         Console.WriteLine("⭐️ " + result.Message.Content + " ⭐️");
     }
