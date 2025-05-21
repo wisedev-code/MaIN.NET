@@ -14,6 +14,7 @@ public class McpContext
     internal McpContext(IMcpService mcpService)
     {
         _mcpService = mcpService;
+        _mcpConfig = Mcp.NotSet;
     }
     
     public McpContext WithConfig(Mcp mcpConfig)

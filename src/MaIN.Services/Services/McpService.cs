@@ -3,6 +3,7 @@ using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Services.Services.Models;
 using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
 using ModelContextProtocol.Client;
 #pragma warning disable SKEXP0001
 #pragma warning disable SKEXP0070
@@ -33,7 +34,11 @@ public class McpService(MaINSettings settings) : IMcpService
         var kernel = builder.Build();
         var tools = await mcpClient.ListToolsAsync();
         kernel.Plugins.AddFromFunctions(config.Name, tools.Select(x => x.AsKernelFunction()));
-        var res = await kernel.InvokePromptAsync(prompt);
+        var settings2 = new OpenAIPromptExecutionSettings()
+        {
+            FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
+        };
+        var res = await kernel.InvokePromptAsync(prompt,new KernelArguments(settings2));
 
         return new McpResult()
         {
@@ -41,7 +46,7 @@ public class McpService(MaINSettings settings) : IMcpService
             Message = new Message()
             {
                 Content = res.ToString(),
-                Role = AuthorRole.Assistant.ToString(),
+                Role = nameof(AuthorRole.Assistant),
             },
             Model = config.Model
         };
