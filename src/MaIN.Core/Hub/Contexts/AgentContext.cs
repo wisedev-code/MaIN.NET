@@ -92,6 +92,12 @@ public class AgentContext
         return this;
     }
 
+    public AgentContext WithMcpConfig(Mcp mcpConfig)
+    {
+        _agent.Context.McpConfig = mcpConfig;
+        return this;
+    }
+    
     public AgentContext WithInferenceParams(InferenceParams inferenceParams)
     {
         _inferenceParams = inferenceParams;
