@@ -3,6 +3,7 @@ using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Services.Services.Models;
 using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.Connectors.Google;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using ModelContextProtocol.Client;
 #pragma warning disable SKEXP0001
@@ -30,15 +31,12 @@ public class McpService(MaINSettings settings) : IMcpService
         );
 
         var builder = Kernel.CreateBuilder();
-        InitializeChatCompletions(builder, config.Backend ?? settings.BackendType, config.Model);
+        var promptSettings = InitializeChatCompletions(builder, config.Backend ?? settings.BackendType, config.Model);
         var kernel = builder.Build();
         var tools = await mcpClient.ListToolsAsync();
-        kernel.Plugins.AddFromFunctions(config.Name, tools.Select(x => x.AsKernelFunction()));
-        var settings2 = new OpenAIPromptExecutionSettings()
-        {
-            FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
-        };
-        var res = await kernel.InvokePromptAsync(prompt,new KernelArguments(settings2));
+        kernel.Plugins.AddFromFunctions("Tools", tools.Select(x => x.AsKernelFunction()));
+
+        var res = await kernel.InvokePromptAsync(prompt,new KernelArguments(promptSettings));
 
         return new McpResult()
         {
@@ -52,7 +50,7 @@ public class McpService(MaINSettings settings) : IMcpService
         };
     }
 
-    private void InitializeChatCompletions(IKernelBuilder kernelBuilder, BackendType backendType, string model)
+    private PromptExecutionSettings InitializeChatCompletions(IKernelBuilder kernelBuilder, BackendType backendType, string model)
     {
         if (backendType == BackendType.Self)
         {
@@ -63,10 +61,18 @@ public class McpService(MaINSettings settings) : IMcpService
         {
             case BackendType.OpenAi:
                 kernelBuilder.Services.AddOpenAIChatCompletion(model, GetOpenAiKey() ?? throw new ArgumentNullException(nameof(GetOpenAiKey)));
-                break;
+                return new OpenAIPromptExecutionSettings()
+                {
+                    FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(options: new() { RetainArgumentTypes = true })
+                };
             case BackendType.Gemini:
                 kernelBuilder.Services.AddGoogleAIGeminiChatCompletion(model, GetGeminiKey() ?? throw new ArgumentNullException(nameof(GetGeminiKey)));
-                break;
+                return new GeminiPromptExecutionSettings()
+                {
+                    ToolCallBehavior = GeminiToolCallBehavior.AutoInvokeKernelFunctions,
+                    ModelId = model,
+                    FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(options: new() { RetainArgumentTypes = true })
+                };
             default:
                 throw new ArgumentOutOfRangeException(nameof(backendType));
         }
