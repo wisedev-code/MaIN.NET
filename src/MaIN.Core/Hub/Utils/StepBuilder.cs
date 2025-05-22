@@ -31,6 +31,13 @@ public class StepBuilder
         Steps.Add(stepToAdd);
         return this;
     }
+    
+    public StepBuilder Mcp()
+    {
+        var stepToAdd = "MCP";
+        Steps.Add(stepToAdd);
+        return this;
+    }
 
     public StepBuilder Redirect(string agentId, string output = "AS_Output", string mode = "REPLACE")
     {

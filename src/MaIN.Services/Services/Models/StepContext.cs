@@ -10,6 +10,7 @@ public class StepContext
     public required Message RedirectMessage { get; init; }
     public required List<string> TagsToReplaceWithFilter { get; init; }
     public required string[] Arguments { get; init; }
+    public Mcp? McpConfig { get; init; }
     public required Func<string, string, string?, string, Task> NotifyProgress { get; init; }
     public required Func<Chat, Task> UpdateChat { get; init; }
     public required string StepName { get; init; }
