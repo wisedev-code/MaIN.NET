@@ -48,6 +48,7 @@ public static class Bootstrapper
         serviceCollection.AddSingleton<IStepHandler, RedirectStepHandler>();
         serviceCollection.AddSingleton<IStepHandler, FetchDataStepHandler>();
         serviceCollection.AddSingleton<IStepHandler, AnswerStepHandler>();
+        serviceCollection.AddSingleton<IStepHandler, McpStepHandler>();
         serviceCollection.AddSingleton<IStepHandler, BecomeStepHandler>();
         serviceCollection.AddSingleton<IStepHandler, CleanupStepHandler>();
         serviceCollection.AddCommandHandlers();
@@ -72,6 +73,7 @@ public static class Bootstrapper
         services.AddSingleton<ICommandHandler<RedirectCommand, Message?>, RedirectCommandHandler>();
         services.AddSingleton<ICommandHandler<FetchCommand, Message?>, FetchCommandHandler>();
         services.AddSingleton<ICommandHandler<AnswerCommand, Message?>, AnswerCommandHandler>();
+        services.AddSingleton<ICommandHandler<McpCommand, Message?>, McpCommandHandler>();
 
         services.AddSingleton<ICommandDispatcher, CommandDispatcher>(provider =>
         {

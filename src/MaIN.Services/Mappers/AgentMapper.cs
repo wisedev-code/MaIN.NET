@@ -87,6 +87,7 @@ public static class AgentMapper
             Instruction = context.Instruction,
             Relations = context.Relations?.ToList(),
             Steps = context.Steps!.ToList(),
+            McpConfig = context.McpConfig,
             Source = context.Source is not null ? new AgentSourceDocument()
             {
                 DetailsSerialized = JsonSerializer.Serialize(context.Source.Details),
@@ -132,13 +133,14 @@ public static class AgentMapper
         => new()
         {
             Instruction = agentContextDocument.Instruction,
-            Relations = agentContextDocument?.Relations,
+            Relations = agentContextDocument.Relations,
+            McpConfig = agentContextDocument.McpConfig,
             Source = new AgentSource
             {
-                AdditionalMessage = agentContextDocument?.Source?.AdditionalMessage,
-                Details = agentContextDocument?.Source?.DetailsSerialized,
-                Type = Enum.Parse<AgentSourceType>(agentContextDocument?.Source?.Type.ToString() ?? AgentSourceType.Text.ToString())
+                AdditionalMessage = agentContextDocument.Source?.AdditionalMessage,
+                Details = agentContextDocument.Source?.DetailsSerialized,
+                Type = Enum.Parse<AgentSourceType>(agentContextDocument.Source?.Type.ToString() ?? AgentSourceType.Text.ToString())
             },
-            Steps = agentContextDocument!.Steps
+            Steps = agentContextDocument.Steps
         };
 }

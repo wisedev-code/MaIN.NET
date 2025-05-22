@@ -13,14 +13,14 @@ public class McpExample : IExample
         OpenAiExample.Setup();
 
         var result = await AIHub.Mcp()
-            .WithBackend(BackendType.Gemini)
+            .WithBackend(BackendType.OpenAi)
             .WithConfig(
             new Mcp
             {
                 Name = "McpEverythingDemo",
                 Arguments = ["-y", "@modelcontextprotocol/server-everything"],
                 Command = "npx",
-                Model = "gemini-2.0-flash"
+                Model = "gpt-4o-mini"
             })
             .PromptAsync("Provide me information about resource 21 and 37. Also explain how you get this data");
         
