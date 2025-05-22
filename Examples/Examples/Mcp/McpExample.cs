@@ -13,17 +13,17 @@ public class McpExample : IExample
         OpenAiExample.Setup();
 
         var result = await AIHub.Mcp()
-            .WithBackend(BackendType.OpenAi)
+            .WithBackend(BackendType.Gemini)
             .WithConfig(
             new Mcp
             {
-                Name = "AirBnB",
-                Arguments = ["-y", "@openbnb/mcp-server-airbnb"],
+                Name = "McpEverythingDemo",
+                Arguments = ["-y", "@modelcontextprotocol/server-everything"],
                 Command = "npx",
-                Model = "gpt-4o-mini"
+                Model = "gemini-2.0-flash"
             })
-            .PromptAsync("Show a listing of Madagascar properties");
+            .PromptAsync("Provide me information about resource 21 and 37. Also explain how you get this data");
         
-        Console.WriteLine("⭐️ " + result.Message.Content + " ⭐️");
+        Console.WriteLine(result.Message.Content);
     }
 }
