@@ -1,3 +1,4 @@
+using System.Reflection;
 using MaIN.Core.Hub;
 
 namespace Examples;
@@ -11,7 +12,7 @@ public class ChatWithVisionExample : IExample
     {
         Console.WriteLine("ChatExample with files is running!");
 
-        List<string> images = ["./Files/gamex.jpg"];
+        List<string> images = [Path.Combine(AppContext.BaseDirectory, "Files", "gamex.jpg")];
         
         var result = await AIHub.Chat()
             .WithModel("llama3.2:3b")
