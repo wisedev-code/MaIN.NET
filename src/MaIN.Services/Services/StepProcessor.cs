@@ -47,6 +47,7 @@ public class StepProcessor : IStepProcessor
                 RedirectMessage = redirectMessage,
                 TagsToReplaceWithFilter = tagsToReplaceWithFilter,
                 Arguments = arguments,
+                McpConfig = context.McpConfig,
                 NotifyProgress = notifyProgress,
                 UpdateChat = updateChat,
                 StepName = stepName

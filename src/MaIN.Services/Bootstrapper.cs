@@ -79,6 +79,7 @@ public static class Bootstrapper
         {
             var dispatcher = new CommandDispatcher(provider);
             
+            dispatcher.RegisterNamedHandler<McpCommand, Message?, McpCommandHandler>("MCP");
             dispatcher.RegisterNamedHandler<StartCommand, Message?, StartCommandHandler>("START");
             dispatcher.RegisterNamedHandler<RedirectCommand, Message?, RedirectCommandHandler>("REDIRECT");
             dispatcher.RegisterNamedHandler<FetchCommand, Message?, FetchCommandHandler>("FETCH_DATA");
@@ -92,6 +93,7 @@ public static class Bootstrapper
         services.AddSingleton<RedirectCommandHandler>();
         services.AddSingleton<FetchCommandHandler>();
         services.AddSingleton<AnswerCommandHandler>();
+        services.AddSingleton<McpCommandHandler>();
 
         return services;
     }

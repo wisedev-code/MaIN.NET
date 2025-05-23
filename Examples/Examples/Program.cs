@@ -52,6 +52,7 @@ static void RegisterExamples(IServiceCollection services)
     services.AddTransient<AgentConversationExample>();
     services.AddTransient<AgentWithRedirectExample>();
     services.AddTransient<MultiBackendAgentWithRedirectExample>();
+    services.AddTransient<McpAgentsExample>();
     services.AddTransient<AgentWithRedirectImageExample>();
     services.AddTransient<AgentWithBecomeExample>();
     services.AddTransient<AgentWithApiDataSourceExample>();
@@ -148,7 +149,9 @@ public class ExampleRegistry(IServiceProvider serviceProvider)
             ("\u25a0 Gemini Chat", serviceProvider.GetRequiredService<ChatExampleGemini>()),
             ("\u25a0 Gemini Chat with image", serviceProvider.GetRequiredService<ChatWithImageGenGeminiExample>()),
             ("\u25a0 Gemini Chat with files", serviceProvider.GetRequiredService<ChatWithFilesExampleGemini>()),
-            ("\u25a0 McpClient example", serviceProvider.GetRequiredService<McpExample>())
+            ("\u25a0 McpClient example", serviceProvider.GetRequiredService<McpExample>()),
+            ("\u25a0 McpAgent example", serviceProvider.GetRequiredService<McpAgentsExample>())
+
         };
     }
 }

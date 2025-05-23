@@ -94,6 +94,10 @@ public class AgentContext
 
     public AgentContext WithMcpConfig(Mcp mcpConfig)
     {
+        if (_agent.Backend != null)
+        {
+            mcpConfig.Backend = _agent.Backend;
+        }
         _agent.Context.McpConfig = mcpConfig;
         return this;
     }
