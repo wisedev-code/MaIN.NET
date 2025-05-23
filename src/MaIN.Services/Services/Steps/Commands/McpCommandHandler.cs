@@ -11,8 +11,7 @@ using MaIN.Services.Services.Models.Commands;
 namespace MaIN.Services.Services.Steps.Commands;
 
 public class McpCommandHandler(
-    IMcpService mcpService,
-    MaINSettings settings)
+    IMcpService mcpService)
     : ICommandHandler<McpCommand, Message?>
 {
     public async Task<Message?> HandleAsync(McpCommand command)
