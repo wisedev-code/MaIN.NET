@@ -99,13 +99,14 @@ public class LLMService : ILLMService
             Embeddings = true
         };
         var disableCache = chat.Properties.CheckProperty(ServiceConstants.Properties.DisableCacheProperty);
-        using var llmModel = disableCache
+        var llmModel = disableCache
             ? await LLamaWeights.LoadFromFileAsync(parameters, cancellationToken)
             : await ModelLoader.GetOrLoadModelAsync(modelsPath, model.FileName);
 
         var memory = memoryFactory.CreateMemoryWithModel(
             modelsPath,
             llmModel,
+            model.FileName,
             chat.MemoryParams);
 
         await memoryService.ImportDataToMemory(memory.KM, memoryOptions, cancellationToken);
@@ -114,7 +115,15 @@ public class LLMService : ILLMService
             userMessage.Content,
             cancellationToken: cancellationToken);
         await memory.KM.DeleteIndexAsync(cancellationToken: cancellationToken);
+
+        if (disableCache)
+        {
+            llmModel.Dispose();
+        }
+        
         memory.TextGenerationContext.Dispose();
+        memory.EmbeddingGenerator.Dispose();
+
         return new ChatResult
         {
             Done = true,
