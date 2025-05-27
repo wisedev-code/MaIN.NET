@@ -19,7 +19,7 @@ public class AnswerStepHandler(ICommandDispatcher commandDispatcher) : IStepHand
         
         var answerCommand = new AnswerCommand
         {
-            Chat = EnsureUserMessageReadiness(context.Chat), 
+            Chat = StepHandlerExtensions.EnsureUserMessageReadiness(context.Chat), 
             UseMemory = useMemory
         };
         
@@ -44,28 +44,5 @@ public class AnswerStepHandler(ICommandDispatcher commandDispatcher) : IStepHand
         var pattern = @"filter:?:?\{(.*?)\}";        
         var match = Regex.Match(content!, pattern);
         return match.Success ? match.Groups[1].Value : null;
-    }
-    
-    //This is useful for cases that we want to perform retry
-    private Chat EnsureUserMessageReadiness(Chat chat)
-    {
-        if (chat.Messages.Count == 0)
-            return chat;
-        
-        var lastMessage = chat.Messages.LastOrDefault();
-        if (lastMessage == null || lastMessage.Role== "User")
-            return chat;
-    
-        var lastUserMessage = chat.Messages.LastOrDefault(m => m.Role == "User");
-        if (lastUserMessage == null)
-            return chat; // No user messages
-    
-        var newMessages = chat.Messages
-            .Where(m => m != lastUserMessage)
-            .ToList();
-        newMessages.Add(lastUserMessage);
-
-        chat.Messages = newMessages;
-        return chat;
     }
 }

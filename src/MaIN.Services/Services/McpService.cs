@@ -1,6 +1,7 @@
 using LLama.Common;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
+using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Connectors.Google;
@@ -10,11 +11,6 @@ using ModelContextProtocol.Client;
 #pragma warning disable SKEXP0070
 
 namespace MaIN.Services.Services;
-
-public interface IMcpService
-{
-    Task<McpResult> Prompt(Mcp config, string prompt);
-}
 
 public class McpService(MaINSettings settings) : IMcpService
 {
@@ -52,11 +48,6 @@ public class McpService(MaINSettings settings) : IMcpService
 
     private PromptExecutionSettings InitializeChatCompletions(IKernelBuilder kernelBuilder, BackendType backendType, string model)
     {
-        if (backendType == BackendType.Self)
-        {
-            throw new NotSupportedException("Self backend (local models) does not support MCP integration.");
-        }
-
         switch (backendType)
         {
             case BackendType.OpenAi:
@@ -73,6 +64,8 @@ public class McpService(MaINSettings settings) : IMcpService
                     ModelId = model,
                     FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(options: new() { RetainArgumentTypes = true })
                 };
+            case BackendType.Self:
+                throw new NotSupportedException("Self backend (local models) does not support MCP integration.");
             default:
                 throw new ArgumentOutOfRangeException(nameof(backendType));
         }

@@ -2,6 +2,7 @@
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Services.Services;
+using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
 
 namespace MaIN.Core.Hub.Contexts;
