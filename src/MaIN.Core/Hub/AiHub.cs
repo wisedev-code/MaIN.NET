@@ -22,6 +22,7 @@ public static class AIHub
     public static ChatContext Chat() => new(Services.ChatService);
     public static AgentContext Agent() => new(Services.AgentService);
     public static FlowContext Flow() => new(Services.FlowService, Services.AgentService);
+    public static McpContext Mcp() => new(Services.McpService);
 
     public abstract class Extensions
     {
