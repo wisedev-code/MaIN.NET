@@ -1,4 +1,5 @@
 using LLama;
+using LLama.Batched;
 using LLama.Common;
 using LLama.Sampling;
 using LLamaSharp.KernelMemory;
@@ -16,7 +17,7 @@ public static class KernelMemoryLlamaExtensions
         out LLamaContext context)
     {
         context = model.CreateContext(memoryParams);
-        var executor = new StatelessExecutor(model, memoryParams);
+        var executor = new BatchedExecutor(model, memoryParams);//new StatelessExecutor(model, memoryParams);
         
         var inferenceParams = new InferenceParams 
         { 
@@ -24,7 +25,7 @@ public static class KernelMemoryLlamaExtensions
         };
 
         builder.WithLLamaSharpTextGeneration(
-            new LlamaSharpTextGenerator(
+            new LLamaSharpTextGenerator(
                 model,
                 context,
                 executor,
