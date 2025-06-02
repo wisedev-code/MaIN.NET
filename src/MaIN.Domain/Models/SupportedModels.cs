@@ -256,6 +256,8 @@ public static class KnownModels
 
         return model;
     }
+
+    public static List<Model> All() => Models;
 }
 
 public struct KnownModelNames
