@@ -4,7 +4,7 @@ public class Model
 {
     public required string Name { get; init; }
     public required string FileName { get; init; }
-    public string? DownloadUrl { get; set; }
+    public required string DownloadUrl { get; set; }
     public string? AdditionalPrompt { get; set; }
     public string? Description { get; set; }
     public string? Path { get; set; }
