@@ -2,7 +2,7 @@
 <package>
   <metadata>
     <id>MaIN.NET</id>
-    <version>0.2.3</version>
+    <version>0.2.4</version>
     <authors>Wisedev</authors>
     <owners>Wisedev</owners>
     <icon>favicon.png</icon>
@@ -16,6 +16,9 @@
       <dependency id="LLamaSharp" version="0.24.0" />
       <dependency id="LLamaSharp.Backend.Cuda12" version="0.24.0" />
       <dependency id="LLamaSharp.kernel-memory" version="0.24.0" />
+      <dependency id="ModelContextProtocol.AspNetCore" version="0.2.0-preview.1" />
+      <dependency id="Microsoft.SemanticKernel" version="1.49.0" />
+      <dependency id="Microsoft.SemanticKernel.Connectors.Google" version="1.33.0-alpha" />
       <dependency id="Microsoft.Extensions.Http" version="9.0.3" />
       <dependency id="Microsoft.KernelMemory" version="0.98.250324.1" />
       <dependency id="System.Data.SqlClient" version="4.8.6" />
