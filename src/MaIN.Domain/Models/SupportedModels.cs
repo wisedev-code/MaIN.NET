@@ -4,6 +4,7 @@ public class Model
 {
     public required string Name { get; init; }
     public required string FileName { get; init; }
+    public string? MMProject { get; set; }
     public string? DownloadUrl { get; set; }
     public string? AdditionalPrompt { get; set; }
     public string? Description { get; set; }
@@ -231,12 +232,13 @@ public static class KnownModels
         throw new Exception($"Model {fileName} is not downloaded");
     }
 
-    public static void AddModel(string model, string path)
+    public static void AddModel(string model, string path, string? mmProject)
     {
         Models.Add(new Model()
         {
             Description = string.Empty,
             DownloadUrl = string.Empty,
+            MMProject = mmProject,
             Name = model,
             FileName = $"{Path.GetFileName(path)}",
             Path = path

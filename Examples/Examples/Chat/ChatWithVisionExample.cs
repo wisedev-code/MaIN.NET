@@ -1,5 +1,6 @@
 using System.Reflection;
 using MaIN.Core.Hub;
+using OllamaSharp.Models.Chat;
 
 namespace Examples;
 
@@ -12,13 +13,15 @@ public class ChatWithVisionExample : IExample
     {
         Console.WriteLine("ChatExample with files is running!");
 
-        List<string> images = [Path.Combine(AppContext.BaseDirectory, "Files", "gamex.jpg")];
+        var image = await File.ReadAllBytesAsync(
+            Path.Combine(AppContext.BaseDirectory, "Files", "gamex.jpg"));
         
         var result = await AIHub.Chat()
-            .WithModel("llama3.2:3b")
-            .WithMessage("What is the title of game?")
-            .WithFiles(images)
-            .CompleteAsync();
+            .WithCustomModel("QwenVL",
+                path: "/Users/pstach/WiseDev/Models/llava-v1.6-mistral-7b.Q4_K_M.gguf",
+                mmProject: "/Users/pstach/WiseDev/Models/mmproj-model-f16.gguf")
+            .WithMessage("What can you see on the image?", image)
+            .CompleteAsync(interactive: true);
         
         Console.WriteLine(result.Message.Content);
     }
