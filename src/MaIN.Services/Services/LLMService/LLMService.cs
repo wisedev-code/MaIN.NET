@@ -221,7 +221,7 @@ public class LLMService : ILLMService
                 conversation.Prompt(imageEmbeddings!);
                 while (executor.BatchedTokenCount > 0)
                     await executor.Infer(cancellationToken);
-                var prompt = llmModel.Tokenize(lastMsg.Content, true, false, Encoding.UTF8);
+                var prompt = llmModel.Tokenize($"USER: {lastMsg.Content}\nASSISTANT:", true, false, Encoding.UTF8);
                 conversation.Prompt(prompt);
             }
             else
@@ -251,7 +251,7 @@ public class LLMService : ILLMService
                 conversation.Prompt(imageEmbeddings!);
                 while (executor.BatchedTokenCount > 0)
                     await executor.Infer(cancellationToken);
-                var prompt = llmModel.Tokenize(lastMsg.Content, true, false, Encoding.UTF8);
+                var prompt = llmModel.Tokenize($"USER: {lastMsg.Content}\nASSISTANT:", true, false, Encoding.UTF8);
                 conversation.Prompt(prompt);
             }
             else
