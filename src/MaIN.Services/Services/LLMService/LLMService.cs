@@ -210,63 +210,68 @@ public class LLMService : ILLMService
         CancellationToken cancellationToken)
     {
         var isNewConversation = chat.ConversationState == null;
-        Conversation conversation;
+        var conversation = isNewConversation
+            ? executor.Create()
+            : executor.Load(chat.ConversationState!);
 
-        if (isNewConversation)
+        if (lastMsg.Image != null)
         {
-            conversation = executor.Create();
-            if (lastMsg.Image != null)
-            {
-                var imageEmbeddings = llavaWeights?.CreateImageEmbeddings(lastMsg.Image);
-                conversation.Prompt(imageEmbeddings!);
-                while (executor.BatchedTokenCount > 0)
-                    await executor.Infer(cancellationToken);
-                var prompt = llmModel.Tokenize($"USER: {lastMsg.Content}\nASSISTANT:", true, false, Encoding.UTF8);
-                conversation.Prompt(prompt);
-            }
-            else
-            {
-                var systemMsg = chat.Messages.FirstOrDefault(x => x.Role == nameof(AuthorRole.System));
-                var template = new LLamaTemplate(llmModel);
-                var finalPrompt = ChatHelper.GetFinalPrompt(lastMsg, model, true);
-
-                if (systemMsg != null)
-                {
-                    template.Add(systemMsg.Role, systemMsg.Content);
-                }
-
-                template.Add(ServiceConstants.Roles.User, finalPrompt);
-                template.AddAssistant = true;
-
-                var templatedMessage = Encoding.UTF8.GetString(template.Apply());
-                conversation.Prompt(executor.Context.Tokenize(templatedMessage, addBos: true, special: true));
-            }
+            await ProcessImageMessage(conversation, lastMsg, llmModel, llavaWeights, executor, cancellationToken);
         }
         else
         {
-            conversation = executor.Load(chat.ConversationState!);
-            if (lastMsg.Image != null)
-            {
-                var imageEmbeddings = llavaWeights?.CreateImageEmbeddings(lastMsg.Image);
-                conversation.Prompt(imageEmbeddings!);
-                while (executor.BatchedTokenCount > 0)
-                    await executor.Infer(cancellationToken);
-                var prompt = llmModel.Tokenize($"USER: {lastMsg.Content}\nASSISTANT:", true, false, Encoding.UTF8);
-                conversation.Prompt(prompt);
-            }
-            else
-            {
-                var template = new LLamaTemplate(llmModel);
-                var finalPrompt = ChatHelper.GetFinalPrompt(lastMsg, model, false);
-
-                template.Add(ServiceConstants.Roles.User, finalPrompt);
-                template.AddAssistant = true;
-                var templatedMessage = Encoding.UTF8.GetString(template.Apply());
-                conversation.Prompt(executor.Context.Tokenize(templatedMessage));
-            }
+            ProcessTextMessage(conversation, chat, lastMsg, model, llmModel, executor, isNewConversation);
         }
 
         return (conversation, false, false);
+    }
+
+    private async Task ProcessImageMessage(Conversation conversation,
+        Message lastMsg,
+        LLamaWeights llmModel,
+        LLavaWeights? llavaWeights,
+        BatchedExecutor executor,
+        CancellationToken cancellationToken)
+    {
+        var imageEmbeddings = llavaWeights?.CreateImageEmbeddings(lastMsg.Image);
+        conversation.Prompt(imageEmbeddings!);
+
+        while (executor.BatchedTokenCount > 0)
+            await executor.Infer(cancellationToken);
+
+        var prompt = llmModel.Tokenize($"USER: {lastMsg.Content}\nASSISTANT:", true, false, Encoding.UTF8);
+        conversation.Prompt(prompt);
+    }
+
+    private void ProcessTextMessage(Conversation conversation,
+        Chat chat,
+        Message lastMsg,
+        Model model,
+        LLamaWeights llmModel,
+        BatchedExecutor executor,
+        bool isNewConversation)
+    {
+        var template = new LLamaTemplate(llmModel);
+        var finalPrompt = ChatHelper.GetFinalPrompt(lastMsg, model, isNewConversation);
+
+        if (isNewConversation)
+        {
+            var systemMsg = chat.Messages.FirstOrDefault(x => x.Role == nameof(AuthorRole.System));
+            if (systemMsg != null)
+            {
+                template.Add(systemMsg.Role, systemMsg.Content);
+            }
+        }
+
+        template.Add(ServiceConstants.Roles.User, finalPrompt);
+        template.AddAssistant = true;
+
+        var templatedMessage = Encoding.UTF8.GetString(template.Apply());
+        var tokens = isNewConversation
+            ? executor.Context.Tokenize(templatedMessage, addBos: true, special: true)
+            : executor.Context.Tokenize(templatedMessage);
+
+        conversation.Prompt(tokens);
     }
 
     private async Task<(List<LLMTokenValue> Tokens, bool IsComplete, bool HasFailed)> ProcessTokens(
