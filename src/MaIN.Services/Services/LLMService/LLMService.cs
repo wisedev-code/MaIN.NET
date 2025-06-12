@@ -226,14 +226,14 @@ public class LLMService : ILLMService
         return (conversation, false, false);
     }
 
-    private async Task ProcessImageMessage(Conversation conversation,
+    private static async Task ProcessImageMessage(Conversation conversation,
         Message lastMsg,
         LLamaWeights llmModel,
         LLavaWeights? llavaWeights,
         BatchedExecutor executor,
         CancellationToken cancellationToken)
     {
-        var imageEmbeddings = llavaWeights?.CreateImageEmbeddings(lastMsg.Image);
+        var imageEmbeddings = llavaWeights?.CreateImageEmbeddings(lastMsg.Image!);
         conversation.Prompt(imageEmbeddings!);
 
         while (executor.BatchedTokenCount > 0)
@@ -243,7 +243,7 @@ public class LLMService : ILLMService
         conversation.Prompt(prompt);
     }
 
-    private void ProcessTextMessage(Conversation conversation,
+    private static void ProcessTextMessage(Conversation conversation,
         Chat chat,
         Message lastMsg,
         Model model,
