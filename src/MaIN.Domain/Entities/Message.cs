@@ -10,7 +10,7 @@ public class Message
     public List<LLMTokenValue> Tokens { get; set; } = [];
     public bool Tool { get; init; }
     public DateTime Time { get; set; }
-    public byte[]? Images { get; init; }
+    public byte[]? Image { get; init; }
     public List<FileInfo>? Files { get; set; } 
     public Dictionary<string, string> Properties { get; set; } = [];
 }

@@ -51,6 +51,6 @@ public class AgentWithRedirectImageExample : IExample
                 }]
             });
         
-        ImagePreview.ShowImage(result.Message.Images);
+        ImagePreview.ShowImage(result.Message.Image);
     }
 }
