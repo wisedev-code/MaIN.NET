@@ -1,6 +1,4 @@
-using System.Reflection;
 using MaIN.Core.Hub;
-using OllamaSharp.Models.Chat;
 
 namespace Examples;
 
