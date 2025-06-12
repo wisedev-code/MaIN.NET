@@ -15,6 +15,6 @@ public class ChatWithImageGenGeminiExample : IExample
             .WithMessage("Generate hamster as a astronaut on the moon")
             .CompleteAsync();
 
-        ImagePreview.ShowImage(result.Message.Images);
+        ImagePreview.ShowImage(result.Message.Image);
     }
 }

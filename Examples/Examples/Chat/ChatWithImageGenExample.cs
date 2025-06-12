@@ -14,6 +14,6 @@ public class ChatWithImageGenExample : IExample
             .WithMessage("Generate cyberpunk godzilla cat warrior")
             .CompleteAsync();
         
-        ImagePreview.ShowImage(result.Message.Images);
+        ImagePreview.ShowImage(result.Message.Image);
     }
 }

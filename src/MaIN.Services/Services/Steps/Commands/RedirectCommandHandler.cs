@@ -28,7 +28,7 @@ public class RedirectCommandHandler(IAgentService agentService) : ICommandHandle
         return new Message()
         {
             Content = result.Messages.Last().Content,
-            Images = result.Messages.Last().Images,
+            Image = result.Messages.Last().Image,
             Role = "System",
             Properties = new Dictionary<string, string>()
             {

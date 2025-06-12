@@ -114,9 +114,9 @@ public class AgentContext
         return this;
     }
 
-    public AgentContext WithCustomModel(string model, string path)
+    public AgentContext WithCustomModel(string model, string path, string? mmProject = null)
     {
-        KnownModels.AddModel(model, path);
+        KnownModels.AddModel(model, path, mmProject);
         _agent.Model = model;
         return this;
     }
