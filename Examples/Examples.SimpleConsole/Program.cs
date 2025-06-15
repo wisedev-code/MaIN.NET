@@ -1,15 +1,15 @@
 ﻿using MaIN.Core;
 using MaIN.Core.Hub;
 using MaIN.Domain.Entities;
+using OpenAI.Models;
 
 MaINBootstrapper.Initialize();
 
-var model = AIHub
+var model = AIHub.Model();
 
-await AIHub.Chat()
-    .WithModel("gemma2:2b")
-    .WithMessage("Hello, World!")
-    .CompleteAsync(interactive: true);
+var m = model.GetModel("gemma3:4b");
 
+var x = model.GetModel("llama3.2:3b");
+await model.DownloadAsync(x.Name);
 
 

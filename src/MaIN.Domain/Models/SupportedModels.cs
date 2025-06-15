@@ -232,7 +232,7 @@ public static class KnownModels
         throw new Exception($"Model {fileName} is not downloaded");
     }
 
-    public static void AddModel(string model, string path, string? mmProject)
+    public static void AddModel(string model, string path, string? mmProject = null)
     {
         Models.Add(new Model()
         {
