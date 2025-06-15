@@ -9,6 +9,7 @@ public static class ServiceConstants
         public const string OpenAiClient = "OpenAiClient";
         public const string GeminiClient = "GeminiClient";
         public const string ImageDownloadClient = "ImageDownloadClient";
+        public const string ModelContextDownloadClient = "ModelContextDownloadClient";
     }
     
     public static class ApiUrls
