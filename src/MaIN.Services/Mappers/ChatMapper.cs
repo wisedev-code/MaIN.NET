@@ -28,7 +28,7 @@ public static class ChatMapper
         {
             Content = message.Content,
             Role = message.Tool ? "System" : message.Role,
-            Images = message.Images,
+            Images = message.Image,
             Time = message.Time,
             Properties = message.Properties,
             Files = message.Files?.Select(x => new FileInfoDto()
@@ -57,7 +57,7 @@ public static class ChatMapper
         {
             Content = message.Content,
             Role = message.Role,
-            Images = message.Images,
+            Image = message.Images,
             Time = message.Time,
             Properties = message.Properties,
             Files = message.Files?.Select(x => new FileInfo()
@@ -74,7 +74,7 @@ public static class ChatMapper
             Content = message.Content,
             Role = message.Role,
             Time = message.Time,
-            Images = message.Images,
+            Images = message.Image,
             Tokens = message.Tokens.Select(x => x.ToDocument()).ToList(),
             Properties = message.Properties,
             Tool = message.Tool,
@@ -125,7 +125,7 @@ public static class ChatMapper
             Time = message.Time,
             Tokens = message.Tokens.Select(x => x.ToDomain()).ToList(),
             Role = message.Role,
-            Images = message.Images,
+            Image = message.Images,
             Properties = message.Properties,
         };
 

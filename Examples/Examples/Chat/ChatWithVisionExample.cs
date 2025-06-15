@@ -1,25 +1,22 @@
-using System.Reflection;
 using MaIN.Core.Hub;
 
 namespace Examples;
 
 public class ChatWithVisionExample : IExample
 {
-    /// <summary>
-    /// Vision via Multimodal models as Llava is not supported yet
-    /// </summary>
     public async Task Start()
     {
-        Console.WriteLine("ChatExample with files is running!");
+        //https://huggingface.co/cjpais/llava-1.6-mistral-7b-gguf - Tried with this model
+        Console.WriteLine("ChatExample with vision model is running!");
 
-        List<string> images = [Path.Combine(AppContext.BaseDirectory, "Files", "gamex.jpg")];
+        var image = await File.ReadAllBytesAsync(
+            Path.Combine(AppContext.BaseDirectory, "Files", "gamex.jpg"));
         
-        var result = await AIHub.Chat()
-            .WithModel("llama3.2:3b")
-            .WithMessage("What is the title of game?")
-            .WithFiles(images)
-            .CompleteAsync();
-        
-        Console.WriteLine(result.Message.Content);
+        await AIHub.Chat()
+            .WithCustomModel("Llava1.6-Mistral",
+                path: "<path_to_model>.gguf",
+                mmProject: "<path_to_mmproj>.gguf")
+            .WithMessage("What can you see on the image?", image)
+            .CompleteAsync(interactive: true);
     }
 }
