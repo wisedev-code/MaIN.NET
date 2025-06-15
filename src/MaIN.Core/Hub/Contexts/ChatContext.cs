@@ -54,9 +54,9 @@ public class ChatContext
         return this;
     }
 
-    public ChatContext WithCustomModel(string model, string path)
+    public ChatContext WithCustomModel(string model, string path, string? mmProject = null)
     {
-        KnownModels.AddModel(model, path);
+        KnownModels.AddModel(model, path, mmProject);
         _chat.Model = model;
         return this;
     }
@@ -74,6 +74,21 @@ public class ChatContext
             Role = "User",
             Content = content,
             Time = DateTime.Now
+        };
+        
+        _chat.Messages.Add(message);
+        return this;
+    }
+    
+    
+    public ChatContext WithMessage(string content, byte[] image)
+    {
+        var message = new Message
+        {
+            Role = "User",
+            Content = content,
+            Time = DateTime.Now,
+            Image = image
         };
         
         _chat.Messages.Add(message);

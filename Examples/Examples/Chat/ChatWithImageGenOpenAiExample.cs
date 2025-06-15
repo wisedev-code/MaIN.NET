@@ -15,6 +15,6 @@ public class ChatWithImageGenOpenAiExample : IExample
             .WithMessage("Generate rock style cow playing guitar")
             .CompleteAsync();
         
-        ImagePreview.ShowImage(result.Message.Images);
+        ImagePreview.ShowImage(result.Message.Image);
     }
 }

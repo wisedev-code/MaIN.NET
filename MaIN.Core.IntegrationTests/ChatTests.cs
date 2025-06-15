@@ -98,7 +98,7 @@ public class ChatTests : IntegrationTestBase
             throw new ArgumentException("Invalid file extension");
 
         Assert.True(result.Done);
-        Assert.NotNull(result.Message.Images);
+        Assert.NotNull(result.Message.Image);
     }
     
     [Fact]
