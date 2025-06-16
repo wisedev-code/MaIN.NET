@@ -1,3 +1,5 @@
+using LLama.Sampling;
+
 namespace MaIN.Domain.Entities;
 
 public class InferenceParams
@@ -17,4 +19,5 @@ public class InferenceParams
     
     public int TopK { get; init; } = 40;
     public float TopP { get; init; } = 0.9f;
+    public string? Grammar { get; init; } 
 }

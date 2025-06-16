@@ -159,6 +159,7 @@ public static class ChatMapper
             MaxTokens = inferenceParams.MaxTokens,
             TopK = inferenceParams.TopK,
             TopP = inferenceParams.TopP,
+            Grammar = inferenceParams.Grammar
         };
     
     private static MemoryParams ToDomain(this MemoryParamsDocument memoryParams)
@@ -171,6 +172,7 @@ public static class ChatMapper
             GpuLayerCount = memoryParams.GpuLayerCount,
             MaxMatchesCount = memoryParams.MaxMatchesCount,
             FrequencyPenalty = memoryParams.FrequencyPenalty,
+            Grammar = memoryParams.Grammar
         };
 
     private static InferenceParamsDocument ToDocument(this InferenceParams inferenceParams)
@@ -189,6 +191,7 @@ public static class ChatMapper
             MaxTokens = inferenceParams.MaxTokens,
             TopK = inferenceParams.TopK,
             TopP = inferenceParams.TopP,
+            Grammar = inferenceParams.Grammar
         };
     
     private static MemoryParamsDocument ToDocument(this MemoryParams memoryParams)
@@ -201,5 +204,6 @@ public static class ChatMapper
             GpuLayerCount = memoryParams.GpuLayerCount,
             MaxMatchesCount = memoryParams.MaxMatchesCount,
             FrequencyPenalty = memoryParams.FrequencyPenalty,
+            Grammar = memoryParams.Grammar
         };
 }
