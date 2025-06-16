@@ -16,4 +16,6 @@ public class MemoryParams
     public int AnswerTokens { get; set; } = 500;
 
     public bool MultiModalMode { get; set; } = false;
+    
+    public string? Grammar { get; init; }
 }

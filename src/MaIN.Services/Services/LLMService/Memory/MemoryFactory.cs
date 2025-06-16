@@ -37,7 +37,7 @@ public class MemoryFactory() : IMemoryFactory
         };
         
         var km = new KernelMemoryBuilder()
-            .WithLLamaSharpTextGeneration(model, modelParams, out var context)
+            .WithLLamaSharpTextGeneration(model, modelParams, memoryParams, out var context)
             .WithLLamaSharpTextEmbeddingGeneration(generator)
             .WithSearchClientConfig(searchOptions)
             .WithCustomImageOcr(new OcrWrapper())

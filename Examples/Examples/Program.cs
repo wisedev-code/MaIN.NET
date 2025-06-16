@@ -42,6 +42,7 @@ static void RegisterExamples(IServiceCollection services)
     services.AddTransient<ExampleRegistry>();
     services.AddTransient<McpExample>();
     services.AddTransient<ChatExample>();
+    services.AddTransient<ChatCustomGrammarExample>();
     services.AddTransient<ChatWithFilesExample>();
     services.AddTransient<ChatWithFilesFromStreamExample>();
     services.AddTransient<ChatWithVisionExample>();
@@ -128,6 +129,7 @@ public class ExampleRegistry(IServiceProvider serviceProvider)
         {
             ("\u25a0 Basic Chat", serviceProvider.GetRequiredService<ChatExample>()),
             ("\u25a0 Chat with Files", serviceProvider.GetRequiredService<ChatWithFilesExample>()),
+            ("\u25a0 Chat with custom grammar", serviceProvider.GetRequiredService<ChatCustomGrammarExample>()),
             ("\u25a0 Chat with Files from stream", serviceProvider.GetRequiredService<ChatWithFilesFromStreamExample>()),
             ("\u25a0 Chat with Vision", serviceProvider.GetRequiredService<ChatWithVisionExample>()),
             ("\u25a0 Chat with Image Generation", serviceProvider.GetRequiredService<ChatWithImageGenExample>()),
