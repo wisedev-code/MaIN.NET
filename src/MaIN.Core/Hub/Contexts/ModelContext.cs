@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Models;
@@ -13,7 +14,8 @@ public class ModelContext
 
     private const int DefaultBufferSize = 8192;
     private const int FileStreamBufferSize = 65536;
-    private const int ProgressUpdateIntervalSeconds = 1;
+    private const int ProgressUpdateIntervalMilliseconds = 1000;
+    private const string MissingModelName = "Model name cannot be null or empty";
     private static readonly TimeSpan DefaultHttpTimeout = TimeSpan.FromMinutes(30);
 
     internal ModelContext(MaINSettings settings, IHttpClientFactory httpClientFactory)
@@ -32,7 +34,7 @@ public class ModelContext
     {
         if (string.IsNullOrWhiteSpace(modelName))
         {
-            throw new ArgumentException("Model name cannot be null or empty", nameof(modelName));
+            throw new ArgumentException(nameof(modelName));
         }
 
         var model = KnownModels.GetModel(modelName);
@@ -44,7 +46,7 @@ public class ModelContext
     {
         if (string.IsNullOrWhiteSpace(modelName))
         {
-            throw new ArgumentException("Model name cannot be null or empty", nameof(modelName));
+            throw new ArgumentException(MissingModelName, nameof(modelName));
         }
 
         var model = KnownModels.GetModel(modelName);
@@ -56,7 +58,7 @@ public class ModelContext
     {
         if (string.IsNullOrWhiteSpace(model))
         {
-            throw new ArgumentException("Model name cannot be null or empty", nameof(model));
+            throw new ArgumentException(MissingModelName, nameof(model));
         }
 
         if (string.IsNullOrWhiteSpace(url))
@@ -76,7 +78,7 @@ public class ModelContext
     {
         if (string.IsNullOrWhiteSpace(modelName))
         {
-            throw new ArgumentException("Model name cannot be null or empty", nameof(modelName));
+            throw new ArgumentException(MissingModelName, nameof(modelName));
         }
 
         var model = KnownModels.GetModel(modelName);
@@ -87,9 +89,14 @@ public class ModelContext
     public ModelContext Download(string model, string url)
     {
         if (string.IsNullOrWhiteSpace(model))
-            throw new ArgumentException("Model name cannot be null or empty", nameof(model));
+        {
+            throw new ArgumentException(MissingModelName, nameof(model));
+        }
+
         if (string.IsNullOrWhiteSpace(url))
+        {
             throw new ArgumentException("URL cannot be null or empty", nameof(url));
+        }
 
         var fileName = $"{model}.gguf";
         DownloadModelSync(url, fileName);
@@ -101,10 +108,7 @@ public class ModelContext
 
     public ModelContext LoadToCache(Model model)
     {
-        if (model == null)
-        {
-            throw new ArgumentNullException(nameof(model));
-        }
+        ArgumentNullException.ThrowIfNull(model);
 
         var modelsPath = ResolvePath(_settings.ModelsPath);
         ModelLoader.GetOrLoadModel(modelsPath, model.FileName);
@@ -113,8 +117,7 @@ public class ModelContext
 
     public async Task<ModelContext> LoadToCacheAsync(Model model)
     {
-        if (model == null)
-            throw new ArgumentNullException(nameof(model));
+        ArgumentNullException.ThrowIfNull(model);
 
         var modelsPath = ResolvePath(_settings.ModelsPath);
         await ModelLoader.GetOrLoadModelAsync(modelsPath, model.FileName);
@@ -138,9 +141,11 @@ public class ModelContext
         catch (Exception ex)
         {
             Console.WriteLine($"Download failed: {ex.Message}");
-            
-            if (!File.Exists(filePath)) throw;
-            File.Delete(filePath);
+
+            if (File.Exists(filePath))
+            {
+                File.Delete(filePath);
+            }
             throw;
         }
     }
@@ -150,8 +155,8 @@ public class ModelContext
         var totalBytes = response.Content.Headers.ContentLength;
         var totalBytesRead = 0L;
         var buffer = new byte[DefaultBufferSize];
-        var lastProgressUpdate = DateTime.Now;
-        var startTime = DateTime.Now;
+        var progressStopwatch = Stopwatch.StartNew();
+        var totalStopwatch = Stopwatch.StartNew();
 
         if (totalBytes.HasValue)
         {
@@ -169,14 +174,14 @@ public class ModelContext
             await fileStream.WriteAsync(buffer, 0, bytesRead, cancellationToken);
             totalBytesRead += bytesRead;
 
-            if (ShouldUpdateProgress(lastProgressUpdate))
+            if (ShouldUpdateProgress(progressStopwatch))
             {
-                ShowProgress(totalBytesRead, totalBytes, startTime);
-                lastProgressUpdate = DateTime.Now;
+                ShowProgress(totalBytesRead, totalBytes, totalStopwatch);
+                progressStopwatch.Restart();
             }
         }
 
-        ShowFinalProgress(totalBytesRead, totalBytes, startTime, fileName);
+        ShowFinalProgress(totalBytesRead, totalStopwatch, fileName);
     }
 
     private void DownloadModelSync(string url, string fileName)
@@ -186,27 +191,28 @@ public class ModelContext
         Console.WriteLine($"Starting download of {fileName}...");
 
         using var webClient = CreateConfiguredWebClient();
-        var startTime = DateTime.Now;
-        var lastProgressUpdate = DateTime.Now;
+        var totalStopwatch = Stopwatch.StartNew();
+        var progressStopwatch = Stopwatch.StartNew();
         
         webClient.DownloadProgressChanged += (sender, e) =>
         {
-            if (ShouldUpdateProgress(lastProgressUpdate))
+            if (ShouldUpdateProgress(progressStopwatch))
             {
-                ShowProgress(e.BytesReceived, e.TotalBytesToReceive > 0 ? e.TotalBytesToReceive : null, startTime);
-                lastProgressUpdate = DateTime.Now;
+                ShowProgress(e.BytesReceived, e.TotalBytesToReceive > 0 ? e.TotalBytesToReceive : null, totalStopwatch);
+                progressStopwatch.Restart();
             }
         };
         
         webClient.DownloadFileCompleted += (sender, e) =>
         {
+            totalStopwatch.Stop();
             if (e.Error != null)
             {
                 Console.WriteLine($"\nDownload failed: {e.Error.Message}");
             }
             else
             {
-                var totalTime = DateTime.Now - startTime;
+                var totalTime = totalStopwatch.Elapsed;
                 Console.WriteLine($"\nDownload completed: {fileName}. Time: {totalTime:hh\\:mm\\:ss}");
             }
         };
@@ -219,8 +225,11 @@ public class ModelContext
         {
             Console.WriteLine($"Download failed: {ex.Message}");
 
-            if (!File.Exists(filePath)) throw;
-            File.Delete(filePath); 
+            if (File.Exists(filePath))
+            {
+                File.Delete(filePath);
+            }
+
             throw;
         }
     }
@@ -241,13 +250,13 @@ public class ModelContext
 
     private string GetModelFilePath(string fileName) => Path.Combine(ResolvePath(_settings.ModelsPath), fileName);
 
-    private static bool ShouldUpdateProgress(DateTime lastUpdate) => 
-        DateTime.Now - lastUpdate > TimeSpan.FromSeconds(ProgressUpdateIntervalSeconds);
+    private static bool ShouldUpdateProgress(Stopwatch progressStopwatch) => 
+        progressStopwatch.ElapsedMilliseconds >= ProgressUpdateIntervalMilliseconds;
 
-    private static void ShowProgress(long totalBytesRead, long? totalBytes, DateTime startTime)
+    private static void ShowProgress(long totalBytesRead, long? totalBytes, Stopwatch totalStopwatch)
     {
-        var elapsed = DateTime.Now - startTime;
-        var speed = elapsed.TotalSeconds > 0 ? totalBytesRead / elapsed.TotalSeconds : 0;
+        var elapsedSeconds = totalStopwatch.Elapsed.TotalSeconds;
+        var speed = elapsedSeconds > 0 ? totalBytesRead / elapsedSeconds : 0;
 
         if (totalBytes.HasValue)
         {
@@ -263,9 +272,10 @@ public class ModelContext
         }
     }
 
-    private static void ShowFinalProgress(long totalBytesRead, long? totalBytes, DateTime startTime, string fileName)
+    private static void ShowFinalProgress(long totalBytesRead, Stopwatch totalStopwatch, string fileName)
     {
-        var totalTime = DateTime.Now - startTime;
+        totalStopwatch.Stop();
+        var totalTime = totalStopwatch.Elapsed;
         var avgSpeed = totalTime.TotalSeconds > 0 ? totalBytesRead / totalTime.TotalSeconds : 0;
 
         Console.WriteLine($"\nDownload completed: {fileName}. " +
@@ -279,10 +289,10 @@ public class ModelContext
         if (bytes == 0) return "0 Bytes";
 
         const int scale = 1024;
-        string[] orders = { "GB", "MB", "KB", "Bytes" };
-        long max = (long)Math.Pow(scale, orders.Length - 1);
+        string[] orders = ["GB", "MB", "KB", "Bytes"];
+        var max = (long)Math.Pow(scale, orders.Length - 1);
 
-        foreach (string order in orders)
+        foreach (var order in orders)
         {
             if (bytes >= max)
                 return $"{decimal.Divide(bytes, max):##.##} {order}";
