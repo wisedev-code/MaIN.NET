@@ -6,7 +6,7 @@ public static class Utils
 {
     public static string? Model = "gemma2:2b";
     public static bool Visual => VisualModels.Contains(Model);
-    private static readonly string[] VisualModels = ["FLUX.1_Shnell", "dall-e-3"];
+    private static readonly string[] VisualModels = ["FLUX.1_Shnell", "FLUX.1", "dall-e-3", "dall-e", "imagen", "imagen-3"]; //user might type different names
     public static bool OpenAi { get; set; }
     public static bool Gemini { get; set; }
     public static string? Path { get; set; }

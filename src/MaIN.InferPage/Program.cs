@@ -81,7 +81,7 @@ if (Utils.OpenAi)
         settings.BackendType = BackendType.OpenAi;
     });
 }
-if (Utils.Gemini)
+else if (Utils.Gemini)
 {
     builder.Services.AddMaIN(builder.Configuration, settings =>
     {

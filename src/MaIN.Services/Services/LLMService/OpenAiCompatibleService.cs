@@ -25,10 +25,16 @@ public abstract class OpenAiCompatibleService(
     ILogger<OpenAiCompatibleService>? logger = null)
     : ILLMService
 {
-    private readonly INotificationService _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
-    private readonly IHttpClientFactory _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
+    private readonly INotificationService _notificationService =
+        notificationService ?? throw new ArgumentNullException(nameof(notificationService));
+
+    private readonly IHttpClientFactory _httpClientFactory =
+        httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
+
     private static readonly ConcurrentDictionary<string, List<ChatMessage>> SessionCache = new();
-    private static readonly JsonSerializerOptions DefaultJsonSerializerOptions  = new() { PropertyNameCaseInsensitive = true };
+
+    private static readonly JsonSerializerOptions DefaultJsonSerializerOptions =
+        new() { PropertyNameCaseInsensitive = true };
 
     protected abstract string GetApiKey();
     protected abstract void ValidateApiKey();
@@ -190,7 +196,14 @@ public abstract class OpenAiCompatibleService(
         var requestBody = new
         {
             model = chat.Model,
-            messages = conversation.Select(m => new { role = m.Role, content = m.Content }).ToArray(),
+            messages = conversation.Select(m => new
+            {
+                role = m.Role,
+                content = chat.InterferenceParams.Grammar != null
+                //I know that this is a bit ugly, but hey, it works
+                    ? $"{m.Content} | Respond only using the following grammar format: \n{chat.InterferenceParams.Grammar}\n. Do not add explanations, code tags, or any extra content."
+                    : m.Content
+            }).ToArray(),
             stream = true
         };
 
@@ -277,7 +290,8 @@ public abstract class OpenAiCompatibleService(
         response.EnsureSuccessStatusCode();
 
         var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
-        var chatResponse = JsonSerializer.Deserialize<ChatCompletionResponse>(responseJson, DefaultJsonSerializerOptions);
+        var chatResponse =
+            JsonSerializer.Deserialize<ChatCompletionResponse>(responseJson, DefaultJsonSerializerOptions);
         var responseContent = chatResponse?.Choices?.FirstOrDefault()?.Message?.Content;
 
         if (responseContent != null)
@@ -323,7 +337,6 @@ public abstract class OpenAiCompatibleService(
             await callback.Invoke(token);
         }
     }
-
 }
 
 public class ChatRequestOptions
