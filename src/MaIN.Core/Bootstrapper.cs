@@ -45,9 +45,11 @@ public static class Bootstrapper
                     sp.GetRequiredService<IAgentFlowService>(),
                     sp.GetRequiredService<IMcpService>()
                 );
-            
+
+                var settings = sp.GetRequiredService<MaINSettings>();
+                var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
                 // Initialize AIHub with the services
-                AIHub.Initialize(aiServices);
+                AIHub.Initialize(aiServices, settings, httpClientFactory );
                 return aiServices;
             }
         );

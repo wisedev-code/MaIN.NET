@@ -107,6 +107,10 @@ public static class Bootstrapper
         services.AddHttpClient(ServiceConstants.HttpClients.OpenAiClient);
         services.AddHttpClient(ServiceConstants.HttpClients.GeminiClient);
         services.AddHttpClient(ServiceConstants.HttpClients.ImageDownloadClient);
+        services.AddHttpClient(ServiceConstants.HttpClients.ModelContextDownloadClient, client =>
+        {
+            client.Timeout = TimeSpan.FromHours(10);
+        });
         return services;
     }
 
