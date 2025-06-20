@@ -1,3 +1,5 @@
+using LLama.Sampling;
+
 namespace MaIN.Infrastructure.Models;
 
 public class InferenceParamsDocument
@@ -15,4 +17,5 @@ public class InferenceParamsDocument
     public int MaxTokens { get; set; }
     public int TopK { get; init; }
     public float TopP { get; init; }
+    public string? Grammar { get; set; }
 }

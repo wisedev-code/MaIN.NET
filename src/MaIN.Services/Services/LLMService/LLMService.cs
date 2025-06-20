@@ -351,14 +351,18 @@ public class LLMService : ILLMService
     {
         if (interferenceParams.Temperature == 0)
         {
-            return new GreedySamplingPipeline();
+            return new GreedySamplingPipeline()
+            {
+                Grammar = interferenceParams.Grammar != null ? new Grammar(interferenceParams.Grammar, "root") : null
+            };
         }
 
         return new DefaultSamplingPipeline()
         {
             Temperature = interferenceParams.Temperature,
             TopP = interferenceParams.TopP,
-            TopK = interferenceParams.TopK
+            TopK = interferenceParams.TopK,
+            Grammar = interferenceParams.Grammar != null ? new Grammar(interferenceParams.Grammar, "root") : null
         };
     }
 

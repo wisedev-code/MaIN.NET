@@ -9,4 +9,5 @@ public class MemoryParamsDocument
     public float Temperature { get; set; } 
     public int AnswerTokens { get; set; }
     public bool MultiModalMode { get; set; }
+    public string? Grammar { get; set; }
 }
