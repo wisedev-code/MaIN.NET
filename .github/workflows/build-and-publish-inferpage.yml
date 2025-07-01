@@ -18,13 +18,13 @@ jobs:
         dotnet-version: '8.0.x'
 
     - name: Restore dependencies
-      run: dotnet restore MaIN.InferPage
+      run: dotnet restore src/MaIN.InferPage
 
     - name: Build project
-      run: dotnet build MaIN.InferPage --configuration Release --no-restore
+      run: dotnet build src/MaIN.InferPage --configuration Release --no-restore
 
     - name: Publish project
-      run: dotnet publish MaIN.InferPage --configuration Release --output ./publish --no-build
+      run: dotnet publish src/MaIN.InferPage --configuration Release --output ./publish --no-build
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
