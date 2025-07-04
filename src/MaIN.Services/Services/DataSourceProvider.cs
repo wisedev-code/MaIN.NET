@@ -13,12 +13,27 @@ public class DataSourceProvider : IDataSourceProvider
 {
     private static readonly JsonSerializerOptions JsonSerializerOptions = new() { PropertyNameCaseInsensitive = true };
 
-    public async Task<string> FetchFileData(object? sourceDetails)
+    public async Task<string> FetchFileData(Dictionary<string, string> source)
     {
-        var fileDetails = JsonSerializer.Deserialize<AgentFileSourceDetails>(
-            sourceDetails?.ToString() ?? "{}")!;
-
-        return await File.ReadAllTextAsync(fileDetails.Path);
+        var allContent = new StringBuilder();
+    
+        foreach (var (fileName, filePath) in source)
+        {
+            try
+            {
+                var content = await File.ReadAllTextAsync(filePath);
+                allContent.AppendLine($"=== {fileName} ===");
+                allContent.AppendLine(content);
+                allContent.AppendLine();
+            }
+            catch (Exception)
+            {
+                allContent.AppendLine($"=== Error reading {fileName} ===");
+                allContent.AppendLine();
+            }
+        }
+    
+        return allContent.ToString();
     }
 
     public string FetchTextData(object? sourceDetails)
