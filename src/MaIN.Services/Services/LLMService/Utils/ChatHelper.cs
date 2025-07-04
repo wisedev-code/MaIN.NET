@@ -74,7 +74,7 @@ public static class ChatHelper
         return new ChatMemoryOptions
         {
             TextData = textData,
-            FileData = fileData,
+            FilesData = fileData,
             StreamData = streamData,
             PreProcess = preProcess
         };

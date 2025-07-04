@@ -1,8 +1,6 @@
 using MaIN.Core.Hub;
 using MaIN.Core.Hub.Utils;
-using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents.AgentSource;
-using MaIN.Domain.Models;
 
 namespace Examples.Agents;
 
@@ -15,8 +13,10 @@ public class AgentWithBecomeExample : IExample
             .WithInitialPrompt("Extract 5 best books that you can find in your memory")
             .WithSource(new AgentFileSourceDetails()
             {
-                Path = "./Files/Books.json",
-                Name = "Books.json"
+                Files = new Dictionary<string, string>
+                {
+                    { "Books.json", "./Files/Books.json" }
+                },
             }, AgentSourceType.File)
             .WithBehaviour("SalesGod",
                 """

@@ -4,7 +4,6 @@ using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models.Commands;
 using System.Text.Json;
 using MaIN.Domain.Configuration;
-using MaIN.Services.Mappers;
 using MaIN.Services.Services.LLMService;
 using MaIN.Services.Services.LLMService.Factory;
 using MaIN.Services.Utils;
@@ -91,7 +90,7 @@ public class FetchCommandHandler(
                     memoryChat!,
                     new ChatMemoryOptions
                     {
-                        FileData = new Dictionary<string, string> { { fileData!.Name, fileData.Path } },
+                        FilesData = fileData!.Files,
                         PreProcess = fileData.PreProcess
                     }
                 );
@@ -99,7 +98,7 @@ public class FetchCommandHandler(
             return result!.Message;
         }
 
-        var data = await dataSourceService.FetchFileData(command.Context.Source.Details);
+        var data = await dataSourceService.FetchFileData(fileData!.Files);
         return CreateMessage(data, properties);
     }
 
