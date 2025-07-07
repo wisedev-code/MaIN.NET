@@ -11,12 +11,12 @@ public class AgentWithBecomeExample : IExample
         var becomeAgent = AIHub.Agent()
             .WithModel("llama3.1:8b")
             .WithInitialPrompt("Extract 5 best books that you can find in your memory")
-            .WithSource(new AgentFileSourceDetails()
+            .WithSource(new AgentFileSourceDetails
             {
-                Files = new Dictionary<string, string>
-                {
-                    { "Books.json", "./Files/Books.json" }
-                },
+                Files =
+                [
+                   "./Files/Books.json"
+                ]
             }, AgentSourceType.File)
             .WithBehaviour("SalesGod",
                 """
