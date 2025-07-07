@@ -1,3 +1,5 @@
+using MaIN.Domain.Configuration;
+using MaIN.Domain.Entities;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
 
@@ -36,7 +38,8 @@ public class BecomeStepHandler : IStepHandler
         {
             Role = "System",
             Content = $"Now - {messageFilter}",
-            Properties = new() {{"agent_internal", "true"}}
+            Properties = new() {{"agent_internal", "true"}},
+            Type = context.Chat.Backend != BackendType.Self ? MessageType.CloudLLM : MessageType.LocalLLM
         });
         
         if (context.StepName == "BECOME*")

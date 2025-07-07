@@ -61,7 +61,7 @@ public class LLMService : ILLMService
 
         var model = KnownModels.GetModel(chat.Model);
         var tokens = await ProcessChatRequest(chat, model, lastMsg, requestOptions, cancellationToken);
-
+        lastMsg.MarkProcessed();
         return await CreateChatResult(chat, tokens, requestOptions);
     }
 
@@ -132,7 +132,8 @@ public class LLMService : ILLMService
             Message = new Message
             {
                 Content = memoryService.CleanResponseText(result.Result),
-                Role = nameof(AuthorRole.Assistant)
+                Role = nameof(AuthorRole.Assistant),
+                Type = MessageType.LocalLLM,
             }
         };
     }
@@ -261,6 +262,8 @@ public class LLMService : ILLMService
             {
                 template.Add(systemMsg.Role, systemMsg.Content);
             }
+            
+            //todo
         }
 
         template.Add(ServiceConstants.Roles.User, finalPrompt);
@@ -343,6 +346,7 @@ public class LLMService : ILLMService
                 requestOptions.TokenCallback?.Invoke(tokenValue);
             }
         }
+        
 
         return (tokens, isComplete, hasFailed);
     }
@@ -401,8 +405,9 @@ public class LLMService : ILLMService
             {
                 Content = responseText,
                 Tokens = tokens,
-                Role = AuthorRole.Assistant.ToString()
-            }
+                Role = AuthorRole.Assistant.ToString(),
+                Type = MessageType.LocalLLM,
+            }.MarkProcessed()
         };
     }
 

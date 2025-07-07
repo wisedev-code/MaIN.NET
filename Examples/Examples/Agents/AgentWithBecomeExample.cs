@@ -9,7 +9,7 @@ public class AgentWithBecomeExample : IExample
     public async Task Start()
     {
         var becomeAgent = AIHub.Agent()
-            .WithModel("llama3.1:8b")
+            .WithModel("gemma3:4b")
             .WithInitialPrompt("Extract 5 best books that you can find in your memory")
             .WithSource(new AgentFileSourceDetails
             {

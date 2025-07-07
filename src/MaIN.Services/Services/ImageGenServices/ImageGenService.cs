@@ -49,7 +49,8 @@ public class ImageGenService(
             {
                 Content = ServiceConstants.Messages.GeneratedImageContent,
                 Role = ServiceConstants.Roles.Assistant,
-                Image = imageBytes
+                Image = imageBytes,
+                Type = MessageType.Image
             },
             Model = LocalImageModels.FLUX,
             CreatedAt = DateTime.UtcNow
