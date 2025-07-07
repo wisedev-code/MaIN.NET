@@ -8,6 +8,7 @@
 @using Markdig
 @using Microsoft.FluentUI.AspNetCore.Components.Icons.Regular
 @using Message = MaIN.Domain.Entities.Message
+@using MessageType = MaIN.Domain.Entities.MessageType
 <link rel="stylesheet" href="home.css">
 
 <PageTitle>MaIN Infer</PageTitle>
@@ -23,8 +24,9 @@
                 {
                     @if (Chat.Visual)
                     {
-                        <FluentBadge Class="@(conversation.Message.Role == "User" ? "message-role-user" : "message-role-bot")"
-                                     Appearance="Appearance.Accent">
+                        <FluentBadge
+                            Class="@(conversation.Message.Role == "User" ? "message-role-user" : "message-role-bot")"
+                            Appearance="Appearance.Accent">
                             @(conversation.Message.Role == "User" ? "User" : Utils.Model)
                         </FluentBadge>
                         @if (conversation.Message.Role == "User")
@@ -40,9 +42,10 @@
                                 <div>
                                     <a href="data:image/png;base64,@Convert.ToBase64String(conversation.Message.Image!)"
                                        style="cursor: -webkit-zoom-in; cursor: zoom-in;" target="_blank">
-                                        <img src="data:image/png;base64,@Convert.ToBase64String(conversation.Message.Image!)"
-                                             style="object-fit: fill; width:100%; height:100%;"
-                                             alt="imageResponse"/>
+                                        <img
+                                            src="data:image/png;base64,@Convert.ToBase64String(conversation.Message.Image!)"
+                                            style="object-fit: fill; width:100%; height:100%;"
+                                            alt="imageResponse"/>
                                     </a>
                                 </div>
                             </FluentCard>
@@ -66,7 +69,8 @@
                                 </FluentBadge>
                                 @if (_reasoning && conversation.Message.Role == "Assistant")
                                 {
-                                    <FluentSwitch Label="Show reasoning" @bind-Value="@conversation.ShowReason"></FluentSwitch>
+                                    <FluentSwitch Label="Show reasoning"
+                                                  @bind-Value="@conversation.ShowReason"></FluentSwitch>
                                 }
                             </FluentStack>
                         }
@@ -82,7 +86,8 @@
                                 <div>
                                     @if (conversation.ShowReason)
                                     {
-                                        <div class="thinker" style="border-radius: 10px; padding: 10px; border-width: 2px; background-color: var(--neutral-fill-hover)">
+                                        <div class="thinker"
+                                             style="border-radius: 10px; padding: 10px; border-width: 2px; background-color: var(--neutral-fill-hover)">
                                             @((MarkupString)Markdown.ToHtml(string.Concat(conversation.Message.Tokens.Where(x => x.Type == TokenType.Reason).Select(x => x.Text)),
                                                 new MarkdownPipelineBuilder()
                                                     .UseAdvancedExtensions()
@@ -96,8 +101,8 @@
                                             .Build()))
                                 </div>
                             }
-                            
-                              
+
+
                         </FluentCard>
                     }
                 }
@@ -117,7 +122,8 @@
                         <FluentProgressRing Width="20px" Visible="_isLoading"></FluentProgressRing>
                         @if (_isThinking)
                         {
-                            <span class="message-role-bot" style="font-style: italic; font-size: small">Thinking...</span>
+                            <span class="message-role-bot"
+                                  style="font-style: italic; font-size: small">Thinking...</span>
                         }
                     </FluentStack>
                     @if (_incomingMessage != null || _incomingReasoning != null)
@@ -225,7 +231,7 @@
         if (!string.IsNullOrWhiteSpace(msg))
         {
             StateHasChanged();
-            var newMsg = new Message { Role = "User", Content = msg };
+            var newMsg = new Message { Role = "User", Content = msg, Type = Utils.OpenAi || Utils.Gemini ? MessageType.CloudLLM : MessageType.LocalLLM };
             Chat.Messages.Add(newMsg);
             Messages.Add(new MessageExt()
             {
@@ -246,7 +252,7 @@
                         _isThinking = true;
                         _incomingReasoning += message.Text;
                     }
-                    else if(message?.Type == TokenType.Message)
+                    else if (message?.Type == TokenType.Message)
                     {
                         _isThinking = false;
                         _incomingMessage += message.Text;
@@ -277,4 +283,5 @@
     {
         _prompt = obj.Value?.ToString()!;
     }
+
 }

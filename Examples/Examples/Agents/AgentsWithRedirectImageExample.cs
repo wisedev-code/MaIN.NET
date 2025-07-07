@@ -43,6 +43,7 @@ public class AgentWithRedirectImageExample : IExample
             {
                 Content = "Prepare short image description about Nicolaus Copernicus. Dont mention name, try to focus on topic and context",
                 Role = "User",
+                Type = MessageType.LocalLLM,
                 Files = [new FileInfo()
                 {
                     Name = "Nicolaus_Copernicus",

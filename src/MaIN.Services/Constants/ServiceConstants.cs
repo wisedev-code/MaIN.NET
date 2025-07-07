@@ -26,6 +26,7 @@ public static class ServiceConstants
     public static class Messages
     {
         public const string GeneratedImageContent = "Generated Image:";
+        public const string UnprocessedMessage = "Unprocessed";
     }
 
     public static class Properties

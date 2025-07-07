@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Text.Json;
+using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
 using MaIN.Domain.Entities.Agents.AgentSource;
@@ -160,6 +161,7 @@ public class FlowContext
         {
             Content = message,
             Role = "User",
+            Type = chat.Backend != BackendType.Self ? MessageType.LocalLLM : MessageType.CloudLLM,
             Time = DateTime.Now
         });
         var result = await _agentService.Process(chat, _firstAgent.Id, translate);

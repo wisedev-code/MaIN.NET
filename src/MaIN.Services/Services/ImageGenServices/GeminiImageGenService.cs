@@ -64,7 +64,8 @@ internal class GeminiImageGenService(IHttpClientFactory httpClientFactory, MaINS
             {
                 Content = ServiceConstants.Messages.GeneratedImageContent,
                 Role = ServiceConstants.Roles.Assistant,
-                Image = imageBytes
+                Image = imageBytes,
+                Type = MessageType.Image
             },
             Model = Models.IMAGEN_GENERATE,
             CreatedAt = DateTime.UtcNow

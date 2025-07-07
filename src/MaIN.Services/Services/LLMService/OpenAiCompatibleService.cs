@@ -99,6 +99,7 @@ public abstract class OpenAiCompatibleService(
                 ServiceConstants.Notifications.ReceiveMessageUpdate);
         }
 
+        lastMessage.MarkProcessed();
         UpdateSessionCache(chat.Id, resultBuilder.ToString(), options.CreateSession);
         return CreateChatResult(chat, resultBuilder.ToString(), tokens);
     }
@@ -325,8 +326,9 @@ public abstract class OpenAiCompatibleService(
             {
                 Content = content,
                 Tokens = tokens,
-                Role = AuthorRole.Assistant.ToString()
-            }
+                Role = AuthorRole.Assistant.ToString(),
+                Type = MessageType.LocalLLM
+            }.MarkProcessed()
         };
     }
 

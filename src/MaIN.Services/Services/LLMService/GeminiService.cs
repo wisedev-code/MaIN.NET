@@ -22,6 +22,8 @@ public sealed class GeminiService(
 {
     private readonly MaINSettings _settings = settings ?? throw new ArgumentNullException(nameof(settings));
     private readonly IHttpClientFactory _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
+    private readonly IMemoryService _memoryService = memoryService;
+    private readonly IMemoryFactory _memoryFactory = memoryFactory;
 
     protected override string HttpClientName => ServiceConstants.HttpClients.GeminiClient;
     protected override string ChatCompletionsUrl => ServiceConstants.ApiUrls.GeminiOpenAiChatCompletions;
@@ -39,12 +41,11 @@ public sealed class GeminiService(
         var responseJson = await response.Content.ReadAsStringAsync();
         var modelsResponse = JsonSerializer.Deserialize<GeminiModelsResponse>(responseJson);
 
-        return (modelsResponse?.Models?
+        return modelsResponse?.Models?
                     .Where(m => m.Name!.StartsWith("models/gemini", StringComparison.InvariantCultureIgnoreCase))
-                    .Where(id => id != null)
-                    .Select(m => m.Name[7..]) // remove "models/" part => get baseModelId
+                    .Select(m => m.Name![7..]) // remove "models/" part => get baseModelId
                     .ToArray()
-                ?? [])!;
+                ?? [];
     }
 
     protected override string GetApiKey()
@@ -69,13 +70,13 @@ public sealed class GeminiService(
         if (!chat.Messages.Any())
             return null;
 
-        var kernel = memoryFactory.CreateMemoryWithGemini(GetApiKey(), chat.MemoryParams);
+        var kernel = _memoryFactory.CreateMemoryWithGemini(GetApiKey(), chat.MemoryParams);
 
-        await memoryService.ImportDataToMemory(kernel, memoryOptions, cancellationToken);
+        await _memoryService.ImportDataToMemory(kernel, memoryOptions, cancellationToken);
 
         var userQuery = chat.Messages.Last().Content;
         var retrievedContext = await kernel.AskAsync(userQuery, cancellationToken: cancellationToken);
-
+        chat.Messages.Last().MarkProcessed();
         await kernel.DeleteIndexAsync(cancellationToken: cancellationToken);
         return CreateChatResult(chat, retrievedContext.Result, []);
     }
