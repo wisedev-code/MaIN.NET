@@ -81,7 +81,8 @@ public class FetchCommandHandler(
     private async Task<Message> HandleFileSource(FetchCommand command, Dictionary<string, string> properties)
     {
         var fileData = JsonSerializer.Deserialize<AgentFileSourceDetails>(command.Context.Source!.Details?.ToString()!);
-
+        var filesDictionary = fileData!.Files.ToDictionary( path => Path.GetFileName(path), path => path);
+        
         if (command.Chat.Messages.Count > 0)
         {
             var memoryChat = command.MemoryChat;
@@ -90,7 +91,7 @@ public class FetchCommandHandler(
                     memoryChat!,
                     new ChatMemoryOptions
                     {
-                        FilesData = fileData!.Files,
+                        FilesData = filesDictionary,
                         PreProcess = fileData.PreProcess
                     }
                 );
@@ -98,7 +99,7 @@ public class FetchCommandHandler(
             return result!.Message;
         }
 
-        var data = await dataSourceService.FetchFileData(fileData!.Files);
+        var data = await dataSourceService.FetchFileData(filesDictionary);
         return CreateMessage(data, properties);
     }
 
