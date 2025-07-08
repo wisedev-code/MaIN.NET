@@ -4,7 +4,7 @@ namespace MaIN.Domain.Entities;
 
 public class Message
 {
-    private const string UnprocessedMessageProperty = "UnprocessedMessage";
+    public const string UnprocessedMessageProperty = "UnprocessedMessage";
     public Message()
     {
         if (Type == MessageType.LocalLLM)
