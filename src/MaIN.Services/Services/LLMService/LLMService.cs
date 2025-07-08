@@ -257,13 +257,12 @@ public class LLMService : ILLMService
 
         if (isNewConversation)
         {
-            var systemMsg = chat.Messages.FirstOrDefault(x => x.Role == nameof(AuthorRole.System));
-            if (systemMsg != null)
+            foreach (var messageToProcess in chat.Messages
+                         .Where(x => x.Properties.ContainsKey(Message.UnprocessedMessageProperty))
+                         .SkipLast(1))
             {
-                template.Add(systemMsg.Role, systemMsg.Content);
+                template.Add(messageToProcess.Role, messageToProcess.Content);
             }
-            
-            //todo
         }
 
         template.Add(ServiceConstants.Roles.User, finalPrompt);
