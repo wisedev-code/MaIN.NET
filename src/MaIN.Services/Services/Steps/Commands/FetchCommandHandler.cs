@@ -20,7 +20,8 @@ public class FetchCommandHandler(
     {
         var properties = new Dictionary<string, string>
         {
-            { "agent_internal", "true" }
+            { "agent_internal", "true" },
+            { Message.UnprocessedMessageProperty, string.Empty }
         };
 
         Message? response;
@@ -134,7 +135,11 @@ public class FetchCommandHandler(
 
         result!.Message.Role = command.ResponseType == FetchResponseType.AS_System ? "System" : "Assistant";
         var newMessage = result!.Message;
-        newMessage.Properties = new() { { "agent_internal", "true" } };
+        newMessage.Properties = new()
+        {
+            { "agent_internal", "true" },
+            { Message.UnprocessedMessageProperty, string.Empty}
+        };
         return newMessage;
     }
 
