@@ -17,7 +17,8 @@ public class RedirectCommandHandler(IAgentService agentService) : ICommandHandle
             Content = command.Message.Content,
             Properties = new Dictionary<string, string>()
             {
-                { "agent_internal", "true" }
+                { "agent_internal", "true" },
+                { Message.UnprocessedMessageProperty, string.Empty}
             },
             Type = chat.Backend != BackendType.Self ? MessageType.CloudLLM : MessageType.LocalLLM
         });
