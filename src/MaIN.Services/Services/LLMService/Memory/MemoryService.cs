@@ -14,7 +14,7 @@ public class MemoryService : IMemoryService
             await PreprocessAvailableDocuments(options, cancellationToken);
         }
         await ImportTextData(memory, options.TextData, cancellationToken);
-        await ImportFileData(memory, options.FileData, cancellationToken);
+        await ImportFilesData(memory, options.FilesData, cancellationToken);
         await ImportStreamData(memory, options.StreamData, cancellationToken);
         await ImportWebUrls(memory, options.WebUrls, cancellationToken);
         await ImportMemoryItems(memory, options.Memory, cancellationToken);
@@ -39,7 +39,7 @@ public class MemoryService : IMemoryService
         }
     }
 
-    private async Task ImportFileData(IKernelMemory memory, Dictionary<string, string>? fileData,
+    private async Task ImportFilesData(IKernelMemory memory, Dictionary<string, string>? fileData,
         CancellationToken cancellationToken)
     {
         if (fileData?.Any() != true)
@@ -92,10 +92,10 @@ public class MemoryService : IMemoryService
     
     private static async Task PreprocessAvailableDocuments(ChatMemoryOptions options, CancellationToken cancellationToken)
     {
-        foreach (var file in options.FileData!)
+        foreach (var file in options.FilesData!)
         {
             options.TextData!.Add(file.Key ,DocumentProcessor.ProcessDocument(file.Value));
-            options.FileData = [];
+            options.FilesData = [];
         }
 
         foreach (var stream in options.StreamData!)

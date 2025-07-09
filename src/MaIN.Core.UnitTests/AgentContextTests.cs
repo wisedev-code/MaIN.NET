@@ -162,7 +162,8 @@ public class AgentContextTests
         var chatResult = new ChatResult { Done = true, Model = "test-model", Message = new Message
             {
                 Role = "Assistant",
-                Content = "Response"
+                Content = "Response",
+                Type = MessageType.LocalLLM
             }
         };
 
@@ -176,7 +177,7 @@ public class AgentContextTests
                 Model = "test-model", 
                 Name = "test",
                 Messages = new List<Message> { 
-                    new Message { Content = "Response", Role = "Assistant" } 
+                    new Message { Content = "Response", Role = "Assistant", Type = MessageType.LocalLLM} 
                 } 
             });
 

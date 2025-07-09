@@ -1,4 +1,6 @@
+using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
+using MaIN.Services.Constants;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models.Commands;
 
@@ -15,8 +17,10 @@ public class RedirectCommandHandler(IAgentService agentService) : ICommandHandle
             Content = command.Message.Content,
             Properties = new Dictionary<string, string>()
             {
-                { "agent_internal", "true" }
-            }
+                { "agent_internal", "true" },
+                { Message.UnprocessedMessageProperty, string.Empty}
+            },
+            Type = chat.Backend != BackendType.Self ? MessageType.CloudLLM : MessageType.LocalLLM
         });
 
         if (!string.IsNullOrEmpty(command.Filter))
@@ -30,9 +34,11 @@ public class RedirectCommandHandler(IAgentService agentService) : ICommandHandle
             Content = result.Messages.Last().Content,
             Image = result.Messages.Last().Image,
             Role = "System",
+            Type = chat.Backend != BackendType.Self ? MessageType.CloudLLM : MessageType.LocalLLM,
             Properties = new Dictionary<string, string>()
             {
-                { "agent_internal", "true" }
+                { "agent_internal", "true" },
+                { Message.UnprocessedMessageProperty, string.Empty}
             }
         };
     }

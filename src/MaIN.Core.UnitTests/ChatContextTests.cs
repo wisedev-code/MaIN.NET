@@ -79,7 +79,8 @@ public class ChatContextTests
         var chatResult = new ChatResult(){ Model = "test-model", Message = new Message
             {
                 Role = "Assistant",
-                Content = "test-message"
+                Content = "test-message",
+                Type = MessageType.LocalLLM
             }
         };
         

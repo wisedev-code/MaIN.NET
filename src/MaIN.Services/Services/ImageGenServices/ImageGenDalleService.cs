@@ -70,7 +70,8 @@ public class OpenAiImageGenService(
             {
                 Content = ServiceConstants.Messages.GeneratedImageContent,
                 Role = ServiceConstants.Roles.Assistant,
-                Image = imageBytes
+                Image = imageBytes,
+                Type = MessageType.Image
             },
             Model = Models.DALLE,
             CreatedAt = DateTime.UtcNow
