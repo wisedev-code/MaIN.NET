@@ -38,7 +38,7 @@ public class RedirectCommandHandler(IAgentService agentService) : ICommandHandle
             Properties = new Dictionary<string, string>()
             {
                 { "agent_internal", "true" },
-                { Message.UnprocessedMessageProperty, string.Empty}
+                { Message.UnprocessedMessageProperty, string.Empty }
             }
         };
     }

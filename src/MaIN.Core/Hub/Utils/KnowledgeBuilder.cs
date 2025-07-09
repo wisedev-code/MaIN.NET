@@ -1,4 +1,3 @@
-using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities.Agents;
 using MaIN.Domain.Entities.Agents.Knowledge;
 
@@ -117,6 +116,13 @@ public class KnowledgeBuilder
             index.Items.AddRange(_items);
         }
 
-        return new Knowledge(_agent, index, _persistenceEnabled);
+        var knowledge = new Knowledge(_agent, index, _persistenceEnabled);
+        
+        if (_persistenceEnabled && (_items.Any() || _index != null))
+        {
+            knowledge.Persist();
+        }
+
+        return knowledge;
     }
 }

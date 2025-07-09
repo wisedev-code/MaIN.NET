@@ -5,9 +5,12 @@ using MaIN.Domain.Entities.Agents.AgentSource;
 using MaIN.Domain.Models;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
+using MaIN.Core.Hub.Utils;
+using MaIN.Domain.Entities.Agents.Knowledge;
 
 namespace MaIN.Core.Hub.Contexts;
 
+//TODO knowledge should be include somehow maybe in stepbuilder
 public class AgentContext
 {
     private readonly IAgentService _agentService;
@@ -15,6 +18,7 @@ public class AgentContext
     private MemoryParams? _memoryParams;
     private bool _disableCache;
     private Agent _agent;
+    private Knowledge? _knowledge;
 
     internal AgentContext(IAgentService agentService)
     {
@@ -53,6 +57,8 @@ public class AgentContext
     
     public Agent GetAgent() => _agent;
     
+    public Knowledge? GetKnowledge() => _knowledge;
+    
     public AgentContext WithOrder(int order)
     {
         _agent.Order = order;
@@ -64,6 +70,7 @@ public class AgentContext
         _disableCache = true;
         return this;
     }
+
     public AgentContext WithSource(IAgentSource source, AgentSourceType type)
     {
         _agent.Context.Source = new AgentSource()
@@ -121,7 +128,6 @@ public class AgentContext
         return this;
     }
 
-    
     public AgentContext WithInitialPrompt(string prompt)
     {
         _agent.Context.Instruction = prompt;
@@ -131,6 +137,28 @@ public class AgentContext
     public AgentContext WithSteps(List<string>? steps)
     {
         _agent.Context.Steps = steps;
+        return this;
+    }
+
+    public AgentContext WithKnowledge(Func<KnowledgeBuilder, KnowledgeBuilder> knowledgeConfig)
+    {
+        var builder = KnowledgeBuilder.Instance.ForAgent(_agent);
+        _knowledge = knowledgeConfig(builder).Build();
+        return this;
+    }
+
+    public AgentContext WithKnowledge(Knowledge knowledge)
+    {
+        _knowledge = knowledge;
+        return this;
+    }
+
+    public AgentContext WithInMemoryKnowledge(Func<KnowledgeBuilder, KnowledgeBuilder> knowledgeConfig)
+    {
+        var builder = KnowledgeBuilder.Instance
+            .ForAgent(_agent)
+            .DisablePersistence();
+        _knowledge = knowledgeConfig(builder).Build();
         return this;
     }
     
@@ -144,14 +172,32 @@ public class AgentContext
 
     public async Task<AgentContext> CreateAsync(bool flow = false, bool interactiveResponse = false)
     {
+        LoadExistingKnowledgeIfExists();
         await _agentService.CreateAgent(_agent, flow, interactiveResponse, _inferenceParams, _memoryParams, _disableCache);
         return this;
     }
     
     public AgentContext Create(bool flow = false, bool interactiveResponse = false)
     {
+        LoadExistingKnowledgeIfExists();
         _ = _agentService.CreateAgent(_agent, flow, interactiveResponse, _inferenceParams, _memoryParams, _disableCache).Result;
         return this;
+    }
+
+    private void LoadExistingKnowledgeIfExists()
+    {
+        if (_knowledge == null)
+        {
+            _knowledge = new Knowledge(_agent);
+        }
+
+        try
+        {
+            _knowledge.Load();
+        }
+        catch (FileNotFoundException)
+        {
+        }
     }
     
     public async Task<ChatResult> ProcessAsync(Chat chat, bool translate = false)
@@ -234,7 +280,9 @@ public class AgentContext
         if (existingAgent == null)
             throw new ArgumentException("Agent not found", nameof(agentId));
             
-        return new AgentContext(agentService, existingAgent);
+        var context = new AgentContext(agentService, existingAgent);
+        context.LoadExistingKnowledgeIfExists();
+        return context;
     }
 }
 
