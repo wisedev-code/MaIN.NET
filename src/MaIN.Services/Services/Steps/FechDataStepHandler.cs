@@ -1,3 +1,4 @@
+using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Services.Mappers;
 using MaIN.Services.Services.Abstract;
@@ -59,6 +60,7 @@ public class FetchDataStepHandler(
                 new()
                 {
                     Content = context.Agent.Behaviours[context.Agent.CurrentBehaviour].Replace("@filter@", filterVal ?? string.Empty),
+                    Type = context.Chat.Backend != BackendType.Self ? MessageType.CloudLLM : MessageType.LocalLLM,
                     Role = "User"
                 }
             },
@@ -66,6 +68,7 @@ public class FetchDataStepHandler(
             Properties = context.Chat.Properties,
             MemoryParams = context.Chat.MemoryParams,
             InterferenceParams = context.Chat.InterferenceParams,
+            Backend = context.Chat.Backend,
             Name = "Memory Chat",
             Id = Guid.NewGuid().ToString()
         };

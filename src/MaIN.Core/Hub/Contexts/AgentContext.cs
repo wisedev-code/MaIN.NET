@@ -174,6 +174,7 @@ public class AgentContext
         {
             Content = message,
             Role = "User",
+            Type = MessageType.LocalLLM,
             Time = DateTime.Now
         });
         var result = await _agentService.Process(chat, _agent.Id, translate);

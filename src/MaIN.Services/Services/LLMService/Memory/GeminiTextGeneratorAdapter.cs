@@ -1,25 +1,24 @@
-﻿using Microsoft.SemanticKernel;
+﻿using System.Runtime.CompilerServices;
+using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.TextGeneration;
 
 namespace MaIN.Services.Services.LLMService.Memory;
 
-internal class GeminiTextGeneratorAdapter : ITextGenerationService
+internal class GeminiTextGeneratorAdapter(IChatCompletionService geminiChatService) : ITextGenerationService
 {
-    private readonly IChatCompletionService _geminiChatService;
-    public IReadOnlyDictionary<string, object?> Attributes { get; }
+    public IReadOnlyDictionary<string, object?> Attributes { get; } = null!;
 
-    public GeminiTextGeneratorAdapter(IChatCompletionService geminiChatService)
-    {
-        _geminiChatService = geminiChatService;
-    }
-
-    public async Task<IReadOnlyList<TextContent>> GetTextContentsAsync(string prompt, PromptExecutionSettings? executionSettings = null, Kernel? kernel = null, CancellationToken cancellationToken = new CancellationToken())
+    public async Task<IReadOnlyList<TextContent>> GetTextContentsAsync(string prompt,
+        PromptExecutionSettings? executionSettings = null, Kernel? kernel = null,
+        CancellationToken cancellationToken = new CancellationToken())
     {
         var chatHistory = new ChatHistory();
         chatHistory.AddUserMessage(prompt);
 
-        var chatMessageContents = await _geminiChatService.GetChatMessageContentsAsync(chatHistory, executionSettings, kernel, cancellationToken);
+        var chatMessageContents =
+            await geminiChatService.GetChatMessageContentsAsync(chatHistory, executionSettings, kernel,
+                cancellationToken);
         var textContents = new List<TextContent>();
 
         foreach (var chatMessageContent in chatMessageContents)
@@ -31,14 +30,18 @@ internal class GeminiTextGeneratorAdapter : ITextGenerationService
         return textContents;
     }
 
-    public async IAsyncEnumerable<StreamingTextContent> GetStreamingTextContentsAsync(string prompt, PromptExecutionSettings? executionSettings = null, Kernel? kernel = null, CancellationToken cancellationToken = new CancellationToken())
+    public async IAsyncEnumerable<StreamingTextContent> GetStreamingTextContentsAsync(
+        string prompt,
+        PromptExecutionSettings? executionSettings = null,
+        Kernel? kernel = null,
+        [EnumeratorCancellation] CancellationToken cancellationToken = new CancellationToken())
     {
         var chatHistory = new ChatHistory();
         chatHistory.AddUserMessage(prompt);
 
         var currentExecutionSettings = executionSettings ?? new PromptExecutionSettings();
-        
-        await foreach (var streamingChatMessageContent in _geminiChatService.GetStreamingChatMessageContentsAsync(
+
+        await foreach (var streamingChatMessageContent in geminiChatService.GetStreamingChatMessageContentsAsync(
                            chatHistory,
                            currentExecutionSettings,
                            kernel,

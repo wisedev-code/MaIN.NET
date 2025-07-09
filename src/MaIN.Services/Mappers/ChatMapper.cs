@@ -59,6 +59,7 @@ public static class ChatMapper
             Role = message.Role,
             Image = message.Images,
             Time = message.Time,
+            Type = Enum.Parse<MessageType>(message.Type),
             Properties = message.Properties,
             Files = message.Files?.Select(x => new FileInfo()
             {
@@ -74,6 +75,7 @@ public static class ChatMapper
             Content = message.Content,
             Role = message.Role,
             Time = message.Time,
+            MessageType = message.Type.ToString(),
             Images = message.Image,
             Tokens = message.Tokens.Select(x => x.ToDocument()).ToList(),
             Properties = message.Properties,
@@ -123,6 +125,7 @@ public static class ChatMapper
             Content = message.Content,
             Tool = message.Tool,
             Time = message.Time,
+            Type = Enum.Parse<MessageType>(message.MessageType),
             Tokens = message.Tokens.Select(x => x.ToDomain()).ToList(),
             Role = message.Role,
             Image = message.Images,
