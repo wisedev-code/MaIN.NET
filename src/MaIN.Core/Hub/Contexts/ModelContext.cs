@@ -74,6 +74,7 @@ public class ModelContext
         return this;
     }
 
+    [Obsolete("Use async method instead")]
     public ModelContext Download(string modelName)
     {
         if (string.IsNullOrWhiteSpace(modelName))
@@ -86,6 +87,7 @@ public class ModelContext
         return this;
     }
 
+    [Obsolete("Obsolete async method instead")]
     public ModelContext Download(string model, string url)
     {
         if (string.IsNullOrWhiteSpace(model))
@@ -184,6 +186,7 @@ public class ModelContext
         ShowFinalProgress(totalBytesRead, totalStopwatch, fileName);
     }
 
+    [Obsolete("Use async method instead")]
     private void DownloadModelSync(string url, string fileName)
     {
         var filePath = GetModelFilePath(fileName);
@@ -241,6 +244,7 @@ public class ModelContext
         return httpClient;
     }
 
+    [Obsolete("Obsolete")]
     private static WebClient CreateConfiguredWebClient()
     {
         var webClient = new WebClient();

@@ -4,7 +4,6 @@ using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models.Commands;
 using System.Text.Json;
 using MaIN.Domain.Configuration;
-using MaIN.Services.Mappers;
 using MaIN.Services.Services.LLMService;
 using MaIN.Services.Services.LLMService.Factory;
 using MaIN.Services.Utils;
@@ -21,7 +20,8 @@ public class FetchCommandHandler(
     {
         var properties = new Dictionary<string, string>
         {
-            { "agent_internal", "true" }
+            { "agent_internal", "true" },
+            { Message.UnprocessedMessageProperty, string.Empty }
         };
 
         Message? response;
@@ -38,7 +38,7 @@ public class FetchCommandHandler(
 
             case AgentSourceType.Text:
                 var textData = dataSourceService.FetchTextData(command.Context.Source.Details);
-                response = CreateMessage(textData, properties);
+                response = CreateMessage(textData, properties, command.Chat.Backend);
                 break;
 
             case AgentSourceType.API:
@@ -47,7 +47,7 @@ public class FetchCommandHandler(
                     command.Filter,
                     httpClientFactory,
                     properties);
-                response = CreateMessage(apiData, properties);
+                response = CreateMessage(apiData, properties, command.Chat.Backend);
                 break;
 
             case AgentSourceType.SQL:
@@ -55,7 +55,7 @@ public class FetchCommandHandler(
                     command.Context.Source.Details,
                     command.Filter,
                     properties);
-                response = CreateMessage(sqlData, properties);
+                response = CreateMessage(sqlData, properties, command.Chat.Backend);
                 break;
 
             case AgentSourceType.NoSQL:
@@ -63,7 +63,7 @@ public class FetchCommandHandler(
                     command.Context.Source.Details,
                     command.Filter,
                     properties);
-                response = CreateMessage(noSqlData, properties);
+                response = CreateMessage(noSqlData, properties, command.Chat.Backend);
                 break;
 
             default:
@@ -82,7 +82,8 @@ public class FetchCommandHandler(
     private async Task<Message> HandleFileSource(FetchCommand command, Dictionary<string, string> properties)
     {
         var fileData = JsonSerializer.Deserialize<AgentFileSourceDetails>(command.Context.Source!.Details?.ToString()!);
-
+        var filesDictionary = fileData!.Files.ToDictionary( path => Path.GetFileName(path), path => path);
+        
         if (command.Chat.Messages.Count > 0)
         {
             var memoryChat = command.MemoryChat;
@@ -91,7 +92,7 @@ public class FetchCommandHandler(
                     memoryChat!,
                     new ChatMemoryOptions
                     {
-                        FileData = new Dictionary<string, string> { { fileData!.Name, fileData.Path } },
+                        FilesData = filesDictionary,
                         PreProcess = fileData.PreProcess
                     }
                 );
@@ -99,8 +100,8 @@ public class FetchCommandHandler(
             return result!.Message;
         }
 
-        var data = await dataSourceService.FetchFileData(command.Context.Source.Details);
-        return CreateMessage(data, properties);
+        var data = await dataSourceService.FetchFileData(filesDictionary);
+        return CreateMessage(data, properties, command.Chat.Backend);
     }
 
     private async Task<Message> HandleWebSource(FetchCommand command, Dictionary<string, string> properties)
@@ -116,7 +117,7 @@ public class FetchCommandHandler(
             return result!.Message;
         }
 
-        return CreateMessage($"Web data from {webData!.Url}", properties);
+        return CreateMessage($"Web data from {webData!.Url}", properties, command.Chat.Backend);
     }
 
     private async Task<Message> ProcessJsonResponse(Message response, FetchCommand command)
@@ -134,17 +135,24 @@ public class FetchCommandHandler(
 
         result!.Message.Role = command.ResponseType == FetchResponseType.AS_System ? "System" : "Assistant";
         var newMessage = result!.Message;
-        newMessage.Properties = new() { { "agent_internal", "true" } };
+        newMessage.Properties = new()
+        {
+            { "agent_internal", "true" },
+            { Message.UnprocessedMessageProperty, string.Empty}
+        };
         return newMessage;
     }
 
-    private static Message CreateMessage(string content, Dictionary<string, string> properties)
+    private static Message CreateMessage(string content, 
+        Dictionary<string, string> properties,
+        BackendType? chatBackend)
     {
         return new Message
         {
             Content = content,
             Role = "System",
-            Properties = properties
+            Properties = properties,
+            Type = chatBackend != BackendType.Self ? MessageType.CloudLLM : MessageType.LocalLLM
         };
     }
 }

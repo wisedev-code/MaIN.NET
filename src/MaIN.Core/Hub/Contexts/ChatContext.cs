@@ -73,6 +73,7 @@ public class ChatContext
         {
             Role = "User",
             Content = content,
+            Type = MessageType.LocalLLM,
             Time = DateTime.Now
         };
         
@@ -87,6 +88,7 @@ public class ChatContext
         {
             Role = "User",
             Content = content,
+            Type = MessageType.NotSet,
             Time = DateTime.Now,
             Image = image
         };
@@ -101,6 +103,7 @@ public class ChatContext
         {
             Role = "System",
             Content = systemPrompt,
+            Type = MessageType.NotSet,
             Time = DateTime.Now
         };
         
