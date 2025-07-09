@@ -1,3 +1,4 @@
+
 namespace MaIN.Domain.Entities.Agents.Knowledge;
 
 public class KnowledgeIndex

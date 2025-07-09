@@ -3,14 +3,22 @@ using MaIN.Domain.Configuration;
 
 namespace MaIN.Domain.Entities.Agents.Knowledge;
 
-public class Knowledge(Agent agent, KnowledgeIndex? index = null, bool persistenceEnabled = true)
+public class Knowledge
 {
     private MaINSettings? _settings;
     
-    public KnowledgeIndex Index { get; set; } = index ?? new KnowledgeIndex();
-    public DateTime LastUpdated { get; private set; } = DateTime.UtcNow;
-    public Agent Agent { get; } = agent ?? throw new ArgumentNullException(nameof(agent));
-    public bool PersistenceEnabled { get; private set; } = persistenceEnabled;
+    public KnowledgeIndex Index { get; set; }
+    public DateTime LastUpdated { get; private set; }
+    public Agent Agent { get; }
+    public bool PersistenceEnabled { get; private set; }
+
+    public Knowledge(Agent agent, KnowledgeIndex? index = null, bool persistenceEnabled = true)
+    {
+        Agent = agent ?? throw new ArgumentNullException(nameof(agent));
+        Index = index ?? new KnowledgeIndex();
+        LastUpdated = DateTime.UtcNow;
+        PersistenceEnabled = persistenceEnabled;
+    }
 
     private string GetKnowledgePath() => Path.Combine("Knowledge", $"{Agent.Name}+{Agent.Id}", "index.json");
 
@@ -102,29 +110,102 @@ public class Knowledge(Agent agent, KnowledgeIndex? index = null, bool persisten
     {
         ArgumentNullException.ThrowIfNull(item);
         Index.Items.Add(item);
+        if (PersistenceEnabled)
+        {
+            Persist();
+        }
+    }
+
+    public async Task AddItemAsync(KnowledgeIndexItem item, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        Index.Items.Add(item);
+        if (PersistenceEnabled)
+        {
+            await PersistAsync(cancellationToken);
+        }
     }
 
     public bool RemoveItem(KnowledgeIndexItem item)
     {
         ArgumentNullException.ThrowIfNull(item);
-        return Index.Items.Remove(item);
+        var removed = Index.Items.Remove(item);
+        if (removed && PersistenceEnabled)
+        {
+            Persist();
+        }
+        return removed;
+    }
+
+    public async Task<bool> RemoveItemAsync(KnowledgeIndexItem item, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        var removed = Index.Items.Remove(item);
+        if (removed && PersistenceEnabled)
+        {
+            await PersistAsync(cancellationToken);
+        }
+        return removed;
     }
 
     public bool RemoveItemByName(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         var item = Index.Items.FirstOrDefault(i => i.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
-        return item != null && Index.Items.Remove(item);
+        var removed = item != null && Index.Items.Remove(item);
+        if (removed && PersistenceEnabled)
+        {
+            Persist();
+        }
+        return removed;
+    }
+
+    public async Task<bool> RemoveItemByNameAsync(string name, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        var item = Index.Items.FirstOrDefault(i => i.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+        var removed = item != null && Index.Items.Remove(item);
+        if (removed && PersistenceEnabled)
+        {
+            await PersistAsync(cancellationToken);
+        }
+        return removed;
     }
 
     public void Clear()
     {
         Index.Items.Clear();
+        if (PersistenceEnabled)
+        {
+            Persist();
+        }
+    }
+
+    public async Task ClearAsync(CancellationToken cancellationToken = default)
+    {
+        Index.Items.Clear();
+        if (PersistenceEnabled)
+        {
+            await PersistAsync(cancellationToken);
+        }
     }
 
     public void SetIndex(KnowledgeIndex index)
     {
         Index = index ?? throw new ArgumentNullException(nameof(index));
+        if (PersistenceEnabled)
+        {
+            Persist();
+        }
+    }
+
+    public async Task SetIndexAsync(KnowledgeIndex index, CancellationToken cancellationToken = default)
+    {
+        Index = index ?? throw new ArgumentNullException(nameof(index));
+        if (PersistenceEnabled)
+        {
+            await PersistAsync(cancellationToken);
+        }
     }
 
     public void EnablePersistence()
