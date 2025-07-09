@@ -9,7 +9,9 @@ public class MessageDto
 
     [JsonPropertyName("content")] 
     public string Content { get; set; } = null!;
-
+    
+    [JsonPropertyName("type")] 
+    public string Type { get; set; } = null!;
     [JsonPropertyName("time")]
     public DateTime Time { get; set; }
     [JsonPropertyName("images")] 

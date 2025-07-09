@@ -102,7 +102,7 @@ public class FlowContextTests
                 Model = "test-model", 
                 Name = "test",
                 Messages = new List<Message> { 
-                    new() { Content = "Response", Role = "Assistant" } 
+                    new() { Content = "Response", Role = "Assistant", Type = MessageType.LocalLLM} 
                 } 
             });
 
