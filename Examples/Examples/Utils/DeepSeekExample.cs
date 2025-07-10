@@ -10,7 +10,7 @@ public class DeepSeekExample
         MaINBootstrapper.Initialize(configureSettings: (options) =>
         {
             options.BackendType = BackendType.DeepSeek;
-            options.GeminiKey = "<YOUR_DEEPSEEK_KEY>";
+            options.DeepSeekKey = "<YOUR_DEEPSEEK_KEY>";
         });
     }
 }

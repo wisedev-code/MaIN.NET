@@ -1,8 +1,10 @@
 using MaIN.Domain.Configuration;
+using MaIN.Domain.Entities;
 using MaIN.Services.Services.Abstract;
 using Microsoft.Extensions.Logging;
 using MaIN.Services.Services.LLMService.Memory;
 using MaIN.Services.Constants;
+using MaIN.Services.Services.Models;
 
 namespace MaIN.Services.Services.LLMService;
 
@@ -20,6 +22,7 @@ public sealed class DeepSeekService(
 
     protected override string HttpClientName => ServiceConstants.HttpClients.DeepSeekClient;
     protected override string ChatCompletionsUrl => ServiceConstants.ApiUrls.DeepSeekOpenAiChatCompletions;
+    protected override string ModelsUrl => ServiceConstants.ApiUrls.DeepSeekModels;
 
     protected override string GetApiKey()
     {
@@ -33,5 +36,13 @@ public sealed class DeepSeekService(
         {
             throw new InvalidOperationException("DeepSeek Key not configured");
         }
+    }
+
+    public override async Task<ChatResult?> AskMemory(
+        Chat chat,
+        ChatMemoryOptions memoryOptions,
+        CancellationToken cancellationToken = default)
+    {
+        throw new NotSupportedException("Embeddings are not supported by the DeepSeek model. Document reading requires embedding support.");
     }
 }
