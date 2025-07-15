@@ -1,3 +1,4 @@
+using MaIN.Domain.Entities.Agents.Knowledge;
 using MaIN.Services.Services.Models.Commands;
 
 namespace MaIN.Core.Hub.Utils;
@@ -16,6 +17,38 @@ public class StepBuilder
     public StepBuilder AnswerUseMemory()
     {
         Steps.Add("ANSWER+USE_MEMORY");
+        return this;
+    }
+
+    public StepBuilder AnswerUseKnowledge()
+    {
+        Steps.Add("ANSWER+USE_KNOWLEDGE");
+        return this;
+    }
+
+    public StepBuilder AnswerUseKnowledgeWithTags(params string[] tags)
+    {
+        var tagsString = string.Join(",", tags);
+        Steps.Add($"ANSWER+USE_KNOWLEDGE+TAGS:{tagsString}");
+        return this;
+    }
+
+    public StepBuilder AnswerUseKnowledgeWithType(KnowledgeItemType type)
+    {
+        Steps.Add($"ANSWER+USE_KNOWLEDGE+TYPE:{type}");
+        return this;
+    }
+
+    public StepBuilder AnswerUseKnowledgeAndMemory()
+    {
+        Steps.Add("ANSWER+USE_KNOWLEDGE+USE_MEMORY");
+        return this;
+    }
+
+    public StepBuilder AnswerUseKnowledgeAndMemoryWithTags(params string[] tags)
+    {
+        var tagsString = string.Join(",", tags);
+        Steps.Add($"ANSWER+USE_KNOWLEDGE+USE_MEMORY+TAGS:{tagsString}");
         return this;
     }
 
