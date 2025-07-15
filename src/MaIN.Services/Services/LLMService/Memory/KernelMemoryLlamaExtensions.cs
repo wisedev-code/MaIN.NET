@@ -1,4 +1,5 @@
 using LLama;
+using LLama.Batched;
 using LLama.Common;
 using LLama.Sampling;
 using LLamaSharp.KernelMemory;
@@ -18,7 +19,7 @@ public static class KernelMemoryLlamaExtensions
         out LLamaContext context)
     {
         context = model.CreateContext(modelParams);
-        var executor = new StatelessExecutor(model, modelParams);
+        var executor = new BatchedExecutor(model, modelParams);//new StatelessExecutor(model, modelParams);
         
         var inferenceParams = new InferenceParams 
         { 
@@ -33,7 +34,7 @@ public static class KernelMemoryLlamaExtensions
             new LlamaSharpTextGenerator(
                 model,
                 context,
-                executor,
+                executor, //TODO we should try to use batched executor so we can use conversation object and its state
                 inferenceParams
             )
         );

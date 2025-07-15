@@ -115,7 +115,7 @@ public class LLMService : ILLMService
             userMessage.Content,
             cancellationToken: cancellationToken);
         await memory.KM.DeleteIndexAsync(cancellationToken: cancellationToken);
-
+        
         if (disableCache)
         {
             llmModel.Dispose();
