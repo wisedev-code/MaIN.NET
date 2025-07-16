@@ -11,6 +11,7 @@ using System.Net.Http.Headers;
 using System.Net.Mime;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using MaIN.Domain.Entities;
 using MaIN.Services.Services.LLMService.Memory;
 using LLama.Common;
@@ -135,13 +136,13 @@ public abstract class OpenAiCompatibleService(
         response.EnsureSuccessStatusCode();
 
         var responseJson = await response.Content.ReadAsStringAsync();
-        var modelsResponse = JsonSerializer.Deserialize<OpenAiModelsResponse>(responseJson);
+        var modelsResponse = JsonSerializer.Deserialize<OpenAiModelsResponse>(responseJson, 
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
         return (modelsResponse?.Data?
-                    .Where(m => m.Id!.StartsWith("gpt-", StringComparison.InvariantCultureIgnoreCase))
                     .Select(m => m.Id)
                     .Where(id => id != null)
-                    .ToArray()
+                    .ToArray() 
                 ?? [])!;
     }
 
@@ -396,11 +397,11 @@ file class Delta
 }
 
 file class OpenAiModelsResponse
-{
+{ 
     public List<OpenAiModel>? Data { get; set; }
 }
 
-file abstract class OpenAiModel
+file class OpenAiModel
 {
     public string? Id { get; set; }
 }
