@@ -41,6 +41,7 @@ public class McpService(MaINSettings settings) : IMcpService
             {
                 Content = res.ToString(),
                 Role = nameof(AuthorRole.Assistant),
+                Type = MessageType.CloudLLM
             },
             Model = config.Model
         };
