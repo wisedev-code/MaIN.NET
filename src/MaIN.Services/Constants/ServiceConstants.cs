@@ -23,7 +23,6 @@ public static class ServiceConstants
         public const string GeminiOpenAiChatCompletions = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"; 
         public const string GeminiModels = "https://generativelanguage.googleapis.com/v1beta/models";
 
-        public const string DeepSeekImageGenerations = "https://api.openai.com/v1/images/generations";
         public const string DeepSeekOpenAiChatCompletions = "https://api.deepseek.com/v1/chat/completions";
         public const string DeepSeekModels = "https://api.deepseek.com/models";
     }
