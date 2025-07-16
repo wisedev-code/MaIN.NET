@@ -1,12 +1,8 @@
-using System.Diagnostics.CodeAnalysis;
-using Elastic.Clients.Elasticsearch.Core.GetScriptContext;
 using LLama;
 using LLama.Common;
 using LLamaSharp.KernelMemory;
-using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Models;
-using MaIN.Services.Services.LLMService.Utils;
 using Microsoft.KernelMemory;
 using Microsoft.KernelMemory.Configuration;
 using Microsoft.KernelMemory.SemanticKernel;

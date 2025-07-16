@@ -32,7 +32,8 @@ public class LLMServiceFactory(IServiceProvider serviceProvider) : ILLMServiceFa
                 serviceProvider.GetRequiredService<IMemoryFactory>(),
                 serviceProvider.GetRequiredService<IMemoryService>()),
 
-            BackendType.Self => new LLMService(serviceProvider.GetRequiredService<MaINSettings>(),
+            BackendType.Self => new LLMService(
+                serviceProvider.GetRequiredService<MaINSettings>(),
                 serviceProvider.GetRequiredService<INotificationService>(),
                 serviceProvider.GetRequiredService<IMemoryService>(),
                 serviceProvider.GetRequiredService<IMemoryFactory>()),

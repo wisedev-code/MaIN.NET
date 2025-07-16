@@ -224,6 +224,7 @@ public abstract class OpenAiCompatibleService(
 
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
         using var reader = new StreamReader(stream);
+
         while (!reader.EndOfStream)
         {
             var line = await reader.ReadLineAsync(cancellationToken);
@@ -238,17 +239,17 @@ public abstract class OpenAiCompatibleService(
 
                 try
                 {
-                    var chunk = JsonSerializer.Deserialize<ChatCompletionChunk>(data,
-                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    var token = await ProcessChatCompletionChunk(data);
 
-                    var value = chunk?.Choices?.FirstOrDefault()?.Delta?.Content;
-                    if (!string.IsNullOrEmpty(value))
+                    if (token is not null)
                     {
-                        var token = new LLMTokenValue { Text = value, Type = TokenType.Message };
                         tokens.Add(token);
 
                         await InvokeTokenCallbackAsync(tokenCallback, token);
-                        resultBuilder.Append(value);
+                        if (token.Type == TokenType.Message)
+                        {
+                            resultBuilder.Append(token.Text);
+                        }
 
                         if (interactiveUpdates)
                         {
@@ -264,6 +265,18 @@ public abstract class OpenAiCompatibleService(
                 }
             }
         }
+    }
+
+    protected virtual async Task<LLMTokenValue?> ProcessChatCompletionChunk(string data)
+    {
+        var chunk = JsonSerializer.Deserialize<ChatCompletionChunk>(data,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+        var value = chunk?.Choices?.FirstOrDefault()?.Delta?.Content;
+
+        return string.IsNullOrEmpty(value)
+            ? null
+            : new LLMTokenValue { Text = value, Type = TokenType.Message };
     }
 
     private async Task ProcessNonStreamingChatAsync(

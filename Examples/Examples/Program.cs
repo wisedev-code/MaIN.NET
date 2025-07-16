@@ -66,7 +66,7 @@ static void RegisterExamples(IServiceCollection services)
     services.AddTransient<ChatExampleGemini>();
     services.AddTransient<ChatWithImageGenGeminiExample>();
     services.AddTransient<ChatWithFilesExampleGemini>();
-    services.AddTransient<ChatExampleDeepSeek>();
+    services.AddTransient<ChatWithReasoningDeepSeekExample>();
 }
 
 async Task RunSelectedExample(IServiceProvider serviceProvider)
@@ -152,7 +152,7 @@ public class ExampleRegistry(IServiceProvider serviceProvider)
             ("\u25a0 Gemini Chat", serviceProvider.GetRequiredService<ChatExampleGemini>()),
             ("\u25a0 Gemini Chat with image", serviceProvider.GetRequiredService<ChatWithImageGenGeminiExample>()),
             ("\u25a0 Gemini Chat with files", serviceProvider.GetRequiredService<ChatWithFilesExampleGemini>()),
-            ("\u25a0 DeepSeek Chat", serviceProvider.GetRequiredService<ChatExampleDeepSeek>()),
+            ("\u25a0 DeepSeek Chat", serviceProvider.GetRequiredService<ChatWithReasoningDeepSeekExample>()),
             ("\u25a0 McpClient example", serviceProvider.GetRequiredService<McpExample>()),
             ("\u25a0 McpAgent example", serviceProvider.GetRequiredService<McpAgentsExample>())
 
