@@ -267,8 +267,18 @@ public class ModelContext
             var progressPercentage = (double)totalBytesRead / totalBytes.Value * 100;
             var eta = speed > 0 ? TimeSpan.FromSeconds((totalBytes.Value - totalBytesRead) / speed) : TimeSpan.Zero;
 
+            var (leftBefore, topBefore) = Console.GetCursorPosition();
             Console.Write($"\rProgress: {progressPercentage:F1}% ({FormatBytes(totalBytesRead)}/{FormatBytes(totalBytes.Value)}) " +
                          $"Speed: {FormatBytes((long)speed)}/s ETA: {eta:hh\\:mm\\:ss}");
+
+            var (leftAfter, topAfter) = Console.GetCursorPosition();
+            int lengthDifference = leftBefore - leftAfter + (topBefore - topAfter) * Console.WindowWidth;
+            while (lengthDifference > 0)
+            {
+                Console.Write(' ');
+                lengthDifference--;
+            }
+            Console.SetCursorPosition(leftAfter, topAfter);
         }
         else
         {
