@@ -66,12 +66,7 @@ public class McpService(MaINSettings settings) : IMcpService
                     FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(options: new() { RetainArgumentTypes = true })
                 };
             case BackendType.DeepSeek:
-                kernelBuilder.Services.AddOpenAIChatCompletion(model, GetDeepSeekKey() ?? throw new ArgumentNullException(nameof(GetDeepSeekKey)));
-                return new OpenAIPromptExecutionSettings()
-                {
-                    ModelId = model,
-                    FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(options: new() { RetainArgumentTypes = true })
-                };
+                throw new NotSupportedException("DeepSeek models does not support MCP integration.");
             case BackendType.Self:
                 throw new NotSupportedException("Self backend (local models) does not support MCP integration.");
             default:
@@ -83,6 +78,4 @@ public class McpService(MaINSettings settings) : IMcpService
         => settings.OpenAiKey ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY");
     string? GetGeminiKey()
         => settings.GeminiKey ?? Environment.GetEnvironmentVariable("GEMINI_API_KEY");
-    string? GetDeepSeekKey()
-        => settings.DeepSeekKey ?? Environment.GetEnvironmentVariable("DEEPSEEK_API_KEY");
 }
