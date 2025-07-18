@@ -5,6 +5,8 @@
 // Assembly location: /Users/pstach/.nuget/packages/llamasharp.kernel-memory/0.24.0/lib/net8.0/LLamaSharp.KernelMemory.dll
 
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+using System.Text;
 using LLama;
 using LLama.Batched;
 using LLama.Common;
@@ -65,19 +67,76 @@ public sealed class LlamaSharpTextGen : ITextGenerator, ITextTokenizer, IDisposa
             return;
         _context.Dispose();
     }
-
-    public IAsyncEnumerable<GeneratedTextContent> GenerateTextAsync(
-        string prompt,
-        TextGenerationOptions options,
-        CancellationToken cancellationToken = default)
+    private ISamplingPipeline CreateSampler(InferenceParams interferenceParams)
     {
-        return _executor
-            .InferAsync(prompt,
-                OptionsToParams(options, _defaultInferenceParams),
-                cancellationToken)
-            .Select(
-                (Func<string, GeneratedTextContent>)(a => new GeneratedTextContent(a)));
+        return interferenceParams.SamplingPipeline;
     }
+public async IAsyncEnumerable<GeneratedTextContent> GenerateTextAsync(
+    string prompt,
+    TextGenerationOptions options,
+    [EnumeratorCancellation] CancellationToken cancellationToken = default)
+{
+    var parameters = OptionsToParams(options, _defaultInferenceParams);
+    
+    // Create conversation from the executor (assuming you have a way to create this)
+    var conversation = _executor.Create();
+    conversation.Prompt(_weights.Tokenize(prompt, true, false, Encoding.UTF8));
+
+    using var sampler = CreateSampler(_defaultInferenceParams!);
+    var decoder = new StreamingTokenDecoder(_executor.Context);
+    
+    var maxTokens = GetMaxTokensFromOptions(options);
+    var isComplete = false;
+    
+    for (var i = 0; i < maxTokens && !isComplete; i++)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        
+        var decodeResult = await _executor.Infer(cancellationToken);
+        
+        if (decodeResult == DecodeResult.NoKvSlot || decodeResult == DecodeResult.Error)
+        {
+            yield break;
+        }
+        
+        if (!conversation.RequiresSampling)
+            continue;
+            
+        var token = conversation.Sample(sampler);
+        var vocab = _executor.Context.NativeHandle.ModelHandle.Vocab;
+        
+        if (token.IsEndOfGeneration(vocab))
+        {
+            isComplete = true;
+        }
+        else
+        {
+            decoder.Add(token);
+            var tokenText = decoder.Read();
+            
+            conversation.Prompt(token);
+            
+            if (!string.IsNullOrEmpty(tokenText))
+            {
+                yield return new GeneratedTextContent(tokenText);
+            }
+        }
+    }
+}
+
+private int GetMaxTokensFromOptions(TextGenerationOptions options)
+{
+    // Extract max tokens from your options, defaulting to int.MaxValue if not specified
+    // You'll need to implement this based on your TextGenerationOptions structure
+    return options?.MaxTokens == -1 ? int.MaxValue : (options?.MaxTokens ?? int.MaxValue);
+}
+
+private object CreateSampler(object parameters)
+{
+    // You'll need to implement this based on how you create samplers in your system
+    // This should match the sampler creation logic from your existing code
+    throw new NotImplementedException("Implement based on your sampler creation logic");
+}
 
     private static InferenceParams OptionsToParams(
         TextGenerationOptions options,
