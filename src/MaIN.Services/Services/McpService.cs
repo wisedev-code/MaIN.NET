@@ -65,6 +65,8 @@ public class McpService(MaINSettings settings) : IMcpService
                     ModelId = model,
                     FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(options: new() { RetainArgumentTypes = true })
                 };
+            case BackendType.DeepSeek:
+                throw new NotSupportedException("DeepSeek models does not support MCP integration.");
             case BackendType.Self:
                 throw new NotSupportedException("Self backend (local models) does not support MCP integration.");
             default:

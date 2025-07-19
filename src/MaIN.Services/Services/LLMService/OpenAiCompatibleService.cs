@@ -11,6 +11,7 @@ using System.Net.Http.Headers;
 using System.Net.Mime;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using MaIN.Domain.Entities;
 using MaIN.Services.Services.LLMService.Memory;
 using LLama.Common;
@@ -136,13 +137,13 @@ public abstract class OpenAiCompatibleService(
         response.EnsureSuccessStatusCode();
 
         var responseJson = await response.Content.ReadAsStringAsync();
-        var modelsResponse = JsonSerializer.Deserialize<OpenAiModelsResponse>(responseJson);
+        var modelsResponse = JsonSerializer.Deserialize<OpenAiModelsResponse>(responseJson, 
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
         return (modelsResponse?.Data?
-                    .Where(m => m.Id!.StartsWith("gpt-", StringComparison.InvariantCultureIgnoreCase))
                     .Select(m => m.Id)
                     .Where(id => id != null)
-                    .ToArray()
+                    .ToArray() 
                 ?? [])!;
     }
 
@@ -225,6 +226,7 @@ public abstract class OpenAiCompatibleService(
 
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
         using var reader = new StreamReader(stream);
+
         while (!reader.EndOfStream)
         {
             var line = await reader.ReadLineAsync(cancellationToken);
@@ -239,17 +241,17 @@ public abstract class OpenAiCompatibleService(
 
                 try
                 {
-                    var chunk = JsonSerializer.Deserialize<ChatCompletionChunk>(data,
-                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    var token = ProcessChatCompletionChunk(data);
 
-                    var value = chunk?.Choices?.FirstOrDefault()?.Delta?.Content;
-                    if (!string.IsNullOrEmpty(value))
+                    if (token is not null)
                     {
-                        var token = new LLMTokenValue { Text = value, Type = TokenType.Message };
                         tokens.Add(token);
 
                         await InvokeTokenCallbackAsync(tokenCallback, token);
-                        resultBuilder.Append(value);
+                        if (token.Type == TokenType.Message)
+                        {
+                            resultBuilder.Append(token.Text);
+                        }
 
                         if (interactiveUpdates)
                         {
@@ -265,6 +267,18 @@ public abstract class OpenAiCompatibleService(
                 }
             }
         }
+    }
+
+    protected virtual LLMTokenValue? ProcessChatCompletionChunk(string data)
+    {
+        var chunk = JsonSerializer.Deserialize<ChatCompletionChunk>(data,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+        var value = chunk?.Choices?.FirstOrDefault()?.Delta?.Content;
+
+        return string.IsNullOrEmpty(value)
+            ? null
+            : new LLMTokenValue { Text = value, Type = TokenType.Message };
     }
 
     private async Task ProcessNonStreamingChatAsync(
@@ -385,11 +399,11 @@ file class Delta
 }
 
 file class OpenAiModelsResponse
-{
+{ 
     public List<OpenAiModel>? Data { get; set; }
 }
 
-file abstract class OpenAiModel
+file class OpenAiModel
 {
     public string? Id { get; set; }
 }
