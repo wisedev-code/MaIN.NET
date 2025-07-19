@@ -241,7 +241,7 @@ public abstract class OpenAiCompatibleService(
 
                 try
                 {
-                    var token = await ProcessChatCompletionChunk(data);
+                    var token = ProcessChatCompletionChunk(data);
 
                     if (token is not null)
                     {
@@ -269,7 +269,7 @@ public abstract class OpenAiCompatibleService(
         }
     }
 
-    protected virtual async Task<LLMTokenValue?> ProcessChatCompletionChunk(string data)
+    protected virtual LLMTokenValue? ProcessChatCompletionChunk(string data)
     {
         var chunk = JsonSerializer.Deserialize<ChatCompletionChunk>(data,
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });

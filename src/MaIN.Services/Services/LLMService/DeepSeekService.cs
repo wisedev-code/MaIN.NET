@@ -41,7 +41,7 @@ public sealed class DeepSeekService(
         }
     }
 
-    public override async Task<ChatResult?> AskMemory(
+    public override Task<ChatResult?> AskMemory(
         Chat chat,
         ChatMemoryOptions memoryOptions,
         CancellationToken cancellationToken = default)
@@ -49,7 +49,7 @@ public sealed class DeepSeekService(
         throw new NotSupportedException("Embeddings are not supported by the DeepSeek model. Document reading requires embedding support.");
     }
 
-    protected override async Task<LLMTokenValue?> ProcessChatCompletionChunk(string data)
+    protected override LLMTokenValue? ProcessChatCompletionChunk(string data)
     {
         var chunk = JsonSerializer.Deserialize<ChatCompletionChunk>(data,
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
