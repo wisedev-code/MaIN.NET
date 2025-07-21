@@ -1,3 +1,5 @@
+using MaIN.Domain.Exceptions;
+
 namespace MaIN.Domain.Models;
 
 public class Model
@@ -202,8 +204,7 @@ public static class KnownModels
                                                    StringComparison.InvariantCultureIgnoreCase));
         if (model is null)
         {
-            //todo support domain specific exceptions
-            throw new Exception($"Model {name} is not supported");
+            throw new ModelNotSupportedException(name);
         }
 
         if (File.Exists(Path.Combine(path, model.FileName)))
@@ -252,8 +253,7 @@ public static class KnownModels
                                                    StringComparison.InvariantCultureIgnoreCase));
         if (model is null)
         {
-            //todo support domain specific exceptions
-            throw new NotSupportedException($"Model {modelName} is not supported");
+            throw new ModelNotSupportedException(modelName);
         }
 
         return model;
