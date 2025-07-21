@@ -1,4 +1,3 @@
-using System.Net.Mime;
 using MaIN.Core;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Models;
@@ -67,7 +66,7 @@ try
                 break;
 
             case "groqcloud":
-                Utils.DeepSeek = true;
+                Utils.GroqCloud = true;
                 apiKeyVariable = "GROQ_API_KEY";
                 apiName = "GroqCloud";
                 break;

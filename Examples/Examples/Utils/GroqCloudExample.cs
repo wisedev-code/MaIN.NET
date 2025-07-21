@@ -10,7 +10,7 @@ public class GroqCloudExample
         MaINBootstrapper.Initialize(configureSettings: (options) =>
         {
             options.BackendType = BackendType.GroqCloud;
-            options.DeepSeekKey = "<YOUR_GROQ_KEY>";
+            options.GroqCloudKey = "<YOUR_GROQ_KEY>";
         });
     }
 }

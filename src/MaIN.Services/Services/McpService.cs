@@ -62,7 +62,6 @@ public class McpService(MaINSettings settings) : IMcpService
                 kernelBuilder.Services.AddGoogleAIGeminiChatCompletion(model, GetGeminiKey() ?? throw new ArgumentNullException(nameof(GetGeminiKey)));
                 return new GeminiPromptExecutionSettings()
                 {
-                    ToolCallBehavior = GeminiToolCallBehavior.AutoInvokeKernelFunctions,
                     ModelId = model,
                     FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(options: new() { RetainArgumentTypes = true })
                 };
