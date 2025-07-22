@@ -195,6 +195,11 @@ public static class KnownModels
             DownloadUrl = "https://huggingface.co/Inza124/Nomic/resolve/main/Nomic-maIN.gguf?download=true",
         };
 
+    public static bool IsModelSupported(string name) =>
+        Models.Any(x => x.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase)
+                        || x.Name.Replace(':', '-').Equals(name,
+                            StringComparison.InvariantCultureIgnoreCase));
+    
     public static Model GetModel(string path, string? name)
     {
         var model = Models.FirstOrDefault(x => x.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase)
