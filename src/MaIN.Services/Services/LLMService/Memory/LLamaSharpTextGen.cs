@@ -118,7 +118,6 @@ public async IAsyncEnumerable<GeneratedTextContent> GenerateTextAsync(
             
             if (!string.IsNullOrEmpty(tokenText))
             {
-                await Task.Yield();
                 yield return new GeneratedTextContent(tokenText);
             }
         }
