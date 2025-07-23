@@ -11,6 +11,7 @@ using MaIN.Services.Services.LLMService.Memory;
 using MaIN.Services.Services.Models.Commands;
 using MaIN.Services.Services.Steps;
 using MaIN.Services.Services.Steps.Commands;
+using MaIN.Services.Services.TTSService;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -37,12 +38,14 @@ public static class Bootstrapper
         serviceCollection.AddSingleton<IMemoryFactory, MemoryFactory>();
         serviceCollection.AddSingleton<ILLMServiceFactory, LLMServiceFactory>();
         serviceCollection.AddSingleton<IImageGenServiceFactory, ImageGenServiceFactory>();
+        serviceCollection.AddSingleton<ITTSServiceFactory, TTSServiceFactory>();
 
 // Register all concrete implementations as transient
         serviceCollection.AddTransient<LLMService>();
         serviceCollection.AddTransient<OpenAiService>();
         serviceCollection.AddTransient<ImageGenService>();
         serviceCollection.AddTransient<OpenAiImageGenService>();
+        serviceCollection.AddTransient<TTSService>();
         
         // Register all step handlers
         serviceCollection.AddSingleton<IStepHandler, RedirectStepHandler>();
