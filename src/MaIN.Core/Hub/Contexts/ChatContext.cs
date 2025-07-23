@@ -61,6 +61,16 @@ public class ChatContext
         return this;
     }
 
+    public ChatContext WithTTS(string model, string path, string voice)
+    {
+        _chat.Visual = false;
+        _chat.Vocal = true;
+        KnownModels.AddModel(model, path);
+        _chat.Model = model;
+        _chat.Voice = voice;
+        return this;
+    }
+
     public ChatContext WithBackend(BackendType backendType)
     {
         _chat.Backend = backendType;
@@ -151,6 +161,7 @@ public class ChatContext
     public ChatContext EnableVisual()
     {
         _chat.Visual = true;
+        _chat.Vocal = false;
         return this;
     }
 

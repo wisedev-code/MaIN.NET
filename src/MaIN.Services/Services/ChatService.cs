@@ -16,6 +16,7 @@ public class ChatService(
     IChatRepository chatProvider,
     ILLMServiceFactory llmServiceFactory,
     IImageGenServiceFactory imageGenServiceFactory,
+    ITTSServiceFactory ttsServiceFactory,
     MaINSettings settings) : IChatService
 {
     public async Task Create(Chat chat)
@@ -57,13 +58,22 @@ public class ChatService(
         }))).ToList();
     }
 
-    var result = chat.Visual 
-        ? await imageGenServiceFactory.CreateService(chat.Backend.Value).Send(chat) 
-        : await llmServiceFactory.CreateService(chat.Backend.Value).Send(chat, new ChatRequestOptions()
-        {
-            InteractiveUpdates = interactiveUpdates,
-            TokenCallback = changeOfValue
-        });
+    ChatResult? result;
+    
+    if (chat.Vocal)
+    {
+        result = await ttsServiceFactory.CreateService(chat.Backend.Value).Send(chat);
+    }
+    else
+    {
+        result = chat.Visual 
+            ? await imageGenServiceFactory.CreateService(chat.Backend.Value).Send(chat) 
+            : await llmServiceFactory.CreateService(chat.Backend.Value).Send(chat, new ChatRequestOptions()
+            {
+                InteractiveUpdates = interactiveUpdates,
+                TokenCallback = changeOfValue
+            });
+    }
 
     if (translate)
     {
