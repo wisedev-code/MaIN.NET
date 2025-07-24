@@ -17,5 +17,4 @@ public abstract class MaINCustomException(string message) : Exception(message)
         
         return snakeCaseTypeName.Replace("_exception", string.Empty);
     }
-
 }
