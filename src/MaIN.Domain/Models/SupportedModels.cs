@@ -212,7 +212,7 @@ public static class KnownModels
             return model;
         }
 
-        throw new Exception($"Model {name} is not downloaded");
+        throw new ModelNotDownloadedException(name);
     }
 
     public static Model? GetModelByFileName(string path, string fileName)
@@ -229,7 +229,7 @@ public static class KnownModels
             return Models.First(x => x.FileName == fileName);
         }
 
-        throw new Exception($"Model {fileName} is not downloaded");
+        throw new ModelNotDownloadedException(fileName);
     }
 
     public static void AddModel(string model, string path, string? mmProject = null)

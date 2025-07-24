@@ -231,10 +231,10 @@ public class ChatContext
     public async Task<ChatContext> FromExisting(string chatId)
     {
         var existingChat = await _chatService.GetById(chatId);
-        // if (existingChat == null)
-        // {
-        //     throw new Exception("Chat not found");
-        // }
+        if (existingChat == null)
+        {
+            throw new ChatNotFoundException(chatId);
+        }
         return new ChatContext(_chatService, existingChat);
     }
 
