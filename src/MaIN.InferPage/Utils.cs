@@ -9,6 +9,7 @@ public static class Utils
     private static readonly string[] VisualModels = ["FLUX.1_Shnell", "FLUX.1", "dall-e-3", "dall-e", "imagen", "imagen-3"]; //user might type different names
     public static bool OpenAi { get; set; }
     public static bool Gemini { get; set; }
+    public static bool DeepSeek { get; set; }
     public static string? Path { get; set; }
     public static bool Reason { get; set; }
 }
