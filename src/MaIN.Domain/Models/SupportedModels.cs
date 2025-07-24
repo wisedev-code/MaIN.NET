@@ -220,8 +220,7 @@ public static class KnownModels
         var isPresent = Models.Exists(x => x.FileName == fileName);
         if (!isPresent)
         {
-            //todo support domain specific exceptions
-            Console.WriteLine($"Model {fileName} is not supported");
+            Console.WriteLine($"{new ModelNotSupportedException(fileName).PublicErrorMessage}");
             return null;
         }
 

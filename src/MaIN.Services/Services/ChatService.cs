@@ -93,9 +93,8 @@ public class ChatService(
         if (chatDocument == null)
         {
             throw new ChatNotFoundException(id);
-            // throw new Exception("Chat not found");
-            //TODO good candidate for custom exception
         }
+        
         return chatDocument.ToDomain();
     }
 

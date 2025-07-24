@@ -133,7 +133,9 @@ public class AgentService(
     {
         var agent = await agentRepository.GetAgentById(agentId);
         if (agent == null)
-            throw new Exception("Agent not found."); //TODO good candidate for custom exception
+        {
+            throw new AgentNotFoundException(agentId);
+        }
         
         var chat = (await chatRepository.GetChatById(agent.ChatId))!.ToDomain();
         var llmService = llmServiceFactory.CreateService(agent.Backend ?? maInSettings.BackendType);

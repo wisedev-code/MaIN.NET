@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml.Wordprocessing;
 using MaIN.Domain.Entities;
+using MaIN.Domain.Exceptions;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
 using MaIN.Services.Services.Models.Commands;
@@ -24,9 +25,10 @@ public class AnswerStepHandler(ICommandDispatcher commandDispatcher) : IStepHand
         };
         
         var answerResponse = await commandDispatcher.DispatchAsync(answerCommand);
-        if (answerResponse == null) 
-            throw new Exception("Answer command failed"); //TODO proper candidate for custom exception
-        
+        if (answerResponse == null)
+        {
+            throw new CommandFailedException(answerCommand.CommandName);
+        }
         
         var filterVal = GetFilter(answerResponse.Content);
         if (!string.IsNullOrEmpty(filterVal))

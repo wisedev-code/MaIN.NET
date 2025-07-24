@@ -2,6 +2,7 @@ using System.Data.SqlClient;
 using System.Text;
 using System.Text.Json;
 using MaIN.Domain.Entities.Agents.AgentSource;
+using MaIN.Domain.Exceptions;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Utils;
 using MongoDB.Bson;
@@ -76,8 +77,10 @@ public class DataSourceProvider : IDataSourceProvider
         var result = await httpClient.SendAsync(request);
         if (!result.IsSuccessStatusCode)
         {
-            throw new Exception(
-                $"API request failed with status code: {result.StatusCode}"); //TODO candidate for domain exception
+            throw new ApiRequestFailedException(
+                result.StatusCode, 
+                apiDetails?.Url + apiDetails?.Query, 
+                apiDetails?.Method ?? string.Empty);
         }
 
         var data = await result.Content.ReadAsStringAsync();
