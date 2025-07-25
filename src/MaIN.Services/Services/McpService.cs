@@ -67,6 +67,9 @@ public class McpService(MaINSettings settings) : IMcpService
                 };
             case BackendType.DeepSeek:
                 throw new NotSupportedException("DeepSeek models does not support MCP integration.");
+            case BackendType.Claude:
+                var apiKey = GetClaudeKey() ?? throw new ArgumentNullException(nameof(GetClaudeKey));
+                throw new NotImplementedException("todo mcp for claude");
             case BackendType.Self:
                 throw new NotSupportedException("Self backend (local models) does not support MCP integration.");
             default:
@@ -78,4 +81,6 @@ public class McpService(MaINSettings settings) : IMcpService
         => settings.OpenAiKey ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY");
     string? GetGeminiKey()
         => settings.GeminiKey ?? Environment.GetEnvironmentVariable("GEMINI_API_KEY");
+    string? GetClaudeKey()
+        => settings.ClaudeKey ?? Environment.GetEnvironmentVariable("CLAUDE_API_KEY");
 }

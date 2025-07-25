@@ -9,6 +9,7 @@ public static class ServiceConstants
         public const string OpenAiClient = "OpenAiClient";
         public const string GeminiClient = "GeminiClient";
         public const string DeepSeekClient = "DeepSeekClient";
+        public const string ClaudeClient = "ClaudeClient";
         public const string ImageDownloadClient = "ImageDownloadClient";
         public const string ModelContextDownloadClient = "ModelContextDownloadClient";
     }
@@ -25,6 +26,9 @@ public static class ServiceConstants
 
         public const string DeepSeekOpenAiChatCompletions = "https://api.deepseek.com/v1/chat/completions";
         public const string DeepSeekModels = "https://api.deepseek.com/models";
+
+        public const string ClaudeChatMessages = "https://api.anthropic.com/v1/messages";
+        public const string ClaudeModels = "https://api.anthropic.com/v1/models";
     }
 
     public static class Messages
