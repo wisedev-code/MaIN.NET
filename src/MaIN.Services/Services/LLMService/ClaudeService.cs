@@ -2,7 +2,6 @@
 using MaIN.Domain.Models;
 using MaIN.Services.Constants;
 using MaIN.Services.Services.Abstract;
-using MaIN.Services.Services.LLMService.Memory;
 using MaIN.Services.Services.Models;
 using MaIN.Services.Utils;
 using Microsoft.Extensions.Logging;
@@ -19,8 +18,6 @@ public sealed class ClaudeService(
     MaINSettings settings,
     INotificationService notificationService,
     IHttpClientFactory httpClientFactory,
-    IMemoryFactory memoryFactory,
-    IMemoryService memoryService,
     ILogger<ClaudeService>? logger = null)
     : ILLMService
 {
@@ -28,9 +25,17 @@ public sealed class ClaudeService(
 
     private static readonly ConcurrentDictionary<string, List<ChatMessage>> SessionCache = new();
 
-    private const string ClientName = ServiceConstants.HttpClients.ClaudeClient;
     private const string CompletionsUrl = ServiceConstants.ApiUrls.ClaudeChatMessages;
     private const string ModelsUrl = ServiceConstants.ApiUrls.ClaudeModels;
+
+    private HttpClient CreateClaudeHttpClient()
+    {
+        var client = httpClientFactory.CreateClient(ServiceConstants.HttpClients.ClaudeClient);
+        client.DefaultRequestHeaders.Add("x-api-key", GetApiKey());
+        client.DefaultRequestHeaders.Add("anthropic-version", "2023-06-01");
+
+        return client;
+    }
 
     private string GetApiKey()
     {
@@ -111,28 +116,15 @@ public sealed class ClaudeService(
 
     public async Task<ChatResult?> AskMemory(Chat chat, ChatMemoryOptions memoryOptions, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException("todo: Ask memory in ClaudeService");
-        //if (!chat.Messages.Any())
-        //    return null;
-
-        //var kernel = _memoryFactory.CreateMemoryWithAnthropic(GetApiKey(), chat.MemoryParams);
-        //await _memoryService.ImportDataToMemory(kernel, memoryOptions, cancellationToken);
-
-        //var query = chat.Messages.Last().Content;
-        //var result = await kernel.AskAsync(query, cancellationToken: cancellationToken);
-        //await kernel.DeleteIndexAsync(cancellationToken);
-
-        //return CreateChatResult(chat, result.Result, []);
+        throw new NotSupportedException("Embeddings are not supported by the Claude. Document reading requires embedding support.");
     }
 
     public async Task<string[]> GetCurrentModels()
     {
         ValidateApiKey();
-        var client = httpClientFactory.CreateClient(ClientName);
-        client.DefaultRequestHeaders.Add("x-api-key", GetApiKey());
-        client.DefaultRequestHeaders.Add("anthropic-version", "2023-06-01");
+        var httpClient = CreateClaudeHttpClient();
 
-        using var response = await client.GetAsync(ModelsUrl);
+        using var response = await httpClient.GetAsync(ModelsUrl);
         response.EnsureSuccessStatusCode();
 
         var json = await response.Content.ReadAsStringAsync();
@@ -200,14 +192,12 @@ public sealed class ClaudeService(
     bool interactiveUpdates,
     CancellationToken cancellationToken)
     {
-        var httpClient = httpClientFactory.CreateClient(ClientName);
-        httpClient.DefaultRequestHeaders.Add("x-api-key", apiKey);
-        httpClient.DefaultRequestHeaders.Add("anthropic-version", "2023-06-01");
+        var httpClient = CreateClaudeHttpClient();
 
         var requestBody = new
         {
             model = chat.Model,
-            max_tokens = 4096,
+            max_tokens = chat.InterferenceParams.MaxTokens < 0 ? 4096 : chat.InterferenceParams.MaxTokens,
             stream = true,
             system = chat.InterferenceParams.Grammar is not null ? $"Respond only using the following grammar format: \n{chat.InterferenceParams.Grammar}\n. Do not add explanations, code tags, or any extra content." : "",
             messages = conversation.Select(m => new
@@ -306,9 +296,7 @@ public sealed class ClaudeService(
         StringBuilder resultBuilder,
         CancellationToken cancellationToken)
     {
-        var httpClient = httpClientFactory.CreateClient(ClientName);
-        httpClient.DefaultRequestHeaders.Add("x-api-key", apiKey);
-        httpClient.DefaultRequestHeaders.Add("anthropic-version", "2023-06-01");
+        var httpClient = CreateClaudeHttpClient();
 
         var requestBody = new
         {
@@ -364,9 +352,6 @@ public sealed class ClaudeService(
 
 file class ClaudeMessageResponse
 {
-    //public string Id { get; set; } = default!;
-    //public string Type { get; set; } = default!;
-    //public string Role { get; set; } = default!;
     public List<ClaudeMessageContent> Content { get; set; } = [];
 }
 
@@ -378,7 +363,6 @@ file class ClaudeMessageContent
 
 file class ClaudeStreamChunk
 {
-    //public string Type { get; set; } = default!;
     public ClaudeDelta? Delta { get; set; }
 }
 

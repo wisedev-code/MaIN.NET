@@ -35,9 +35,7 @@ public class LLMServiceFactory(IServiceProvider serviceProvider) : ILLMServiceFa
             BackendType.Claude => new ClaudeService(
                 serviceProvider.GetRequiredService<MaINSettings>(),
                 serviceProvider.GetRequiredService<INotificationService>(),
-                serviceProvider.GetRequiredService<IHttpClientFactory>(),
-                serviceProvider.GetRequiredService<IMemoryFactory>(),
-                serviceProvider.GetRequiredService<IMemoryService>()),
+                serviceProvider.GetRequiredService<IHttpClientFactory>()),
 
             BackendType.Self => new LLMService(
                 serviceProvider.GetRequiredService<MaINSettings>(),
