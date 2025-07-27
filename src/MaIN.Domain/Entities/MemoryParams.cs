@@ -18,4 +18,5 @@ public class MemoryParams
     public bool MultiModalMode { get; set; } = false;
     
     public string? Grammar { get; init; }
+    public bool IncludeQuestionSource { get; set; } = false;
 }

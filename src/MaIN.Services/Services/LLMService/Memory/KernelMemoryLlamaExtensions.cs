@@ -37,7 +37,8 @@ public static class KernelMemoryLlamaExtensions
                 model,
                 context,
                 executor, //TODO we should try to use batched executor so we can use conversation object and its state
-                inferenceParams
+                inferenceParams,
+                memoryParams
             )
         );
         
