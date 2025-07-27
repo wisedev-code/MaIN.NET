@@ -7,14 +7,17 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using LLama;
 using LLama.Batched;
 using LLama.Common;
 using LLama.Native;
 using LLama.Sampling;
 using LLamaSharp.KernelMemory;
+using MaIN.Domain.Entities;
 using Microsoft.KernelMemory;
 using Microsoft.KernelMemory.AI;
+using InferenceParams = LLama.Common.InferenceParams;
 
 [Experimental("KMEXP00")]
 public sealed class LlamaSharpTextGen : ITextGenerator, ITextTokenizer, IDisposable
@@ -25,6 +28,7 @@ public sealed class LlamaSharpTextGen : ITextGenerator, ITextTokenizer, IDisposa
     private readonly LLamaContext _context;
     private readonly bool _ownsContext;
     private readonly InferenceParams? _defaultInferenceParams;
+    private readonly MemoryParams? _memoryParams;
 
     public int MaxTokenTotal { get; }
 
@@ -46,16 +50,17 @@ public sealed class LlamaSharpTextGen : ITextGenerator, ITextTokenizer, IDisposa
         MaxTokenTotal = (int)contextSize.Value;
     }
 
-    public LlamaSharpTextGen(
-        LLamaWeights weights,
+    public LlamaSharpTextGen(LLamaWeights weights,
         LLamaContext context,
         BatchedExecutor? executor = null,
-        InferenceParams? inferenceParams = null)
+        InferenceParams? inferenceParams = null, 
+        MemoryParams? memoryParams = null)
     {
         _weights = weights;
         _context = context;
         _executor = executor ?? new BatchedExecutor(_weights, _context.Params);
         _defaultInferenceParams = inferenceParams;
+        _memoryParams = memoryParams;
         MaxTokenTotal = (int)_context.ContextSize;
     }
 
@@ -77,7 +82,6 @@ public async IAsyncEnumerable<GeneratedTextContent> GenerateTextAsync(
     [EnumeratorCancellation] CancellationToken cancellationToken = default)
 {
     var parameters = OptionsToParams(options, _defaultInferenceParams);
-    
     // Create conversation from the executor (assuming you have a way to create this)
     var conversation = _executor.Create();
     conversation.Prompt(_weights.Tokenize(prompt, true, false, Encoding.UTF8));
@@ -87,6 +91,27 @@ public async IAsyncEnumerable<GeneratedTextContent> GenerateTextAsync(
     
     var maxTokens = GetMaxTokensFromOptions(options);
     var isComplete = false;
+
+    if (!string.IsNullOrEmpty(prompt))
+    {
+        // Extract Facts section using regex - everything from "Facts:" to the last "======"
+        var factsMatch = Regex.Match(prompt, @"Facts:\s*\n(.*?)\n======(?=\s*\nGiven only)", RegexOptions.Singleline);
+        
+        string factsSection;
+        if (factsMatch.Success)
+        {
+            // Include "Facts:" header and the closing delimiter
+            factsSection = $"Facts:\n{factsMatch.Groups[1].Value}\n======";
+        }
+        else
+        {
+            // Fallback: try to extract everything before instruction text
+            var fallbackMatch = Regex.Match(prompt, @"^(.*?)(?=\n======\s*\nGiven only)", RegexOptions.Singleline);
+            factsSection = fallbackMatch.Success ? fallbackMatch.Groups[1].Value : prompt;
+        }
+        
+        yield return new GeneratedTextContent($"<source>{factsSection}</source>");
+    }
     
     for (var i = 0; i < maxTokens && !isComplete; i++)
     {

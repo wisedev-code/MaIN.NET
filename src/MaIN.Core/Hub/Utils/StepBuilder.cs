@@ -20,9 +20,9 @@ public class StepBuilder
         return this;
     }
 
-    public StepBuilder AnswerUseKnowledge()
+    public StepBuilder AnswerUseKnowledge(bool alwaysSearchMemory = false)
     {
-        Steps.Add("ANSWER+USE_KNOWLEDGE");
+        Steps.Add($"ANSWER+USE_KNOWLEDGE{(alwaysSearchMemory ? "+ALWAYS" : string.Empty)}");
         return this;
     }
 
