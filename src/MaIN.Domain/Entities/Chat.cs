@@ -11,8 +11,6 @@ public class Chat
     public List<Message> Messages { get; set; } = [];
     public ChatType Type { get; set; } = ChatType.Conversation;
     public bool Visual { get; set; }
-    public bool Vocal { get; set; }
-    public string Voice { get; set; }
     public InferenceParams InterferenceParams { get; set; } = new();
     public MemoryParams MemoryParams { get; set; } = new();
     public Dictionary<string, string> Properties { get; init; } = [];
@@ -22,5 +20,10 @@ public class Chat
 
     public bool Interactive = false;
     public bool Translate = false;
+    
+    public bool Vocal { get; set; }
+    public string TTSModelPath { get; set; }
+    public string TTSVoicePath { get; set; }
+    public string TTSVoice { get; set; }
     
 }
