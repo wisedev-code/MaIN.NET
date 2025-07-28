@@ -15,7 +15,8 @@ public class ChatExample : IExample
         Console.WriteLine(context.Message.Content);
         
         await AIHub.Chat()
-            .WithTTS("kokoro", @"D:\Models\kokoro.onnx", "af_heart")
+            .Speak(@"C:\Models\tts\kokoro.onnx", @"C:\Models\tts\voices\af_nicole.npy")
+            //.WithTTS("kokoro", @"D:\Models\kokoro.onnx", "af_heart")
             .WithMessage(context.Message.Content).CompleteAsync();
     }
 }

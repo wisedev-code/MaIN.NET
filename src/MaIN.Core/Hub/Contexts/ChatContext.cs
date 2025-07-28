@@ -67,7 +67,16 @@ public class ChatContext
         _chat.Vocal = true;
         KnownModels.AddModel(model, path);
         _chat.Model = model;
-        _chat.Voice = voice;
+        _chat.TTSVoice = voice;
+        return this;
+    }
+
+    public ChatContext Speak(string modelPath, string voicePath)
+    {
+        _chat.Visual = false;
+        _chat.Vocal = true;
+        _chat.TTSModelPath = modelPath;
+        _chat.TTSVoicePath = voicePath;
         return this;
     }
 

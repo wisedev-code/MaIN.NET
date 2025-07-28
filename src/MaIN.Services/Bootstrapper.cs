@@ -45,6 +45,7 @@ public static class Bootstrapper
         serviceCollection.AddTransient<OpenAiService>();
         serviceCollection.AddTransient<ImageGenService>();
         serviceCollection.AddTransient<OpenAiImageGenService>();
+        
         serviceCollection.AddTransient<TTSService>();
         
         // Register all step handlers

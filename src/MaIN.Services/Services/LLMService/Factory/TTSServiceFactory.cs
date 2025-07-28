@@ -1,12 +1,9 @@
 ﻿using MaIN.Domain.Configuration;
+using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.TTSService;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace MaIN.Services.Services.LLMService.Factory;
-
-public interface ITTSServiceFactory
-{
-    ITTSService CreateService(BackendType backendType);
-}
 
 public class TTSServiceFactory(IServiceProvider serviceProvider) : ITTSServiceFactory
 {
