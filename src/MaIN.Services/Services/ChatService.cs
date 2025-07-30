@@ -75,7 +75,7 @@ public class ChatService(
     if (chat is { Visual: false, Vocal: true })
     {
         result = await ttsServiceFactory
-            .CreateService(chat.Backend.Value).Send(result, chat.TTSModelPath, chat.TTSVoicePath);
+            .CreateService(chat.Backend.Value).Send(result!, chat.TTSModelPath, chat.TTSVoicePath, chat.Playback);
     }
     
     originalMessages.Add(result!.Message);
