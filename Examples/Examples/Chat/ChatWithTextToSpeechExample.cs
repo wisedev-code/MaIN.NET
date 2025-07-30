@@ -6,16 +6,18 @@ public class ChatWithTextToSpeechExample : IExample
 {
     public async Task Start()
     {
-        Console.WriteLine("ChatWithTextToSpeech is running!");
+        Console.WriteLine("ChatWithTextToSpeech is running! Put on your headphones and press any key.");
+        Console.ReadKey();
 
-        var chatResult = await AIHub.Chat().WithModel("gemma2:2b")
-            .Speak(@"C:\Models\tts\kokoro.onnx", @"C:\Models\tts\voices\af_nicole.npy")
+        const string modelPath = @"C:\Models\tts\kokoro.onnx";
+        const string voicePath = @"C:\Models\tts\voices\af_nicole.npy";
+
+        await AIHub.Chat().WithModel("gemma2:2b")
+            .Speak(modelPath, voicePath, playback: true)
             .WithMessage("Generate a 4 sentence poem.")
-            .CompleteAsync();
-        
-        await File.WriteAllBytesAsync($@"C:\Models\tts\output_{DateTime.Now:yyyyMMdd_HHmmss}.wav", chatResult.SpeechBytes!);
+            .CompleteAsync(interactive: true);
 
-        Console.WriteLine(chatResult.Message.Content);
-        
+        Console.WriteLine("Done!");
+        Console.ReadKey();
     }
 }

@@ -26,6 +26,8 @@ public class Chat
     /// These are bytes with .wav file with generated speech
     /// </summary>
     public byte[] SpeechResponse { get; set; }
+
+    public bool Playback { get; set; }
     public string TTSModelPath { get; set; }
     public string TTSVoicePath { get; set; }
     

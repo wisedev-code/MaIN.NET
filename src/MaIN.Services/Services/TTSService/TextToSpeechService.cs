@@ -1,19 +1,25 @@
 ﻿using MaIN.Services.Services.Models;
+using NAudio.Wave;
 
 namespace MaIN.Services.Services.TTSService;
 
 public interface ITextToSpeechService
 {
-    Task<ChatResult?> Send(ChatResult result, string ttsModelPath, string ttsVoicePath);
+    Task<ChatResult?> Send(ChatResult result, string ttsModelPath, string ttsVoicePath, bool playback);
 }
 
 public class TextToSpeechService : ITextToSpeechService
 {
-    public async Task<ChatResult?> Send(ChatResult result, string ttsModelPath, string ttsVoicePath)
+    public async Task<ChatResult?> Send(ChatResult result, string ttsModelPath, string ttsVoicePath, bool playback)
     {
         var audioData = GenerateTtsAudio(ttsModelPath, ttsVoicePath, result.Message.Content);
         
         result.SpeechBytes = audioData;
+
+        if (playback)
+        {
+            await PlaybackAudio(audioData);
+        }
 
         return result;
     }
@@ -72,5 +78,21 @@ public class TextToSpeechService : ITextToSpeechService
         }
         
         return ms.ToArray();
+    }
+
+    private async Task PlaybackAudio(byte[] audioData)
+    {
+        using var ms = new MemoryStream(audioData);
+        using var reader = new WaveFileReader(ms);
+        using var output = new WaveOutEvent();
+        
+        output.Init(reader);
+        output.Play();
+
+        //TODO: do better playback end detection
+        while (output.PlaybackState == PlaybackState.Playing)
+        {
+            await Task.Delay(100);
+        }
     }
 }

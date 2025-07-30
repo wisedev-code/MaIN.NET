@@ -61,12 +61,13 @@ public class ChatContext
         return this;
     }
 
-    public ChatContext Speak(string modelPath, string voicePath)
+    public ChatContext Speak(string modelPath, string voicePath, bool playback = false)
     {
         _chat.Visual = false;
         _chat.Vocal = true;
         _chat.TTSModelPath = modelPath;
         _chat.TTSVoicePath = voicePath;
+        _chat.Playback = playback;
         return this;
     }
 
