@@ -58,27 +58,24 @@ public class ChatService(
         }))).ToList();
     }
 
-    ChatResult? result;
-    
-    if (chat.Vocal)
-    {
-        result = await ttsServiceFactory.CreateService(chat.Backend.Value).Send(chat);
-    }
-    else
-    {
-        result = chat.Visual 
-            ? await imageGenServiceFactory.CreateService(chat.Backend.Value).Send(chat) 
-            : await llmServiceFactory.CreateService(chat.Backend.Value).Send(chat, new ChatRequestOptions()
-            {
-                InteractiveUpdates = interactiveUpdates,
-                TokenCallback = changeOfValue
-            });
-    }
+    var result = chat.Visual 
+        ? await imageGenServiceFactory.CreateService(chat.Backend.Value).Send(chat) 
+        : await llmServiceFactory.CreateService(chat.Backend.Value).Send(chat, new ChatRequestOptions()
+        {
+            InteractiveUpdates = interactiveUpdates,
+            TokenCallback = changeOfValue
+        });
 
     if (translate)
     {
         result!.Message.Content = await translatorService.Translate(result.Message.Content, lng!);
         result.Message.Time = DateTime.Now;
+    }
+    
+    if (chat is { Visual: false, Vocal: true })
+    {
+        result = await ttsServiceFactory
+            .CreateService(chat.Backend.Value).Send(result, chat.TTSModelPath, chat.TTSVoicePath);
     }
     
     originalMessages.Add(result!.Message);

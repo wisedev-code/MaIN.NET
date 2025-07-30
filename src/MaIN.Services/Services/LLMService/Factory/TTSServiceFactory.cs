@@ -7,11 +7,11 @@ namespace MaIN.Services.Services.LLMService.Factory;
 
 public class TTSServiceFactory(IServiceProvider serviceProvider) : ITTSServiceFactory
 {
-    public ITTSService CreateService(BackendType backendType)
+    public ITextToSpeechService CreateService(BackendType backendType)
     {
         return backendType switch
         {
-            BackendType.Self => new TTSService.TTSService(),
+            BackendType.Self => new TTSService.TextToSpeechService(),
             _ => throw new ArgumentOutOfRangeException(nameof(backendType))
         };
     }
