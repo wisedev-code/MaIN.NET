@@ -46,7 +46,7 @@ public static class Bootstrapper
         serviceCollection.AddTransient<ImageGenService>();
         serviceCollection.AddTransient<OpenAiImageGenService>();
         
-        serviceCollection.AddTransient<TTSService>();
+        serviceCollection.AddTransient<ITextToSpeechService, TextToSpeechService>();
         
         // Register all step handlers
         serviceCollection.AddSingleton<IStepHandler, RedirectStepHandler>();

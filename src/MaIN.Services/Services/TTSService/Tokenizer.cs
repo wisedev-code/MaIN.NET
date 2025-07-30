@@ -5,18 +5,16 @@ using System.Text.RegularExpressions;
 
 namespace MaIN.Services.Services.TTSService;
 
-/// <summary> A static module responsible for tokenization converting plaintext to phonemes, and phonemes to tokens. </summary>
-/// <remarks>
-/// <para> Internally preprocesses and post-processes the input text to bring it closer to what the model expects to see. </para>
-/// <para> Phonemization happens via the espeak-ng library: <b>https://github.com/espeak-ng/espeak-ng/blob/master/docs/guide.md</b> </para>
-/// </remarks>
+/// <summary>
+/// Tokenizer and general flow of logic thanks to great Lyrcaxis.
+/// I highly advise checking out their project https://github.com/Lyrcaxis/KokoroSharp/tree/main
+/// </summary>
 public static partial class Tokenizer {
     static HashSet<char> spaceNeedingPhonemes = [.. "\"…<«“"];
     static HashSet<char> replaceablePhonemes = [.. "\n;:,.!?¡¿—…\"«»“”()"];
-    internal static HashSet<char> punctuation = [.. ";:,.!?…¿\n"];   // Lines split on any of these occurrences, by design via espeak-ng.
+    internal static HashSet<char> punctuation = [.. ";:,.!?…¿\n"]; 
     static Dictionary<char, string> currencies = new() { { '$', "dollar" }, { '€', "euro" }, { '£', "pound" }, { '¥', "yen" }, { '₹', "rupee" }, { '₽', "ruble" }, { '₩', "won" }, { '₺', "lira" }, { '₫', "dong" } };
     static char[] deletableCharacters = [.. "-`()[]{}"];
-    //static int[] z ; // tokens that might be of interest later.
 
     /// <summary> Path to the folder in which the espeak-ng binaries and data reside. Defaults to the folder created by the NuGet package. </summary>
     /// <remarks> Can be overridden with a custom path if a use-case requires so. </remarks>

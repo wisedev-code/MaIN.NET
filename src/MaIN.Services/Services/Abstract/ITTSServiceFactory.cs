@@ -5,5 +5,5 @@ namespace MaIN.Services.Services.Abstract;
 
 public interface ITTSServiceFactory
 {
-    ITTSService CreateService(BackendType backendType);
+    ITextToSpeechService CreateService(BackendType backendType);
 }
