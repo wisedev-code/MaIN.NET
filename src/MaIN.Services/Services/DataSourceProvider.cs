@@ -4,6 +4,7 @@ using System.Text.Json;
 using MaIN.Domain.Entities.Agents.AgentSource;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Utils;
+using Microsoft.IdentityModel.Tokens;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
@@ -67,10 +68,37 @@ public class DataSourceProvider : IDataSourceProvider
 
         if (!string.IsNullOrEmpty(apiDetails?.Payload))
         {
+            var jsonString = apiDetails.Payload;
+
+            if(!(apiDetails.Payload is string))
+            {
+                jsonString = JsonSerializer.Serialize(apiDetails.Payload);
+            }
+            else
+            {
+                try
+                {
+                    JsonDocument.Parse(jsonString);
+                }
+                catch (JsonException ex)
+                {
+                    throw new Exception($"Invalid JSON: {ex.Message}");
+                }
+            }
+
             request.Content = new StringContent(
-                JsonSerializer.Serialize(apiDetails.Payload),
+                jsonString,
                 Encoding.UTF8,
                 "application/json");
+
+
+        }
+
+        if (!apiDetails.AuthorisationToken.IsNullOrEmpty())
+        {
+            var token = apiDetails.AuthorisationToken;
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
         }
 
         var result = await httpClient.SendAsync(request);
@@ -81,7 +109,7 @@ public class DataSourceProvider : IDataSourceProvider
         }
 
         var data = await result.Content.ReadAsStringAsync();
-
+        
         properties.TryAdd("api_response_type", apiDetails?.ResponseType ?? "JSON");
         if (apiDetails?.ChunkLimit != null)
         {

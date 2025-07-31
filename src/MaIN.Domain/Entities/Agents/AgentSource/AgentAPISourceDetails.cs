@@ -8,4 +8,5 @@ public class AgentApiSourceDetails : AgentSourceDetailsBase, IAgentSource
     public string? Query { get; set; }
     public string? ResponseType { get; init; }
     public int? ChunkLimit { get; init; }
+    public string? AuthorisationToken { get; set; }
 }
