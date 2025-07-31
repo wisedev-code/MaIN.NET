@@ -12,7 +12,7 @@ public class ChatExampleClaude : IExample
 
         await AIHub.Chat()
             .WithModel("claude-sonnet-4-20250514")
-            .WithMessage("Why the sky is blue?")
+            .WithMessage("Why the clouds are white?")
             .CompleteAsync(interactive: true);
     }
 }

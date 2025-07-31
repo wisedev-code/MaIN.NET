@@ -1,4 +1,3 @@
-using System.Net.Mime;
 using MaIN.Core;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Models;
@@ -65,6 +64,13 @@ try
                 apiKeyVariable = "DEEPSEEK_API_KEY";
                 apiName = "Deepseek";
                 break;
+
+            case "claude":
+                Utils.Claude = true;
+                apiKeyVariable = "CLAUDE_API_KEY";
+                apiName = "Claude";
+                break;
+
         }
 
         var key = Environment.GetEnvironmentVariable(apiKeyVariable);
@@ -101,6 +107,13 @@ else if (Utils.DeepSeek)
     builder.Services.AddMaIN(builder.Configuration, settings =>
     {
         settings.BackendType = BackendType.DeepSeek;
+    });
+}
+else if(Utils.Claude)
+{
+    builder.Services.AddMaIN(builder.Configuration, settings =>
+    {
+        settings.BackendType = BackendType.Claude;
     });
 }
 else

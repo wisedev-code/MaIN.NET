@@ -2,6 +2,7 @@ using LLama.Common;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Services.Services.Abstract;
+using MaIN.Services.Services.LLMService.Utils;
 using MaIN.Services.Services.Models;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Connectors.Google;
@@ -12,13 +13,13 @@ using ModelContextProtocol.Client;
 
 namespace MaIN.Services.Services;
 
-public class McpService(MaINSettings settings) : IMcpService
+public class McpService(MaINSettings settings, IServiceProvider serviceProvider) : IMcpService
 {
     public async Task<McpResult> Prompt(Mcp config, string prompt)
     {
         await using var mcpClient = await McpClientFactory.CreateAsync(
             new StdioClientTransport(
-                new StdioClientTransportOptions()
+                new StdioClientTransportOptions
                 {
                     Command = config.Command,
                     Arguments = config.Arguments,
@@ -34,10 +35,10 @@ public class McpService(MaINSettings settings) : IMcpService
 
         var res = await kernel.InvokePromptAsync(prompt,new KernelArguments(promptSettings));
 
-        return new McpResult()
+        return new McpResult
         {
             CreatedAt = DateTime.Now,
-            Message = new Message()
+            Message = new Message
             {
                 Content = res.ToString(),
                 Role = nameof(AuthorRole.Assistant),
@@ -53,13 +54,13 @@ public class McpService(MaINSettings settings) : IMcpService
         {
             case BackendType.OpenAi:
                 kernelBuilder.Services.AddOpenAIChatCompletion(model, GetOpenAiKey() ?? throw new ArgumentNullException(nameof(GetOpenAiKey)));
-                return new OpenAIPromptExecutionSettings()
+                return new OpenAIPromptExecutionSettings
                 {
                     FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(options: new() { RetainArgumentTypes = true })
                 };
             case BackendType.Gemini:
                 kernelBuilder.Services.AddGoogleAIGeminiChatCompletion(model, GetGeminiKey() ?? throw new ArgumentNullException(nameof(GetGeminiKey)));
-                return new GeminiPromptExecutionSettings()
+                return new GeminiPromptExecutionSettings
                 {
                     ToolCallBehavior = GeminiToolCallBehavior.AutoInvokeKernelFunctions,
                     ModelId = model,
@@ -67,9 +68,17 @@ public class McpService(MaINSettings settings) : IMcpService
                 };
             case BackendType.DeepSeek:
                 throw new NotSupportedException("DeepSeek models does not support MCP integration.");
+
             case BackendType.Claude:
-                var apiKey = GetClaudeKey() ?? throw new ArgumentNullException(nameof(GetClaudeKey));
-                throw new NotImplementedException("todo mcp for claude");
+                kernelBuilder.AddClaudeChatCompletion(serviceProvider, model, GetClaudeKey() ?? throw new ArgumentNullException(nameof(GetClaudeKey)));
+                return new PromptExecutionSettings
+                {
+                    ExtensionData = new Dictionary<string, object>
+                    {
+                        ["max_tokens"] = 4096
+                    }
+                };
+
             case BackendType.Self:
                 throw new NotSupportedException("Self backend (local models) does not support MCP integration.");
             default:
