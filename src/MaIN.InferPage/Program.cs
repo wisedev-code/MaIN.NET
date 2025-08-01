@@ -1,3 +1,4 @@
+using System.Net.Mime;
 using MaIN.Core;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Models;
