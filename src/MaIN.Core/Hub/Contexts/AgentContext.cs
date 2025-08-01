@@ -18,7 +18,7 @@ public class AgentContext
     private MemoryParams? _memoryParams;
     private bool _disableCache;
     private Agent _agent;
-    private Knowledge? _knowledge;
+    internal Knowledge? _knowledge;
 
     internal AgentContext(IAgentService agentService)
     {
@@ -172,19 +172,17 @@ public class AgentContext
 
     public async Task<AgentContext> CreateAsync(bool flow = false, bool interactiveResponse = false)
     {
-        LoadExistingKnowledgeIfExists();
         await _agentService.CreateAgent(_agent, flow, interactiveResponse, _inferenceParams, _memoryParams, _disableCache);
         return this;
     }
     
     public AgentContext Create(bool flow = false, bool interactiveResponse = false)
     {
-        LoadExistingKnowledgeIfExists();
         _ = _agentService.CreateAgent(_agent, flow, interactiveResponse, _inferenceParams, _memoryParams, _disableCache).Result;
         return this;
     }
 
-    private void LoadExistingKnowledgeIfExists()
+    internal void LoadExistingKnowledgeIfExists()
     {
         if (_knowledge == null)
         {
@@ -202,7 +200,12 @@ public class AgentContext
     
     public async Task<ChatResult> ProcessAsync(Chat chat, bool translate = false)
     {
-        var result = await _agentService.Process(chat, _agent.Id, translate);
+        if (_knowledge == null)
+        {
+            LoadExistingKnowledgeIfExists();
+        }
+
+        var result = await _agentService.Process(chat, _agent.Id, _knowledge, translate);
         var message = result.Messages.LastOrDefault()!;
         return new ChatResult()
         {
@@ -215,15 +218,19 @@ public class AgentContext
     
     public async Task<ChatResult> ProcessAsync(string message, bool translate = false)
     {
+        if (_knowledge == null)
+        {
+            LoadExistingKnowledgeIfExists();
+        }
         var chat = await _agentService.GetChatByAgent(_agent.Id);
         chat.Messages.Add(new Message()
         {
             Content = message,
             Role = "User",
-            Type = MessageType.LocalLLM,
+            Type = MessageType.LocalLLM, //TODO this need an improvement - we dont know if the message is from local or cloud
             Time = DateTime.Now
         });
-        var result = await _agentService.Process(chat, _agent.Id, translate);
+        var result = await _agentService.Process(chat, _agent.Id, _knowledge, translate);
         var messageResult = result.Messages.LastOrDefault()!;
         return new ChatResult()
         {
@@ -236,9 +243,13 @@ public class AgentContext
     
     public async Task<ChatResult> ProcessAsync(Message message, bool translate = false)
     {
+        if (_knowledge == null)
+        {
+            LoadExistingKnowledgeIfExists();
+        }
         var chat = await _agentService.GetChatByAgent(_agent.Id);
         chat.Messages.Add(message);
-        var result = await _agentService.Process(chat, _agent.Id, translate);
+        var result = await _agentService.Process(chat, _agent.Id, _knowledge, translate);
         var messageResult = result.Messages.LastOrDefault()!;
         return new ChatResult()
         {
@@ -294,6 +305,10 @@ public static class AgentExtensions
         bool translate = false)
     {
         var agent = await agentTask;
+        if (agent._knowledge == null)
+        {
+            agent.LoadExistingKnowledgeIfExists();
+        }
         return await agent.ProcessAsync(message, translate);
     }
 }
