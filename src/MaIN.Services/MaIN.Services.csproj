@@ -28,4 +28,8 @@
       <PackageReference Include="Tesseract.Data.English" Version="4.0.0" />
     </ItemGroup>
 
+    <ItemGroup>
+      <NativeLibs Remove="Utils\CurlRequestParser.cs" />
+    </ItemGroup>
+
 </Project>
