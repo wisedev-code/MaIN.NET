@@ -1,6 +1,7 @@
 using MaIN.Core.Hub.Contexts;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
+using MaIN.Domain.Entities.Agents.Knowledge;
 using MaIN.Services.Dtos;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
@@ -172,7 +173,7 @@ public class AgentContextTests
             .ReturnsAsync(chat);
 
         _mockAgentService
-            .Setup(s => s.Process(It.IsAny<Chat>(), _agentContext.GetAgentId(), It.IsAny<bool>()))
+            .Setup(s => s.Process(It.IsAny<Chat>(), _agentContext.GetAgentId(), It.IsAny<Knowledge>(), It.IsAny<bool>()))
             .ReturnsAsync(new Chat { 
                 Model = "test-model", 
                 Name = "test",

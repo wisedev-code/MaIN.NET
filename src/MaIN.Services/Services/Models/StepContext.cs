@@ -1,4 +1,5 @@
 using MaIN.Domain.Entities;
+using MaIN.Domain.Entities.Agents.Knowledge;
 using MaIN.Infrastructure.Models;
 
 namespace MaIN.Services.Services.Models;
@@ -14,4 +15,5 @@ public class StepContext
     public required Func<string, string, string?, string, Task> NotifyProgress { get; init; }
     public required Func<Chat, Task> UpdateChat { get; init; }
     public required string StepName { get; init; }
+    public Knowledge? Knowledge { get; set; }
 }

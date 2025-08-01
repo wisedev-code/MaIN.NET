@@ -1,4 +1,6 @@
 
+using System.Text.Json;
+
 namespace MaIN.Domain.Entities.Agents.Knowledge;
 
 public class KnowledgeIndex
@@ -50,4 +52,8 @@ public class KnowledgeIndex
             .ToList()
             .AsReadOnly();
     }
+
+    public string AsString() =>
+        JsonSerializer.Serialize(this);
+
 }

@@ -1,6 +1,7 @@
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
+using MaIN.Domain.Entities.Agents.Knowledge;
 using MaIN.Infrastructure.Repositories.Abstract;
 using MaIN.Services.Constants;
 using MaIN.Services.Mappers;
@@ -25,7 +26,7 @@ public class AgentService(
     MaINSettings maInSettings)
     : IAgentService
 {
-    public async Task<Chat> Process(Chat chat, string agentId, bool translatePrompt = false)
+    public async Task<Chat> Process(Chat chat, string agentId, Knowledge? knowledge, bool translatePrompt = false)
     {
         var agent = await agentRepository.GetAgentById(agentId);
         if (agent == null) 
@@ -41,6 +42,7 @@ public class AgentService(
             chat = await stepProcessor.ProcessSteps(
                 agent.Context,
                 agent,
+                knowledge,
                 chat,
                 async (status, id, progress, behaviour) =>
                 {

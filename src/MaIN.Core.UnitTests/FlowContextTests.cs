@@ -4,6 +4,7 @@ using MaIN.Domain.Entities.Agents;
 using MaIN.Services.Services.Abstract;
 using Moq;
 using MaIN.Domain.Entities.Agents.AgentSource;
+using MaIN.Domain.Entities.Agents.Knowledge;
 
 namespace MaIN.Core.UnitTests;
 
@@ -97,7 +98,7 @@ public class FlowContextTests
             .ReturnsAsync(chat);
 
         _mockAgentService
-            .Setup(s => s.Process(It.IsAny<Chat>(), firstAgent.Id, It.IsAny<bool>()))
+            .Setup(s => s.Process(It.IsAny<Chat>(), firstAgent.Id, It.IsAny<Knowledge>(), It.IsAny<bool>()))
             .ReturnsAsync(new Chat { 
                 Model = "test-model", 
                 Name = "test",
