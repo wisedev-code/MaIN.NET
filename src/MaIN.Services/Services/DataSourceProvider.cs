@@ -4,6 +4,7 @@ using System.Text.Json;
 using MaIN.Domain.Entities.Agents.AgentSource;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Utils;
+using Microsoft.IdentityModel.Tokens;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
@@ -61,19 +62,77 @@ public class DataSourceProvider : IDataSourceProvider
         apiDetails.Query = apiDetails.Query?.Replace("@filter@", filter);
         apiDetails.Url = apiDetails.Url.Replace("@filter@", filter);
 
+        HttpResponseMessage result = null;
+
         var request = new HttpRequestMessage(
             HttpMethod.Parse(apiDetails?.Method),
             apiDetails?.Url + apiDetails?.Query);
 
-        if (!string.IsNullOrEmpty(apiDetails?.Payload))
+
+        if (!apiDetails.AuthorisationToken.IsNullOrEmpty())
         {
-            request.Content = new StringContent(
-                JsonSerializer.Serialize(apiDetails.Payload),
-                Encoding.UTF8,
-                "application/json");
+            var token = apiDetails.AuthorisationToken;
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
         }
 
-        var result = await httpClient.SendAsync(request);
+        if (!string.IsNullOrEmpty(apiDetails?.Curl))
+        {
+            CurlRequestParser.PopulateRequestFromCurl(request, apiDetails.Curl);
+            var a = await request.Content.ReadAsStringAsync();
+        }
+        else
+        {
+            if (!string.IsNullOrEmpty(apiDetails?.Payload))
+            {
+
+                var jsonString = apiDetails.Payload;
+
+                if (!(apiDetails.Payload is string))
+                {
+                    jsonString = JsonSerializer.Serialize(apiDetails.Payload);
+
+                }
+                else
+                {
+                    try
+                    {
+                        JsonDocument.Parse(jsonString);
+                    }
+                    catch (JsonException ex)
+                    {
+                        try
+                        {
+                            jsonString = JsonSerializer.Serialize(apiDetails.Payload);
+                            if (!jsonString.StartsWith('{'))
+                            {
+                                jsonString = $"{{{jsonString}}}";
+                            }
+                            jsonString = JsonCleaner.CleanAndUnescape(jsonString);
+
+                            JsonDocument.Parse(jsonString);
+                        }
+                        catch
+                        {
+                            throw new Exception($"Invalid JSON: {ex.Message}");
+                        }
+
+                        
+                    }
+                }
+
+                request.Content = new StringContent(
+                    jsonString,
+                    Encoding.UTF8,
+                    "application/json");
+
+
+            }
+
+            
+        }
+        //------------
+        result = await httpClient.SendAsync(request);
         if (!result.IsSuccessStatusCode)
         {
             throw new Exception(
@@ -81,7 +140,7 @@ public class DataSourceProvider : IDataSourceProvider
         }
 
         var data = await result.Content.ReadAsStringAsync();
-
+        
         properties.TryAdd("api_response_type", apiDetails?.ResponseType ?? "JSON");
         if (apiDetails?.ChunkLimit != null)
         {
