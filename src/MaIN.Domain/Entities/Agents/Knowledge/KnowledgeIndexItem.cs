@@ -3,7 +3,7 @@ namespace MaIN.Domain.Entities.Agents.Knowledge;
 public class KnowledgeIndexItem : IEquatable<KnowledgeIndexItem>
 {
     public required string Name { get; init; }
-    public required string Path { get; init; }
+    public required string Value { get; init; }
     public required KnowledgeItemType Type { get; set; }
     public required string[] Tags { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -14,7 +14,7 @@ public class KnowledgeIndexItem : IEquatable<KnowledgeIndexItem>
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
         return Name.Equals(other.Name, StringComparison.OrdinalIgnoreCase) && 
-               Path.Equals(other.Path, StringComparison.OrdinalIgnoreCase);
+               Value.Equals(other.Value, StringComparison.OrdinalIgnoreCase);
     }
 
     public override bool Equals(object? obj)
@@ -26,7 +26,7 @@ public class KnowledgeIndexItem : IEquatable<KnowledgeIndexItem>
     {
         return HashCode.Combine(
             Name.ToLowerInvariant(), 
-            Path.ToLowerInvariant()
+            Value.ToLowerInvariant()
         );
     }
 

@@ -47,7 +47,7 @@ public class KnowledgeBuilder
         _items.Add(new KnowledgeIndexItem
         {
             Name = name,
-            Path = path,
+            Value = path,
             Type = KnowledgeItemType.File,
             Tags = tags
         });
@@ -59,7 +59,7 @@ public class KnowledgeBuilder
         _items.Add(new KnowledgeIndexItem
         {
             Name = name,
-            Path = url,
+            Value = url,
             Type = KnowledgeItemType.Url,
             Tags = tags
         });
@@ -71,7 +71,7 @@ public class KnowledgeBuilder
         _items.Add(new KnowledgeIndexItem
         {
             Name = name,
-            Path = content,
+            Value = content,
             Type = KnowledgeItemType.Text,
             Tags = tags
         });
@@ -83,7 +83,7 @@ public class KnowledgeBuilder
         _items.Add(new KnowledgeIndexItem
         {
             Name = name,
-            Path = path,
+            Value = path,
             Type = type,
             Tags = tags
         });
