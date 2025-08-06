@@ -68,9 +68,8 @@ public class DataSourceProvider : IDataSourceProvider
             HttpMethod.Parse(apiDetails?.Method),
             apiDetails?.Url + apiDetails?.Query);
 
-        var a = AuthTypeEnum.Bearer;
         
-        if (!apiDetails.AuthorisationToken.IsNullOrEmpty())
+        if (!apiDetails.AuthenticationToken.IsNullOrEmpty())
         {
             if (!apiDetails.AuthorisationType.HasValue)
                 throw new InvalidOperationException("You need to specify an authorization type");
@@ -78,11 +77,11 @@ public class DataSourceProvider : IDataSourceProvider
             switch (apiDetails.AuthorisationType)
             {
                 case AuthTypeEnum.Bearer:
-                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiDetails.AuthorisationToken);
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiDetails.AuthenticationToken);
                     break;
                 
                 case AuthTypeEnum.ApiKey:
-                    request.Headers.Authorization = new AuthenticationHeaderValue("ApiKey", apiDetails.AuthorisationToken);
+                    request.Headers.Authorization = new AuthenticationHeaderValue("ApiKey", apiDetails.AuthenticationToken);
                     break;
 
                 case AuthTypeEnum.Basic:
