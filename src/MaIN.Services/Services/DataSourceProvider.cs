@@ -1,12 +1,13 @@
-using System.Data.SqlClient;
-using System.Text;
-using System.Text.Json;
 using MaIN.Domain.Entities.Agents.AgentSource;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Utils;
 using Microsoft.IdentityModel.Tokens;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using System.Data.SqlClient;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
 
 namespace MaIN.Services.Services;
 
@@ -62,24 +63,48 @@ public class DataSourceProvider : IDataSourceProvider
         apiDetails.Query = apiDetails.Query?.Replace("@filter@", filter);
         apiDetails.Url = apiDetails.Url.Replace("@filter@", filter);
 
-        HttpResponseMessage result = null;
 
         var request = new HttpRequestMessage(
             HttpMethod.Parse(apiDetails?.Method),
             apiDetails?.Url + apiDetails?.Query);
 
-
+        var a = AuthTypeEnum.Bearer;
+        
         if (!apiDetails.AuthorisationToken.IsNullOrEmpty())
         {
-            var token = apiDetails.AuthorisationToken;
-            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            switch (apiDetails.AuthorisationType)
+            {
+                
+                case AuthTypeEnum.Bearer:
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiDetails.AuthorisationToken);
+                    break;
+                
+                case AuthTypeEnum.ApiKey:
+                    request.Headers.Authorization = new AuthenticationHeaderValue("ApiKey", apiDetails.AuthorisationToken);
+                    break;
+
+                case AuthTypeEnum.Basic:
+                    if (string.IsNullOrEmpty(apiDetails.UserName) || string.IsNullOrEmpty(apiDetails.UserPassword))
+                        throw new InvalidOperationException("Username and password are required for Basic Auth.");
+
+                    var credentials = $"{apiDetails.UserName}:{apiDetails.UserPassword}";
+                    var base64Credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
+                    request.Headers.Authorization =
+                        new AuthenticationHeaderValue("Basic", base64Credentials);
+                    break;
+
+                default:
+                    throw new InvalidOperationException("Wrong Api Type");
+
+
+            }
+
 
         }
 
         if (!string.IsNullOrEmpty(apiDetails?.Curl))
         {
             CurlRequestParser.PopulateRequestFromCurl(request, apiDetails.Curl);
-            var a = await request.Content.ReadAsStringAsync();
         }
         else
         {
@@ -131,8 +156,7 @@ public class DataSourceProvider : IDataSourceProvider
 
             
         }
-        //------------
-        result = await httpClient.SendAsync(request);
+        var result = await httpClient.SendAsync(request);
         if (!result.IsSuccessStatusCode)
         {
             throw new Exception(

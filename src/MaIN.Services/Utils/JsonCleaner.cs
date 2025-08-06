@@ -20,6 +20,7 @@ public static class JsonCleaner
                 using JsonDocument doc = JsonDocument.Parse(current);
                 JsonElement root = doc.RootElement;
 
+                // Unwrap nested JSON strings up to maxDepth
                 if (root.ValueKind == JsonValueKind.String)
                 {
                     current = root.GetString()!.Trim();
@@ -28,14 +29,13 @@ public static class JsonCleaner
                 }
                 else if (root.ValueKind == JsonValueKind.Object || root.ValueKind == JsonValueKind.Array)
                 {
-                    // Serialize with relaxed escaping to unescape unicode characters
+
                     var options = new JsonSerializerOptions
                     {
                         WriteIndented = true,
                         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
                     };
 
-                    // Note: We serialize the JsonElement directly, which will output real Unicode chars
                     return JsonSerializer.Serialize(root, options);
                 }
                 else
