@@ -58,6 +58,7 @@ static void RegisterExamples(IServiceCollection services)
     services.AddTransient<AgentWithBecomeExample>();
     services.AddTransient<AgentWithApiDataSourceExample>();
     services.AddTransient<AgentTalkingToEachOtherExample>();
+    services.AddTransient<AgentWithKnowledgeBaseExample>();
     services.AddTransient<AgentsComposedAsFlowExample>();
     services.AddTransient<AgentsFlowLoadedExample>();
     services.AddTransient<ChatExampleOpenAi>();
@@ -141,6 +142,7 @@ public class ExampleRegistry(IServiceProvider serviceProvider)
             ("\u25a0 Agent with Redirect (Multi backends)", serviceProvider.GetRequiredService<MultiBackendAgentWithRedirectExample>()),
             ("\u25a0 Agent with Redirect Image", serviceProvider.GetRequiredService<AgentWithRedirectImageExample>()),
             ("\u25a0 Agent with Become", serviceProvider.GetRequiredService<AgentWithBecomeExample>()),
+            ("\u25a0 Agent with Knowledge", serviceProvider.GetRequiredService<AgentWithKnowledgeBaseExample>()),
             ("\u25a0 Agent with API Data Source", serviceProvider.GetRequiredService<AgentWithApiDataSourceExample>()),
             ("\u25a0 Agents Talking to Each Other", serviceProvider.GetRequiredService<AgentTalkingToEachOtherExample>()),
             ("\u25a0 Agents Composed as Flow", serviceProvider.GetRequiredService<AgentsComposedAsFlowExample>()),
@@ -153,7 +155,6 @@ public class ExampleRegistry(IServiceProvider serviceProvider)
             ("\u25a0 Gemini Chat with files", serviceProvider.GetRequiredService<ChatWithFilesExampleGemini>()),
             ("\u25a0 McpClient example", serviceProvider.GetRequiredService<McpExample>()),
             ("\u25a0 McpAgent example", serviceProvider.GetRequiredService<McpAgentsExample>())
-
         };
     }
 }

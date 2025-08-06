@@ -274,7 +274,12 @@ public class AgentContext
     {
         return await _agentService.GetAgents();
     }
-
+    
+    public async Task<Agent?> GetAgentById(string id)
+    {
+        return await _agentService.GetAgentById(id);
+    }
+    
     public async Task Delete()
     {
         await _agentService.DeleteAgent(_agent.Id);
