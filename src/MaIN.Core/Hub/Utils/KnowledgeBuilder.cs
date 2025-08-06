@@ -42,7 +42,7 @@ public class KnowledgeBuilder
         return this;
     }
 
-    public KnowledgeBuilder AddFile(string name, string path, params string[] tags)
+    public KnowledgeBuilder AddFile(string name, string path, string[] tags)
     {
         _items.Add(new KnowledgeIndexItem
         {
@@ -54,7 +54,7 @@ public class KnowledgeBuilder
         return this;
     }
 
-    public KnowledgeBuilder AddUrl(string name, string url, params string[] tags)
+    public KnowledgeBuilder AddUrl(string name, string url, string[] tags)
     {
         _items.Add(new KnowledgeIndexItem
         {
@@ -66,7 +66,7 @@ public class KnowledgeBuilder
         return this;
     }
 
-    public KnowledgeBuilder AddText(string name, string content, params string[] tags)
+    public KnowledgeBuilder AddText(string name, string content, string[] tags)
     {
         _items.Add(new KnowledgeIndexItem
         {
