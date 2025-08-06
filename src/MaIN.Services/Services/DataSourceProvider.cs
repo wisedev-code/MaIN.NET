@@ -72,9 +72,11 @@ public class DataSourceProvider : IDataSourceProvider
         
         if (!apiDetails.AuthorisationToken.IsNullOrEmpty())
         {
+            if (!apiDetails.AuthorisationType.HasValue)
+                throw new InvalidOperationException("You need to specify an authorization type");
+
             switch (apiDetails.AuthorisationType)
             {
-                
                 case AuthTypeEnum.Bearer:
                     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiDetails.AuthorisationToken);
                     break;
