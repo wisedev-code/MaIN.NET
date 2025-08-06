@@ -9,7 +9,7 @@ public class AgentApiSourceDetails : AgentSourceDetailsBase, IAgentSource
     public string? ResponseType { get; init; }
     public int? ChunkLimit { get; init; }
     public AuthTypeEnum? AuthorisationType { get; set; }
-    public string? AuthorisationToken { get; set; }
+    public string? AuthenticationToken { get; set; }
     /// <summary>
     /// Override payload and authorisation token
     /// </summary>
