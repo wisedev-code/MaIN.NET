@@ -71,10 +71,10 @@ public class DataSourceProvider : IDataSourceProvider
         
         if (!apiDetails.AuthenticationToken.IsNullOrEmpty())
         {
-            if (!apiDetails.AuthorisationType.HasValue)
-                throw new InvalidOperationException("You need to specify an authorization type");
+            if (!apiDetails.AuthenticationType.HasValue)
+                throw new InvalidOperationException("Please specify an authorization type");
 
-            switch (apiDetails.AuthorisationType)
+            switch (apiDetails.AuthenticationType)
             {
                 case AuthTypeEnum.Bearer:
                     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiDetails.AuthenticationToken);
@@ -86,7 +86,7 @@ public class DataSourceProvider : IDataSourceProvider
 
                 case AuthTypeEnum.Basic:
                     if (string.IsNullOrEmpty(apiDetails.UserName) || string.IsNullOrEmpty(apiDetails.UserPassword))
-                        throw new InvalidOperationException("Username and password are required for Basic Auth.");
+                        throw new InvalidOperationException("Username and password are required for basic authentication.");
 
                     var credentials = $"{apiDetails.UserName}:{apiDetails.UserPassword}";
                     var base64Credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
@@ -95,7 +95,7 @@ public class DataSourceProvider : IDataSourceProvider
                     break;
 
                 default:
-                    throw new InvalidOperationException("Wrong Api Type");
+                    throw new InvalidOperationException($"Unsupported authentication type: {apiDetails.AuthenticationType}");
 
 
             }
@@ -129,6 +129,8 @@ public class DataSourceProvider : IDataSourceProvider
                     {
                         try
                         {
+                            // Attempt to wrap malformed payload into a JSON object as a last resort
+
                             jsonString = JsonSerializer.Serialize(apiDetails.Payload);
                             if (!jsonString.StartsWith('{'))
                             {
