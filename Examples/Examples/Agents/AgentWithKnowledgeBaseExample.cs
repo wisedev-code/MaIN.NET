@@ -25,8 +25,7 @@ public class AgentWithKnowledgeBaseExample : IExample
                 .AddFile("events.md", "./Files/Knowledge/events.md",
                     tags: ["company events", "company calendar", "company agenda"])
                 .AddFile("office_layout.md", "./Files/Knowledge/office_layout.md",
-                    tags: ["company layout", "company facilities", "company environment", "office items"])
-                .Build())
+                    tags: ["company layout", "company facilities", "company environment", "office items"]))
             .WithSteps(StepBuilder.Instance
                 .AnswerUseKnowledge()
                 .Build())

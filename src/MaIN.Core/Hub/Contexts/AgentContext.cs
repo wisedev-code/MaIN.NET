@@ -147,6 +147,12 @@ public class AgentContext
         return this;
     }
 
+    public AgentContext WithKnowledge(KnowledgeBuilder knowledge)
+    {
+        _knowledge = knowledge.ForAgent(_agent).Build();
+        return this;
+    }
+    
     public AgentContext WithKnowledge(Knowledge knowledge)
     {
         _knowledge = knowledge;
