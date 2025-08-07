@@ -8,10 +8,10 @@ public class AgentApiSourceDetails : AgentSourceDetailsBase, IAgentSource
     public string? Query { get; set; }
     public string? ResponseType { get; init; }
     public int? ChunkLimit { get; init; }
-    public AuthTypeEnum? AuthorisationType { get; set; }
+    public AuthTypeEnum? AuthenticationType { get; set; }
     public string? AuthenticationToken { get; set; }
     /// <summary>
-    /// Override payload and authorisation token
+    /// Override payload
     /// </summary>
     public string? Curl { get; set; }
     /// <summary>
