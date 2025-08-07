@@ -9,6 +9,7 @@ public static class ServiceConstants
         public const string OpenAiClient = "OpenAiClient";
         public const string GeminiClient = "GeminiClient";
         public const string DeepSeekClient = "DeepSeekClient";
+        public const string GroqCloudClient = "GroqCloudClient";
         public const string ImageDownloadClient = "ImageDownloadClient";
         public const string ModelContextDownloadClient = "ModelContextDownloadClient";
     }
@@ -24,7 +25,10 @@ public static class ServiceConstants
         public const string GeminiModels = "https://generativelanguage.googleapis.com/v1beta/models";
 
         public const string DeepSeekOpenAiChatCompletions = "https://api.deepseek.com/v1/chat/completions";
-        public const string DeepSeekModels = "https://api.deepseek.com/models";
+        public const string DeepSeekModels = "https://api.deepseek.com/models";  
+        
+        public const string GroqCloudOpenAiChatCompletions = "https://api.groq.com/openai/v1/chat/completions";
+        public const string GroqCloudModels = "https://api.groq.com/openai/v1/models";
     }
 
     public static class Messages
