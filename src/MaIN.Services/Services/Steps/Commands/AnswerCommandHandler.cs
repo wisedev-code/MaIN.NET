@@ -78,11 +78,11 @@ public class AnswerCommandHandler(
 
     private async Task<Message?> AskKnowledge(Knowledge? knowledge, Chat commandChat)
     {
-        var lastMessage = commandChat.Messages.Last();
+        var lastMessageContent = commandChat.Messages.Last().Content;
         var index = knowledge?.Index.AsString();
         commandChat.MemoryParams.Grammar = ServiceConstants.Grammars.KnowledgeGrammar;
         commandChat.Messages.Last().Content =
-            $"Find matches based on names and tags in available knowledge. Content of available knowledge is stored in your memory, Prompt: {lastMessage.Content}";
+            $"Find matches based on names and tags in available knowledge. Content of available knowledge is stored in your memory, Prompt: {lastMessageContent}";
         var llmService = llmServiceFactory.CreateService(commandChat.Backend ?? settings.BackendType);
         var memoryOptions = new ChatMemoryOptions
         {
@@ -90,8 +90,8 @@ public class AnswerCommandHandler(
         };
         var result = await llmService.AskMemory(commandChat,
             memoryOptions);
-        var itemsSet = JsonSerializer.Deserialize<KnowledgeIndexCheckResult>(result!.Message.Content);
-        commandChat.Messages.Last().Content = lastMessage.Content;
+        var itemsSet = JsonSerializer.Deserialize<KnowledgeIndexCheckResult>(result!.Message.Content, new JsonSerializerOptions() { PropertyNameCaseInsensitive = true });
+        commandChat.Messages.Last().Content = lastMessageContent;
         commandChat.MemoryParams.IncludeQuestionSource = true;
         memoryOptions.TextData.Clear();
         foreach (var item in itemsSet!.FetchedItems)
@@ -99,7 +99,7 @@ public class AnswerCommandHandler(
             switch (item.Type)
             {
                 case KnowledgeItemType.File:
-                    memoryOptions.FilesData?.Add(item.Name, item.Value);
+                    memoryOptions.FilesData?.Add(item.Name, item.Value); //Dict is null so its not added
                     break;
                 case KnowledgeItemType.Text:
                     memoryOptions.TextData?.Add(item.Name, item.Value);
