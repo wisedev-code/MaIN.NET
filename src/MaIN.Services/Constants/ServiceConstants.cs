@@ -67,17 +67,10 @@ public static class ServiceConstants
                                                      """;
 
         public const string KnowledgeGrammar = """
-                                               root ::= knowledge_result
-                                               knowledge_result ::= "{" ws "\"fetched_items\":" ws items_array ws "}"
-                                               items_array ::= "[" ws (item (ws "," ws item)*)? ws "]"
-                                               item ::= "{" ws "\"name\":" ws string "," ws "\"value\":" ws string "," ws "\"type\":" ws item_type "," ws "\"tags\":" ws tags_array "," ws "\"created_at\":" ws datetime ("," ws "\"last_accessed_at\":" ws (datetime | "null"))? ws "}"
-                                               string ::= "\"" char* "\""
-                                               char ::= [^"\\] | "\\" escaped_char
-                                               escaped_char ::= "\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t" | "u" hex hex hex hex
-                                               hex ::= [0-9a-fA-F]
-                                               item_type ::= "\"File\"" | "\"Url\"" | "\"Text\""
-                                               tags_array ::= "[" ws (string (ws "," ws string)*)? ws "]"
-                                               datetime ::= "\"" [0-9] [0-9] [0-9] [0-9] "-" [0-9] [0-9] "-" [0-9] [0-9] "T" [0-9] [0-9] ":" [0-9] [0-9] ":" [0-9] [0-9] ("." [0-9] [0-9] [0-9])? "Z" "\""
+                                               root ::= ws "{" ws "\"fetched_items\":" ws "[" ws (item (ws "," ws item)*)? ws "]" ws "}"
+                                               item ::= "{" ws "\"name\":" ws string ws "," ws "\"value\":" ws string ws "," ws "\"type\":" ws type ws "}"
+                                               string ::= "\"" [^"]* "\""
+                                               type ::= "\"File\"" | "\"Url\"" | "\"Text\""
                                                ws ::= [ \t\n\r]*
                                                """;
     }

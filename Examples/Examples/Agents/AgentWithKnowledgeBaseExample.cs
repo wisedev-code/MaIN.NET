@@ -12,7 +12,7 @@ public class AgentWithKnowledgeBaseExample : IExample
         Console.WriteLine("Agent with knowledge base example");
         
         var context = await AIHub.Agent()
-            .WithModel("gemma2:2b")
+            .WithModel("gemma3:4b")
             .WithInitialPrompt("""
                                You are a helpful assistant that answers questions about a company. Try to
                                 help employees find answers to their questions. Company you work for is TechVibe Solutions.
@@ -25,7 +25,7 @@ public class AgentWithKnowledgeBaseExample : IExample
                 .AddFile("events.md", "./Files/Knowledge/events.md",
                     tags: ["company events", "company calendar", "company agenda"])
                 .AddFile("office_layout.md", "./Files/Knowledge/office_layout.md",
-                    tags: ["company layout", "company facilities", "company environment", "office items"]))
+                    tags: ["company layout", "company facilities", "company environment", "office items", "printer paper"]))
             .WithSteps(StepBuilder.Instance
                 .AnswerUseKnowledge()
                 .Build())
