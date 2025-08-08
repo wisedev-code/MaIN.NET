@@ -56,11 +56,11 @@ public class AnswerCommandHandler(
 
     private async Task<bool> DecideIfKnowledgeNeeded(Knowledge? commandKnowledge, Chat commandChat)
     {
-        var lastMessage = commandChat.Messages.Last();
+        var lastMessageContent = commandChat.Messages.Last().Content;
         var index = commandKnowledge?.Index.AsString();
         commandChat.MemoryParams.Grammar = ServiceConstants.Grammars.DecisionGrammar;
         commandChat.Messages.Last().Content =
-            $"Based on this conversation and following prompt, you should decide if you want to use knowledge or not. Content of available knowledge is stored in your memory, Prompt: {lastMessage.Content}";
+            $"Based on this conversation and following prompt, you should decide if you want to use knowledge or not. Content of available knowledge is stored in your memory, Prompt: {lastMessageContent}";
         var service = //perhaps its already created
             llmServiceFactory.CreateService(commandChat.Backend ?? settings.BackendType);
         var memoryOptions = new ChatMemoryOptions
@@ -72,6 +72,7 @@ public class AnswerCommandHandler(
         {
             PropertyNameCaseInsensitive = true
         });
+        commandChat.Messages.Last().Content = lastMessageContent;
         return res?.Decision ?? false;
     }
 
@@ -79,16 +80,20 @@ public class AnswerCommandHandler(
     {
         var lastMessage = commandChat.Messages.Last();
         var index = knowledge?.Index.AsString();
-        commandChat.InterferenceParams.Grammar = ServiceConstants.Grammars.KnowledgeGrammar;
+        commandChat.MemoryParams.Grammar = ServiceConstants.Grammars.KnowledgeGrammar;
         commandChat.Messages.Last().Content =
             $"Find matches based on names and tags in available knowledge. Content of available knowledge is stored in your memory, Prompt: {lastMessage.Content}";
         var llmService = llmServiceFactory.CreateService(commandChat.Backend ?? settings.BackendType);
+        var memoryOptions = new ChatMemoryOptions
+        {
+            TextData = new Dictionary<string, string> { { "knowledge_index.json", index! } }
+        };
         var result = await llmService.AskMemory(commandChat,
-            new ChatMemoryOptions { TextData = { { "knowledge_index.json", index! } } });
+            memoryOptions);
         var itemsSet = JsonSerializer.Deserialize<KnowledgeIndexCheckResult>(result!.Message.Content);
-        var memoryOptions = new ChatMemoryOptions();
         commandChat.Messages.Last().Content = lastMessage.Content;
         commandChat.MemoryParams.IncludeQuestionSource = true;
+        memoryOptions.TextData.Clear();
         foreach (var item in itemsSet!.FetchedItems)
         {
             switch (item.Type)

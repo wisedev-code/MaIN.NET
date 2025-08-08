@@ -4,5 +4,5 @@ namespace MaIN.Services.Services.Models.Utils;
 
 public class KnowledgeIndexCheckResult
 {
-    public List<KnowledgeIndexItem> FetchedItems { get; set; } = [];
+    public List<KnowledgeIndexItemSlim> FetchedItems { get; set; } = [];
 }
