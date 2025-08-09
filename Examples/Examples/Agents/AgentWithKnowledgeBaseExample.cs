@@ -25,14 +25,15 @@ public class AgentWithKnowledgeBaseExample : IExample
                 .AddFile("events.md", "./Files/Knowledge/events.md",
                     tags: ["company events", "company calendar", "company agenda"])
                 .AddFile("office_layout.md", "./Files/Knowledge/office_layout.md",
-                    tags: ["company layout", "company facilities", "company environment", "office items", "printer paper"]))
+                    tags: ["company layout", "company facilities", "company environment", "office items", "supplies"]))
             .WithSteps(StepBuilder.Instance
                 .AnswerUseKnowledge()
                 .Build())
-            .CreateAsync(interactiveResponse: true);
+            .CreateAsync();
         
-        await context
+        var result = await context
             .ProcessAsync("Hey! Where I can find some printer paper?");
+        Console.WriteLine(result.Message.Content);;
 
     }
 }

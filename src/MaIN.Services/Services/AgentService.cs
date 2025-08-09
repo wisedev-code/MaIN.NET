@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
@@ -12,6 +13,7 @@ using MaIN.Services.Services.Models.Commands;
 using MaIN.Services.Services.Steps.Commands;
 using MaIN.Services.Utils;
 using Microsoft.Extensions.Logging;
+using static System.Text.RegularExpressions.Regex;
 
 namespace MaIN.Services.Services;
 
@@ -58,6 +60,13 @@ public class AgentService(
             await notificationService.DispatchNotification(
                 NotificationMessageBuilder.ProcessingComplete(agentId, agent.CurrentBehaviour), "ReceiveAgentUpdate");
 
+            //normalize message before returning it to user
+            chat.Messages.Last().Content = Replace(
+                chat.Messages.Last().Content, 
+                @"<source>.*?</source>", 
+                string.Empty, 
+                RegexOptions.Singleline);           
+            
             return chat;
         }
         catch (Exception)
