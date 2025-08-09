@@ -2,6 +2,7 @@ using Examples.Utils;
 using MaIN.Core.Hub;
 using MaIN.Core.Hub.Utils;
 using MaIN.Domain.Entities.Agents.AgentSource;
+using Microsoft.Identity.Client;
 
 namespace Examples.Agents;
 
@@ -24,6 +25,7 @@ public class AgentWithKnowledgeBaseExample : IExample
                     tags:["company structure", "company policy", "company culture", "company overview"])
                 .AddFile("events.md", "./Files/Knowledge/events.md",
                     tags: ["company events", "company calendar", "company agenda"])
+                .AddUrl("webpagename", "www.example.com", tags: ["company website"])
                 .AddFile("office_layout.md", "./Files/Knowledge/office_layout.md",
                     tags: ["company layout", "company facilities", "company environment", "office items", "supplies"]))
             .WithSteps(StepBuilder.Instance
