@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml.Wordprocessing;
 using MaIN.Domain.Entities;
+using MaIN.Domain.Exceptions;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
 using MaIN.Services.Services.Models.Commands;
@@ -29,7 +30,7 @@ public class McpStepHandler(ICommandDispatcher commandDispatcher) : IStepHandler
         var mcpResponse = await commandDispatcher.DispatchAsync(mcpCommand);
         if (mcpResponse == null)
         {
-            throw new Exception("MCP command failed"); //TODO proper candidate for custom exception
+            throw new CommandFailedException(mcpCommand.CommandName);
         }
 
         var filterVal = GetFilter(mcpResponse.Content);
