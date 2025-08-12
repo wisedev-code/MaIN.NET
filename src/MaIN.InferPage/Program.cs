@@ -65,12 +65,17 @@ try
                 apiName = "Deepseek";
                 break;
 
+            case "groqcloud":
+                Utils.GroqCloud = true;
+                apiKeyVariable = "GROQ_API_KEY";
+                apiName = "GroqCloud";
+                break;
+
             case "claude":
                 Utils.Claude = true;
                 apiKeyVariable = "CLAUDE_API_KEY";
                 apiName = "Claude";
                 break;
-
         }
 
         var key = Environment.GetEnvironmentVariable(apiKeyVariable);
@@ -107,6 +112,13 @@ else if (Utils.DeepSeek)
     builder.Services.AddMaIN(builder.Configuration, settings =>
     {
         settings.BackendType = BackendType.DeepSeek;
+    });
+}
+else if (Utils.GroqCloud)
+{
+    builder.Services.AddMaIN(builder.Configuration, settings =>
+    {
+        settings.BackendType = BackendType.GroqCloud;
     });
 }
 else if(Utils.Claude)

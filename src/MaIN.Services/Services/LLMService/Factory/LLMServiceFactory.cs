@@ -32,6 +32,13 @@ public class LLMServiceFactory(IServiceProvider serviceProvider) : ILLMServiceFa
                 serviceProvider.GetRequiredService<IMemoryFactory>(),
                 serviceProvider.GetRequiredService<IMemoryService>()),
 
+            BackendType.GroqCloud => new GroqCloudService(
+                serviceProvider.GetRequiredService<MaINSettings>(),
+                serviceProvider.GetRequiredService<INotificationService>(),
+                serviceProvider.GetRequiredService<IHttpClientFactory>(),
+                serviceProvider.GetRequiredService<IMemoryFactory>(),
+                serviceProvider.GetRequiredService<IMemoryService>()),
+
             BackendType.Claude => new ClaudeService(
                 serviceProvider.GetRequiredService<MaINSettings>(),
                 serviceProvider.GetRequiredService<INotificationService>(),

@@ -58,29 +58,39 @@ public class McpService(MaINSettings settings, IServiceProvider serviceProvider)
                 {
                     FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(options: new() { RetainArgumentTypes = true })
                 };
+
             case BackendType.Gemini:
                 kernelBuilder.Services.AddGoogleAIGeminiChatCompletion(model, GetGeminiKey() ?? throw new ArgumentNullException(nameof(GetGeminiKey)));
                 return new GeminiPromptExecutionSettings
                 {
-                    ToolCallBehavior = GeminiToolCallBehavior.AutoInvokeKernelFunctions,
                     ModelId = model,
                     FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(options: new() { RetainArgumentTypes = true })
                 };
+
             case BackendType.DeepSeek:
                 throw new NotSupportedException("DeepSeek models does not support MCP integration.");
+
+            case BackendType.GroqCloud:
+                kernelBuilder.Services.AddOpenAIChatCompletion(
+                    modelId: model,
+                    apiKey: GetGroqCloudKey() ?? throw new ArgumentNullException(nameof(GetGroqCloudKey)),
+                    endpoint: new Uri("https://api.groq.com/openai/v1"));
+
+                return new OpenAIPromptExecutionSettings()
+                {
+                    FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(options: new() { RetainArgumentTypes = true })
+                };
 
             case BackendType.Claude:
                 kernelBuilder.AddClaudeChatCompletion(serviceProvider, model, GetClaudeKey() ?? throw new ArgumentNullException(nameof(GetClaudeKey)));
                 return new PromptExecutionSettings
                 {
-                    ExtensionData = new Dictionary<string, object>
-                    {
-                        ["max_tokens"] = 4096
-                    }
+                    ExtensionData = new Dictionary<string, object>{ ["max_tokens"] = 4096 }
                 };
 
             case BackendType.Self:
                 throw new NotSupportedException("Self backend (local models) does not support MCP integration.");
+
             default:
                 throw new ArgumentOutOfRangeException(nameof(backendType));
         }
@@ -90,6 +100,8 @@ public class McpService(MaINSettings settings, IServiceProvider serviceProvider)
         => settings.OpenAiKey ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY");
     string? GetGeminiKey()
         => settings.GeminiKey ?? Environment.GetEnvironmentVariable("GEMINI_API_KEY");
+    string? GetGroqCloudKey()
+        => settings.GroqCloudKey ?? Environment.GetEnvironmentVariable("GROQ_API_KEY");
     string? GetClaudeKey()
         => settings.ClaudeKey ?? Environment.GetEnvironmentVariable("CLAUDE_API_KEY");
 }

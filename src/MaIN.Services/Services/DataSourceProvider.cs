@@ -1,11 +1,13 @@
-using System.Data.SqlClient;
-using System.Text;
-using System.Text.Json;
 using MaIN.Domain.Entities.Agents.AgentSource;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Utils;
+using Microsoft.IdentityModel.Tokens;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using System.Data.SqlClient;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
 
 namespace MaIN.Services.Services;
 
@@ -61,18 +63,102 @@ public class DataSourceProvider : IDataSourceProvider
         apiDetails.Query = apiDetails.Query?.Replace("@filter@", filter);
         apiDetails.Url = apiDetails.Url.Replace("@filter@", filter);
 
+
         var request = new HttpRequestMessage(
             HttpMethod.Parse(apiDetails?.Method),
             apiDetails?.Url + apiDetails?.Query);
 
-        if (!string.IsNullOrEmpty(apiDetails?.Payload))
+        
+        if (!apiDetails.AuthenticationToken.IsNullOrEmpty())
         {
-            request.Content = new StringContent(
-                JsonSerializer.Serialize(apiDetails.Payload),
-                Encoding.UTF8,
-                "application/json");
+            if (!apiDetails.AuthenticationType.HasValue)
+                throw new InvalidOperationException("Please specify an authorization type");
+
+            switch (apiDetails.AuthenticationType)
+            {
+                case AuthTypeEnum.Bearer:
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiDetails.AuthenticationToken);
+                    break;
+                
+                case AuthTypeEnum.ApiKey:
+                    request.Headers.Authorization = new AuthenticationHeaderValue("ApiKey", apiDetails.AuthenticationToken);
+                    break;
+
+                case AuthTypeEnum.Basic:
+                    if (string.IsNullOrEmpty(apiDetails.UserName) || string.IsNullOrEmpty(apiDetails.UserPassword))
+                        throw new InvalidOperationException("Username and password are required for basic authentication.");
+
+                    var credentials = $"{apiDetails.UserName}:{apiDetails.UserPassword}";
+                    var base64Credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
+                    request.Headers.Authorization =
+                        new AuthenticationHeaderValue("Basic", base64Credentials);
+                    break;
+
+                default:
+                    throw new InvalidOperationException($"Unsupported authentication type: {apiDetails.AuthenticationType}");
+
+
+            }
+
+
         }
 
+        if (!string.IsNullOrEmpty(apiDetails?.Curl))
+        {
+            CurlRequestParser.PopulateRequestFromCurl(request, apiDetails.Curl);
+        }
+        else
+        {
+            if (!string.IsNullOrEmpty(apiDetails?.Payload))
+            {
+
+                var jsonString = apiDetails.Payload;
+
+                if (!(apiDetails.Payload is string))
+                {
+                    jsonString = JsonSerializer.Serialize(apiDetails.Payload);
+
+                }
+                else
+                {
+                    try
+                    {
+                        JsonDocument.Parse(jsonString);
+                    }
+                    catch (JsonException ex)
+                    {
+                        try
+                        {
+                            // Attempt to wrap malformed payload into a JSON object as a last resort
+
+                            jsonString = JsonSerializer.Serialize(apiDetails.Payload);
+                            if (!jsonString.StartsWith('{'))
+                            {
+                                jsonString = $"{{{jsonString}}}";
+                            }
+                            jsonString = JsonCleaner.CleanAndUnescape(jsonString);
+
+                            JsonDocument.Parse(jsonString);
+                        }
+                        catch
+                        {
+                            throw new Exception($"Invalid JSON: {ex.Message}");
+                        }
+
+                        
+                    }
+                }
+
+                request.Content = new StringContent(
+                    jsonString,
+                    Encoding.UTF8,
+                    "application/json");
+
+
+            }
+
+            
+        }
         var result = await httpClient.SendAsync(request);
         if (!result.IsSuccessStatusCode)
         {
@@ -81,7 +167,7 @@ public class DataSourceProvider : IDataSourceProvider
         }
 
         var data = await result.Content.ReadAsStringAsync();
-
+        
         properties.TryAdd("api_response_type", apiDetails?.ResponseType ?? "JSON");
         if (apiDetails?.ChunkLimit != null)
         {
