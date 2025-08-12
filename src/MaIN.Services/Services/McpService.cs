@@ -81,8 +81,8 @@ public class McpService(MaINSettings settings, IServiceProvider serviceProvider)
                     FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(options: new() { RetainArgumentTypes = true })
                 };
 
-            case BackendType.Claude:
-                kernelBuilder.AddClaudeChatCompletion(serviceProvider, model, GetClaudeKey() ?? throw new ArgumentNullException(nameof(GetClaudeKey)));
+            case BackendType.Anthropic:
+                kernelBuilder.AddAnthropicChatCompletion(serviceProvider, model, GetAnthropicKey() ?? throw new ArgumentNullException(nameof(GetAnthropicKey)));
                 return new PromptExecutionSettings
                 {
                     ExtensionData = new Dictionary<string, object>{ ["max_tokens"] = 4096 }
@@ -102,6 +102,6 @@ public class McpService(MaINSettings settings, IServiceProvider serviceProvider)
         => settings.GeminiKey ?? Environment.GetEnvironmentVariable("GEMINI_API_KEY");
     string? GetGroqCloudKey()
         => settings.GroqCloudKey ?? Environment.GetEnvironmentVariable("GROQ_API_KEY");
-    string? GetClaudeKey()
-        => settings.ClaudeKey ?? Environment.GetEnvironmentVariable("CLAUDE_API_KEY");
+    string? GetAnthropicKey()
+        => settings.AnthropicKey ?? Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY");
 }

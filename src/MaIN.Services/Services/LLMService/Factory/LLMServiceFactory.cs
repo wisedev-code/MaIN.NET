@@ -39,7 +39,7 @@ public class LLMServiceFactory(IServiceProvider serviceProvider) : ILLMServiceFa
                 serviceProvider.GetRequiredService<IMemoryFactory>(),
                 serviceProvider.GetRequiredService<IMemoryService>()),
 
-            BackendType.Claude => new ClaudeService(
+            BackendType.Anthropic => new AnthropicService(
                 serviceProvider.GetRequiredService<MaINSettings>(),
                 serviceProvider.GetRequiredService<INotificationService>(),
                 serviceProvider.GetRequiredService<IHttpClientFactory>()),

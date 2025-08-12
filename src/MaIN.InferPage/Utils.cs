@@ -11,7 +11,7 @@ public static class Utils
     public static bool Gemini { get; set; }
     public static bool DeepSeek { get; set; }
     public static bool GroqCloud { get; set; }
-    public static bool Claude { get; set; }
+    public static bool Anthropic { get; set; }
     public static string? Path { get; set; }
     public static bool Reason { get; set; }
 }

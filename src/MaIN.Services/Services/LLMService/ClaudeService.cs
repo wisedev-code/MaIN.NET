@@ -14,23 +14,23 @@ using MaIN.Services.Services.LLMService.Utils;
 
 namespace MaIN.Services.Services.LLMService;
 
-public sealed class ClaudeService(
+public sealed class AnthropicService(
     MaINSettings settings,
     INotificationService notificationService,
     IHttpClientFactory httpClientFactory,
-    ILogger<ClaudeService>? logger = null)
+    ILogger<AnthropicService>? logger = null)
     : ILLMService
 {
     private readonly MaINSettings _settings = settings ?? throw new ArgumentNullException(nameof(settings));
 
     private static readonly ConcurrentDictionary<string, List<ChatMessage>> SessionCache = new();
 
-    private const string CompletionsUrl = ServiceConstants.ApiUrls.ClaudeChatMessages;
-    private const string ModelsUrl = ServiceConstants.ApiUrls.ClaudeModels;
+    private const string CompletionsUrl = ServiceConstants.ApiUrls.AnthropicChatMessages;
+    private const string ModelsUrl = ServiceConstants.ApiUrls.AnthropicModels;
 
-    private HttpClient CreateClaudeHttpClient()
+    private HttpClient CreateAnthropicHttpClient()
     {
-        var client = httpClientFactory.CreateClient(ServiceConstants.HttpClients.ClaudeClient);
+        var client = httpClientFactory.CreateClient(ServiceConstants.HttpClients.AnthropicClient);
         client.DefaultRequestHeaders.Add("x-api-key", GetApiKey());
         client.DefaultRequestHeaders.Add("anthropic-version", "2023-06-01");
 
@@ -39,15 +39,15 @@ public sealed class ClaudeService(
 
     private string GetApiKey()
     {
-        return _settings.ClaudeKey ?? Environment.GetEnvironmentVariable("CLAUDE_API_KEY") ??
-            throw new InvalidOperationException("Claude Key not configured");
+        return _settings.AnthropicKey ?? Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY") ??
+            throw new InvalidOperationException("Anthropic Key not configured");
     }
 
     private void ValidateApiKey()
     {
-        if (string.IsNullOrEmpty(_settings.ClaudeKey) && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CLAUDE_API_KEY")))
+        if (string.IsNullOrEmpty(_settings.AnthropicKey) && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY")))
         {
-            throw new InvalidOperationException("Claude Key not configured");
+            throw new InvalidOperationException("Anthropic Key not configured");
         }
     }
 
@@ -116,19 +116,19 @@ public sealed class ClaudeService(
 
     public async Task<ChatResult?> AskMemory(Chat chat, ChatMemoryOptions memoryOptions, CancellationToken cancellationToken = default)
     {
-        throw new NotSupportedException("Embeddings are not supported by the Claude. Document reading requires embedding support.");
+        throw new NotSupportedException("Embeddings are not supported by the Anthropic. Document reading requires embedding support.");
     }
 
     public async Task<string[]> GetCurrentModels()
     {
         ValidateApiKey();
-        var httpClient = CreateClaudeHttpClient();
+        var httpClient = CreateAnthropicHttpClient();
 
         using var response = await httpClient.GetAsync(ModelsUrl);
         response.EnsureSuccessStatusCode();
 
         var json = await response.Content.ReadAsStringAsync();
-        var modelResponse = JsonSerializer.Deserialize<ClaudeModelListResponse>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        var modelResponse = JsonSerializer.Deserialize<AnthropicModelListResponse>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
         return modelResponse?.Data?.Select(m => m.Id).ToArray() ?? [];
     }
@@ -192,7 +192,7 @@ public sealed class ClaudeService(
     bool interactiveUpdates,
     CancellationToken cancellationToken)
     {
-        var httpClient = CreateClaudeHttpClient();
+        var httpClient = CreateAnthropicHttpClient();
 
         var requestBody = new
         {
@@ -244,7 +244,7 @@ public sealed class ClaudeService(
 
                 try
                 {
-                    var token = ProcessClaudeStreamChunk(data);
+                    var token = ProcessAnthropicStreamChunk(data);
                     if (token is not null)
                     {
                         tokens.Add(token);
@@ -269,15 +269,15 @@ public sealed class ClaudeService(
                 }
                 catch (Exception ex)
                 {
-                    logger?.LogError(ex, "Failed to parse Claude chunk: {Chunk}", data);
+                    logger?.LogError(ex, "Failed to parse Anthropic chunk: {Chunk}", data);
                 }
             }
         }
     }
 
-    private LLMTokenValue? ProcessClaudeStreamChunk(string data)
+    private LLMTokenValue? ProcessAnthropicStreamChunk(string data)
     {
-        var chunk = JsonSerializer.Deserialize<ClaudeStreamChunk>(data, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        var chunk = JsonSerializer.Deserialize<AnthropicStreamChunk>(data, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
         var textDelta = chunk?.Delta?.Text;
 
         return string.IsNullOrEmpty(textDelta)
@@ -296,7 +296,7 @@ public sealed class ClaudeService(
         StringBuilder resultBuilder,
         CancellationToken cancellationToken)
     {
-        var httpClient = CreateClaudeHttpClient();
+        var httpClient = CreateAnthropicHttpClient();
 
         var requestBody = new
         {
@@ -323,7 +323,7 @@ public sealed class ClaudeService(
         response.EnsureSuccessStatusCode();
 
         var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
-        var chatResponse = JsonSerializer.Deserialize<ClaudeMessageResponse>(responseJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        var chatResponse = JsonSerializer.Deserialize<AnthropicMessageResponse>(responseJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
         var message = chatResponse?.Content?.FirstOrDefault()?.Text;
         if (!string.IsNullOrWhiteSpace(message))
@@ -350,34 +350,34 @@ public sealed class ClaudeService(
     }
 }
 
-file class ClaudeMessageResponse
+file class AnthropicMessageResponse
 {
-    public List<ClaudeMessageContent> Content { get; set; } = [];
+    public List<AnthropicMessageContent> Content { get; set; } = [];
 }
 
-file class ClaudeMessageContent
+file class AnthropicMessageContent
 {
     public string Type { get; set; } = default!;
     public string Text { get; set; } = default!;
 }
 
-file class ClaudeStreamChunk
+file class AnthropicStreamChunk
 {
-    public ClaudeDelta? Delta { get; set; }
+    public AnthropicDelta? Delta { get; set; }
 }
 
-file class ClaudeDelta
+file class AnthropicDelta
 {
     public string? Text { get; set; }
 }
 
 
-file class ClaudeModelListResponse
+file class AnthropicModelListResponse
 {
-    public List<ClaudeModelInfo> Data { get; set; }
+    public List<AnthropicModelInfo> Data { get; set; }
 }
 
-file class ClaudeModelInfo
+file class AnthropicModelInfo
 {
     public string Id { get; set; }
 }

@@ -8,19 +8,19 @@ using Microsoft.SemanticKernel.ChatCompletion;
 
 namespace MaIN.Services.Services.LLMService.Utils;
 
-public sealed class ClaudeChatCompletionService : IChatCompletionService
+public sealed class AnthropicChatCompletionService : IChatCompletionService
 {
     private readonly string _model;
     private readonly HttpClient _httpClient;
-    private const string CompletionsUrl = ServiceConstants.ApiUrls.ClaudeChatMessages;
+    private const string CompletionsUrl = ServiceConstants.ApiUrls.AnthropicChatMessages;
     public IReadOnlyDictionary<string, object?> Attributes { get; } = new Dictionary<string, object?>();
-    private readonly ILogger<ClaudeChatCompletionService> _logger;
+    private readonly ILogger<AnthropicChatCompletionService> _logger;
 
-    public ClaudeChatCompletionService(ILogger<ClaudeChatCompletionService> logger, IHttpClientFactory httpClientFactory, string model, string apiKey)
+    public AnthropicChatCompletionService(ILogger<AnthropicChatCompletionService> logger, IHttpClientFactory httpClientFactory, string model, string apiKey)
     {
         _logger = logger;
         _model = model;
-        _httpClient = httpClientFactory.CreateClient(ServiceConstants.HttpClients.ClaudeClient);
+        _httpClient = httpClientFactory.CreateClient(ServiceConstants.HttpClients.AnthropicClient);
         _httpClient.DefaultRequestHeaders.Add("x-api-key", apiKey);
         _httpClient.DefaultRequestHeaders.Add("anthropic-version", "2023-06-01");
     }
@@ -36,7 +36,7 @@ public sealed class ClaudeChatCompletionService : IChatCompletionService
 
         for(var i = 0; i < maxToolLoops; i++)
         {
-            using var doc = await SendClaudeRequestAsync(chatHistory, tools, executionSettings, cancellationToken);
+            using var doc = await SendAnthropicRequestAsync(chatHistory, tools, executionSettings, cancellationToken);
             var contentArray = doc.RootElement.GetProperty("content").EnumerateArray().ToList();
             var stopReason = doc.RootElement.GetProperty("stop_reason").GetString();
 
@@ -63,7 +63,7 @@ public sealed class ClaudeChatCompletionService : IChatCompletionService
                     {
                         if (kernel == null)
                         {
-                            throw new InvalidOperationException("Claude requested a tool call but no Kernel was provided.");
+                            throw new InvalidOperationException("Anthropic requested a tool call but no Kernel was provided.");
                         }
 
                         var toolName = contentItem.GetProperty("name").GetString();
@@ -93,21 +93,21 @@ public sealed class ClaudeChatCompletionService : IChatCompletionService
                         };
                         var contentJson = JsonSerializer.Serialize(toolResultPayload);
 
-                        // Claude expects tool_result payloads to come from the user role.
+                        // Anthropic expects tool_result payloads to come from the user role.
                         chatHistory.AddMessage(AuthorRole.User, contentJson);
                         break;
                     }
 
                     default:
                     {
-                        _logger.LogError("Not implemented Claude message type handling: {type}.", type);
+                        _logger.LogError("Not implemented Anthropic message type handling: {type}.", type);
                         return new List<ChatMessageContent>();
                     }
                 }
             }
         }
 
-        throw new InvalidOperationException("Claude did not produce a final text response within allowed tool_call loops.");
+        throw new InvalidOperationException("Anthropic did not produce a final text response within allowed tool_call loops.");
     }
 
     public async IAsyncEnumerable<StreamingChatMessageContent> GetStreamingChatMessageContentsAsync(
@@ -116,9 +116,9 @@ public sealed class ClaudeChatCompletionService : IChatCompletionService
         Kernel? kernel = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        // When using tools (tool_use → tool_result → text), Claude does not return partial text responses incrementally.
+        // When using tools (tool_use → tool_result → text), Anthropic does not return partial text responses incrementally.
         // Therefore, streaming token-by-token in real time is unnecessary and not useful in this case.
-        // Claude typically returns a single final message.
+        // Anthropic typically returns a single final message.
 
         var results = await GetChatMessageContentsAsync(chatHistory, executionSettings, kernel, cancellationToken);
         foreach (var result in results)
@@ -127,7 +127,7 @@ public sealed class ClaudeChatCompletionService : IChatCompletionService
         }
     }
 
-    private async Task<JsonDocument> SendClaudeRequestAsync(
+    private async Task<JsonDocument> SendAnthropicRequestAsync(
         ChatHistory chatHistory,
         List<object> tools,
         PromptExecutionSettings? executionSettings,

@@ -10,7 +10,7 @@ public static class ServiceConstants
         public const string GeminiClient = "GeminiClient";
         public const string DeepSeekClient = "DeepSeekClient";
         public const string GroqCloudClient = "GroqCloudClient";
-        public const string ClaudeClient = "ClaudeClient";
+        public const string AnthropicClient = "AnthropicClient";
         public const string ImageDownloadClient = "ImageDownloadClient";
         public const string ModelContextDownloadClient = "ModelContextDownloadClient";
     }
@@ -31,8 +31,8 @@ public static class ServiceConstants
         public const string GroqCloudOpenAiChatCompletions = "https://api.groq.com/openai/v1/chat/completions";
         public const string GroqCloudModels = "https://api.groq.com/openai/v1/models";
 
-        public const string ClaudeChatMessages = "https://api.anthropic.com/v1/messages";
-        public const string ClaudeModels = "https://api.anthropic.com/v1/models";
+        public const string AnthropicChatMessages = "https://api.anthropic.com/v1/messages";
+        public const string AnthropicModels = "https://api.anthropic.com/v1/models";
     }
 
     public static class Messages

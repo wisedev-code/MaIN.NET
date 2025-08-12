@@ -71,10 +71,10 @@ try
                 apiName = "GroqCloud";
                 break;
 
-            case "claude":
-                Utils.Claude = true;
-                apiKeyVariable = "CLAUDE_API_KEY";
-                apiName = "Claude";
+            case "anthropic":
+                Utils.Anthropic = true;
+                apiKeyVariable = "ANTHROPIC_API_KEY";
+                apiName = "Anthropic";
                 break;
         }
 
@@ -121,11 +121,11 @@ else if (Utils.GroqCloud)
         settings.BackendType = BackendType.GroqCloud;
     });
 }
-else if(Utils.Claude)
+else if(Utils.Anthropic)
 {
     builder.Services.AddMaIN(builder.Configuration, settings =>
     {
-        settings.BackendType = BackendType.Claude;
+        settings.BackendType = BackendType.Anthropic;
     });
 }
 else
