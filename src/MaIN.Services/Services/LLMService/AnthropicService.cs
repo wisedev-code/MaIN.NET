@@ -210,6 +210,7 @@ public sealed class AnthropicService(
                 },
                 content = m.Content
             }).ToArray()
+            //todo: Add thinking support
         };
 
         var requestJson = JsonSerializer.Serialize(requestBody);
