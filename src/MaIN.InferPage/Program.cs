@@ -1,5 +1,7 @@
+using System.Net.Mime;
 using MaIN.Core;
 using MaIN.Domain.Configuration;
+using MaIN.Domain.Models;
 using Microsoft.FluentUI.AspNetCore.Components;
 using MaIN.InferPage.Components;
 using Utils = MaIN.InferPage.Utils;
@@ -57,6 +59,18 @@ try
                 apiKeyVariable = "GEMINI_API_KEY";
                 apiName = "Gemini";
                 break;
+            
+            case "deepseek":
+                Utils.DeepSeek = true;
+                apiKeyVariable = "DEEPSEEK_API_KEY";
+                apiName = "Deepseek";
+                break;
+
+            case "groqcloud":
+                Utils.GroqCloud = true;
+                apiKeyVariable = "GROQ_API_KEY";
+                apiName = "GroqCloud";
+                break;
         }
 
         var key = Environment.GetEnvironmentVariable(apiKeyVariable);
@@ -88,8 +102,28 @@ else if (Utils.Gemini)
         settings.BackendType = BackendType.Gemini;
     });
 }
+else if (Utils.DeepSeek)
+{
+    builder.Services.AddMaIN(builder.Configuration, settings =>
+    {
+        settings.BackendType = BackendType.DeepSeek;
+    });
+}
+else if (Utils.GroqCloud)
+{
+    builder.Services.AddMaIN(builder.Configuration, settings =>
+    {
+        settings.BackendType = BackendType.GroqCloud;
+    });
+}
 else
 {
+    if (Utils.Path == null && !KnownModels.IsModelSupported(Utils.Model!))
+    {
+        Console.WriteLine($"Model: {Utils.Model} is not supported");
+        Environment.Exit(0);
+    }
+    
     builder.Services.AddMaIN(builder.Configuration);
 }
 
