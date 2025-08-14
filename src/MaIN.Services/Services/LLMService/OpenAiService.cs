@@ -2,6 +2,8 @@ using MaIN.Domain.Configuration;
 using MaIN.Services.Services.Abstract;
 using Microsoft.Extensions.Logging;
 using MaIN.Services.Services.LLMService.Memory;
+using System.Net.Http.Headers;
+using System.Text.Json;
 
 namespace MaIN.Services.Services.LLMService;
 
@@ -28,5 +30,14 @@ public sealed class OpenAiService(
         {
             throw new InvalidOperationException("OpenAi Key not configured");
         }
+    }
+
+    public override async Task<string[]> GetCurrentModels()
+    {
+        var allModels = await base.GetCurrentModels();
+
+        return allModels
+            .Where(id => id.StartsWith("gpt-", StringComparison.InvariantCultureIgnoreCase))
+            .ToArray();
     }
 }

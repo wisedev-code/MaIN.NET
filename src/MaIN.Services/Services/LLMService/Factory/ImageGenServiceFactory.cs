@@ -15,6 +15,8 @@ public class ImageGenServiceFactory(IServiceProvider serviceProvider) : IImageGe
                 serviceProvider.GetRequiredService<MaINSettings>()),
             BackendType.Gemini => new GeminiImageGenService(serviceProvider.GetRequiredService<IHttpClientFactory>(),
                 serviceProvider.GetRequiredService<MaINSettings>()),
+            BackendType.DeepSeek => throw new NotSupportedException("DeepSeek does not support image generation."),
+            BackendType.GroqCloud => throw new NotSupportedException("Groq Cloud does not support image generation."),
             BackendType.Self => new ImageGenService(serviceProvider.GetRequiredService<IHttpClientFactory>(),
                 serviceProvider.GetRequiredService<MaINSettings>()),
             

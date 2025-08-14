@@ -1,0 +1,33 @@
+name: Build and Publish MaIN.InferPage
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore src/MaIN.InferPage
+
+    - name: Build project
+      run: dotnet build src/MaIN.InferPage --configuration Release --no-restore
+
+    - name: Publish project
+      run: dotnet publish src/MaIN.InferPage --configuration Release --output ./publish --no-build
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: main-inferpage-build
+        path: ./publish/

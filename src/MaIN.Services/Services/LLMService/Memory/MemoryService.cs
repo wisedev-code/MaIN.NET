@@ -1,4 +1,6 @@
+using MaIN.Services.Utils;
 using Microsoft.KernelMemory;
+using System.Text.Json;
 
 namespace MaIN.Services.Services.LLMService.Memory;
 
@@ -35,7 +37,8 @@ public class MemoryService : IMemoryService
 
         foreach (var item in textData)
         {
-            await memory.ImportTextAsync(item.Value, item.Key, cancellationToken: cancellationToken);
+            var cleanedValue = JsonCleaner.CleanAndUnescape(item.Value);
+            await memory.ImportTextAsync(cleanedValue, item.Key, cancellationToken: cancellationToken);
         }
     }
 

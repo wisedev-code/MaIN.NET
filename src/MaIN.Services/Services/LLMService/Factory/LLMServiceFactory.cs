@@ -25,7 +25,22 @@ public class LLMServiceFactory(IServiceProvider serviceProvider) : ILLMServiceFa
                 serviceProvider.GetRequiredService<IMemoryFactory>(),
                 serviceProvider.GetRequiredService<IMemoryService>()),
 
-            BackendType.Self => new LLMService(serviceProvider.GetRequiredService<MaINSettings>(),
+            BackendType.DeepSeek => new DeepSeekService(
+                serviceProvider.GetRequiredService<MaINSettings>(),
+                serviceProvider.GetRequiredService<INotificationService>(),
+                serviceProvider.GetRequiredService<IHttpClientFactory>(),
+                serviceProvider.GetRequiredService<IMemoryFactory>(),
+                serviceProvider.GetRequiredService<IMemoryService>()),
+
+            BackendType.GroqCloud => new GroqCloudService(
+                serviceProvider.GetRequiredService<MaINSettings>(),
+                serviceProvider.GetRequiredService<INotificationService>(),
+                serviceProvider.GetRequiredService<IHttpClientFactory>(),
+                serviceProvider.GetRequiredService<IMemoryFactory>(),
+                serviceProvider.GetRequiredService<IMemoryService>()),
+
+            BackendType.Self => new LLMService(
+                serviceProvider.GetRequiredService<MaINSettings>(),
                 serviceProvider.GetRequiredService<INotificationService>(),
                 serviceProvider.GetRequiredService<IMemoryService>(),
                 serviceProvider.GetRequiredService<IMemoryFactory>()),

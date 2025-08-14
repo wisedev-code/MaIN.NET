@@ -208,7 +208,12 @@
                 ? AIHub.Chat().WithCustomModel(model: Utils.Model!, path: Utils.Path)
                 : AIHub.Chat().WithModel(Utils.Model!); //If that grows with different chat types we can consider switch ex
 
-        if (!Utils.OpenAi)
+        if (Utils.DeepSeek)
+        {
+            _reasoning = Utils.Model!.ToLower().Contains("reasoner");
+            Utils.Reason = _reasoning;
+        }
+        else if (!Utils.OpenAi)
         {
             _reasoning = !Utils.Visual && KnownModels.GetModel(Utils.Model!).HasReasoning();
             Utils.Reason = _reasoning;
