@@ -8,4 +8,5 @@ public enum KnowledgeItemType
     File,
     Url,
     Text,
+    Mcp
 }
