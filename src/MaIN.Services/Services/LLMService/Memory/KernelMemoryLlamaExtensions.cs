@@ -21,7 +21,7 @@ public static class KernelMemoryLlamaExtensions
         out LLamaContext context)
     {
         context = model.CreateContext(modelParams);
-        var executor = new BatchedExecutor(model, modelParams);//new StatelessExecutor(model, modelParams);
+        var executor = new BatchedExecutor(model, modelParams);
         
         var inferenceParams = new InferenceParams 
         { 

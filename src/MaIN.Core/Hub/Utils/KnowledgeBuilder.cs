@@ -1,3 +1,5 @@
+using System.Text.Json;
+using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
 using MaIN.Domain.Entities.Agents.Knowledge;
 
@@ -42,6 +44,7 @@ public class KnowledgeBuilder
         return this;
     }
 
+
     public KnowledgeBuilder AddFile(string name, string path, string[] tags)
     {
         _items.Add(new KnowledgeIndexItem
@@ -53,7 +56,20 @@ public class KnowledgeBuilder
         });
         return this;
     }
-
+    
+    public KnowledgeBuilder AddMcp(string name, Mcp mcpConfig, string[] tags)
+    {
+        var mcpSerialized = JsonSerializer.Serialize(mcpConfig);
+        _items.Add(new KnowledgeIndexItem
+        {
+            Name = name,
+            Value = mcpSerialized,
+            Type = KnowledgeItemType.Mcp,
+            Tags = tags
+        });
+        return this;
+    }
+    
     public KnowledgeBuilder AddUrl(string name, string url, string[] tags)
     {
         _items.Add(new KnowledgeIndexItem

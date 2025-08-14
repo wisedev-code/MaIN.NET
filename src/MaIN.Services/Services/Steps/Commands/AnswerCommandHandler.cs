@@ -16,6 +16,7 @@ namespace MaIN.Services.Services.Steps.Commands;
 
 public class AnswerCommandHandler(
     ILLMServiceFactory llmServiceFactory,
+    IMcpService mcpService,
     IImageGenServiceFactory imageGenServiceFactory,
     MaINSettings settings)
     : ICommandHandler<AnswerCommand, Message?>
@@ -107,15 +108,27 @@ public class AnswerCommandHandler(
         chat.MemoryParams.Grammar = null;
         memoryOptions.TextData.Clear();
 
-        BuildMemoryOptionsFromKnowledgeItems(knowledgeItems, memoryOptions);
-
+        //NOTE: perhaps good idea for future to combine knowledge form MCP and from KM 
+        var mcpConfig = BuildMemoryOptionsFromKnowledgeItems(knowledgeItems, memoryOptions);
+        if (mcpConfig != null)
+        {
+            var result = await mcpService.Prompt(mcpConfig, chat.Messages.Last().Content);
+            return result.Message;
+        }
+        
         var knowledgeResult = await llmService.AskMemory(chat, memoryOptions);
         return knowledgeResult?.Message;
     }
 
-    private static void BuildMemoryOptionsFromKnowledgeItems(KnowledgeIndexCheckResult? knowledgeItems,
+    private static Mcp? BuildMemoryOptionsFromKnowledgeItems(KnowledgeIndexCheckResult? knowledgeItems,
         ChatMemoryOptions memoryOptions)
     {
+        //First or default because we cannot combine response from multiple servers in one go at the moment
+        var mcp = knowledgeItems?.FetchedItems.FirstOrDefault(x => x.Type == KnowledgeItemType.Mcp);
+        if (mcp != null)
+        {
+            return JsonSerializer.Deserialize<Mcp>(mcp.Value, JsonOptions);
+        }
         foreach (var item in knowledgeItems!.FetchedItems)
         {
             switch (item.Type)
@@ -131,5 +144,7 @@ public class AnswerCommandHandler(
                     break;
             }
         }
+
+        return null;
     }
 }
