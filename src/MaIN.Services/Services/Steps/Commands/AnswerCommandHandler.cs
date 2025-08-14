@@ -63,6 +63,7 @@ public class AnswerCommandHandler(
         var originalContent = chat.Messages.Last().Content;
         var index = knowledge?.Index.AsString();
 
+        //TODO great perf improvement would be to not provide full index, but just "name":"tags" dictionary
         chat.MemoryParams.Grammar = ServiceConstants.Grammars.DecisionGrammar;
         chat.Messages.Last().Content =
             $"Based on this conversation and following prompt, you should decide if you want to use knowledge or not. Content of available knowledge is stored in your memory, Prompt: {originalContent}";
