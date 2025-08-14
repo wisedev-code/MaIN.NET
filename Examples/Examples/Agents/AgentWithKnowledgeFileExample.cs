@@ -6,7 +6,7 @@ using Microsoft.Identity.Client;
 
 namespace Examples.Agents;
 
-public class AgentWithKnowledgeBaseExample : IExample
+public class AgentWithKnowledgeFileExample : IExample
 {
     public async Task Start()
     {

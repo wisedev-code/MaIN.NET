@@ -57,12 +57,12 @@ public class KnowledgeBuilder
         return this;
     }
     
-    public KnowledgeBuilder AddMcp(string name, Mcp mcpConfig, string[] tags)
+    public KnowledgeBuilder AddMcp(Mcp mcpConfig, string[] tags)
     {
         var mcpSerialized = JsonSerializer.Serialize(mcpConfig);
         _items.Add(new KnowledgeIndexItem
         {
-            Name = name,
+            Name = mcpConfig.Name,
             Value = mcpSerialized,
             Type = KnowledgeItemType.Mcp,
             Tags = tags

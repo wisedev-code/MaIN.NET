@@ -58,7 +58,7 @@ static void RegisterExamples(IServiceCollection services)
     services.AddTransient<AgentWithBecomeExample>();
     services.AddTransient<AgentWithApiDataSourceExample>();
     services.AddTransient<AgentTalkingToEachOtherExample>();
-    services.AddTransient<AgentWithKnowledgeBaseExample>();
+    services.AddTransient<AgentWithKnowledgeFileExample>();
     services.AddTransient<AgentWithKnowledgeWebExample>();
     services.AddTransient<AgentWithKnowledgeMcpExample>();
     services.AddTransient<AgentsComposedAsFlowExample>();
@@ -146,7 +146,7 @@ public class ExampleRegistry(IServiceProvider serviceProvider)
             ("\u25a0 Agent with Redirect (Multi backends)", serviceProvider.GetRequiredService<MultiBackendAgentWithRedirectExample>()),
             ("\u25a0 Agent with Redirect Image", serviceProvider.GetRequiredService<AgentWithRedirectImageExample>()),
             ("\u25a0 Agent with Become", serviceProvider.GetRequiredService<AgentWithBecomeExample>()),
-            ("\u25a0 Agent with Knowledge", serviceProvider.GetRequiredService<AgentWithKnowledgeBaseExample>()),
+            ("\u25a0 Agent with Knowledge", serviceProvider.GetRequiredService<AgentWithKnowledgeFileExample>()),
             ("\u25a0 Agent with Web Knowledge", serviceProvider.GetRequiredService<AgentWithKnowledgeWebExample>()),
             ("\u25a0 Agent with Mcp Knowledge", serviceProvider.GetRequiredService<AgentWithKnowledgeMcpExample>()),
             ("\u25a0 Agent with API Data Source", serviceProvider.GetRequiredService<AgentWithApiDataSourceExample>()),
