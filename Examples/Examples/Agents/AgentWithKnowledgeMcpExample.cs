@@ -1,10 +1,7 @@
-using Examples.Utils;
 using MaIN.Core.Hub;
 using MaIN.Core.Hub.Utils;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
-using MaIN.Domain.Entities.Agents.AgentSource;
-using Microsoft.Identity.Client;
 
 namespace Examples.Agents;
 
@@ -12,9 +9,11 @@ public class AgentWithKnowledgeMcpExample : IExample
 {
     public async Task Start()
     {
-        Console.WriteLine("");
+        Console.WriteLine("Agent with knowledge base example MCP sources");
 
         var context = await AIHub.Agent()
+            .WithBackend(BackendType.OpenAi)
+            .WithModel("gpt-4o")
             .WithKnowledge(KnowledgeBuilder.Instance
                 .AddMcp(new Mcp
                 {
@@ -37,23 +36,19 @@ public class AgentWithKnowledgeMcpExample : IExample
                 }, ["filesystem", "file operations", "read write", "disk search"])
                 .AddMcp(new Mcp
                 {
-                    Name = "FileSystem",
+                    Name = "Octocode",
                     Command = "npx",
-                    Arguments = ["-y",
-                        "@modelcontextprotocol/server-filesystem",
-                        "/Users/pstach/Desktop",
-                        "/Users/pstach/WiseDev"],
+                    Arguments = ["octocode-mcp"],
                     Backend = BackendType.OpenAi,
                     Model = "gpt-5-nano"
-                }, ["filesystem", "file operations", "read write", "disk search"])
-                .Build())
+                }, ["code", "github", "repository", "packages"]))
             .WithSteps(StepBuilder.Instance
                 .AnswerUseKnowledge()
                 .Build())
             .CreateAsync();
 
         var result = await context
-            .ProcessAsync("");
+            .ProcessAsync("What MaIN.NET nuget package is about?");
 
         Console.WriteLine(result.Message.Content);
     }

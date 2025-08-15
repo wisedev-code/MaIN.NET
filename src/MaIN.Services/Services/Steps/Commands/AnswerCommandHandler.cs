@@ -61,9 +61,10 @@ public class AnswerCommandHandler(
     private async Task<bool> ShouldUseKnowledge(Knowledge? knowledge, Chat chat)
     {
         var originalContent = chat.Messages.Last().Content;
-        var index = knowledge?.Index.AsString();
+        
+        var indexAsKnowledge = knowledge?.Index.Items.ToDictionary(x => x.Name, x => x.Tags);
+        var index = JsonSerializer.Serialize(indexAsKnowledge, JsonOptions);
 
-        //TODO great perf improvement would be to not provide full index, but just "name":"tags" dictionary
         chat.MemoryParams.Grammar = ServiceConstants.Grammars.DecisionGrammar;
         chat.Messages.Last().Content =
             $"Based on this conversation and following prompt, you should decide if you want to use knowledge or not. Content of available knowledge is stored in your memory, Prompt: {originalContent}";
@@ -71,7 +72,7 @@ public class AnswerCommandHandler(
         var service = llmServiceFactory.CreateService(chat.Backend ?? settings.BackendType);
         var memoryOptions = new ChatMemoryOptions
         {
-            TextData = new Dictionary<string, string> { { "knowledge_index.json", index! } }
+            TextData = new Dictionary<string, string> { { "knowledge_index.json", index } }
         };
 
         var result = await service.AskMemory(chat, memoryOptions);
@@ -84,12 +85,13 @@ public class AnswerCommandHandler(
     private async Task<Message?> ProcessKnowledgeQuery(Knowledge? knowledge, Chat chat)
     {
         var originalContent = chat.Messages.Last().Content;
-        var index = knowledge?.Index.AsString();
+        var indexAsKnowledge = knowledge?.Index.Items.ToDictionary(x => x.Name, x => x.Tags);
+        var index = JsonSerializer.Serialize(indexAsKnowledge, JsonOptions);
 
         chat.MemoryParams.Grammar = ServiceConstants.Grammars.KnowledgeGrammar;
         chat.Messages.Last().Content =
             $"""
-             Find matches based on names and tags in available knowledge. 
+             Find tags that fits user query based on available knowledge. 
              Content of available knowledge is stored in your memory. Try to be strict to include only relevant matches, 
              You should not provide more than 4 matches. Prompt: {originalContent}
              """;
@@ -101,13 +103,18 @@ public class AnswerCommandHandler(
         };
 
         var searchResult = await llmService.AskMemory(chat, memoryOptions);
-        var knowledgeItems =
-            JsonSerializer.Deserialize<KnowledgeIndexCheckResult>(searchResult!.Message.Content, JsonOptions);
+        var matchedTags = JsonSerializer.Deserialize<List<string>>(searchResult!.Message.Content, JsonOptions);
 
         chat.Messages.Last().Content = originalContent;
         chat.MemoryParams.IncludeQuestionSource = true;
         chat.MemoryParams.Grammar = null;
         memoryOptions.TextData.Clear();
+        
+        var knowledgeItems = knowledge!.Index.Items
+            .Where(x => x.Tags
+                .Intersect(matchedTags!)
+                .Any())
+            .ToList();
 
         //NOTE: perhaps good idea for future to combine knowledge form MCP and from KM 
         var mcpConfig = BuildMemoryOptionsFromKnowledgeItems(knowledgeItems, memoryOptions);
@@ -121,16 +128,16 @@ public class AnswerCommandHandler(
         return knowledgeResult?.Message;
     }
 
-    private static Mcp? BuildMemoryOptionsFromKnowledgeItems(KnowledgeIndexCheckResult? knowledgeItems,
+    private static Mcp? BuildMemoryOptionsFromKnowledgeItems(List<KnowledgeIndexItem>? knowledgeItems,
         ChatMemoryOptions memoryOptions)
     {
         //First or default because we cannot combine response from multiple servers in one go at the moment
-        var mcp = knowledgeItems?.FetchedItems.FirstOrDefault(x => x.Type == KnowledgeItemType.Mcp);
+        var mcp = knowledgeItems?.FirstOrDefault(x => x.Type == KnowledgeItemType.Mcp);
         if (mcp != null)
         {
             return JsonSerializer.Deserialize<Mcp>(mcp.Value, JsonOptions);
         }
-        foreach (var item in knowledgeItems!.FetchedItems)
+        foreach (var item in knowledgeItems!)
         {
             switch (item.Type)
             {
