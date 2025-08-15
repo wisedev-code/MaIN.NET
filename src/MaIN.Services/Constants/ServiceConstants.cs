@@ -75,10 +75,8 @@ public static class ServiceConstants
                                                      """;
 
         public const string KnowledgeGrammar = """
-                                               root ::= ws "{" ws "\"fetchedItems\":" ws "[" ws (item (ws "," ws item)*)? ws "]" ws "}"
-                                               item ::= "{" ws "\"name\":" ws string ws "," ws "\"value\":" ws string ws "," ws "\"type\":" ws type ws "}"
+                                               root ::= ws "[" ws (string (ws "," ws string)*)? ws "]"
                                                string ::= "\"" [^"]* "\""
-                                               type ::= "\"File\"" | "\"Url\"" | "\"Text\""
                                                ws ::= [ \t\n\r]*
                                                """;
     }
