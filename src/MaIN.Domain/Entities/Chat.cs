@@ -34,5 +34,4 @@ public class Chat
     public bool Playback { get; set; }
     public string TTSModelPath { get; set; }
     public string TTSVoicePath { get; set; }
-    
 }
