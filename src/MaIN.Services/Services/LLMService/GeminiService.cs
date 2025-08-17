@@ -8,6 +8,7 @@ using Microsoft.KernelMemory;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using MaIN.Domain.Entities;
+using MaIN.Services.Utils;
 
 namespace MaIN.Services.Services.LLMService;
 
@@ -75,6 +76,13 @@ public sealed class GeminiService(
         await _memoryService.ImportDataToMemory(kernel, memoryOptions, cancellationToken);
 
         var userQuery = chat.Messages.Last().Content;
+        if (chat.MemoryParams.Grammar != null)
+        {
+            var jsonGrammarConverter = new GBNFToJsonConverter();
+            var jsonGrammar = jsonGrammarConverter.ConvertToJson(chat.MemoryParams.Grammar);
+            userQuery = $"{userQuery} | Respond only using the following JSON format: \n{jsonGrammar}\n. Do not add explanations, code tags, or any extra content.";
+        }
+        
         var retrievedContext = await kernel.AskAsync(userQuery, cancellationToken: cancellationToken);
         chat.Messages.Last().MarkProcessed();
         await kernel.DeleteIndexAsync(cancellationToken: cancellationToken);

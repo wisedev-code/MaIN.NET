@@ -67,13 +67,13 @@ public static class ServiceConstants
     public static class Grammars
     {
         public const string DecisionGrammar = """
-                                                     root ::= decision
-                                                     decision ::= "{" ws "\"decision\":" ws boolean "," ws "\"certainty\":" ws percentage ws "}"
-                                                     boolean ::= "true" | "false"
-                                                     percentage ::= ("0" | [1-9] [0-9]?) ("." [0-9] [0-9]?)?
-                                                     ws ::= [ \t\n\r]*
-                                                     """;
-
+                                              root ::= decision
+                                              decision ::= "{" ws "\"decision\":" ws boolean "," ws "\"certainty\":" ws certainty ws "}"
+                                              boolean ::= "true" | "false"
+                                              certainty ::= "0" | "0." [0-9] [0-9]? | "1" | "1.0" | "1.00"
+                                              ws ::= [ \t\n\r]*
+                                              """;
+        
         public const string KnowledgeGrammar = """
                                                root ::= ws "[" ws (string (ws "," ws string)*)? ws "]"
                                                string ::= "\"" [^"]* "\""
