@@ -110,6 +110,8 @@ public static class Bootstrapper
         });
         services.AddHttpClient(ServiceConstants.HttpClients.OpenAiClient);
         services.AddHttpClient(ServiceConstants.HttpClients.GeminiClient);
+        services.AddHttpClient(ServiceConstants.HttpClients.DeepSeekClient);
+        services.AddHttpClient(ServiceConstants.HttpClients.GroqCloudClient);
         services.AddHttpClient(ServiceConstants.HttpClients.ImageDownloadClient);
         services.AddHttpClient(ServiceConstants.HttpClients.ModelContextDownloadClient, client =>
         {
