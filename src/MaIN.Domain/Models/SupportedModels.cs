@@ -183,6 +183,13 @@ public static class KnownModels
             DownloadUrl = "https://huggingface.co/Inza124/QwQ-7b/resolve/main/qwq-7b.gguf?download=true",
             AdditionalPrompt = "- Output nothing before <think>, enclose all step-by-step reasoning (excluding the final answer) within <think>...</think>, and place the final answer immediately after the closing </think>",
             ReasonFunction = ReasoningFunctions.ProcessQwQ_QwenModToken
+        },
+        new()
+        {
+            Description = "Frontier TTS model for its size of 82 million parameters (text in/audio out).",
+            Name = KnownModelNames.Kokoro_82m,
+            FileName = "kokoro.onnx",
+            DownloadUrl = "https://github.com/taylorchu/kokoro-onnx/releases/download/v0.2.0/kokoro.onnx"
         }
     ];
 
@@ -294,4 +301,5 @@ public struct KnownModelNames
     public const string Smollm2_0_1b = "smollm2:0.1b";
     public const string Yi_6b = "yi:6b";
 
+    public const string Kokoro_82m = "kokoro:82m";
 }

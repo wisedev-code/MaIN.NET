@@ -11,7 +11,7 @@ public class TTSServiceFactory(IServiceProvider serviceProvider) : ITTSServiceFa
     {
         return backendType switch
         {
-            BackendType.Self => new TTSService.TextToSpeechService(),
+            BackendType.Self => new TTSService.TextToSpeechService(serviceProvider.GetRequiredService<MaINSettings>()),
             _ => throw new ArgumentOutOfRangeException(nameof(backendType))
         };
     }
