@@ -3,7 +3,6 @@ using MaIN.Domain.Entities;
 using MaIN.Domain.Models;
 using MaIN.Services;
 using MaIN.Services.Constants;
-using MaIN.Services.Dtos;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
 using FileInfo = MaIN.Domain.Entities.FileInfo;
@@ -61,12 +60,12 @@ public class ChatContext
         return this;
     }
 
-    public ChatContext Speak(string modelPath, string voicePath, bool playback = false)
+    public ChatContext Speak(string model, Voice voice, bool playback = false)
     {
         _chat.Visual = false;
         _chat.Vocal = true;
-        _chat.TTSModelPath = modelPath;
-        _chat.TTSVoicePath = voicePath;
+        _chat.TTSModel = model;
+        _chat.Voice = voice;
         _chat.Playback = playback;
         return this;
     }

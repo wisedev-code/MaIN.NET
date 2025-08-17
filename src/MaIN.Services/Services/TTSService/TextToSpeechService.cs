@@ -1,18 +1,30 @@
-﻿using MaIN.Services.Services.Models;
+﻿using MaIN.Domain.Configuration;
+using MaIN.Domain.Entities;
+using MaIN.Domain.Models;
+using MaIN.Services.Services.Models;
 using NAudio.Wave;
 
 namespace MaIN.Services.Services.TTSService;
 
 public interface ITextToSpeechService
 {
-    Task<ChatResult?> Send(ChatResult result, string ttsModelPath, string ttsVoicePath, bool playback);
+    Task<ChatResult?> Send(ChatResult result, string modelName, Voice voice, bool playback);
 }
 
 public class TextToSpeechService : ITextToSpeechService
 {
-    public async Task<ChatResult?> Send(ChatResult result, string ttsModelPath, string ttsVoicePath, bool playback)
+    private readonly MaINSettings options;
+
+    public TextToSpeechService(MaINSettings options)
     {
-        var audioData = GenerateTtsAudio(ttsModelPath, ttsVoicePath, result.Message.Content);
+        this.options = options;
+        VoiceService.SetVoicesPath(options.VoicesPath ?? "voices");
+    }
+
+    public async Task<ChatResult?> Send(ChatResult result, string modelName, Voice voice, bool playback)
+    {
+        var model = KnownModels.GetModel(modelName);
+        var audioData = GenerateTtsAudio(Path.Combine(GetModelsPath(), model.FileName), voice, result.Message.Content);
         
         result.SpeechBytes = audioData;
 
@@ -24,27 +36,15 @@ public class TextToSpeechService : ITextToSpeechService
         return result;
     }
     
-    private static byte[] GenerateTtsAudio(string modelPath, string voicePath, string message, float speed = 1.0f)
+    private static byte[] GenerateTtsAudio(string modelPath, Voice voice, string message, float speed = 1.0f)
     {
-        // Load the voice
-        var voice = LoadVoice(voicePath);
-        
-        // Load the model
         using var model = new TextToSpeechModel(modelPath);
         
-        // Tokenize the text (simplified version - you'll need a tokenization solution)
-        var tokens = TokenizeText(message);
+        var tokens = Tokenizer.Tokenize(message);
+        var audioSamples = model.Infer(tokens, voice.Features, speed);
         
-        // Generate audio samples
-        var audioSamples = model.Infer(tokens, voice, speed);
-        
-        // Convert to WAV byte array
         return ConvertToWav(audioSamples);
     }
-    
-    private static float[,,] LoadVoice(string voicePath) => NumSharp.np.Load<float[,,]>(voicePath);
-
-    private static int[] TokenizeText(string text) => Tokenizer.Tokenize(text);
 
     private static byte[] ConvertToWav(float[] samples)
     {
@@ -94,5 +94,16 @@ public class TextToSpeechService : ITextToSpeechService
         {
             await Task.Delay(100);
         }
+    }
+
+    private string GetModelsPath()
+    {
+        var path = options.ModelsPath ?? Environment.GetEnvironmentVariable("MaIN_ModelsPath");
+        if (string.IsNullOrEmpty(path))
+        {
+            throw new InvalidOperationException("Models path not found in configuration or environment variables");
+        }
+
+        return path;
     }
 }

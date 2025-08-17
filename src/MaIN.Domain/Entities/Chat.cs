@@ -27,6 +27,10 @@ public class Chat
     /// </summary>
     public byte[] SpeechResponse { get; set; }
 
+    public string? TTSModel { get; set; }
+    public Voice Voice { get; set; }
+    
+
     public bool Playback { get; set; }
     public string TTSModelPath { get; set; }
     public string TTSVoicePath { get; set; }

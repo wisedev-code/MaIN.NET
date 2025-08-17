@@ -15,6 +15,7 @@ public class MaINSettings
     public FileSystemSettings? FileSystemSettings { get; set; }
     public SqliteSettings? SqliteSettings { get; set; }
     public SqlSettings? SqlSettings { get; set; }
+    public string? VoicesPath { get; set; }
 }
 
 public enum BackendType
