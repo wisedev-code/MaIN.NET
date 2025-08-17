@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents.Knowledge;
@@ -61,25 +62,33 @@ public class AnswerCommandHandler(
     private async Task<bool> ShouldUseKnowledge(Knowledge? knowledge, Chat chat)
     {
         var originalContent = chat.Messages.Last().Content;
-        
+
         var indexAsKnowledge = knowledge?.Index.Items.ToDictionary(x => x.Name, x => x.Tags);
         var index = JsonSerializer.Serialize(indexAsKnowledge, JsonOptions);
 
-        chat.MemoryParams.Grammar = ServiceConstants.Grammars.DecisionGrammar;
+        chat.InterferenceParams.Grammar = ServiceConstants.Grammars.DecisionGrammar;
         chat.Messages.Last().Content =
-            $"Based on this conversation and following prompt, you should decide if you want to use knowledge or not. Content of available knowledge is stored in your memory, Prompt: {originalContent}";
+            $"""
+             KNOWLEDGE:
+             {index}
+
+                   Based on the following prompt, decide if you should use external knowledge.
+                   Use external knowledge unless you're certain the question requires only basic facts (like "What is 2+2?" or "Capital of France?").
+                   When in doubt, use it - external knowledge often provides more current, specific, or contextual information.
+                   Content of available knowledge has source tags. Prompt: {originalContent}
+             """;
 
         var service = llmServiceFactory.CreateService(chat.Backend ?? settings.BackendType);
-        var memoryOptions = new ChatMemoryOptions
+
+        var result = await service.Send(chat, new ChatRequestOptions()
         {
-            TextData = new Dictionary<string, string> { { "knowledge_index.json", index } }
-        };
-
-        var result = await service.AskMemory(chat, memoryOptions);
-        var decision = JsonSerializer.Deserialize<DecisionResult>(result!.Message.Content, JsonOptions);
-
+            SaveConv = false
+        });
+        var decision = JsonSerializer.Deserialize<JsonElement>(result!.Message.Content, JsonOptions);
+        var decisionValue = decision.GetProperty("decision").GetRawText();
+        var shouldUseKnowledge = bool.Parse(decisionValue.Trim('"'));
         chat.Messages.Last().Content = originalContent;
-        return decision?.Decision ?? false;
+        return shouldUseKnowledge!;
     }
 
     private async Task<Message?> ProcessKnowledgeQuery(Knowledge? knowledge, Chat chat)
@@ -88,28 +97,28 @@ public class AnswerCommandHandler(
         var indexAsKnowledge = knowledge?.Index.Items.ToDictionary(x => x.Name, x => x.Tags);
         var index = JsonSerializer.Serialize(indexAsKnowledge, JsonOptions);
 
-        chat.MemoryParams.Grammar = ServiceConstants.Grammars.KnowledgeGrammar;
+        chat.InterferenceParams.Grammar = ServiceConstants.Grammars.KnowledgeGrammar;
         chat.Messages.Last().Content =
             $"""
-             Find tags that fits user query based on available knowledge. 
-             Content of available knowledge is stored in your memory. Try to be strict to include only relevant matches, 
-             You should not provide more than 4 matches. Prompt: {originalContent}
+             KNOWLEDGE:
+             {index}
+
+             Find tags that fits user query based on available knowledge (provided to you above as pair of item names with tags). 
+             Always return at least 1 tag in array, and no more than 4. Prompt: {originalContent}
              """;
 
         var llmService = llmServiceFactory.CreateService(chat.Backend ?? settings.BackendType);
-        var memoryOptions = new ChatMemoryOptions
-        {
-            TextData = new Dictionary<string, string> { { "knowledge_index.json", index! } }
-        };
 
-        var searchResult = await llmService.AskMemory(chat, memoryOptions);
+        var searchResult = await llmService.Send(chat, new ChatRequestOptions()
+        {
+            SaveConv = false
+        });
         var matchedTags = JsonSerializer.Deserialize<List<string>>(searchResult!.Message.Content, JsonOptions);
 
         chat.Messages.Last().Content = originalContent;
         chat.MemoryParams.IncludeQuestionSource = true;
         chat.MemoryParams.Grammar = null;
-        memoryOptions.TextData.Clear();
-        
+
         var knowledgeItems = knowledge!.Index.Items
             .Where(x => x.Tags
                 .Intersect(matchedTags!)
@@ -117,13 +126,14 @@ public class AnswerCommandHandler(
             .ToList();
 
         //NOTE: perhaps good idea for future to combine knowledge form MCP and from KM 
+        var memoryOptions = new ChatMemoryOptions();
         var mcpConfig = BuildMemoryOptionsFromKnowledgeItems(knowledgeItems, memoryOptions);
         if (mcpConfig != null)
         {
             var result = await mcpService.Prompt(mcpConfig, chat.Messages.Last().Content);
             return result.Message;
         }
-        
+
         var knowledgeResult = await llmService.AskMemory(chat, memoryOptions);
         return knowledgeResult?.Message;
     }
@@ -137,6 +147,7 @@ public class AnswerCommandHandler(
         {
             return JsonSerializer.Deserialize<Mcp>(mcp.Value, JsonOptions);
         }
+
         foreach (var item in knowledgeItems!)
         {
             switch (item.Type)

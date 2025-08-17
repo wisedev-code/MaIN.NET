@@ -13,7 +13,7 @@ public class AgentWithKnowledgeMcpExample : IExample
 
         var context = await AIHub.Agent()
             .WithBackend(BackendType.OpenAi)
-            .WithModel("gpt-4o")
+            .WithModel("gpt-4.1-mini")
             .WithKnowledge(KnowledgeBuilder.Instance
                 .AddMcp(new Mcp
                 {
@@ -40,15 +40,15 @@ public class AgentWithKnowledgeMcpExample : IExample
                     Command = "npx",
                     Arguments = ["octocode-mcp"],
                     Backend = BackendType.OpenAi,
-                    Model = "gpt-5-nano"
-                }, ["code", "github", "repository", "packages"]))
+                    Model = "gpt-4-nano"
+                }, ["code", "github", "repository", "packages", "npm"]))
             .WithSteps(StepBuilder.Instance
                 .AnswerUseKnowledge()
                 .Build())
             .CreateAsync();
 
         var result = await context
-            .ProcessAsync("What MaIN.NET nuget package is about?");
+            .ProcessAsync("What is the most used react npm package?");
 
         Console.WriteLine(result.Message.Content);
     }

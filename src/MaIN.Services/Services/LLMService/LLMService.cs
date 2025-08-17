@@ -173,7 +173,11 @@ public class LLMService : ILLMService
 
         if (isComplete && !hasFailed)
         {
-            chat.ConversationState = conversation.Save();
+            if (requestOptions.SaveConv)
+            {
+                chat.ConversationState = conversation.Save();
+            }
+
             if (isComplete)
             {
                 conversation.Dispose();
