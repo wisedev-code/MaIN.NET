@@ -9,6 +9,7 @@ public class AgentWithKnowledgeMcpExample : IExample
 {
     public async Task Start()
     {
+        //Note: to run this example, you should do 'gh auth login' to give octocode mcp server access to github CLI
         Console.WriteLine("Agent with knowledge base example MCP sources");
 
         var context = await AIHub.Agent()
@@ -40,7 +41,7 @@ public class AgentWithKnowledgeMcpExample : IExample
                     Command = "npx",
                     Arguments = ["octocode-mcp"],
                     Backend = BackendType.OpenAi,
-                    Model = "gpt-4-nano"
+                    Model = "gpt-5-nano"
                 }, ["code", "github", "repository", "packages", "npm"]))
             .WithSteps(StepBuilder.Instance
                 .AnswerUseKnowledge()
@@ -48,7 +49,7 @@ public class AgentWithKnowledgeMcpExample : IExample
             .CreateAsync();
 
         var result = await context
-            .ProcessAsync("What is the most used react npm package?");
+            .ProcessAsync("What is the most used npm package?");
 
         Console.WriteLine(result.Message.Content);
     }
