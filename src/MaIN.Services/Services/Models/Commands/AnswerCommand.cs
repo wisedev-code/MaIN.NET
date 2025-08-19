@@ -10,6 +10,7 @@ public class AnswerCommand : BaseCommand, ICommand<Message?>
 {
     public bool LastChunk { get; set; }
     public bool TemporaryChat { get; set; }
+    public string AgentId { get; set; }
     public KnowledgeUsage KnowledgeUsage { get; init; }
     public Knowledge? Knowledge { get; init; }
     public string CommandName => "ANSWER";

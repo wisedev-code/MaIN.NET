@@ -19,6 +19,19 @@ public static class NotificationMessageBuilder
         };
     }
     
+    public static Dictionary<string, string> CreateActorKnowledgeStepProgress(
+        string agentId, 
+        List<string>? itemNamesAndTasks,
+        string model)
+    {
+        return new Dictionary<string, string>
+        {
+            { "AgentId", agentId },
+            { "Items", string.Join('+', itemNamesAndTasks!) },
+            { "Model", model},
+        };
+    }
+    
     public static Dictionary<string, string?> CreateChatCompletion(
         string? chatId, 
         LLMTokenValue content, 

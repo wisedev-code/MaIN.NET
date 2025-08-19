@@ -28,7 +28,8 @@ public class AnswerStepHandler(ICommandDispatcher commandDispatcher) : IStepHand
                 : useKnowledge ? KnowledgeUsage.UseKnowledge 
                     : useMemory ? KnowledgeUsage.UseMemory 
                         : KnowledgeUsage.None,
-            Knowledge = context.Knowledge
+            Knowledge = context.Knowledge,
+            AgentId = context.Agent.Id
         };
         
         var answerResponse = await commandDispatcher.DispatchAsync(answerCommand);

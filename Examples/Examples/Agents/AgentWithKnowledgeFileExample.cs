@@ -25,7 +25,6 @@ public class AgentWithKnowledgeFileExample : IExample
                     tags:["company structure", "company policy", "company culture", "company overview"])
                 .AddFile("events.md", "./Files/Knowledge/events.md",
                     tags: ["company events", "company calendar", "company agenda"])
-                .AddUrl("webpagename", "www.example.com", tags: ["company website"])
                 .AddFile("office_layout.md", "./Files/Knowledge/office_layout.md",
                     tags: ["company layout", "company facilities", "company environment", "office items", "supplies"]))
             .WithSteps(StepBuilder.Instance
