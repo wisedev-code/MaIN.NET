@@ -1,5 +1,6 @@
 using Examples.Utils;
 using MaIN.Core.Hub;
+using MaIN.Domain.Models;
 
 namespace Examples;
 
@@ -12,6 +13,7 @@ public class ChatWithImageGenOpenAiExample : IExample
         
         var result = await AIHub.Chat()
             .EnableVisual()
+            .WithModel("dall-e-3")
             .WithMessage("Generate rock style cow playing guitar")
             .CompleteAsync();
         

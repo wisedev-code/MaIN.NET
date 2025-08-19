@@ -12,12 +12,14 @@ using MaIN.Services.Services.LLMService.Factory;
 using MaIN.Services.Services.Models;
 using MaIN.Services.Services.Models.Commands;
 using MaIN.Services.Services.Models.Utils;
+using MaIN.Services.Utils;
 
 namespace MaIN.Services.Services.Steps.Commands;
 
 public class AnswerCommandHandler(
     ILLMServiceFactory llmServiceFactory,
     IMcpService mcpService,
+    INotificationService notificationService,
     IImageGenServiceFactory imageGenServiceFactory,
     MaINSettings settings)
     : ICommandHandler<AnswerCommand, Message?>
@@ -43,12 +45,12 @@ public class AnswerCommandHandler(
                 var isKnowledgeNeeded = await ShouldUseKnowledge(command.Knowledge, command.Chat);
                 if (isKnowledgeNeeded)
                 {
-                    return await ProcessKnowledgeQuery(command.Knowledge, command.Chat);
+                    return await ProcessKnowledgeQuery(command.Knowledge, command.Chat, command.AgentId);
                 }
 
                 break;
             case KnowledgeUsage.AlwaysUseKnowledge:
-                return await ProcessKnowledgeQuery(command.Knowledge, command.Chat);
+                return await ProcessKnowledgeQuery(command.Knowledge, command.Chat, command.AgentId);
         }
 
         result = command.Chat!.Visual
@@ -86,12 +88,13 @@ public class AnswerCommandHandler(
         });
         var decision = JsonSerializer.Deserialize<JsonElement>(result!.Message.Content, JsonOptions);
         var decisionValue = decision.GetProperty("decision").GetRawText();
+        chat.InterferenceParams.Grammar = null;
         var shouldUseKnowledge = bool.Parse(decisionValue.Trim('"'));
         chat.Messages.Last().Content = originalContent;
         return shouldUseKnowledge!;
     }
 
-    private async Task<Message?> ProcessKnowledgeQuery(Knowledge? knowledge, Chat chat)
+    private async Task<Message?> ProcessKnowledgeQuery(Knowledge? knowledge, Chat chat, string agentId)
     {
         var originalContent = chat.Messages.Last().Content;
         var indexAsKnowledge = knowledge?.Index.Items.ToDictionary(x => x.Name, x => x.Tags);
@@ -124,13 +127,19 @@ public class AnswerCommandHandler(
                 .Intersect(matchedTags!)
                 .Any())
             .ToList();
-
+        
         //NOTE: perhaps good idea for future to combine knowledge form MCP and from KM 
         var memoryOptions = new ChatMemoryOptions();
         var mcpConfig = BuildMemoryOptionsFromKnowledgeItems(knowledgeItems, memoryOptions);
+
+        await notificationService.DispatchNotification(NotificationMessageBuilder.CreateActorKnowledgeStepProgress(
+            agentId,
+            knowledgeItems.Select(x => $" {x.Name}|{x.Type} ").ToList(),
+            mcpConfig?.Model ?? chat.Model), "ReceiveAgentUpdate");
+        
         if (mcpConfig != null)
         {
-            var result = await mcpService.Prompt(mcpConfig, chat.Messages.Last().Content);
+            var result = await mcpService.Prompt(mcpConfig, chat.Messages);
             return result.Message;
         }
 

@@ -1,6 +1,7 @@
 ﻿using Examples;
 using Examples.Agents;
 using Examples.Agents.Flows;
+using Examples.Mcp;
 using MaIN.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
