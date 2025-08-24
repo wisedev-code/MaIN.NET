@@ -20,6 +20,7 @@ public class Message
     public bool Tool { get; init; }
     public DateTime Time { get; set; }
     public byte[]? Image { get; init; }
+    public byte[]? Speech { get; set; }
     public List<FileInfo>? Files { get; set; } 
     public Dictionary<string, string> Properties { get; set; } = [];
 

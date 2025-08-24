@@ -1,14 +1,13 @@
 ﻿using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Models;
-using MaIN.Services.Services.Models;
 using NAudio.Wave;
 
 namespace MaIN.Services.Services.TTSService;
 
 public interface ITextToSpeechService
 {
-    Task<ChatResult?> Send(ChatResult result, string modelName, Voice voice, bool playback);
+    Task<byte[]> Send(Message message, string modelName, Voice voice, bool playback);
 }
 
 public class TextToSpeechService : ITextToSpeechService
@@ -21,19 +20,17 @@ public class TextToSpeechService : ITextToSpeechService
         VoiceService.SetVoicesPath(options.VoicesPath ?? "voices");
     }
 
-    public async Task<ChatResult?> Send(ChatResult result, string modelName, Voice voice, bool playback)
+    public async Task<byte[]> Send(Message message, string modelName, Voice voice, bool playback)
     {
         var model = KnownModels.GetModel(modelName);
-        var audioData = GenerateTtsAudio(Path.Combine(GetModelsPath(), model.FileName), voice, result.Message.Content);
-        
-        result.SpeechBytes = audioData;
+        var audioData = GenerateTtsAudio(Path.Combine(GetModelsPath(), model.FileName), voice, message.Content);
 
         if (playback)
         {
             await PlaybackAudio(audioData);
         }
 
-        return result;
+        return audioData;
     }
     
     private static byte[] GenerateTtsAudio(string modelPath, Voice voice, string message, float speed = 1.0f)
