@@ -3,6 +3,7 @@ using NumSharp;
 
 namespace MaIN.Services.Services.TTSService;
 
+[Obsolete("This is temporary, duct-tape like solution. It can and will evolve into something more robust")]
 public static class VoiceService
 {
     private static string? _voicesPath;
