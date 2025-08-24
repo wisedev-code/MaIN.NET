@@ -60,13 +60,11 @@ public class ChatContext
         return this;
     }
 
-    public ChatContext Speak(string model, Voice voice, bool playback = false)
+    public ChatContext Speak(TextToSpeechParams textToSpeechParams)
     {
         _chat.Visual = false;
-        _chat.Vocal = true;
-        _chat.TTSModel = model;
-        _chat.Voice = voice;
-        _chat.Playback = playback;
+        _chat.TextToSpeechParams = textToSpeechParams;
+        
         return this;
     }
 
@@ -160,7 +158,7 @@ public class ChatContext
     public ChatContext EnableVisual()
     {
         _chat.Visual = true;
-        _chat.Vocal = false;
+        _chat.TextToSpeechParams = null;
         return this;
     }
 

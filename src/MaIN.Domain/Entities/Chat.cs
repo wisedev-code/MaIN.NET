@@ -13,6 +13,7 @@ public class Chat
     public bool Visual { get; set; }
     public InferenceParams InterferenceParams { get; set; } = new();
     public MemoryParams MemoryParams { get; set; } = new();
+    public TextToSpeechParams? TextToSpeechParams { get; set; }
     public Dictionary<string, string> Properties { get; init; } = [];
     public List<string> Memory { get; } = [];
     public BackendType? Backend { get; set; }
@@ -21,13 +22,4 @@ public class Chat
     public bool Interactive = false;
     public bool Translate = false;
     
-    public bool Vocal { get; set; }
-
-    public string? TTSModel { get; set; }
-    public Voice Voice { get; set; }
-    
-
-    public bool Playback { get; set; }
-    public string TTSModelPath { get; set; }
-    public string TTSVoicePath { get; set; }
 }

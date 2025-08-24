@@ -1,4 +1,5 @@
 ﻿using MaIN.Core.Hub;
+using MaIN.Domain.Entities;
 using MaIN.Services.Services.TTSService;
 
 namespace Examples;
@@ -18,7 +19,7 @@ public class ChatWithTextToSpeechExample : IExample
         
         await AIHub.Chat().WithModel("gemma2:2b")
             .WithMessage("Generate a 4 sentence poem.")
-            .Speak("kokoro:82m", voice, true)
+            .Speak(new TextToSpeechParams("kokoro:82m", voice, true))
             .CompleteAsync(interactive: true);
 
         Console.WriteLine("Done!");
