@@ -22,10 +22,6 @@ public class Chat
     public bool Translate = false;
     
     public bool Vocal { get; set; }
-    /// <summary>
-    /// These are bytes with .wav file with generated speech
-    /// </summary>
-    public byte[] SpeechResponse { get; set; }
 
     public string? TTSModel { get; set; }
     public Voice Voice { get; set; }

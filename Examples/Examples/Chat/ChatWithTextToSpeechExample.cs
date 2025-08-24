@@ -5,7 +5,7 @@ namespace Examples;
 
 public class ChatWithTextToSpeechExample : IExample
 {
-    private const string VoicePath = "<set_path_to_your_voice_files>";
+    private const string VoicePath = @"C:\Models\tts\voices";
     
     public async Task Start()
     {
