@@ -67,6 +67,7 @@ static void RegisterExamples(IServiceCollection services)
     services.AddTransient<ChatWithImageGenGeminiExample>();
     services.AddTransient<ChatWithFilesExampleGemini>();
     services.AddTransient<ChatWithReasoningDeepSeekExample>();
+    services.AddTransient<ChatWithTextToSpeechExample>();
     services.AddTransient<ChatExampleGroqCloud>();
 }
 
@@ -156,6 +157,8 @@ public class ExampleRegistry(IServiceProvider serviceProvider)
             ("\u25a0 DeepSeek Chat with reasoning", serviceProvider.GetRequiredService<ChatWithReasoningDeepSeekExample>()),
             ("\u25a0 GroqCloud Chat", serviceProvider.GetRequiredService<ChatExampleGroqCloud>()),
             ("\u25a0 McpClient example", serviceProvider.GetRequiredService<McpExample>()),
+            ("\u25a0 McpAgent example", serviceProvider.GetRequiredService<McpAgentsExample>()),
+            ("\u25a0 Chat with TTS example", serviceProvider.GetRequiredService<ChatWithTextToSpeechExample>()),
             ("\u25a0 McpAgent example", serviceProvider.GetRequiredService<McpAgentsExample>())
         };
     }
