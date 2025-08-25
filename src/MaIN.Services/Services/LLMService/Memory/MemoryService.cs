@@ -38,7 +38,7 @@ public class MemoryService : IMemoryService
         foreach (var item in textData)
         {
             var cleanedValue = JsonCleaner.CleanAndUnescape(item.Value);
-            await memory.ImportTextAsync(cleanedValue, item.Key, cancellationToken: cancellationToken);
+            await memory.ImportTextAsync(cleanedValue!, item.Key, cancellationToken: cancellationToken);
         }
     }
 
