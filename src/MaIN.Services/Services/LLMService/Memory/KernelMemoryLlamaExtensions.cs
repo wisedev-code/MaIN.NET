@@ -25,7 +25,7 @@ public static class KernelMemoryLlamaExtensions
         
         var inferenceParams = new InferenceParams 
         { 
-            AntiPrompts = ["INFO", "<|im_end|>", "Question:"],
+            AntiPrompts = ["INFO", "<|im_end|>", "Question:", "Answer:", "INFO NOT FOUND"],
             SamplingPipeline = new DefaultSamplingPipeline()
             {
                 Grammar = memoryParams.Grammar != null ? new Grammar(memoryParams.Grammar, "root") : null

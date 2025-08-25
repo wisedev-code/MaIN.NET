@@ -11,7 +11,7 @@ public class AgentWithKnowledgeFileExample : IExample
     public async Task Start()
     {
         Console.WriteLine("Agent with knowledge base example");
-        
+        AIHub.Extensions.DisableLLamaLogs();
         var context = await AIHub.Agent()
             .WithModel("gemma3:4b")
             .WithInitialPrompt("""

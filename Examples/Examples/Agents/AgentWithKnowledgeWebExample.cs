@@ -13,8 +13,9 @@ public class AgentWithKnowledgeWebExample : IExample
     {
         Console.WriteLine("Piano Learning Assistant with Focused Knowledge Sources");
 
+        AIHub.Extensions.DisableLLamaLogs();
         var context = await AIHub.Agent()
-            .WithModel("llama3.1:8b")
+            .WithModel("llama3.2:3b")
             .WithMemoryParams(new MemoryParams(){ContextSize = 2137})
             .WithInitialPrompt("""
                                You are an expert piano instructor specializing in teaching specific pieces,
@@ -46,7 +47,7 @@ public class AgentWithKnowledgeWebExample : IExample
             .CreateAsync();
 
         var result = await context
-            .ProcessAsync("I want to learn the C major scale. What's the exact fingering pattern for both hands?");
+            .ProcessAsync("I want to learn the C major scale. What's the exact fingering pattern for both hands?" + "I want short and concrete answer");
 
         Console.WriteLine(result.Message.Content);
     }

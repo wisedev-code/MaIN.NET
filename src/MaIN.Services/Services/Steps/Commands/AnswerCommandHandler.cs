@@ -117,21 +117,19 @@ public class AnswerCommandHandler(
             SaveConv = false
         });
         var matchedTags = JsonSerializer.Deserialize<List<string>>(searchResult!.Message.Content, JsonOptions);
-
-        chat.Messages.Last().Content = originalContent;
-        chat.MemoryParams.IncludeQuestionSource = true;
-        chat.MemoryParams.Grammar = null;
-
         var knowledgeItems = knowledge!.Index.Items
-            .Where(x => x.Tags
-                .Intersect(matchedTags!)
-                .Any())
+            .Where(x => x.Tags.Intersect(matchedTags!).Any() ||
+                        matchedTags!.Contains(x.Name))
             .ToList();
         
         //NOTE: perhaps good idea for future to combine knowledge form MCP and from KM 
         var memoryOptions = new ChatMemoryOptions();
         var mcpConfig = BuildMemoryOptionsFromKnowledgeItems(knowledgeItems, memoryOptions);
 
+        chat.Messages.Last().Content = $"{originalContent} - Use information given you as memory.";
+        chat.MemoryParams.IncludeQuestionSource = true;
+        chat.MemoryParams.Grammar = null;
+        
         await notificationService.DispatchNotification(NotificationMessageBuilder.CreateActorKnowledgeStepProgress(
             agentId,
             knowledgeItems.Select(x => $" {x.Name}|{x.Type} ").ToList(),
@@ -144,6 +142,7 @@ public class AnswerCommandHandler(
         }
 
         var knowledgeResult = await llmService.AskMemory(chat, memoryOptions);
+        chat.Messages.Last().Content = originalContent;
         return knowledgeResult?.Message;
     }
 
