@@ -24,7 +24,7 @@ namespace MaIN.Services.Services.LLMService.Memory;
 //This class is completely copied from LLamaSharp internal implementation, but modified to support KnowledgeBase feature, 
 //Including way for agents to remember previous KM responses + additional bonus - KM uses now BatchedExecutor
 [Experimental("KMEXP00")]
-public sealed class LlamaSharpTextGen : ITextGenerator, ITextTokenizer, IDisposable
+public sealed class LlamaSharpTextGen : ITextGenerator, IDisposable
 {
     private readonly BatchedExecutor _executor;
     private readonly LLamaWeights _weights;
@@ -42,13 +42,13 @@ public sealed class LlamaSharpTextGen : ITextGenerator, ITextTokenizer, IDisposa
         uint? contextSize = config?.ContextSize;
         modelParams.ContextSize = contextSize.GetValueOrDefault(2048U);
         modelParams.GpuLayerCount = (config?.GpuLayerCount).GetValueOrDefault(20);
-        modelParams.MainGpu = config != null ? config.MainGpu : 0;
-        modelParams.SplitMode = config != null ? config.SplitMode : GPUSplitMode.None;
+        modelParams.MainGpu = config?.MainGpu ?? 0;
+        modelParams.SplitMode = config?.SplitMode ?? GPUSplitMode.None;
         ModelParams @params = modelParams;
         _weights = LLamaWeights.LoadFromFile(@params);
         _context = _weights.CreateContext(@params);
         _executor = new BatchedExecutor(_weights, @params);
-        _defaultInferenceParams = config.DefaultInferenceParams;
+        _defaultInferenceParams = config?.DefaultInferenceParams;
         _ownsWeights = _ownsContext = true;
         contextSize = @params.ContextSize;
         MaxTokenTotal = (int)contextSize.Value;
@@ -85,8 +85,6 @@ public sealed class LlamaSharpTextGen : ITextGenerator, ITextTokenizer, IDisposa
         TextGenerationOptions options,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var parameters = OptionsToParams(options, _defaultInferenceParams);
-        // Create conversation from the executor (assuming you have a way to create this)
         var conversation = _executor.Create();
         conversation.Prompt(_weights.Tokenize(prompt, true, false, Encoding.UTF8));
 
@@ -152,49 +150,9 @@ public sealed class LlamaSharpTextGen : ITextGenerator, ITextTokenizer, IDisposa
 
     private int GetMaxTokensFromOptions(TextGenerationOptions options)
     {
-        // Extract max tokens from your options, defaulting to int.MaxValue if not specified
-        // You'll need to implement this based on your TextGenerationOptions structure
-        return options?.MaxTokens == -1 ? int.MaxValue : (options?.MaxTokens ?? int.MaxValue);
+        return options.MaxTokens == -1 ? int.MaxValue : options.MaxTokens ?? int.MaxValue;
     }
 
-    private object CreateSampler(object parameters)
-    {
-        // You'll need to implement this based on how you create samplers in your system
-        // This should match the sampler creation logic from your existing code
-        throw new NotImplementedException("Implement based on your sampler creation logic");
-    }
-
-    private static InferenceParams OptionsToParams(
-        TextGenerationOptions options,
-        InferenceParams? defaultParams)
-    {
-        if (defaultParams != null)
-            return defaultParams with
-            {
-                AntiPrompts = defaultParams.AntiPrompts
-                    .Concat(options.StopSequences).ToList().AsReadOnly(),
-                MaxTokens = options.MaxTokens ?? defaultParams.MaxTokens,
-                SamplingPipeline = new DefaultSamplingPipeline
-                {
-                    Temperature = (float)options.Temperature,
-                    FrequencyPenalty = (float)options.FrequencyPenalty,
-                    PresencePenalty = (float)options.PresencePenalty,
-                    TopP = (float)options.NucleusSampling
-                }
-            };
-        return new InferenceParams
-        {
-            AntiPrompts = options.StopSequences.ToList().AsReadOnly(),
-            MaxTokens = options.MaxTokens.GetValueOrDefault(1024),
-            SamplingPipeline = new DefaultSamplingPipeline
-            {
-                Temperature = (float)options.Temperature,
-                FrequencyPenalty = (float)options.FrequencyPenalty,
-                PresencePenalty = (float)options.PresencePenalty,
-                TopP = (float)options.NucleusSampling
-            }
-        };
-    }
 
     public int CountTokens(string text) => _context.Tokenize(text, special: true).Length;
 
@@ -207,7 +165,7 @@ public sealed class LlamaSharpTextGen : ITextGenerator, ITextTokenizer, IDisposa
             decoder.Add(x);
             return decoder.Read();
         });
-        return source.Select<LLamaToken, string>(selector)
+        return source.Select(selector)
             .ToList();
     }
 }

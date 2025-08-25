@@ -36,7 +36,7 @@ public static class KernelMemoryLlamaExtensions
             new LlamaSharpTextGen(
                 model,
                 context,
-                executor, //TODO we should try to use batched executor so we can use conversation object and its state
+                executor, 
                 inferenceParams,
                 memoryParams
             )

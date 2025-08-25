@@ -69,9 +69,9 @@ public class DataSourceProvider : IDataSourceProvider
             apiDetails?.Url + apiDetails?.Query);
 
         
-        if (!apiDetails.AuthenticationToken.IsNullOrEmpty())
+        if (!apiDetails?.AuthenticationToken.IsNullOrEmpty() ?? false)
         {
-            if (!apiDetails.AuthenticationType.HasValue)
+            if (!apiDetails!.AuthenticationType.HasValue)
                 throw new InvalidOperationException("Please specify an authorization type");
 
             switch (apiDetails.AuthenticationType)
@@ -96,11 +96,7 @@ public class DataSourceProvider : IDataSourceProvider
 
                 default:
                     throw new InvalidOperationException($"Unsupported authentication type: {apiDetails.AuthenticationType}");
-
-
             }
-
-
         }
 
         if (!string.IsNullOrEmpty(apiDetails?.Curl))
@@ -138,7 +134,7 @@ public class DataSourceProvider : IDataSourceProvider
                             }
                             jsonString = JsonCleaner.CleanAndUnescape(jsonString);
 
-                            JsonDocument.Parse(jsonString);
+                            JsonDocument.Parse(jsonString!);
                         }
                         catch
                         {
@@ -150,7 +146,7 @@ public class DataSourceProvider : IDataSourceProvider
                 }
 
                 request.Content = new StringContent(
-                    jsonString,
+                    jsonString!,
                     Encoding.UTF8,
                     "application/json");
 

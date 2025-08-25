@@ -43,7 +43,7 @@ public class GBNFToJsonConverter
                 var jsonDoc = JsonDocument.Parse(result);
                 return JsonSerializer.Serialize(jsonDoc, new JsonSerializerOptions { WriteIndented = true });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return result;
             }
