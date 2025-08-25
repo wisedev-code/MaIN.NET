@@ -10,14 +10,13 @@ using MaIN.Domain.Entities.Agents.Knowledge;
 
 namespace MaIN.Core.Hub.Contexts;
 
-//TODO knowledge should be include somehow maybe in stepbuilder
 public class AgentContext
 {
     private readonly IAgentService _agentService;
     private InferenceParams? _inferenceParams;
     private MemoryParams? _memoryParams;
     private bool _disableCache;
-    private Agent _agent;
+    private readonly Agent _agent;
     internal Knowledge? _knowledge;
 
     internal AgentContext(IAgentService agentService)
