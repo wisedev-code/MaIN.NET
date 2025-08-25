@@ -3,7 +3,6 @@ using MaIN.Domain.Entities;
 using MaIN.Domain.Models;
 using MaIN.Services;
 using MaIN.Services.Constants;
-using MaIN.Services.Dtos;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
 using FileInfo = MaIN.Domain.Entities.FileInfo;
@@ -58,6 +57,14 @@ public class ChatContext
     {
         KnownModels.AddModel(model, path, mmProject);
         _chat.Model = model;
+        return this;
+    }
+
+    public ChatContext Speak(TextToSpeechParams textToSpeechParams)
+    {
+        _chat.Visual = false;
+        _chat.TextToSpeechParams = textToSpeechParams;
+        
         return this;
     }
 
@@ -151,6 +158,7 @@ public class ChatContext
     public ChatContext EnableVisual()
     {
         _chat.Visual = true;
+        _chat.TextToSpeechParams = null;
         return this;
     }
 

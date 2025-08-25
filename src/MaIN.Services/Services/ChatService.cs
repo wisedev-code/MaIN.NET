@@ -16,6 +16,7 @@ public class ChatService(
     IChatRepository chatProvider,
     ILLMServiceFactory llmServiceFactory,
     IImageGenServiceFactory imageGenServiceFactory,
+    ITTSServiceFactory ttsServiceFactory,
     MaINSettings settings) : IChatService
 {
     public async Task Create(Chat chat)
@@ -69,6 +70,15 @@ public class ChatService(
     {
         result!.Message.Content = await translatorService.Translate(result.Message.Content, lng!);
         result.Message.Time = DateTime.Now;
+    }
+    
+    if (!chat.Visual && chat.TextToSpeechParams != null)
+    {
+        var speechBytes = await ttsServiceFactory
+            .CreateService(chat.Backend.Value).Send(result!.Message, chat.TextToSpeechParams.Model,
+                chat.TextToSpeechParams.Voice, chat.TextToSpeechParams.Playback);
+        
+        result.Message.Speech = speechBytes;
     }
     
     originalMessages.Add(result!.Message);

@@ -23,6 +23,8 @@
       <PackageReference Include="Microsoft.SemanticKernel" Version="1.49.0" />
       <PackageReference Include="Microsoft.SemanticKernel.Connectors.Google" Version="1.33.0-alpha" />
       <PackageReference Include="ModelContextProtocol.AspNetCore" Version="0.2.0-preview.1" />
+      <PackageReference Include="NAudio" Version="2.2.1" />
+      <PackageReference Include="NumSharp" Version="0.30.0" />
       <PackageReference Include="System.Data.SqlClient" Version="4.8.6" />
       <PackageReference Include="Tesseract" Version="5.2.0" />
       <PackageReference Include="Tesseract.Data.English" Version="4.0.0" />
