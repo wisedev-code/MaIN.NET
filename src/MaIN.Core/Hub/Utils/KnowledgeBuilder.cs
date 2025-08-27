@@ -47,7 +47,7 @@ public class KnowledgeBuilder
 
     public KnowledgeBuilder AddFile(string name, string path, string[] tags)
     {
-        _items.Add(new KnowledgeIndexItem
+        AddItem(new KnowledgeIndexItem
         {
             Name = name,
             Value = path,
@@ -60,7 +60,7 @@ public class KnowledgeBuilder
     public KnowledgeBuilder AddMcp(Mcp mcpConfig, string[] tags)
     {
         var mcpSerialized = JsonSerializer.Serialize(mcpConfig);
-        _items.Add(new KnowledgeIndexItem
+        AddItem(new KnowledgeIndexItem
         {
             Name = mcpConfig.Name,
             Value = mcpSerialized,
@@ -72,7 +72,7 @@ public class KnowledgeBuilder
     
     public KnowledgeBuilder AddUrl(string name, string url, string[] tags)
     {
-        _items.Add(new KnowledgeIndexItem
+        AddItem(new KnowledgeIndexItem
         {
             Name = name,
             Value = url,
@@ -84,7 +84,7 @@ public class KnowledgeBuilder
 
     public KnowledgeBuilder AddText(string name, string content, string[] tags)
     {
-        _items.Add(new KnowledgeIndexItem
+        AddItem(new KnowledgeIndexItem
         {
             Name = name,
             Value = content,
@@ -94,7 +94,7 @@ public class KnowledgeBuilder
         return this;
     }
 
-    public KnowledgeBuilder AddItem(string name, string path, KnowledgeItemType type, params string[] tags)
+    private KnowledgeBuilder AddItem(string name, string path, KnowledgeItemType type, params string[] tags)
     {
         _items.Add(new KnowledgeIndexItem
         {
@@ -106,13 +106,13 @@ public class KnowledgeBuilder
         return this;
     }
 
-    public KnowledgeBuilder AddItem(KnowledgeIndexItem item)
+    private KnowledgeBuilder AddItem(KnowledgeIndexItem item)
     {
         _items.Add(item);
         return this;
     }
 
-    public KnowledgeBuilder AddItems(IEnumerable<KnowledgeIndexItem> items)
+    private KnowledgeBuilder AddItems(IEnumerable<KnowledgeIndexItem> items)
     {
         _items.AddRange(items);
         return this;
