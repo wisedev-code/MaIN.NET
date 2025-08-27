@@ -71,7 +71,7 @@ public class DataSourceProvider : IDataSourceProvider
         
         if (!apiDetails?.AuthenticationToken.IsNullOrEmpty() ?? false)
         {
-            if (!apiDetails!.AuthenticationType.HasValue)
+            if (!apiDetails.AuthenticationType.HasValue)
                 throw new InvalidOperationException("Please specify an authorization type");
 
             switch (apiDetails.AuthenticationType)

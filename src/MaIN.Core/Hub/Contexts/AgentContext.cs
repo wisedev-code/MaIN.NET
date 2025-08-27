@@ -189,10 +189,7 @@ public class AgentContext
 
     internal void LoadExistingKnowledgeIfExists()
     {
-        if (_knowledge == null)
-        {
-            _knowledge = new Knowledge(_agent);
-        }
+        _knowledge ??= new Knowledge(_agent);
 
         try
         {
@@ -200,6 +197,7 @@ public class AgentContext
         }
         catch (FileNotFoundException)
         {
+            Console.WriteLine("Knowledge cannot be loaded - new one will be created");
         }
     }
     

@@ -5,8 +5,6 @@ namespace MaIN.Domain.Entities.Agents.Knowledge;
 
 public class Knowledge
 {
-    private MaINSettings? _settings;
-    
     public KnowledgeIndex Index { get; set; }
     public DateTime LastUpdated { get; private set; }
     public Agent Agent { get; }
