@@ -28,7 +28,8 @@ public class RedirectCommandHandler(IAgentService agentService) : ICommandHandle
             chat.Properties.TryAdd("data_filter", command.Filter!);
         }
 
-        var result = await agentService.Process(chat, command.RelatedAgentId);
+        //TODO perhaps we want to be able to transfer knowledge?
+        var result = await agentService.Process(chat, command.RelatedAgentId, null);
         return new Message()
         {
             Content = result.Messages.Last().Content,
@@ -38,7 +39,7 @@ public class RedirectCommandHandler(IAgentService agentService) : ICommandHandle
             Properties = new Dictionary<string, string>()
             {
                 { "agent_internal", "true" },
-                { Message.UnprocessedMessageProperty, string.Empty}
+                { Message.UnprocessedMessageProperty, string.Empty }
             }
         };
     }

@@ -143,7 +143,8 @@ public class FlowContext
     
     public async Task<ChatResult> ProcessAsync(Chat chat, bool translate = false)
     {
-        var result = await _agentService.Process(chat, _firstAgent!.Id, translate);
+        //TODO add knowledge support also to flows
+        var result = await _agentService.Process(chat, _firstAgent!.Id, null, translate);
         var message = result.Messages.LastOrDefault()!;
         return new ChatResult()
         {
@@ -164,7 +165,7 @@ public class FlowContext
             Type = chat.Backend != BackendType.Self ? MessageType.LocalLLM : MessageType.CloudLLM,
             Time = DateTime.Now
         });
-        var result = await _agentService.Process(chat, _firstAgent.Id, translate);
+        var result = await _agentService.Process(chat, _firstAgent.Id, null, translate);
         var messageResult = result.Messages.LastOrDefault()!;
         return new ChatResult()
         {
@@ -179,7 +180,7 @@ public class FlowContext
     {
         var chat = await _agentService.GetChatByAgent(_firstAgent!.Id);
         chat.Messages.Add(message);
-        var result = await _agentService.Process(chat, _firstAgent.Id, translate);
+        var result = await _agentService.Process(chat, _firstAgent.Id, null, translate);
         var messageResult = result.Messages.LastOrDefault()!;
         return new ChatResult()
         {

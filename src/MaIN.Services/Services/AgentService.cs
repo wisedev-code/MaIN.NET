@@ -1,6 +1,8 @@
+using System.Text.RegularExpressions;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
+using MaIN.Domain.Entities.Agents.Knowledge;
 using MaIN.Infrastructure.Repositories.Abstract;
 using MaIN.Services.Constants;
 using MaIN.Services.Mappers;
@@ -11,6 +13,7 @@ using MaIN.Services.Services.Models.Commands;
 using MaIN.Services.Services.Steps.Commands;
 using MaIN.Services.Utils;
 using Microsoft.Extensions.Logging;
+using static System.Text.RegularExpressions.Regex;
 
 namespace MaIN.Services.Services;
 
@@ -25,7 +28,7 @@ public class AgentService(
     MaINSettings maInSettings)
     : IAgentService
 {
-    public async Task<Chat> Process(Chat chat, string agentId, bool translatePrompt = false)
+    public async Task<Chat> Process(Chat chat, string agentId, Knowledge? knowledge, bool translatePrompt = false)
     {
         var agent = await agentRepository.GetAgentById(agentId);
         if (agent == null) 
@@ -41,6 +44,7 @@ public class AgentService(
             chat = await stepProcessor.ProcessSteps(
                 agent.Context,
                 agent,
+                knowledge,
                 chat,
                 async (status, id, progress, behaviour) =>
                 {
@@ -56,6 +60,13 @@ public class AgentService(
             await notificationService.DispatchNotification(
                 NotificationMessageBuilder.ProcessingComplete(agentId, agent.CurrentBehaviour), "ReceiveAgentUpdate");
 
+            //normalize message before returning it to user
+            chat.Messages.Last().Content = Replace(
+                chat.Messages.Last().Content, 
+                @"<source>.*?</source>", 
+                string.Empty, 
+                RegexOptions.Singleline);           
+            
             return chat;
         }
         catch (Exception)

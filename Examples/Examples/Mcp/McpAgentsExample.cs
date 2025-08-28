@@ -1,8 +1,6 @@
-using Examples.Utils;
 using MaIN.Core.Hub;
 using MaIN.Core.Hub.Utils;
 using MaIN.Domain.Configuration;
-using MaIN.Domain.Entities;
 
 namespace Examples;
 
@@ -20,7 +18,7 @@ public class McpAgentsExample : IExample
         
         var context = await AIHub.Agent()
             .WithBackend(BackendType.OpenAi)
-            .WithMcpConfig(new Mcp
+            .WithMcpConfig(new MaIN.Domain.Entities.Mcp
             {
                 Name = "GitHub",
                 Arguments = ["run", "-i", "--rm", "-e", "GITHUB_PERSONAL_ACCESS_TOKEN", "ghcr.io/github/github-mcp-server"],
