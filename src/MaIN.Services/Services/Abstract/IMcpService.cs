@@ -5,5 +5,5 @@ namespace MaIN.Services.Services.Abstract;
 
 public interface IMcpService
 {
-    Task<McpResult> Prompt(Mcp config, string prompt);
+    Task<McpResult> Prompt(Mcp config, List<Message> messageHistory);
 }

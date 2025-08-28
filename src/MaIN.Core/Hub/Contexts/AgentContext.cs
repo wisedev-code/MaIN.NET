@@ -5,6 +5,8 @@ using MaIN.Domain.Entities.Agents.AgentSource;
 using MaIN.Domain.Models;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
+using MaIN.Core.Hub.Utils;
+using MaIN.Domain.Entities.Agents.Knowledge;
 
 namespace MaIN.Core.Hub.Contexts;
 
@@ -14,7 +16,8 @@ public class AgentContext
     private InferenceParams? _inferenceParams;
     private MemoryParams? _memoryParams;
     private bool _disableCache;
-    private Agent _agent;
+    private readonly Agent _agent;
+    internal Knowledge? _knowledge;
 
     internal AgentContext(IAgentService agentService)
     {
@@ -53,6 +56,8 @@ public class AgentContext
     
     public Agent GetAgent() => _agent;
     
+    public Knowledge? GetKnowledge() => _knowledge;
+    
     public AgentContext WithOrder(int order)
     {
         _agent.Order = order;
@@ -64,6 +69,7 @@ public class AgentContext
         _disableCache = true;
         return this;
     }
+
     public AgentContext WithSource(IAgentSource source, AgentSourceType type)
     {
         _agent.Context.Source = new AgentSource()
@@ -121,7 +127,6 @@ public class AgentContext
         return this;
     }
 
-    
     public AgentContext WithInitialPrompt(string prompt)
     {
         _agent.Context.Instruction = prompt;
@@ -131,6 +136,34 @@ public class AgentContext
     public AgentContext WithSteps(List<string>? steps)
     {
         _agent.Context.Steps = steps;
+        return this;
+    }
+
+    public AgentContext WithKnowledge(Func<KnowledgeBuilder, KnowledgeBuilder> knowledgeConfig)
+    {
+        var builder = KnowledgeBuilder.Instance.ForAgent(_agent);
+        _knowledge = knowledgeConfig(builder).Build();
+        return this;
+    }
+
+    public AgentContext WithKnowledge(KnowledgeBuilder knowledge)
+    {
+        _knowledge = knowledge.ForAgent(_agent).Build();
+        return this;
+    }
+    
+    public AgentContext WithKnowledge(Knowledge knowledge)
+    {
+        _knowledge = knowledge;
+        return this;
+    }
+
+    public AgentContext WithInMemoryKnowledge(Func<KnowledgeBuilder, KnowledgeBuilder> knowledgeConfig)
+    {
+        var builder = KnowledgeBuilder.Instance
+            .ForAgent(_agent)
+            .DisablePersistence();
+        _knowledge = knowledgeConfig(builder).Build();
         return this;
     }
     
@@ -153,10 +186,29 @@ public class AgentContext
         _ = _agentService.CreateAgent(_agent, flow, interactiveResponse, _inferenceParams, _memoryParams, _disableCache).Result;
         return this;
     }
+
+    internal void LoadExistingKnowledgeIfExists()
+    {
+        _knowledge ??= new Knowledge(_agent);
+
+        try
+        {
+            _knowledge.Load();
+        }
+        catch (FileNotFoundException)
+        {
+            Console.WriteLine("Knowledge cannot be loaded - new one will be created");
+        }
+    }
     
     public async Task<ChatResult> ProcessAsync(Chat chat, bool translate = false)
     {
-        var result = await _agentService.Process(chat, _agent.Id, translate);
+        if (_knowledge == null)
+        {
+            LoadExistingKnowledgeIfExists();
+        }
+
+        var result = await _agentService.Process(chat, _agent.Id, _knowledge, translate);
         var message = result.Messages.LastOrDefault()!;
         return new ChatResult()
         {
@@ -169,15 +221,19 @@ public class AgentContext
     
     public async Task<ChatResult> ProcessAsync(string message, bool translate = false)
     {
+        if (_knowledge == null)
+        {
+            LoadExistingKnowledgeIfExists();
+        }
         var chat = await _agentService.GetChatByAgent(_agent.Id);
         chat.Messages.Add(new Message()
         {
             Content = message,
             Role = "User",
-            Type = MessageType.LocalLLM,
+            Type = MessageType.LocalLLM, //TODO this need an improvement - we dont know if the message is from local or cloud
             Time = DateTime.Now
         });
-        var result = await _agentService.Process(chat, _agent.Id, translate);
+        var result = await _agentService.Process(chat, _agent.Id, _knowledge, translate);
         var messageResult = result.Messages.LastOrDefault()!;
         return new ChatResult()
         {
@@ -190,9 +246,13 @@ public class AgentContext
     
     public async Task<ChatResult> ProcessAsync(Message message, bool translate = false)
     {
+        if (_knowledge == null)
+        {
+            LoadExistingKnowledgeIfExists();
+        }
         var chat = await _agentService.GetChatByAgent(_agent.Id);
         chat.Messages.Add(message);
-        var result = await _agentService.Process(chat, _agent.Id, translate);
+        var result = await _agentService.Process(chat, _agent.Id, _knowledge, translate);
         var messageResult = result.Messages.LastOrDefault()!;
         return new ChatResult()
         {
@@ -217,7 +277,12 @@ public class AgentContext
     {
         return await _agentService.GetAgents();
     }
-
+    
+    public async Task<Agent?> GetAgentById(string id)
+    {
+        return await _agentService.GetAgentById(id);
+    }
+    
     public async Task Delete()
     {
         await _agentService.DeleteAgent(_agent.Id);
@@ -234,7 +299,9 @@ public class AgentContext
         if (existingAgent == null)
             throw new ArgumentException("Agent not found", nameof(agentId));
             
-        return new AgentContext(agentService, existingAgent);
+        var context = new AgentContext(agentService, existingAgent);
+        context.LoadExistingKnowledgeIfExists();
+        return context;
     }
 }
 
@@ -246,6 +313,10 @@ public static class AgentExtensions
         bool translate = false)
     {
         var agent = await agentTask;
+        if (agent._knowledge == null)
+        {
+            agent.LoadExistingKnowledgeIfExists();
+        }
         return await agent.ProcessAsync(message, translate);
     }
 }
