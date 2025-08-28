@@ -1,6 +1,7 @@
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Services.Services.Abstract;
+using MaIN.Services.Services.LLMService.Utils;
 using MaIN.Services.Services.Models;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
@@ -13,13 +14,13 @@ using ModelContextProtocol.Client;
 
 namespace MaIN.Services.Services;
 
-public class McpService(MaINSettings settings) : IMcpService
+public class McpService(MaINSettings settings, IServiceProvider serviceProvider) : IMcpService
 {
     public async Task<McpResult> Prompt(Mcp config, List<Message> messageHistory)
     {
         await using var mcpClient = await McpClientFactory.CreateAsync(
             new StdioClientTransport(
-                new StdioClientTransportOptions()
+                new StdioClientTransportOptions
                 {
                     Command = config.Command,
                     Arguments = config.Arguments,
@@ -53,10 +54,10 @@ public class McpService(MaINSettings settings) : IMcpService
             promptSettings, 
             kernel);
 
-        return new McpResult()
+        return new McpResult
         {
             CreatedAt = DateTime.Now,
-            Message = new Message()
+            Message = new Message
             {
                 Content = result.Last().Content!,
                 Role = nameof(AuthorRole.Assistant),
@@ -72,14 +73,14 @@ public class McpService(MaINSettings settings) : IMcpService
         {
             case BackendType.OpenAi:
                 kernelBuilder.Services.AddOpenAIChatCompletion(model, GetOpenAiKey() ?? throw new ArgumentNullException(nameof(GetOpenAiKey)));
-                return new OpenAIPromptExecutionSettings()
+                return new OpenAIPromptExecutionSettings
                 {
                     FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(options: new() { RetainArgumentTypes = true })
                 };
 
             case BackendType.Gemini:
                 kernelBuilder.Services.AddGoogleAIGeminiChatCompletion(model, GetGeminiKey() ?? throw new ArgumentNullException(nameof(GetGeminiKey)));
-                return new GeminiPromptExecutionSettings()
+                return new GeminiPromptExecutionSettings
                 {
                     ModelId = model,
                     FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(options: new() { RetainArgumentTypes = true })
@@ -99,6 +100,13 @@ public class McpService(MaINSettings settings) : IMcpService
                     FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(options: new() { RetainArgumentTypes = true })
                 };
 
+            case BackendType.Anthropic:
+                kernelBuilder.AddAnthropicChatCompletion(serviceProvider, model, GetAnthropicKey() ?? throw new ArgumentNullException(nameof(GetAnthropicKey)));
+                return new PromptExecutionSettings
+                {
+                    ExtensionData = new Dictionary<string, object>{ ["max_tokens"] = 4096 }
+                };
+
             case BackendType.Self:
                 throw new NotSupportedException("Self backend (local models) does not support MCP integration.");
 
@@ -113,4 +121,6 @@ public class McpService(MaINSettings settings) : IMcpService
         => settings.GeminiKey ?? Environment.GetEnvironmentVariable("GEMINI_API_KEY");
     string? GetGroqCloudKey()
         => settings.GroqCloudKey ?? Environment.GetEnvironmentVariable("GROQ_API_KEY");
+    string? GetAnthropicKey()
+        => settings.AnthropicKey ?? Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY");
 }
