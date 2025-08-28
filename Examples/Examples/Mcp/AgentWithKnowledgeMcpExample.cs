@@ -22,7 +22,7 @@ public class AgentWithKnowledgeMcpExample : IExample
                     Name = "ExaDeepSearch",
                     Arguments = ["-y", "exa-mcp-server"],
                     Command = "npx",
-                    EnvironmentVariables = {{"EXA_API_KEY","ef8d90d8-90c2-4985-a1e0-db28fa55feb5"}},
+                    EnvironmentVariables = {{"EXA_API_KEY","<raw_key>"}},
                     Backend = BackendType.Gemini,
                     Model = "gemini-2.0-flash"
                 }, ["search", "browser", "web access", "research"])
