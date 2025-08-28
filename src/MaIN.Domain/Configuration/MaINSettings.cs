@@ -11,6 +11,7 @@ public class MaINSettings
     public string? OpenAiKey { get; set; }
     public string? GeminiKey { get; set; }
     public string? DeepSeekKey { get; set; }
+    public string? AnthropicKey { get; set; }
     public string? GroqCloudKey { get; set; }
     public MongoDbSettings? MongoDbSettings { get; set; }
     public FileSystemSettings? FileSystemSettings { get; set; }
@@ -26,4 +27,5 @@ public enum BackendType
     Gemini = 2,
     DeepSeek = 3,
     GroqCloud = 4,
+    Anthropic = 5,
 }
