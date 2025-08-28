@@ -117,6 +117,13 @@ public abstract class OpenAiCompatibleService(
         await memoryService.ImportDataToMemory(kernel, memoryOptions, cancellationToken);
 
         var userQuery = chat.Messages.Last().Content;
+        if (chat.MemoryParams.Grammar != null)
+        {
+            var jsonGrammarConverter = new GBNFToJsonConverter();
+            var jsonGrammar = jsonGrammarConverter.ConvertToJson(chat.MemoryParams.Grammar);
+            userQuery = $"{userQuery} | Respond only using the following JSON format: \n{jsonGrammar}\n. Do not add explanations, code tags, or any extra content.";
+        }
+        
         var retrievedContext = await kernel.AskAsync(userQuery, cancellationToken: cancellationToken);
 
         await kernel.DeleteIndexAsync(cancellationToken: cancellationToken);
@@ -202,7 +209,7 @@ public abstract class OpenAiCompatibleService(
                 role = m.Role,
                 content = chat.InterferenceParams.Grammar != null
                 //I know that this is a bit ugly, but hey, it works
-                    ? $"{m.Content} | Respond only using the following grammar format: \n{chat.InterferenceParams.Grammar}\n. Do not add explanations, code tags, or any extra content."
+                    ? $"{m.Content} | Respond only using the following JSON format: \n{new GBNFToJsonConverter().ConvertToJson(chat.InterferenceParams.Grammar)}\n. Do not add explanations, code tags, or any extra content."
                     : m.Content
             }).ToArray(),
             stream = true
@@ -293,7 +300,10 @@ public abstract class OpenAiCompatibleService(
         var requestBody = new
         {
             model = chat.Model,
-            messages = conversation.Select(m => new { role = m.Role, content = m.Content }).ToArray(),
+            messages = conversation.Select(m => new { role = m.Role,   content = chat.InterferenceParams.Grammar != null
+                //I know that this is a bit ugly, but hey, it works
+                ? $"{m.Content} | Respond only using the following JSON format: \n{new GBNFToJsonConverter().ConvertToJson(chat.InterferenceParams.Grammar)}\n. Do not add explanations, code tags, or any extra content."
+                : m.Content }).ToArray(),
             stream = false
         };
 
@@ -358,6 +368,7 @@ public class ChatRequestOptions
 {
     public bool InteractiveUpdates { get; set; }
     public bool CreateSession { get; set; }
+    public bool SaveConv  {get; set; } = true;
     public Func<LLMTokenValue, Task>? TokenCallback { get; set; }
 }
 

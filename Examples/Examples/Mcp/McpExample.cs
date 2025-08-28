@@ -1,7 +1,6 @@
 using Examples.Utils;
 using MaIN.Core.Hub;
 using MaIN.Domain.Configuration;
-using MaIN.Domain.Entities;
 
 namespace Examples;
 
@@ -15,7 +14,7 @@ public class McpExample : IExample
         var result = await AIHub.Mcp()
             .WithBackend(BackendType.OpenAi)
             .WithConfig(
-            new Mcp
+            new MaIN.Domain.Entities.Mcp
             {
                 Name = "McpEverythingDemo",
                 Arguments = ["-y", "@modelcontextprotocol/server-everything"],

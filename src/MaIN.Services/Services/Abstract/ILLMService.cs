@@ -21,12 +21,13 @@ public interface ILLMService
     Task<ChatResult?> Send(Chat chat,
         ChatRequestOptions requestOptions, 
         CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Sending chat interference request to retrieve memory data
     /// </summary>
     /// <param name="chat">Chat entity</param>
     /// <param name="memoryOptions">Memory specific interference params</param>
+    /// <param name="requestOptions"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     Task<ChatResult?> AskMemory(Chat chat,

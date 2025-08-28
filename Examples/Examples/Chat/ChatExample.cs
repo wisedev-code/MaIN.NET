@@ -8,9 +8,8 @@ public class ChatExample : IExample
     {
         Console.WriteLine("ChatExample is running!");
 
-        var context = AIHub.Chat().WithModel("gemma2:2b");
-        
-        await context
+        await AIHub.Chat()
+            .WithModel("gemma2:2b")
             .WithMessage("Where do hedgehogs goes at night?")
             .CompleteAsync(interactive: true);
     }

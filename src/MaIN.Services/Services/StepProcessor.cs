@@ -1,4 +1,5 @@
 using MaIN.Domain.Entities;
+using MaIN.Domain.Entities.Agents.Knowledge;
 using MaIN.Infrastructure.Models;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
@@ -26,6 +27,7 @@ public class StepProcessor : IStepProcessor
     public async Task<Chat> ProcessSteps( //TODO try without delegates
         AgentContextDocument context,
         AgentDocument agent,
+        Knowledge? knowledge,
         Chat chat,
         Func<string, string, string?, string, Task> notifyProgress,
         Func<Chat, Task> updateChat,
@@ -44,6 +46,7 @@ public class StepProcessor : IStepProcessor
             {
                 Agent = agent,
                 Chat = chat,
+                Knowledge = knowledge,
                 RedirectMessage = redirectMessage,
                 TagsToReplaceWithFilter = tagsToReplaceWithFilter,
                 Arguments = arguments,

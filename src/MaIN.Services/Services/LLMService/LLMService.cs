@@ -115,7 +115,7 @@ public class LLMService : ILLMService
             userMessage.Content,
             cancellationToken: cancellationToken);
         await memory.KM.DeleteIndexAsync(cancellationToken: cancellationToken);
-
+        
         if (disableCache)
         {
             llmModel.Dispose();
@@ -173,7 +173,11 @@ public class LLMService : ILLMService
 
         if (isComplete && !hasFailed)
         {
-            chat.ConversationState = conversation.Save();
+            if (requestOptions.SaveConv)
+            {
+                chat.ConversationState = conversation.Save();
+            }
+
             if (isComplete)
             {
                 conversation.Dispose();

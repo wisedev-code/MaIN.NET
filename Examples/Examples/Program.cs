@@ -1,6 +1,7 @@
 ﻿using Examples;
 using Examples.Agents;
 using Examples.Agents.Flows;
+using Examples.Mcp;
 using MaIN.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -58,6 +59,9 @@ static void RegisterExamples(IServiceCollection services)
     services.AddTransient<AgentWithBecomeExample>();
     services.AddTransient<AgentWithApiDataSourceExample>();
     services.AddTransient<AgentTalkingToEachOtherExample>();
+    services.AddTransient<AgentWithKnowledgeFileExample>();
+    services.AddTransient<AgentWithKnowledgeWebExample>();
+    services.AddTransient<AgentWithKnowledgeMcpExample>();
     services.AddTransient<AgentsComposedAsFlowExample>();
     services.AddTransient<AgentsFlowLoadedExample>();
     services.AddTransient<ChatExampleOpenAi>();
@@ -67,6 +71,7 @@ static void RegisterExamples(IServiceCollection services)
     services.AddTransient<ChatWithImageGenGeminiExample>();
     services.AddTransient<ChatWithFilesExampleGemini>();
     services.AddTransient<ChatWithReasoningDeepSeekExample>();
+    services.AddTransient<ChatWithTextToSpeechExample>();
     services.AddTransient<ChatExampleGroqCloud>();
     services.AddTransient<ChatExampleAnthropic>();
 }
@@ -144,6 +149,9 @@ public class ExampleRegistry(IServiceProvider serviceProvider)
             ("\u25a0 Agent with Redirect (Multi backends)", serviceProvider.GetRequiredService<MultiBackendAgentWithRedirectExample>()),
             ("\u25a0 Agent with Redirect Image", serviceProvider.GetRequiredService<AgentWithRedirectImageExample>()),
             ("\u25a0 Agent with Become", serviceProvider.GetRequiredService<AgentWithBecomeExample>()),
+            ("\u25a0 Agent with Knowledge", serviceProvider.GetRequiredService<AgentWithKnowledgeFileExample>()),
+            ("\u25a0 Agent with Web Knowledge", serviceProvider.GetRequiredService<AgentWithKnowledgeWebExample>()),
+            ("\u25a0 Agent with Mcp Knowledge", serviceProvider.GetRequiredService<AgentWithKnowledgeMcpExample>()),
             ("\u25a0 Agent with API Data Source", serviceProvider.GetRequiredService<AgentWithApiDataSourceExample>()),
             ("\u25a0 Agents Talking to Each Other", serviceProvider.GetRequiredService<AgentTalkingToEachOtherExample>()),
             ("\u25a0 Agents Composed as Flow", serviceProvider.GetRequiredService<AgentsComposedAsFlowExample>()),
@@ -158,6 +166,8 @@ public class ExampleRegistry(IServiceProvider serviceProvider)
             ("\u25a0 GroqCloud Chat", serviceProvider.GetRequiredService<ChatExampleGroqCloud>()),
             ("\u25a0 Anthropic Chat", serviceProvider.GetRequiredService<ChatExampleAnthropic>()),
             ("\u25a0 McpClient example", serviceProvider.GetRequiredService<McpExample>()),
+            ("\u25a0 McpAgent example", serviceProvider.GetRequiredService<McpAgentsExample>()),
+            ("\u25a0 Chat with TTS example", serviceProvider.GetRequiredService<ChatWithTextToSpeechExample>()),
             ("\u25a0 McpAgent example", serviceProvider.GetRequiredService<McpAgentsExample>())
         };
     }

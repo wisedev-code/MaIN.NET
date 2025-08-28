@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml.Wordprocessing;
 using MaIN.Domain.Entities;
+using MaIN.Services.Constants;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
 using MaIN.Services.Services.Models.Commands;
@@ -16,11 +17,19 @@ public class AnswerStepHandler(ICommandDispatcher commandDispatcher) : IStepHand
     {
         await context.NotifyProgress("true", context.Agent.Id, null, context.Agent.CurrentBehaviour);
         var useMemory = context.Arguments.Contains("USE_MEMORY");
+        var useKnowledge = context.Arguments.Contains("USE_KNOWLEDGE");
+        var useKnowledgeAlways = context.Arguments.Contains("USE_KNOWLEDGE+ALWAYS");
         
         var answerCommand = new AnswerCommand
         {
             Chat = StepHandlerExtensions.EnsureUserMessageReadiness(context.Chat), 
-            UseMemory = useMemory
+            KnowledgeUsage = useKnowledgeAlways ? 
+                KnowledgeUsage.AlwaysUseKnowledge 
+                : useKnowledge ? KnowledgeUsage.UseKnowledge 
+                    : useMemory ? KnowledgeUsage.UseMemory 
+                        : KnowledgeUsage.None,
+            Knowledge = context.Knowledge,
+            AgentId = context.Agent.Id
         };
         
         var answerResponse = await commandDispatcher.DispatchAsync(answerCommand);

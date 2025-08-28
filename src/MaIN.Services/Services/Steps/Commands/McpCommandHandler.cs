@@ -16,7 +16,7 @@ public class McpCommandHandler(
 {
     public async Task<Message?> HandleAsync(McpCommand command)
     {
-        var result = await mcpService.Prompt(command.McpConfig, command.Chat.Messages.Last().Content);
+        var result = await mcpService.Prompt(command.McpConfig, command.Chat.Messages);
         return result.Message;
     }
 }
