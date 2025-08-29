@@ -1,5 +1,7 @@
 ﻿using MaIN.Domain.Entities;
 using NumSharp;
+using Razorvine.Pickle;
+using TorchSharp;
 
 namespace MaIN.Services.Services.TTSService;
 
@@ -22,7 +24,14 @@ public static class VoiceService
         if(string.IsNullOrEmpty(_voicesPath))
             throw new Exception("Voices path is not set");
 
-        var voicePath = Path.Combine(_voicesPath, name + ".npy");
+        var voicePath = Path.Combine(_voicesPath, name);
+
+        var features = Path.GetExtension(name) switch
+        {
+            ".npy" => NumSharp.np.Load<float[,,]>(voicePath),
+            ".bin" => LoadFromBinary(voicePath, (510, 1, 256)),
+            _ => throw new Exception("Unsupported voice file extension")
+        };
 
         if (!File.Exists(voicePath))
             throw new FileNotFoundException("Voice file cannot be found");
@@ -30,7 +39,7 @@ public static class VoiceService
         return new Voice
         {
             Name = Path.GetFileNameWithoutExtension(name),
-            Features = NumSharp.np.Load<float[,,]>(voicePath)
+            Features = features
         };
     }
 
@@ -65,4 +74,25 @@ public static class VoiceService
     
     public static Voice MixWith(this Voice baseVoice, Voice mixWithVoce, float weightBase = 0.5f, float weightMixWith = 0.5f)
         => Mix((baseVoice, weightBase), (mixWithVoce, weightMixWith));
+    
+    private static float[,,] LoadFromBinary(string path, (int width, int height, int depth) dimensions)
+    {
+        var bytes = File.ReadAllBytes(path);
+        var result = new float[dimensions.width, dimensions.height, dimensions.depth];
+        
+        var index = 0;
+        for (var x = 0; x < dimensions.width; x++)
+        {
+            for (var y = 0; y < dimensions.height; y++)
+            {
+                for (var z = 0; z < dimensions.depth; z++)
+                {
+                    result[x, y, z] = BitConverter.ToSingle(bytes, index);
+                    index += 4;
+                }
+            }
+        }
+        
+        return result;
+    }
 }

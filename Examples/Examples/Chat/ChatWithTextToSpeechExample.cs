@@ -6,7 +6,7 @@ namespace Examples;
 
 public class ChatWithTextToSpeechExample : IExample
 {
-    private const string VoicePath = "<your-path-to-voices>";
+    private const string VoicePath = @"D:\Models\tts\voices";
     
     public async Task Start()
     {
@@ -14,8 +14,10 @@ public class ChatWithTextToSpeechExample : IExample
         Console.ReadKey();
         
         VoiceService.SetVoicesPath(VoicePath);
-        var voice = VoiceService.GetVoice("af_heart")
-            .MixWith(VoiceService.GetVoice("bf_emma"));
+        var voice = VoiceService.GetVoice("af_heart.bin");
+        
+        // var voice = VoiceService.GetVoice("af_heart")
+        //     .MixWith(VoiceService.GetVoice("bf_emma"));
         
         await AIHub.Chat().WithModel("gemma2:2b")
             .WithMessage("Generate a 4 sentence poem.")
