@@ -1,7 +1,5 @@
 ﻿using MaIN.Domain.Entities;
 using NumSharp;
-using Razorvine.Pickle;
-using TorchSharp;
 
 namespace MaIN.Services.Services.TTSService;
 
