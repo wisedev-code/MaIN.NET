@@ -109,7 +109,7 @@ public class MemoryFactory() : IMemoryFactory
             GpuLayerCount = config.GpuLayerCount.GetValueOrDefault(20),
         };
 
-        using var weights = LLamaWeights.LoadFromFile(parameters);
+        var weights = LLamaWeights.LoadFromFile(parameters);
 
         return new LLamaSharpTextEmbeddingGenerator(config, weights);
     }
