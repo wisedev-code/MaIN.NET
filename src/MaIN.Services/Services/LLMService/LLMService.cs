@@ -81,7 +81,6 @@ public class LLMService : ILLMService
         if (string.IsNullOrEmpty(id) || !_sessionCache.TryRemove(id, out var session))
             return Task.CompletedTask;
 
-        session.Executor.Context.NativeHandle.KvCacheClear();
         session.Executor.Context.Dispose();
         return Task.CompletedTask;
     }
@@ -312,7 +311,7 @@ public class LLMService : ILLMService
                 break;
             }
 
-            if (decodeResult == DecodeResult.Error)
+            if (decodeResult == DecodeResult.DecodeFailed)
                 throw new Exception("Unknown error occurred while inferring.");
 
             if (!conversation.RequiresSampling)

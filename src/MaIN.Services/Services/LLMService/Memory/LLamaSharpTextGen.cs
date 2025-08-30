@@ -118,7 +118,7 @@ public sealed class LlamaSharpTextGen : ITextGenerator, IDisposable
         
             var decodeResult = await _executor.Infer(cancellationToken);
         
-            if (decodeResult == DecodeResult.NoKvSlot || decodeResult == DecodeResult.Error)
+            if (decodeResult == DecodeResult.NoKvSlot || decodeResult == DecodeResult.DecodeFailed)
             {
                 yield break;
             }
