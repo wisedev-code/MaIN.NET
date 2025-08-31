@@ -11,9 +11,9 @@
         <PackageReference Include="HtmlAgilityPack" Version="1.12.1" />
         <PackageReference Include="LLamaSharp" Version="0.25.0" />
         <PackageReference Include="LLamaSharp.Backend.Cuda12" Version="0.25.0" />
-        <PackageReference Include="LLamaSharp.kernel-memory" Version="0.24.0" />
+        <PackageReference Include="LLamaSharp.kernel-memory" Version="0.25.0" />
         <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.4" />
-        <PackageReference Include="Microsoft.KernelMemory" Version="0.98.250508.3" />
+        <PackageReference Include="Microsoft.KernelMemory" Version="0.98.250324.1" />
         <PackageReference Include="Microsoft.KernelMemory.SemanticKernelPlugin" Version="0.98.250508.3" />
         <PackageReference Include="System.Data.SqlClient" Version="4.8.6" />
         <PackageReference Include="Tesseract" Version="5.2.0" />

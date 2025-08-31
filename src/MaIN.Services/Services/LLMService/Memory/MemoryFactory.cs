@@ -13,7 +13,7 @@ namespace MaIN.Services.Services.LLMService.Memory;
 
 public class MemoryFactory() : IMemoryFactory
 {
-    public (IKernelMemory KM, LLamaContext TextGenerationContext, LLamaSharpTextEmbeddingGenerator EmbeddingGenerator)
+    public (IKernelMemory KM, LLamaContext TextGenerationContext, LLamaSharpTextEmbeddingOwn EmbeddingGenerator)
         CreateMemoryWithModel(string modelsPath,
             LLamaWeights model,
             string modelName,
@@ -34,7 +34,7 @@ public class MemoryFactory() : IMemoryFactory
         
         var km = new KernelMemoryBuilder()
             .WithLLamaSharpTextGeneration(model, modelParams, memoryParams, out var context)
-            .WithLLamaSharpTextEmbeddingGeneration(generator)
+            .WithLLamaSharpTextEmbeddingOwnGeneration(generator)
             .WithSearchClientConfig(searchOptions)
             .WithCustomImageOcr(new OcrWrapper())
             .With(parsingOptions)
@@ -88,7 +88,7 @@ public class MemoryFactory() : IMemoryFactory
         return path;
     }
 
-    private static LLamaSharpTextEmbeddingGenerator ConfigureGeneratorOptions(string embeddingModelPath,
+    private static LLamaSharpTextEmbeddingOwn ConfigureGeneratorOptions(string embeddingModelPath,
         string modelPath, MemoryParams memoryParams)
     {
         var inferenceParams = new InferenceParams
@@ -106,13 +106,12 @@ public class MemoryFactory() : IMemoryFactory
 
         var parameters = new ModelParams(config.ModelPath)
         {
-            Embeddings = false,
             ContextSize = new uint?(config.ContextSize.GetValueOrDefault(2048U)),
             GpuLayerCount = config.GpuLayerCount.GetValueOrDefault(20),
         };
 
         var weights = LLamaWeights.LoadFromFile(parameters);
-        return new LLamaSharpTextEmbeddingGenerator(config, weights);
+        return new LLamaSharpTextEmbeddingOwn(config, weights);
     }
 
     private static SearchClientConfig ConfigureSearchOptions(MemoryParams memoryParams)
@@ -130,7 +129,7 @@ public class MemoryFactory() : IMemoryFactory
     {
         return new TextPartitioningOptions
         {
-            MaxTokensPerParagraph = 300,
+            OverlappingTokens = 30,
         };
     }
 
