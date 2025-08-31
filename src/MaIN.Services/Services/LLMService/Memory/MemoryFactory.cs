@@ -101,16 +101,17 @@ public class MemoryFactory() : IMemoryFactory
         {
             DefaultInferenceParams = inferenceParams,
             GpuLayerCount = memoryParams.GpuLayerCount,
+            ContextSize = (uint?)memoryParams.ContextSize,
         };
 
         var parameters = new ModelParams(config.ModelPath)
         {
+            Embeddings = false,
             ContextSize = new uint?(config.ContextSize.GetValueOrDefault(2048U)),
             GpuLayerCount = config.GpuLayerCount.GetValueOrDefault(20),
         };
 
         var weights = LLamaWeights.LoadFromFile(parameters);
-
         return new LLamaSharpTextEmbeddingGenerator(config, weights);
     }
 
