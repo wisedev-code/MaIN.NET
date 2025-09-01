@@ -1,23 +1,19 @@
 using LLama;
 using LLama.Common;
 using LLamaSharp.KernelMemory;
-using LLamaSharp.SemanticKernel.TextEmbedding;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Models;
 using Microsoft.KernelMemory;
 using Microsoft.KernelMemory.Configuration;
 using Microsoft.KernelMemory.SemanticKernel;
 using Microsoft.SemanticKernel.Connectors.Google;
-using Microsoft.SemanticKernel.Memory;
 using InferenceParams = LLama.Common.InferenceParams;
-#pragma warning disable SKEXP0001
-#pragma warning disable SKEXP0050
 
 namespace MaIN.Services.Services.LLMService.Memory;
 
 public class MemoryFactory() : IMemoryFactory
 {
-    public ISemanticTextMemory
+    public (IKernelMemory KM, LLamaContext TextGenerationContext, LLamaSharpTextEmbeddingOwn EmbeddingGenerator)
         CreateMemoryWithModel(string modelsPath,
             LLamaWeights model,
             string modelName,
@@ -27,30 +23,25 @@ public class MemoryFactory() : IMemoryFactory
         var embeddingModel = KnownModels.GetEmbeddingModel();
         var embeddingModelPath = Path.Combine(path, embeddingModel.FileName);
         var modelPath = Path.Combine(path, modelName);
-        // var generator = ConfigureGeneratorOptions(embeddingModelPath, modelPath, memoryParams);
-        // var searchOptions = ConfigureSearchOptions(memoryParams);
-        // var parsingOptions = ConfigureParsingOptions();
+        var generator = ConfigureGeneratorOptions(embeddingModelPath, modelPath, memoryParams);
+        var searchOptions = ConfigureSearchOptions(memoryParams);
+        var parsingOptions = ConfigureParsingOptions();
         var modelParams = new ModelParams(modelPath)
         {
             ContextSize = (uint)memoryParams.ContextSize,
             GpuLayerCount = memoryParams.GpuLayerCount,
         };
         
-        // var km = new KernelMemoryBuilder()
-        //     .WithLLamaSharpTextGeneration(model, modelParams, memoryParams, out var context)
-        //     .WithLLamaSharpTextEmbeddingOwnGeneration(generator)
-        //     .WithSearchClientConfig(searchOptions)
-        //     .WithCustomImageOcr(new OcrWrapper())
-        //     .With(parsingOptions)
-        //     .Build();
-        
-        var embedding = new LLamaEmbedder(model, modelParams);
-        var memory = new MemoryBuilder()
-            .WithTextEmbeddingGeneration(new LLamaSharpEmbeddingGeneration(embedding))
-            .WithMemoryStore(new VolatileMemoryStore())
+        //TRY KM integration instead
+        var km = new KernelMemoryBuilder()
+            .WithLLamaSharpTextGeneration(model, modelParams, memoryParams, out var context)
+            .WithLLamaSharpTextEmbeddingOwnGeneration(generator)
+            .WithSearchClientConfig(searchOptions)
+            .WithCustomImageOcr(new OcrWrapper())
+            .With(parsingOptions)
             .Build();
-        //var result = (KM: km, TextGenerationContext: context, EmbeddingGenerator: generator);
-        return memory;
+        var result = (KM: km, TextGenerationContext: context, EmbeddingGenerator: generator);
+        return result;
     }
 
     public IKernelMemory CreateMemoryWithOpenAi(string openAiKey, MemoryParams memoryParams)
