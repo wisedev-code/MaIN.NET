@@ -19,11 +19,13 @@
       <PackageReference Include="llamasharp.backend.cpu" Version="0.25.0" />
       <PackageReference Include="LLamaSharp.Backend.Cuda12" Version="0.25.0" />
       <PackageReference Include="LLamaSharp.kernel-memory" Version="0.25.0" />
+      <PackageReference Include="LLamaSharp.semantic-kernel" Version="0.25.0" />
       <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.4" />
       <PackageReference Include="Microsoft.KernelMemory" Version="0.98.250324.1" />
       <PackageReference Include="Microsoft.KernelMemory.SemanticKernelPlugin" Version="0.98.250508.3" />
       <PackageReference Include="Microsoft.SemanticKernel" Version="1.64.0" />
       <PackageReference Include="Microsoft.SemanticKernel.Connectors.Google" Version="1.64.0-alpha" />
+      <PackageReference Include="Microsoft.SemanticKernel.Plugins.Memory" Version="1.64.0-alpha" />
       <PackageReference Include="ModelContextProtocol.AspNetCore" Version="0.2.0-preview.1" />
       <PackageReference Include="NAudio" Version="2.2.1" />
       <PackageReference Include="NumSharp" Version="0.30.0" />
