@@ -114,7 +114,7 @@ public abstract class OpenAiCompatibleService(
 
         var kernel = memoryFactory.CreateMemoryWithOpenAi(GetApiKey(), chat.MemoryParams);
 
-        await memoryService.ImportDataToMemory(kernel, memoryOptions, cancellationToken);
+        await memoryService.ImportDataToMemory((kernel, null), memoryOptions, cancellationToken);
 
         var userQuery = chat.Messages.Last().Content;
         if (chat.MemoryParams.Grammar != null)

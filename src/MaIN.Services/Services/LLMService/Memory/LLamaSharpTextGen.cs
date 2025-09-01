@@ -70,10 +70,8 @@ public sealed class LlamaSharpTextGen : ITextGenerator, IDisposable
 
     public void Dispose()
     {
-        if (_ownsWeights)
-            _weights.Dispose();
-        if (!_ownsContext)
-            return;
+        _executor.Dispose();
+        _weights.Dispose();
         _context.Dispose();
     }
     private ISamplingPipeline CreateSampler(InferenceParams interferenceParams)

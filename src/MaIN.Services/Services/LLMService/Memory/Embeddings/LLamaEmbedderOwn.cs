@@ -20,7 +20,7 @@ using static System.Net.Mime.MediaTypeNames;
 public sealed partial class LLamaEmbedderOwn
     : IDisposable
 {
-    private readonly LLamaWeights _weights;
+    public LLamaWeights _weights;
     private readonly IContextParams _params;
     private readonly ILogger? _logger;
 
@@ -33,6 +33,7 @@ public sealed partial class LLamaEmbedderOwn
     /// LLama Context
     /// </summary>
     public LLamaContext Context { get; set; }
+    public bool isContextDisposed { get; set; }
 
     /// <summary>
     /// Create a new embedder, using the given LLamaWeights
@@ -75,14 +76,20 @@ public sealed partial class LLamaEmbedderOwn
 
     private async Task<(IReadOnlyList<float[]> Embeddings, int Tokens)> GetEmbeddingsWithTokenCount(string input, CancellationToken cancellationToken = default)
     {
+        if (isContextDisposed)
+        {
+            Context = _weights.CreateContext(_params, _logger);
+            NativeApi.llama_set_embeddings(Context.NativeHandle, true);
+        }
         // Ensure the context from last time is disposed (it always should be)
-        if (!Context.NativeHandle.IsClosed)
-            Context.Dispose();
-
-        Context = _weights.CreateContext(_params, _logger);
-        
-        NativeApi.llama_set_embeddings(Context.NativeHandle, true);
+        // if (!Context.NativeHandle.IsClosed)
+        //     Context.Dispose();
+        //
+        // Context = _weights.CreateContext(_params, _logger);
+        //Context.NativeHandle.seq
+        //Context.NativeHandle.MemorySequenceRemove( LLamaSeqId.Zero, -1, -1 );
         // Add all of the tokens to the batch
+        //Context.NativeHandle.Kv
         var tokens = Context.Tokenize(input, special: true);
         if (tokens.Length > Context.ContextSize)
             throw new ArgumentException($"Embedding prompt is longer than the context window ({tokens.Length} > {Context.ContextSize})", nameof(input));
@@ -144,7 +151,7 @@ public sealed partial class LLamaEmbedderOwn
             embedding.EuclideanNormalization();
         }
 
-        Context.Dispose();
+        //Context.Dispose();
 
         return (results, tokens.Length);
     }
