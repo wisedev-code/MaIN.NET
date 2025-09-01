@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using LLama;
 using LLama.Common;
 using LLamaSharp.KernelMemory;
@@ -13,7 +14,8 @@ namespace MaIN.Services.Services.LLMService.Memory;
 
 public class MemoryFactory() : IMemoryFactory
 {
-    public IKernelMemory
+    [Experimental("KMEXP00")]
+    public (IKernelMemory km, LLamaSharpTextEmbeddingOwn generator, LlamaSharpTextGen textGenerator)
         CreateMemoryWithModel(string modelsPath,
             LLamaWeights model,
             string modelName,
@@ -34,13 +36,13 @@ public class MemoryFactory() : IMemoryFactory
         
         //TRY KM integration instead
         var km = new KernelMemoryBuilder()
-            .WithLLamaSharpTextGeneration(model, modelParams, memoryParams, out var context)
+            .WithLLamaSharpTextGeneration(model, modelParams, memoryParams, out var textGen)
             .WithLLamaSharpTextEmbeddingOwnGeneration(generator)
             .WithSearchClientConfig(searchOptions)
             .WithCustomImageOcr(new OcrWrapper())
             .With(parsingOptions)
             .Build();
-        return km;
+        return (km, generator, textGen);
     }
 
     public IKernelMemory CreateMemoryWithOpenAi(string openAiKey, MemoryParams memoryParams)

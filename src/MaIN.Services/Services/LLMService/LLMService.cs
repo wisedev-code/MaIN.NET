@@ -16,6 +16,7 @@ using MaIN.Services.Services.Models;
 using MaIN.Services.Utils;
 using Microsoft.KernelMemory;
 using InferenceParams = MaIN.Domain.Entities.InferenceParams;
+#pragma warning disable KMEXP00
 
 namespace MaIN.Services.Services.LLMService;
 
@@ -95,7 +96,6 @@ public class LLMService : ILLMService
         {
             GpuLayerCount = chat.MemoryParams.GpuLayerCount,
             ContextSize = (uint)chat.MemoryParams.ContextSize,
-            Embeddings = true
         };
         var disableCache = chat.Properties.CheckProperty(ServiceConstants.Properties.DisableCacheProperty);
         var llmModel = disableCache
@@ -108,20 +108,22 @@ public class LLMService : ILLMService
             model.FileName,
             chat.MemoryParams);
 
-        await memoryService.ImportDataToMemory(memory, memoryOptions, cancellationToken);
+        await memoryService.ImportDataToMemory((memory.km, memory.generator), memoryOptions, cancellationToken);
         var userMessage = chat.Messages.Last();
-        var result = await memory.AskAsync(
+        var result = await memory.km.AskAsync(
             userMessage.Content,
             cancellationToken: cancellationToken);
-        await memory.DeleteIndexAsync(cancellationToken: cancellationToken);
+        await memory.km.DeleteIndexAsync(cancellationToken: cancellationToken);
         
         if (disableCache)
         {
             llmModel.Dispose();
         }
 
-        // memory.TextGenerationContext.Dispose();
-        // memory.EmbeddingGenerator.Dispose();
+        memory.textGenerator.Dispose();
+        memory.generator._embedder.Dispose();
+        memory.generator._embedder._weights.Dispose();
+        memory.generator.Dispose();
 
         return new ChatResult
         {

@@ -15,13 +15,12 @@ namespace LLamaSharp.KernelMemory
     public sealed class LLamaSharpTextEmbeddingOwn
         : ITextEmbeddingGenerator, IDisposable
     {
-        private readonly LLamaWeights? _weights;
+        private LLamaWeights? _weights;
         private readonly bool _ownsWeights;
 
-        private readonly LLamaEmbedderOwn _embedder;
+        public readonly LLamaEmbedderOwn _embedder;
         private readonly bool _ownsEmbedder;
-
-        private readonly ModelParams? @params;
+        public ModelParams? @params;
 
         /// <inheritdoc/>
         public int MaxTokens { get; }
@@ -76,6 +75,7 @@ namespace LLamaSharp.KernelMemory
             };
             _weights = weights;
             _embedder = new LLamaEmbedderOwn(_weights, @params);
+            _ownsWeights = true;
             _ownsEmbedder = true;
         }
 

@@ -73,7 +73,7 @@ public sealed class GeminiService(
 
         var kernel = _memoryFactory.CreateMemoryWithGemini(GetApiKey(), chat.MemoryParams);
 
-        await _memoryService.ImportDataToMemory(kernel, memoryOptions, cancellationToken);
+        await _memoryService.ImportDataToMemory((kernel, null), memoryOptions, cancellationToken);
 
         var userQuery = chat.Messages.Last().Content;
         if (chat.MemoryParams.Grammar != null)
