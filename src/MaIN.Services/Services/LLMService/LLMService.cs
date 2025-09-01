@@ -108,20 +108,20 @@ public class LLMService : ILLMService
             model.FileName,
             chat.MemoryParams);
 
-        await memoryService.ImportDataToMemory(memory.KM, memoryOptions, cancellationToken);
+        await memoryService.ImportDataToMemory(memory, memoryOptions, cancellationToken);
         var userMessage = chat.Messages.Last();
-        var result = await memory.KM.AskAsync(
+        var result = await memory.AskAsync(
             userMessage.Content,
             cancellationToken: cancellationToken);
-        await memory.KM.DeleteIndexAsync(cancellationToken: cancellationToken);
+        await memory.DeleteIndexAsync(cancellationToken: cancellationToken);
         
         if (disableCache)
         {
             llmModel.Dispose();
         }
 
-        memory.TextGenerationContext.Dispose();
-        memory.EmbeddingGenerator.Dispose();
+        // memory.TextGenerationContext.Dispose();
+        // memory.EmbeddingGenerator.Dispose();
 
         return new ChatResult
         {

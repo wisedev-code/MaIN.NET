@@ -13,7 +13,7 @@ namespace MaIN.Services.Services.LLMService.Memory;
 
 public class MemoryFactory() : IMemoryFactory
 {
-    public (IKernelMemory KM, LLamaContext TextGenerationContext, LLamaSharpTextEmbeddingOwn EmbeddingGenerator)
+    public IKernelMemory
         CreateMemoryWithModel(string modelsPath,
             LLamaWeights model,
             string modelName,
@@ -40,8 +40,7 @@ public class MemoryFactory() : IMemoryFactory
             .WithCustomImageOcr(new OcrWrapper())
             .With(parsingOptions)
             .Build();
-        var result = (KM: km, TextGenerationContext: context, EmbeddingGenerator: generator);
-        return result;
+        return km;
     }
 
     public IKernelMemory CreateMemoryWithOpenAi(string openAiKey, MemoryParams memoryParams)
