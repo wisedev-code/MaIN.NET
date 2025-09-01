@@ -7,7 +7,7 @@ namespace MaIN.Services.Services.LLMService.Memory;
 
 public interface IMemoryFactory
 {
-    (IKernelMemory KM, LLamaContext TextGenerationContext, LLamaSharpTextEmbeddingOwn EmbeddingGenerator)
+    IKernelMemory
         CreateMemoryWithModel(string modelsPath, LLamaWeights llmModel, string modelName,
             MemoryParams memoryParams);
     IKernelMemory CreateMemoryWithOpenAi(string openAiKey, MemoryParams memoryParams);
