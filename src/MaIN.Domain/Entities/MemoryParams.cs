@@ -2,7 +2,7 @@
 
 public class MemoryParams
 {
-    public int ContextSize { get; set; } = 2137;
+    public int ContextSize { get; set; } = 8192;
     public int GpuLayerCount { get; set; } = 30;
     public int MaxMatchesCount { get; set; } = 5;
     public float FrequencyPenalty { get; set; } = 1f;
@@ -13,7 +13,7 @@ public class MemoryParams
     /// (prompt + question + grounding information from memory)
     /// If your response is invalid make sure you meet those limits.
     /// </summary>
-    public int AnswerTokens { get; set; } = 500;
+    public int AnswerTokens { get; set; } = 2137;
 
     public bool MultiModalMode { get; set; } = false;
     
