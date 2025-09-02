@@ -118,9 +118,9 @@ public class LLMService : ILLMService
         if (disableCache)
         {
             llmModel.Dispose();
+            ModelLoader.RemoveModel(model.FileName);
+            memory.textGenerator.Dispose();
         }
-
-        memory.textGenerator.Dispose();
         memory.generator._embedder.Dispose();
         memory.generator._embedder._weights.Dispose();
         memory.generator.Dispose();
@@ -159,8 +159,7 @@ public class LLMService : ILLMService
         var llavaWeights = model.MMProject != null
             ? await LLavaWeights.LoadFromFileAsync(model.MMProject, cancellationToken)
             : null;
-
-
+        
         using var executor = new BatchedExecutor(llmModel, parameters);
 
         var (conversation, isComplete, hasFailed) = await InitializeConversation(
