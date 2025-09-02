@@ -131,6 +131,7 @@ public class MemoryFactory() : IMemoryFactory
     {
         return new TextPartitioningOptions
         {
+            MaxTokensPerParagraph = 2048,
             OverlappingTokens = 30,
         };
     }
