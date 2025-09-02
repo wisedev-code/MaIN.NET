@@ -2,7 +2,7 @@
 
 public class MemoryParams
 {
-    public int ContextSize { get; set; } = 8192;
+    public int ContextSize { get; set; } = 4096;
     public int GpuLayerCount { get; set; } = 30;
     public int MaxMatchesCount { get; set; } = 5;
     public float FrequencyPenalty { get; set; } = 1f;

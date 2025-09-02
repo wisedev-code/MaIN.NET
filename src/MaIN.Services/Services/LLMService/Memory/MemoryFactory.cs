@@ -35,13 +35,15 @@ public class MemoryFactory() : IMemoryFactory
         };
         
         //TRY KM integration instead
+        
         var km = new KernelMemoryBuilder()
             .WithLLamaSharpTextGeneration(model, modelParams, memoryParams, out var textGen)
             .WithLLamaSharpTextEmbeddingOwnGeneration(generator)
             .WithSearchClientConfig(searchOptions)
             .WithCustomImageOcr(new OcrWrapper())
             .With(parsingOptions)
-            .Build();
+            .Build<MemoryServerless>();
+        
         return (km, generator, textGen);
     }
 
@@ -131,7 +133,7 @@ public class MemoryFactory() : IMemoryFactory
     {
         return new TextPartitioningOptions
         {
-            MaxTokensPerParagraph = 2048,
+            MaxTokensPerParagraph = 512,
             OverlappingTokens = 30,
         };
     }
