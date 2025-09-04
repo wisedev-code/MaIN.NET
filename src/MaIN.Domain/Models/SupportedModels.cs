@@ -246,9 +246,9 @@ public static class KnownModels
         new()
         {
             Name = KnownModelNames.Nomic_Embedding,
-            FileName = "nomic.gguf",
+            FileName = "nomicv2.gguf",
             Description = "Model used to generate embeddings.",
-            DownloadUrl = "https://huggingface.co/Inza124/Nomic/resolve/main/Nomic-maIN.gguf?download=true",
+            DownloadUrl = "https://huggingface.co/Inza124/Nomic/resolve/main/nomicv2.gguf?download=true",
         };
 
     public static bool IsModelSupported(string name) =>
