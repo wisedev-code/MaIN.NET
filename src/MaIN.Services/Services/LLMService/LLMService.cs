@@ -92,7 +92,8 @@ public class LLMService : ILLMService
         CancellationToken cancellationToken = default)
     {
         var model = KnownModels.GetModel(chat.Model);
-        var parameters = new ModelParams(Path.Combine(modelsPath, model.FileName))
+        var finalModelPath = model.Path ?? modelsPath;
+        var parameters = new ModelParams(Path.Combine(finalModelPath, model.FileName))
         {
             GpuLayerCount = chat.MemoryParams.GpuLayerCount,
             ContextSize = (uint)chat.MemoryParams.ContextSize,
@@ -100,10 +101,10 @@ public class LLMService : ILLMService
         var disableCache = chat.Properties.CheckProperty(ServiceConstants.Properties.DisableCacheProperty);
         var llmModel = disableCache
             ? await LLamaWeights.LoadFromFileAsync(parameters, cancellationToken)
-            : await ModelLoader.GetOrLoadModelAsync(modelsPath, model.FileName);
+            : await ModelLoader.GetOrLoadModelAsync(finalModelPath, model.FileName);
 
         var memory = memoryFactory.CreateMemoryWithModel(
-            modelsPath,
+            finalModelPath,
             llmModel,
             model.FileName,
             chat.MemoryParams);
@@ -150,11 +151,12 @@ public class LLMService : ILLMService
         var thinkingState = new ThinkingState();
         var tokens = new List<LLMTokenValue>();
 
-        var parameters = CreateModelParameters(chat, modelKey);
+        var parameters = CreateModelParameters(chat, modelKey, model.Path);
         var disableCache = chat.Properties.CheckProperty(ServiceConstants.Properties.DisableCacheProperty);
         var llmModel = disableCache
             ? await LLamaWeights.LoadFromFileAsync(parameters, cancellationToken)
-            : await ModelLoader.GetOrLoadModelAsync(modelsPath, modelKey);
+            : await ModelLoader.GetOrLoadModelAsync(
+                model.Path ?? modelsPath, modelKey);
 
         var llavaWeights = model.MMProject != null
             ? await LLavaWeights.LoadFromFileAsync(model.MMProject, cancellationToken)
@@ -191,9 +193,9 @@ public class LLMService : ILLMService
         return tokens;
     }
 
-    private ModelParams CreateModelParameters(Chat chat, string modelKey)
+    private ModelParams CreateModelParameters(Chat chat, string modelKey, string? customPath)
     {
-        return new ModelParams(Path.Combine(modelsPath, modelKey))
+        return new ModelParams(Path.Combine(customPath ?? modelsPath, modelKey))
         {
             ContextSize = (uint?)chat.InterferenceParams.ContextSize,
             GpuLayerCount = chat.InterferenceParams.GpuLayerCount,
