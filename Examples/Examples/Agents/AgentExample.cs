@@ -1,4 +1,6 @@
 using MaIN.Core.Hub;
+using MaIN.Core.Hub.Utils;
+using MaIN.Domain.Entities.Agents.Knowledge;
 
 namespace Examples.Agents;
 
