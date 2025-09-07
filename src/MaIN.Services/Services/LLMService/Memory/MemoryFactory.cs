@@ -34,8 +34,6 @@ public class MemoryFactory() : IMemoryFactory
             GpuLayerCount = memoryParams.GpuLayerCount,
         };
         
-        //TRY KM integration instead
-        
         var km = new KernelMemoryBuilder()
             .WithLLamaSharpTextGeneration(model, modelParams, memoryParams, out var textGen)
             .WithLLamaSharpTextEmbeddingOwnGeneration(generator)
@@ -133,7 +131,7 @@ public class MemoryFactory() : IMemoryFactory
     {
         return new TextPartitioningOptions
         {
-            MaxTokensPerParagraph = 512,
+            MaxTokensPerParagraph = 300,
             OverlappingTokens = 30,
         };
     }
