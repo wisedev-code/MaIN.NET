@@ -81,15 +81,7 @@ public sealed partial class LLamaEmbedderOwn
             Context = _weights.CreateContext(_params, _logger);
             NativeApi.llama_set_embeddings(Context.NativeHandle, true);
         }
-        // Ensure the context from last time is disposed (it always should be)
-        // if (!Context.NativeHandle.IsClosed)
-        //     Context.Dispose();
-        //
-        // Context = _weights.CreateContext(_params, _logger);
-        //Context.NativeHandle.seq
-        //Context.NativeHandle.MemorySequenceRemove( LLamaSeqId.Zero, -1, -1 );
-        // Add all of the tokens to the batch
-        //Context.NativeHandle.Kv
+        
         var tokens = Context.Tokenize(input, special: true);
         if (tokens.Length > Context.ContextSize)
             throw new ArgumentException($"Embedding prompt is longer than the context window ({tokens.Length} > {Context.ContextSize})", nameof(input));
