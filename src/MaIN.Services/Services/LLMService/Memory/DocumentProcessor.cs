@@ -26,10 +26,55 @@ public static class DocumentProcessor
             ".txt" => ProcessTextFile(filePath),
             ".rtf" => ProcessRtf(filePath),
             ".html" or ".htm" => ProcessHtml(filePath),
+            ".json" or ".md" => ProcessDefault(filePath),
             _ => throw new NotSupportedException($"Format {extension} not supported")
         };
     }
 
+    public static async Task<string[]> ConvertToFilesContent(ChatMemoryOptions options)
+    {
+        var files = new List<string>();
+        foreach (var fData in options.FilesData)
+        {
+            files.Add(fData.Value);
+        }
+
+        foreach (var sData in options.StreamData)
+        {
+            var path = Path.GetTempPath() + $".{sData.Key}";
+            var fileStream = new FileStream(path, FileMode.Create, FileAccess.Write);
+            await sData.Value.CopyToAsync(fileStream);
+            files.Add(path);
+        }
+
+        foreach (var txt in options.TextData)
+        {
+            var path = Path.GetTempPath() + $".{txt.Key}.txt";
+            await File.WriteAllTextAsync(path, txt.Value);
+            files.Add(path);
+        }
+
+        if (options.WebUrls.Count <= 0) return files.ToArray();
+        {
+            using HttpClient client = new HttpClient();
+            foreach (var web in options.WebUrls)
+            {
+                var path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.html");
+                var html = await client.GetStringAsync(web);
+                await File.WriteAllTextAsync(path, html);
+                files.Add(path);
+            }
+        }
+
+        return files.ToArray();
+    }
+    
+    private static string ProcessDefault(string filePath)
+    {
+        var file = File.ReadAllText(filePath);
+        return file;
+    }
+    
     private static string ProcessPdf(string pdfPath)
     {
         var result = new StringBuilder();

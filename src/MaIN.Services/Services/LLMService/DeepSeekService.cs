@@ -1,3 +1,4 @@
+using System.Text;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Services.Services.Abstract;
@@ -21,7 +22,9 @@ public sealed class DeepSeekService(
     : OpenAiCompatibleService(notificationService, httpClientFactory, memoryFactory, memoryService, logger)
 {
     private readonly MaINSettings _settings = settings ?? throw new ArgumentNullException(nameof(settings));
-    private readonly IHttpClientFactory _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
+
+    private readonly IHttpClientFactory _httpClientFactory =
+        httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
 
     protected override string HttpClientName => ServiceConstants.HttpClients.DeepSeekClient;
     protected override string ChatCompletionsUrl => ServiceConstants.ApiUrls.DeepSeekOpenAiChatCompletions;
@@ -35,41 +38,75 @@ public sealed class DeepSeekService(
 
     protected override void ValidateApiKey()
     {
-        if (string.IsNullOrEmpty(_settings.DeepSeekKey) && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DEEPSEEK_API_KEY")))
+        if (string.IsNullOrEmpty(_settings.DeepSeekKey) &&
+            string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DEEPSEEK_API_KEY")))
         {
             throw new InvalidOperationException("DeepSeek Key not configured");
         }
     }
 
-    public override Task<ChatResult?> AskMemory(
+    public override async Task<ChatResult?> AskMemory(
         Chat chat,
         ChatMemoryOptions memoryOptions,
         CancellationToken cancellationToken = default)
     {
-        throw new NotSupportedException("Embeddings are not supported by the DeepSeek model. Document reading requires embedding support.");
+        var lastMsg = chat.Messages.Last();
+        var filePaths = await DocumentProcessor.ConvertToFilesContent(memoryOptions);
+        var message = new Message()
+        {
+            Role = ServiceConstants.Roles.User,
+            Content = ComposeMessage(lastMsg, filePaths),
+            Type = MessageType.CloudLLM
+        };
+
+        chat.Messages.Last().Content = message.Content;
+        chat.Messages.Last().Files = [];
+        var result = await Send(chat, new ChatRequestOptions()
+        {
+            InteractiveUpdates = true
+        }, cancellationToken);
+        chat.Messages.Last().Content = lastMsg.Content;
+        return result;
     }
 
-    protected override LLMTokenValue? ProcessChatCompletionChunk(string data)
+    private string ComposeMessage(Message lastMsg, string[] filePaths)
     {
-        var chunk = JsonSerializer.Deserialize<ChatCompletionChunk>(data,
-            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-        var contentValue = chunk?.Choices?.FirstOrDefault()?.Delta?.Content;
-        if (!string.IsNullOrEmpty(contentValue))
+        var stringBuilder = new StringBuilder();
+        stringBuilder.AppendLine($"== FILES IN MEMORY");
+        foreach (var path in filePaths)
         {
-            return new LLMTokenValue { Text = contentValue, Type = TokenType.Message };
+            var doc = DocumentProcessor.ProcessDocument(path);
+            stringBuilder.Append(doc);
+            stringBuilder.AppendLine();
         }
 
-        var reasoningContentValue = chunk?.Choices?.FirstOrDefault()?.Delta?.ReasoningContent;
-        if (!string.IsNullOrEmpty(reasoningContentValue))
-        {
-            return new LLMTokenValue { Text = reasoningContentValue, Type = TokenType.Reason };
-        }
-
-        return null;
+        stringBuilder.AppendLine($"== END OF FILES");
+        stringBuilder.AppendLine();
+        stringBuilder.Append(lastMsg.Content);
+        return stringBuilder.ToString();
     }
+
+protected override LLMTokenValue? ProcessChatCompletionChunk(string data)
+{
+    var chunk = JsonSerializer.Deserialize<ChatCompletionChunk>(data,
+        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+    var contentValue = chunk?.Choices?.FirstOrDefault()?.Delta?.Content;
+    if (!string.IsNullOrEmpty(contentValue))
+    {
+        return new LLMTokenValue { Text = contentValue, Type = TokenType.Message };
+    }
+
+    var reasoningContentValue = chunk?.Choices?.FirstOrDefault()?.Delta?.ReasoningContent;
+    if (!string.IsNullOrEmpty(reasoningContentValue))
+    {
+        return new LLMTokenValue { Text = reasoningContentValue, Type = TokenType.Reason };
+    }
+
+    return null;
 }
 
+}
 file class ChatCompletionChunk
 {
     public List<ChoiceChunk>? Choices { get; set; }
@@ -82,8 +119,8 @@ file class ChoiceChunk
 
 file class Delta
 {
-    [JsonPropertyName("content")]
-    public string? Content { get; set; }
+    [JsonPropertyName("content")] public string? Content { get; set; }
+
     [JsonPropertyName("reasoning_content")]
     public string? ReasoningContent { get; set; } // property specific for DeepSeek
 }
