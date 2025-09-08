@@ -34,8 +34,6 @@ public class MemoryFactory() : IMemoryFactory
             GpuLayerCount = memoryParams.GpuLayerCount,
         };
         
-        //TRY KM integration instead
-        
         var km = new KernelMemoryBuilder()
             .WithLLamaSharpTextGeneration(model, modelParams, memoryParams, out var textGen)
             .WithLLamaSharpTextEmbeddingOwnGeneration(generator)
