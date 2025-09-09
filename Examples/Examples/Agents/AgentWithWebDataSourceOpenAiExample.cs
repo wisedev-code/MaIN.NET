@@ -16,7 +16,6 @@ public class AgentWithWebDataSourceOpenAiExample : IExample
 
         var context = await AIHub.Agent()
             .WithModel("gpt-4o-mini")
-            .WithBackend(BackendType.OpenAi)
             .WithInitialPrompt($"Find useful information about daily news, try to include title, description and link.")
             .WithBehaviour("Journalist", $"Base on data provided in chat find useful information about what happen today. Build it in form of newsletter - Name of newsletter is MaIN_Letter and today`s date is {DateTime.UtcNow}")
             .WithSource(new AgentWebSourceDetails()
