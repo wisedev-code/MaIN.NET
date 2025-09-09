@@ -10,14 +10,12 @@ using System.Threading.Tasks;
 using LLama.Abstractions;
 using LLama.Exceptions;
 using LLama.Native;
-using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
-using static System.Net.Mime.MediaTypeNames;
 
 /// <summary>
-/// Generate high dimensional embedding vectors from text
+/// Generate high dimensional embedding vectors from text, Clone in MaIN.NET
 /// </summary>
-public sealed partial class LLamaEmbedderOwn
+public sealed class LLamaEmbedderMaINClone
     : IDisposable
 {
     public LLamaWeights _weights;
@@ -41,7 +39,7 @@ public sealed partial class LLamaEmbedderOwn
     /// <param name="weights"></param>
     /// <param name="params"></param>
     /// <param name="logger"></param>
-    public LLamaEmbedderOwn(LLamaWeights weights, IContextParams @params, ILogger? logger = null)
+    public LLamaEmbedderMaINClone(LLamaWeights weights, IContextParams @params, ILogger? logger = null)
     {
         if (@params.UBatchSize != @params.BatchSize)
             throw new ArgumentException("For non-causal models, batch size must be equal to ubatch size", nameof(@params));
@@ -63,7 +61,7 @@ public sealed partial class LLamaEmbedderOwn
 
     /// <summary>
     /// Get high dimensional embedding vectors for the given text. Depending on the pooling type used when constructing
-    /// this <see cref="LLamaEmbedderOwn"/> this may return an embedding vector per token, or one single embedding vector for the entire string.
+    /// this <see cref="LLamaEmbedderMaINClone"/> this may return an embedding vector per token, or one single embedding vector for the entire string.
     /// </summary>
     /// <remarks>Embedding vectors are not normalized, consider using one of the extensions in <see cref="SpanNormalizationExtensions"/>.</remarks>
     /// <param name="input"></param>
@@ -86,10 +84,6 @@ public sealed partial class LLamaEmbedderOwn
         if (tokens.Length > Context.ContextSize)
             throw new ArgumentException($"Embedding prompt is longer than the context window ({tokens.Length} > {Context.ContextSize})", nameof(input));
 
-        // clear previous kv_cache values
-        //Context.NativeHandle.KvCacheClear();
-
-        // Check if we should cancel the work, just before doing anything expensive (encode/decode)
         cancellationToken.ThrowIfCancellationRequested();
 
         // Evaluate prompt in batch-size chunks
@@ -142,9 +136,7 @@ public sealed partial class LLamaEmbedderOwn
         {
             embedding.EuclideanNormalization();
         }
-
-        //Context.Dispose();
-
+        
         return (results, tokens.Length);
     }
 }

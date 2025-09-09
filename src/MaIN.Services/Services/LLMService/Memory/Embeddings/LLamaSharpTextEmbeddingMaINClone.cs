@@ -10,15 +10,15 @@ using MaIN.Services.Services.LLMService.Memory.Embeddings;
 namespace LLamaSharp.KernelMemory
 {
     /// <summary>
-    /// Provides text embedding generation for LLamaSharp.
+    /// Provides text embedding generation for LLamaSharp. - Clone in MaIN.Package to support embeddings in custom manner
     /// </summary>
-    public sealed class LLamaSharpTextEmbeddingOwn
+    public sealed class LLamaSharpTextEmbeddingMaINClone
         : ITextEmbeddingGenerator, IDisposable
     {
         private LLamaWeights? _weights;
         private readonly bool _ownsWeights;
 
-        public readonly LLamaEmbedderOwn _embedder;
+        public readonly LLamaEmbedderMaINClone _embedder;
         private readonly bool _ownsEmbedder;
         public ModelParams? @params;
 
@@ -26,10 +26,10 @@ namespace LLamaSharp.KernelMemory
         public int MaxTokens { get; }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="LLamaSharpTextEmbeddingOwn"/> class.
+        /// Initializes a new instance of the <see cref="LLamaSharpTextEmbeddingMaINClone"/> class.
         /// </summary>
         /// <param name="config">The configuration for LLamaSharp.</param>
-        public LLamaSharpTextEmbeddingOwn(LLamaSharpConfig config)
+        public LLamaSharpTextEmbeddingMaINClone(LLamaSharpConfig config)
         {
             MaxTokens = (int?)config.ContextSize ?? 2048;
 
@@ -47,17 +47,17 @@ namespace LLamaSharp.KernelMemory
             };
 
             _weights = LLamaWeights.LoadFromFile(@params);
-            _embedder = new LLamaEmbedderOwn(_weights, @params);
+            _embedder = new LLamaEmbedderMaINClone(_weights, @params);
             _ownsWeights = true;
             _ownsEmbedder = true;
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="LLamaSharpTextEmbeddingOwn"/> class from reused weights.
+        /// Initializes a new instance of the <see cref="LLamaSharpTextEmbeddingMaINClone"/> class from reused weights.
         /// </summary>
         /// <param name="config">The configuration for LLamaSharp.</param>
         /// <param name="weights">A LLamaWeights object.</param>
-        public LLamaSharpTextEmbeddingOwn(LLamaSharpConfig config, LLamaWeights weights)
+        public LLamaSharpTextEmbeddingMaINClone(LLamaSharpConfig config, LLamaWeights weights)
         {
             MaxTokens = (int?)config.ContextSize ?? 2048;
 
@@ -74,16 +74,16 @@ namespace LLamaSharp.KernelMemory
                 PoolingType = LLamaPoolingType.Mean,
             };
             _weights = weights;
-            _embedder = new LLamaEmbedderOwn(_weights, @params);
+            _embedder = new LLamaEmbedderMaINClone(_weights, @params);
             _ownsWeights = true;
             _ownsEmbedder = true;
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="LLamaSharpTextEmbeddingOwn"/> class from reused embedder.
+        /// Initializes a new instance of the <see cref="LLamaSharpTextEmbeddingMaINClone"/> class from reused embedder.
         /// </summary>
         /// <param name="embedder">A LLamaEmbedder object.</param>
-        public LLamaSharpTextEmbeddingOwn(LLamaEmbedderOwn embedder)
+        public LLamaSharpTextEmbeddingMaINClone(LLamaEmbedderMaINClone embedder)
         {
             _embedder = embedder;
         }
