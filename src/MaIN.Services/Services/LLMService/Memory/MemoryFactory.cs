@@ -15,7 +15,7 @@ namespace MaIN.Services.Services.LLMService.Memory;
 public class MemoryFactory() : IMemoryFactory
 {
     [Experimental("KMEXP00")]
-    public (IKernelMemory km, LLamaSharpTextEmbeddingOwn generator, LlamaSharpTextGen textGenerator)
+    public (IKernelMemory km, LLamaSharpTextEmbeddingMaINClone generator, LlamaSharpTextGen textGenerator)
         CreateMemoryWithModel(string modelsPath,
             LLamaWeights model,
             string modelName,
@@ -90,7 +90,7 @@ public class MemoryFactory() : IMemoryFactory
         return path;
     }
 
-    private static LLamaSharpTextEmbeddingOwn ConfigureGeneratorOptions(string embeddingModelPath,
+    private static LLamaSharpTextEmbeddingMaINClone ConfigureGeneratorOptions(string embeddingModelPath,
         string modelPath, MemoryParams memoryParams)
     {
         var inferenceParams = new InferenceParams
@@ -113,7 +113,7 @@ public class MemoryFactory() : IMemoryFactory
         };
 
         var weights = LLamaWeights.LoadFromFile(parameters);
-        return new LLamaSharpTextEmbeddingOwn(config, weights);
+        return new LLamaSharpTextEmbeddingMaINClone(config, weights);
     }
 
     private static SearchClientConfig ConfigureSearchOptions(MemoryParams memoryParams)

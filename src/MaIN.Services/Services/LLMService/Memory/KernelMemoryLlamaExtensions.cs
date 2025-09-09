@@ -46,7 +46,7 @@ public static class KernelMemoryLlamaExtensions
     
     public static IKernelMemoryBuilder WithLLamaSharpTextEmbeddingOwnGeneration(
         this IKernelMemoryBuilder builder,
-        LLamaSharpTextEmbeddingOwn textEmbeddingGenerator)
+        LLamaSharpTextEmbeddingMaINClone textEmbeddingGenerator)
     {
         builder.AddSingleton((ITextEmbeddingGenerator) textEmbeddingGenerator);
         builder.AddIngestionEmbeddingGenerator(textEmbeddingGenerator);

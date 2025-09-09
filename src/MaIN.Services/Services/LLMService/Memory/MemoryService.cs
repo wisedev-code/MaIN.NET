@@ -125,7 +125,7 @@ public class MemoryService : IMemoryService
     
     private void PostImport(ITextEmbeddingGenerator? memoryGenerator)
     {
-        if (memoryGenerator is LLamaSharpTextEmbeddingOwn llamaGenerator)
+        if (memoryGenerator is LLamaSharpTextEmbeddingMaINClone llamaGenerator)
         {
             llamaGenerator._embedder.Context.Dispose();
             llamaGenerator._embedder.isContextDisposed = true;
@@ -134,7 +134,7 @@ public class MemoryService : IMemoryService
 
     private void PreImport(ITextEmbeddingGenerator? memoryGenerator)
     {
-        if (memoryGenerator is LLamaSharpTextEmbeddingOwn { _embedder.isContextDisposed: true } llamaGenerator)
+        if (memoryGenerator is LLamaSharpTextEmbeddingMaINClone { _embedder.isContextDisposed: true } llamaGenerator)
         {
             llamaGenerator._embedder.Context = llamaGenerator
                 ._embedder

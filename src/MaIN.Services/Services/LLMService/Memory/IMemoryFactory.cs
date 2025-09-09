@@ -9,7 +9,7 @@ namespace MaIN.Services.Services.LLMService.Memory;
 public interface IMemoryFactory
 {
     [Experimental("KMEXP00")]
-    (IKernelMemory km, LLamaSharpTextEmbeddingOwn generator, LlamaSharpTextGen textGenerator)
+    (IKernelMemory km, LLamaSharpTextEmbeddingMaINClone generator, LlamaSharpTextGen textGenerator)
         CreateMemoryWithModel(string modelsPath, LLamaWeights llmModel, string modelName,
             MemoryParams memoryParams);
     IKernelMemory CreateMemoryWithOpenAi(string openAiKey, MemoryParams memoryParams);
