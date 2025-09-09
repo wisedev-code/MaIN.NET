@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using LLama;
 using LLama.Common;
 using LLamaSharp.KernelMemory;
@@ -13,7 +14,8 @@ namespace MaIN.Services.Services.LLMService.Memory;
 
 public class MemoryFactory() : IMemoryFactory
 {
-    public (IKernelMemory KM, LLamaContext TextGenerationContext, LLamaSharpTextEmbeddingGenerator EmbeddingGenerator)
+    [Experimental("KMEXP00")]
+    public (IKernelMemory km, LLamaSharpTextEmbeddingMaINClone generator, LlamaSharpTextGen textGenerator)
         CreateMemoryWithModel(string modelsPath,
             LLamaWeights model,
             string modelName,
@@ -33,14 +35,14 @@ public class MemoryFactory() : IMemoryFactory
         };
         
         var km = new KernelMemoryBuilder()
-            .WithLLamaSharpTextGeneration(model, modelParams, memoryParams, out var context)
-            .WithLLamaSharpTextEmbeddingGeneration(generator)
+            .WithLLamaSharpTextGeneration(model, modelParams, memoryParams, out var textGen)
+            .WithLLamaSharpTextEmbeddingOwnGeneration(generator)
             .WithSearchClientConfig(searchOptions)
             .WithCustomImageOcr(new OcrWrapper())
             .With(parsingOptions)
-            .Build();
-        var result = (KM: km, TextGenerationContext: context, EmbeddingGenerator: generator);
-        return result;
+            .Build<MemoryServerless>();
+        
+        return (km, generator, textGen);
     }
 
     public IKernelMemory CreateMemoryWithOpenAi(string openAiKey, MemoryParams memoryParams)
@@ -88,7 +90,7 @@ public class MemoryFactory() : IMemoryFactory
         return path;
     }
 
-    private static LLamaSharpTextEmbeddingGenerator ConfigureGeneratorOptions(string embeddingModelPath,
+    private static LLamaSharpTextEmbeddingMaINClone ConfigureGeneratorOptions(string embeddingModelPath,
         string modelPath, MemoryParams memoryParams)
     {
         var inferenceParams = new InferenceParams
@@ -101,6 +103,7 @@ public class MemoryFactory() : IMemoryFactory
         {
             DefaultInferenceParams = inferenceParams,
             GpuLayerCount = memoryParams.GpuLayerCount,
+            ContextSize = (uint?)memoryParams.ContextSize,
         };
 
         var parameters = new ModelParams(config.ModelPath)
@@ -109,9 +112,8 @@ public class MemoryFactory() : IMemoryFactory
             GpuLayerCount = config.GpuLayerCount.GetValueOrDefault(20),
         };
 
-        using var weights = LLamaWeights.LoadFromFile(parameters);
-
-        return new LLamaSharpTextEmbeddingGenerator(config, weights);
+        var weights = LLamaWeights.LoadFromFile(parameters);
+        return new LLamaSharpTextEmbeddingMaINClone(config, weights);
     }
 
     private static SearchClientConfig ConfigureSearchOptions(MemoryParams memoryParams)
@@ -129,7 +131,8 @@ public class MemoryFactory() : IMemoryFactory
     {
         return new TextPartitioningOptions
         {
-            MaxTokensPerParagraph = 300,
+            MaxTokensPerParagraph = 512,
+            OverlappingTokens = 30,
         };
     }
 

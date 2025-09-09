@@ -114,16 +114,17 @@ public abstract class OpenAiCompatibleService(
 
         var kernel = memoryFactory.CreateMemoryWithOpenAi(GetApiKey(), chat.MemoryParams);
 
-        await memoryService.ImportDataToMemory(kernel, memoryOptions, cancellationToken);
+        await memoryService.ImportDataToMemory((kernel, null), memoryOptions, cancellationToken);
 
         var userQuery = chat.Messages.Last().Content;
         if (chat.MemoryParams.Grammar != null)
         {
             var jsonGrammarConverter = new GBNFToJsonConverter();
             var jsonGrammar = jsonGrammarConverter.ConvertToJson(chat.MemoryParams.Grammar);
-            userQuery = $"{userQuery} | Respond only using the following JSON format: \n{jsonGrammar}\n. Do not add explanations, code tags, or any extra content.";
+            userQuery =
+                $"{userQuery} | For your next response only, please respond using exactly the following JSON format: \n{jsonGrammar}\n. Do not include any explanations, code blocks, or additional content. After this single JSON response, resume your normal conversational style.";
         }
-        
+
         var retrievedContext = await kernel.AskAsync(userQuery, cancellationToken: cancellationToken);
 
         await kernel.DeleteIndexAsync(cancellationToken: cancellationToken);
@@ -143,13 +144,13 @@ public abstract class OpenAiCompatibleService(
         response.EnsureSuccessStatusCode();
 
         var responseJson = await response.Content.ReadAsStringAsync();
-        var modelsResponse = JsonSerializer.Deserialize<OpenAiModelsResponse>(responseJson, 
+        var modelsResponse = JsonSerializer.Deserialize<OpenAiModelsResponse>(responseJson,
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
         return (modelsResponse?.Data?
                     .Select(m => m.Id)
                     .Where(id => id != null)
-                    .ToArray() 
+                    .ToArray()
                 ?? [])!;
     }
 
@@ -208,7 +209,7 @@ public abstract class OpenAiCompatibleService(
             {
                 role = m.Role,
                 content = chat.InterferenceParams.Grammar != null
-                //I know that this is a bit ugly, but hey, it works
+                    //I know that this is a bit ugly, but hey, it works
                     ? $"{m.Content} | Respond only using the following JSON format: \n{new GBNFToJsonConverter().ConvertToJson(chat.InterferenceParams.Grammar)}\n. Do not add explanations, code tags, or any extra content."
                     : m.Content
             }).ToArray(),
@@ -300,10 +301,13 @@ public abstract class OpenAiCompatibleService(
         var requestBody = new
         {
             model = chat.Model,
-            messages = conversation.Select(m => new { role = m.Role,   content = chat.InterferenceParams.Grammar != null
-                //I know that this is a bit ugly, but hey, it works
-                ? $"{m.Content} | Respond only using the following JSON format: \n{new GBNFToJsonConverter().ConvertToJson(chat.InterferenceParams.Grammar)}\n. Do not add explanations, code tags, or any extra content."
-                : m.Content }).ToArray(),
+            messages = conversation.Select(m => new
+            {
+                role = m.Role, content = chat.InterferenceParams.Grammar != null
+                    //I know that this is a bit ugly, but hey, it works
+                    ? $"{m.Content} | Respond only using the following JSON format: \n{new GBNFToJsonConverter().ConvertToJson(chat.InterferenceParams.Grammar)}\n. Do not add explanations, code tags, or any extra content."
+                    : m.Content
+            }).ToArray(),
             stream = false
         };
 
@@ -368,7 +372,7 @@ public class ChatRequestOptions
 {
     public bool InteractiveUpdates { get; set; }
     public bool CreateSession { get; set; }
-    public bool SaveConv  {get; set; } = true;
+    public bool SaveConv { get; set; } = true;
     public Func<LLMTokenValue, Task>? TokenCallback { get; set; }
 }
 
@@ -409,7 +413,7 @@ file class Delta
 }
 
 file class OpenAiModelsResponse
-{ 
+{
     public List<OpenAiModel>? Data { get; set; }
 }
 

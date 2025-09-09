@@ -40,6 +40,55 @@ public static class KnownModels
         },
         new()
         {
+            Description = "Large 12B model for complex analysis, research, and creative writing",
+            Name = KnownModelNames.Gemma3_12b,
+            FileName = "Gemma3-12b.gguf",
+            DownloadUrl = "https://huggingface.co/Inza124/Gemma3-12b/resolve/main/gemma3-12b.gguf?download=true",
+        },
+        new()
+        {
+            Description = "Compact 4B model optimized for efficient reasoning and general-purpose tasks",
+            Name = KnownModelNames.Gemma3n_e4b,
+            FileName = "Gemma3n-e4b.gguf",
+            DownloadUrl = "https://huggingface.co/Inza124/Gemma-3n-e4b/resolve/main/gemma-3n-e4b.gguf?download=true",
+        },
+        new()
+        {
+            Description = "Lightweight modern 1.2B model for fast inference and resource-constrained environments",
+            Name = KnownModelNames.LFM2_1_2b,
+            FileName = "lfm2-1.2b.gguf",
+            DownloadUrl = "https://huggingface.co/Inza124/Lfm2-1.2b/resolve/main/lfm2-1.2b.gguf?download=true",
+        },
+        new()
+        {
+            Description = "Mid-size 8B model balancing performance and efficiency for diverse applications",
+            Name = KnownModelNames.Minicpm4_8b,
+            FileName = "Minicpm4-8b.gguf",
+            DownloadUrl = "https://huggingface.co/Inza124/Minicpm4-8b/resolve/main/MiniCPM4-8b.gguf?download=true",
+        },
+        new()
+        {
+            Description = "Large 24B model offering advanced reasoning and comprehensive knowledge for complex tasks",
+            Name = KnownModelNames.Mistral_3_2_24b,
+            FileName = "Mistral3.2-24b.gguf",
+            DownloadUrl = "https://huggingface.co/Inza124/Mistral3.2-24b/resolve/main/Mistral3.2-24b.gguf?download=true",
+        },
+        new()
+        {
+            Description = "Specialized 4B model optimized for web development and code generation tasks",
+            Name = KnownModelNames.Webgen_4b,
+            FileName = "webgen-4b.gguf",
+            DownloadUrl = "https://huggingface.co/Inza124/webgen-4b/resolve/main/Webgen-4b.gguf?download=true",
+        },
+        new()
+        {
+            Description = "Large 11B Polish language model with strong multilingual capabilities and reasoning",
+            Name = KnownModelNames.Bielik_2_5_11b,
+            FileName = "Bielik2.5-11b.gguf",
+            DownloadUrl = "https://huggingface.co/Inza124/Bielik2.5-11b/resolve/main/Bielik2.5-11b.gguf?download=true",
+        },
+        new()
+        {
             Description = "Fast 8B model for multilingual tasks, translation, and logical reasoning",
             Name = KnownModelNames.Qwen3_8b,
             FileName = "Qwen3-8b.gguf",
@@ -197,9 +246,9 @@ public static class KnownModels
         new()
         {
             Name = KnownModelNames.Nomic_Embedding,
-            FileName = "nomic.gguf",
+            FileName = "nomicv2.gguf",
             Description = "Model used to generate embeddings.",
-            DownloadUrl = "https://huggingface.co/Inza124/Nomic/resolve/main/Nomic-maIN.gguf?download=true",
+            DownloadUrl = "https://huggingface.co/Inza124/Nomic/resolve/main/nomicv2.gguf?download=true",
         };
 
     public static bool IsModelSupported(string name) =>
@@ -252,8 +301,8 @@ public static class KnownModels
             DownloadUrl = string.Empty,
             MMProject = mmProject,
             Name = model,
-            FileName = $"{Path.GetFileName(path)}",
-            Path = path
+            FileName = Path.GetFileName(path),
+            Path = Path.GetDirectoryName(path)
         });
     }
 
@@ -276,11 +325,17 @@ public static class KnownModels
 
 public struct KnownModelNames
 {
-    public const string Nomic_Embedding = "nomic";
+    public const string Nomic_Embedding = "nomicv2";
     public const string Gemma2_2b = "gemma2:2b";
     public const string Gemma3_4b = "gemma3:4b";
     public const string Gemma3_12b = "gemma3:12b";
+    public const string Gemma3n_e4b = "gemma3n:e4b";
     public const string OlympicCoder_7b = "olympiccoder:7b";
+    public const string Minicpm4_8b = "minicpm4:8b";
+    public const string LFM2_1_2b = "lfm2:1.2b";
+    public const string Webgen_4b = "webgen:4b";
+    public const string Mistral_3_2_24b = "mistral:3.2:24b";
+    public const string Bielik_2_5_11b = "bielik:2.5:11b";
     public const string Llama3_1_8b = "llama3.1:8b";
     public const string Llama3_2_3b = "llama3.2:3b";
     public const string Hermes3_3b = "hermes3:3b";
