@@ -16,7 +16,7 @@ public class AgentWithKnowledgeWebExample : IExample
         AIHub.Extensions.DisableLLamaLogs();
         var context = await AIHub.Agent()
             .WithModel("llama3.2:3b")
-            .WithMemoryParams(new MemoryParams(){ContextSize = 2137})
+            .WithMemoryParams(new MemoryParams(){ContextSize = 4096})
             .WithInitialPrompt("""
                                You are an expert piano instructor specializing in teaching specific pieces,
                                techniques, and solving common playing problems. Help students learn exact

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using LLama;
 using LLamaSharp.KernelMemory;
 using MaIN.Domain.Entities;
@@ -7,7 +8,8 @@ namespace MaIN.Services.Services.LLMService.Memory;
 
 public interface IMemoryFactory
 {
-    (IKernelMemory KM, LLamaContext TextGenerationContext, LLamaSharpTextEmbeddingGenerator EmbeddingGenerator)
+    [Experimental("KMEXP00")]
+    (IKernelMemory km, LLamaSharpTextEmbeddingMaINClone generator, LlamaSharpTextGen textGenerator)
         CreateMemoryWithModel(string modelsPath, LLamaWeights llmModel, string modelName,
             MemoryParams memoryParams);
     IKernelMemory CreateMemoryWithOpenAi(string openAiKey, MemoryParams memoryParams);

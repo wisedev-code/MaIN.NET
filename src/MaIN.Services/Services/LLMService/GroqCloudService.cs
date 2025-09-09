@@ -1,3 +1,4 @@
+using System.Text;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Services.Services.Abstract;
@@ -38,11 +39,40 @@ public sealed class GroqCloudService(
         }
     }
 
-    public override Task<ChatResult?> AskMemory(
+    public override async Task<ChatResult?> AskMemory(
         Chat chat,
         ChatMemoryOptions memoryOptions,
         CancellationToken cancellationToken = default)
     {
-        throw new NotSupportedException("Embeddings are not supported by the Groq Cloud model. Document reading requires embedding support.");
+        var lastMsg = chat.Messages.Last();
+        var filePaths = await DocumentProcessor.ConvertToFilesContent(memoryOptions);
+        var message = new Message()
+        {
+            Role = ServiceConstants.Roles.User,
+            Content = ComposeMessage(lastMsg, filePaths),
+            Type = MessageType.CloudLLM
+        };
+
+        chat.Messages.Last().Content = message.Content;
+        chat.Messages.Last().Files = [];
+        var result = await Send(chat, new ChatRequestOptions(), cancellationToken);
+        chat.Messages.Last().Content = lastMsg.Content;
+        return result;
+    }
+
+    private string ComposeMessage(Message lastMsg, string[] filePaths)
+    {
+        var stringBuilder = new StringBuilder();
+        stringBuilder.AppendLine($"== FILES IN MEMORY");
+        foreach (var path in filePaths)
+        {
+            var doc = DocumentProcessor.ProcessDocument(path);
+            stringBuilder.Append(doc);
+            stringBuilder.AppendLine();
+        }
+        stringBuilder.AppendLine($"== END OF FILES");
+        stringBuilder.AppendLine();
+        stringBuilder.Append(lastMsg.Content);
+        return stringBuilder.ToString();
     }
 }

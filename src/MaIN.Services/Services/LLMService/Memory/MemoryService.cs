@@ -1,13 +1,13 @@
-using MaIN.Services.Utils;
+using LLama.Native;
+using LLamaSharp.KernelMemory;
 using Microsoft.KernelMemory;
-using System.Text.Json;
+using Microsoft.KernelMemory.AI;
 
 namespace MaIN.Services.Services.LLMService.Memory;
 
 public class MemoryService : IMemoryService
 {
-    public async Task ImportDataToMemory(
-        IKernelMemory memory,
+    public async Task ImportDataToMemory((IKernelMemory km, ITextEmbeddingGenerator? generator) memory,
         ChatMemoryOptions options,
         CancellationToken cancellationToken)
     {
@@ -29,7 +29,7 @@ public class MemoryService : IMemoryService
             .Replace("Assistant:", string.Empty);
     }
 
-    private async Task ImportTextData(IKernelMemory memory, Dictionary<string, string>? textData,
+    private async Task ImportTextData((IKernelMemory km, ITextEmbeddingGenerator? generator) memory, Dictionary<string, string>? textData,
         CancellationToken cancellationToken)
     {
         if (textData is null || textData.Count == 0)
@@ -37,24 +37,30 @@ public class MemoryService : IMemoryService
 
         foreach (var item in textData)
         {
+            PreImport(memory.generator);
             var cleanedValue = JsonCleaner.CleanAndUnescape(item.Value);
-            await memory.ImportTextAsync(cleanedValue!, item.Key, cancellationToken: cancellationToken);
+            await memory.km.ImportTextAsync(cleanedValue!, item.Key, cancellationToken: cancellationToken);
+            PostImport(memory.generator);
         }
     }
 
-    private async Task ImportFilesData(IKernelMemory memory, Dictionary<string, string>? fileData,
+    private async Task ImportFilesData((IKernelMemory km, ITextEmbeddingGenerator? generator) memory, Dictionary<string, string>? fileData,
         CancellationToken cancellationToken)
     {
         if (fileData?.Any() != true)
             return;
 
+        
         foreach (var item in fileData)
         {
-            await memory.ImportDocumentAsync(item.Value, item.Key, cancellationToken: cancellationToken);
+            PreImport(memory.generator);
+            await memory.km.ImportDocumentAsync(item.Value, item.Key, cancellationToken: cancellationToken);
+            PostImport(memory.generator);
         }
     }
+    
 
-    private async Task ImportStreamData(IKernelMemory memory, Dictionary<string, FileStream>? streamData,
+    private async Task ImportStreamData((IKernelMemory km, ITextEmbeddingGenerator? generator) memory, Dictionary<string, FileStream>? streamData,
         CancellationToken cancellationToken)
     {
         if (streamData?.Any() != true)
@@ -62,22 +68,26 @@ public class MemoryService : IMemoryService
 
         foreach (var item in streamData)
         {
-            await memory.ImportDocumentAsync(item.Value, item.Key, cancellationToken: cancellationToken);
+            PreImport(memory.generator);
+            await memory.km.ImportDocumentAsync(item.Value, item.Key, cancellationToken: cancellationToken);
+            PostImport(memory.generator);
         }
     }
 
-    private async Task ImportWebUrls(IKernelMemory memory, List<string>? webUrls, CancellationToken cancellationToken)
+    private async Task ImportWebUrls((IKernelMemory km, ITextEmbeddingGenerator? generator) memory, List<string>? webUrls, CancellationToken cancellationToken)
     {
         if (webUrls is null || webUrls.Count == 0)
             return;
 
         foreach (var item in webUrls)
         {
-            await memory.ImportWebPageAsync(item, cancellationToken: cancellationToken);
+            PreImport(memory.generator);
+            await memory.km.ImportWebPageAsync(item, cancellationToken: cancellationToken);
+            PostImport(memory.generator);
         }
     }
 
-    private async Task ImportMemoryItems(IKernelMemory memory,
+    private async Task ImportMemoryItems((IKernelMemory km, ITextEmbeddingGenerator? generator) memory,
         List<string>? memoryItems,
         CancellationToken cancellationToken)
     {
@@ -86,10 +96,12 @@ public class MemoryService : IMemoryService
 
         foreach (var item in memoryItems.Select((value, i) => (value, i)))
         {
-            await memory.ImportTextAsync(
+            PreImport(memory.generator);
+            await memory.km.ImportTextAsync(
                 item.value,
                 $"ANSWER_MEMORY_{item.i + 1}-{memoryItems.Count}",
                 cancellationToken: cancellationToken);
+            PostImport(memory.generator);
         }
     }
     
@@ -108,6 +120,29 @@ public class MemoryService : IMemoryService
             await fileStream.DisposeAsync();
             options.TextData!.Add(stream.Key, DocumentProcessor.ProcessDocument(Path.GetTempPath()+$".{stream.Key}"));
             options.StreamData = [];
+        }
+    }
+    
+    private void PostImport(ITextEmbeddingGenerator? memoryGenerator)
+    {
+        if (memoryGenerator is LLamaSharpTextEmbeddingMaINClone llamaGenerator)
+        {
+            llamaGenerator._embedder.Context.Dispose();
+            llamaGenerator._embedder.isContextDisposed = true;
+        }
+    }
+
+    private void PreImport(ITextEmbeddingGenerator? memoryGenerator)
+    {
+        if (memoryGenerator is LLamaSharpTextEmbeddingMaINClone { _embedder.isContextDisposed: true } llamaGenerator)
+        {
+            llamaGenerator._embedder.Context = llamaGenerator
+                ._embedder
+                ._weights
+                .CreateContext(llamaGenerator.@params!);
+            llamaGenerator._embedder.isContextDisposed = false;
+            NativeApi.llama_set_embeddings(llamaGenerator._embedder.Context.NativeHandle, true);
+
         }
     }
 

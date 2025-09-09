@@ -5,5 +5,5 @@ namespace MaIN.Services.Services.LLMService.Factory;
 
 public interface IImageGenServiceFactory
 {
-    IImageGenService CreateService(BackendType backendType);
+    IImageGenService? CreateService(BackendType backendType);
 }
