@@ -1,5 +1,6 @@
 using Examples.Utils;
 using MaIN.Core.Hub;
+using MaIN.Domain.Configuration;
 
 namespace Examples;
 
@@ -12,7 +13,7 @@ public class ChatExampleOpenAi : IExample
         Console.WriteLine("(OpenAi) ChatExample is running!"); 
         
         await AIHub.Chat()
-            .WithModel("gpt-4o-mini")
+            .WithModel("gpt-5-nano")
             .WithMessage("What do you consider to be the greatest invention in history?")
             .CompleteAsync(interactive: true);
     }
