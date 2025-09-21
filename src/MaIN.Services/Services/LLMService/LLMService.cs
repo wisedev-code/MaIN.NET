@@ -16,6 +16,7 @@ using MaIN.Services.Services.Models;
 using MaIN.Services.Utils;
 using Microsoft.KernelMemory;
 using InferenceParams = MaIN.Domain.Entities.InferenceParams;
+#pragma warning disable KMEXP00
 
 namespace MaIN.Services.Services.LLMService;
 
@@ -81,7 +82,6 @@ public class LLMService : ILLMService
         if (string.IsNullOrEmpty(id) || !_sessionCache.TryRemove(id, out var session))
             return Task.CompletedTask;
 
-        session.Executor.Context.NativeHandle.KvCacheClear();
         session.Executor.Context.Dispose();
         return Task.CompletedTask;
     }
@@ -92,37 +92,39 @@ public class LLMService : ILLMService
         CancellationToken cancellationToken = default)
     {
         var model = KnownModels.GetModel(chat.Model);
-        var parameters = new ModelParams(Path.Combine(modelsPath, model.FileName))
+        var finalModelPath = model.Path ?? modelsPath;
+        var parameters = new ModelParams(Path.Combine(finalModelPath, model.FileName))
         {
             GpuLayerCount = chat.MemoryParams.GpuLayerCount,
             ContextSize = (uint)chat.MemoryParams.ContextSize,
-            Embeddings = true
         };
         var disableCache = chat.Properties.CheckProperty(ServiceConstants.Properties.DisableCacheProperty);
         var llmModel = disableCache
             ? await LLamaWeights.LoadFromFileAsync(parameters, cancellationToken)
-            : await ModelLoader.GetOrLoadModelAsync(modelsPath, model.FileName);
+            : await ModelLoader.GetOrLoadModelAsync(finalModelPath, model.FileName);
 
         var memory = memoryFactory.CreateMemoryWithModel(
-            modelsPath,
+            finalModelPath,
             llmModel,
             model.FileName,
             chat.MemoryParams);
 
-        await memoryService.ImportDataToMemory(memory.KM, memoryOptions, cancellationToken);
+        await memoryService.ImportDataToMemory((memory.km, memory.generator), memoryOptions, cancellationToken);
         var userMessage = chat.Messages.Last();
-        var result = await memory.KM.AskAsync(
+        var result = await memory.km.AskAsync(
             userMessage.Content,
             cancellationToken: cancellationToken);
-        await memory.KM.DeleteIndexAsync(cancellationToken: cancellationToken);
+        await memory.km.DeleteIndexAsync(cancellationToken: cancellationToken);
         
         if (disableCache)
         {
             llmModel.Dispose();
+            ModelLoader.RemoveModel(model.FileName);
+            memory.textGenerator.Dispose();
         }
-
-        memory.TextGenerationContext.Dispose();
-        memory.EmbeddingGenerator.Dispose();
+        memory.generator._embedder.Dispose();
+        memory.generator._embedder._weights.Dispose();
+        memory.generator.Dispose();
 
         return new ChatResult
         {
@@ -149,17 +151,17 @@ public class LLMService : ILLMService
         var thinkingState = new ThinkingState();
         var tokens = new List<LLMTokenValue>();
 
-        var parameters = CreateModelParameters(chat, modelKey);
+        var parameters = CreateModelParameters(chat, modelKey, model.Path);
         var disableCache = chat.Properties.CheckProperty(ServiceConstants.Properties.DisableCacheProperty);
         var llmModel = disableCache
             ? await LLamaWeights.LoadFromFileAsync(parameters, cancellationToken)
-            : await ModelLoader.GetOrLoadModelAsync(modelsPath, modelKey);
+            : await ModelLoader.GetOrLoadModelAsync(
+                model.Path ?? modelsPath, modelKey);
 
         var llavaWeights = model.MMProject != null
             ? await LLavaWeights.LoadFromFileAsync(model.MMProject, cancellationToken)
             : null;
-
-
+        
         using var executor = new BatchedExecutor(llmModel, parameters);
 
         var (conversation, isComplete, hasFailed) = await InitializeConversation(
@@ -191,9 +193,9 @@ public class LLMService : ILLMService
         return tokens;
     }
 
-    private ModelParams CreateModelParameters(Chat chat, string modelKey)
+    private ModelParams CreateModelParameters(Chat chat, string modelKey, string? customPath)
     {
-        return new ModelParams(Path.Combine(modelsPath, modelKey))
+        return new ModelParams(Path.Combine(customPath ?? modelsPath, modelKey))
         {
             ContextSize = (uint?)chat.InterferenceParams.ContextSize,
             GpuLayerCount = chat.InterferenceParams.GpuLayerCount,
@@ -312,7 +314,7 @@ public class LLMService : ILLMService
                 break;
             }
 
-            if (decodeResult == DecodeResult.Error)
+            if (decodeResult == DecodeResult.DecodeFailed)
                 throw new Exception("Unknown error occurred while inferring.");
 
             if (!conversation.RequiresSampling)

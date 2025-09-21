@@ -31,4 +31,9 @@ public static class ModelLoader
         var loadedModel = LLamaWeights.LoadFromFile(parameters);
         return ModelCache.GetOrAdd(modelKey, loadedModel);
     }
+
+    public static void RemoveModel(string modelFileName)
+    {
+        ModelCache.TryRemove(modelFileName, out _);
+    }
 }

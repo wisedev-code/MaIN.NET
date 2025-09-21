@@ -17,7 +17,7 @@
     </ItemGroup>
 
 <ItemGroup>
-  <PackageReference Include="llamasharp.backend.cpu" Version="0.24.0">
+  <PackageReference Include="llamasharp.backend.cpu" Version="0.25.0">
     <ExcludeAssets>native\avx</ExcludeAssets>
     <ExcludeAssets>native\avx2</ExcludeAssets>
     <ExcludeAssets>native\avx512</ExcludeAssets>

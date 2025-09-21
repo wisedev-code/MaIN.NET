@@ -1,6 +1,7 @@
 using Examples.Utils;
 using MaIN.Core.Hub;
 using MaIN.Core.Hub.Utils;
+using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities.Agents.AgentSource;
 
 namespace Examples.Agents;
