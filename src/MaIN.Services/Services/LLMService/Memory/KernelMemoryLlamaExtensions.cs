@@ -18,9 +18,9 @@ public static class KernelMemoryLlamaExtensions
         LLamaWeights model, 
         ModelParams modelParams,
         MemoryParams memoryParams,
-        out LLamaContext context)
+        out LlamaSharpTextGen textGen)
     {
-        context = model.CreateContext(modelParams);
+        var context = model.CreateContext(modelParams);
         var executor = new BatchedExecutor(model, modelParams);
         
         var inferenceParams = new InferenceParams 
@@ -31,17 +31,25 @@ public static class KernelMemoryLlamaExtensions
                 Grammar = memoryParams.Grammar != null ? new Grammar(memoryParams.Grammar, "root") : null
             }
         };
-
-        builder.WithLLamaSharpTextGeneration(
-            new LlamaSharpTextGen(
-                model,
-                context,
-                executor, 
-                inferenceParams,
-                memoryParams
-            )
+        textGen = new LlamaSharpTextGen(
+            model,
+            context,
+            executor,
+            inferenceParams,
+            memoryParams
         );
         
+        builder.WithLLamaSharpTextGeneration(textGen);
+        return builder;
+    }
+    
+    
+    public static IKernelMemoryBuilder WithLLamaSharpTextEmbeddingOwnGeneration(
+        this IKernelMemoryBuilder builder,
+        LLamaSharpTextEmbeddingMaINClone textEmbeddingGenerator)
+    {
+        builder.AddSingleton((ITextEmbeddingGenerator) textEmbeddingGenerator);
+        builder.AddIngestionEmbeddingGenerator(textEmbeddingGenerator);
         return builder;
     }
     

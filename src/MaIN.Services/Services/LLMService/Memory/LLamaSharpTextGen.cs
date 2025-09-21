@@ -70,10 +70,8 @@ public sealed class LlamaSharpTextGen : ITextGenerator, IDisposable
 
     public void Dispose()
     {
-        if (_ownsWeights)
-            _weights.Dispose();
-        if (!_ownsContext)
-            return;
+        _executor.Dispose();
+        _weights.Dispose();
         _context.Dispose();
     }
     private ISamplingPipeline CreateSampler(InferenceParams interferenceParams)
@@ -118,7 +116,7 @@ public sealed class LlamaSharpTextGen : ITextGenerator, IDisposable
         
             var decodeResult = await _executor.Infer(cancellationToken);
         
-            if (decodeResult == DecodeResult.NoKvSlot || decodeResult == DecodeResult.Error)
+            if (decodeResult == DecodeResult.NoKvSlot || decodeResult == DecodeResult.DecodeFailed)
             {
                 yield break;
             }
