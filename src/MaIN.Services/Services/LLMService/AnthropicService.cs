@@ -157,7 +157,7 @@ public sealed class AnthropicService(
 
     private void MergeMessages(List<ChatMessage> conversation, List<Message> messages)
     {
-        var existing = new HashSet<(string Role, string Content)>(conversation.Select(m => (m.Role, m.Content)));
+        var existing = new HashSet<(string Role, object Content)>(conversation.Select(m => (m.Role, m.Content)));
         foreach (var msg in messages)
         {
             var role = msg.Role.ToLowerInvariant();
