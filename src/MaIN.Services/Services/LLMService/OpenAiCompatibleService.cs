@@ -121,10 +121,9 @@ public abstract class OpenAiCompatibleService(
         {
             var jsonGrammarConverter = new GBNFToJsonConverter();
             var jsonGrammar = jsonGrammarConverter.ConvertToJson(chat.MemoryParams.Grammar);
-            userQuery =
-                $"{userQuery} | For your next response only, please respond using exactly the following JSON format: \n{jsonGrammar}\n. Do not include any explanations, code blocks, or additional content. After this single JSON response, resume your normal conversational style.";
+            userQuery = $"{userQuery} | Respond only using the following JSON format: \n{jsonGrammar}\n. Do not add explanations, code tags, or any extra content.";
         }
-
+        
         var retrievedContext = await kernel.AskAsync(userQuery, cancellationToken: cancellationToken);
 
         await kernel.DeleteIndexAsync(cancellationToken: cancellationToken);
@@ -144,13 +143,13 @@ public abstract class OpenAiCompatibleService(
         response.EnsureSuccessStatusCode();
 
         var responseJson = await response.Content.ReadAsStringAsync();
-        var modelsResponse = JsonSerializer.Deserialize<OpenAiModelsResponse>(responseJson,
+        var modelsResponse = JsonSerializer.Deserialize<OpenAiModelsResponse>(responseJson, 
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
         return (modelsResponse?.Data?
                     .Select(m => m.Id)
                     .Where(id => id != null)
-                    .ToArray()
+                    .ToArray() 
                 ?? [])!;
     }
 
@@ -205,17 +204,10 @@ public abstract class OpenAiCompatibleService(
         var requestBody = new
         {
             model = chat.Model,
-            messages = conversation.Select(m => new
-            {
-                role = m.Role,
-                content = chat.InterferenceParams.Grammar != null
-                    //I know that this is a bit ugly, but hey, it works
-                    ? $"{m.Content} | Respond only using the following JSON format: \n{new GBNFToJsonConverter().ConvertToJson(chat.InterferenceParams.Grammar)}\n. Do not add explanations, code tags, or any extra content."
-                    : m.Content
-            }).ToArray(),
+            messages = await BuildMessagesArray(conversation, chat, ImageType.AsUrl),
             stream = true
         };
-
+        
         var requestJson = JsonSerializer.Serialize(requestBody);
         var content = new StringContent(requestJson, Encoding.UTF8, MediaTypeNames.Application.Json);
 
@@ -301,13 +293,7 @@ public abstract class OpenAiCompatibleService(
         var requestBody = new
         {
             model = chat.Model,
-            messages = conversation.Select(m => new
-            {
-                role = m.Role, content = chat.InterferenceParams.Grammar != null
-                    //I know that this is a bit ugly, but hey, it works
-                    ? $"{m.Content} | Respond only using the following JSON format: \n{new GBNFToJsonConverter().ConvertToJson(chat.InterferenceParams.Grammar)}\n. Do not add explanations, code tags, or any extra content."
-                    : m.Content
-            }).ToArray(),
+            messages = await BuildMessagesArray(conversation, chat, ImageType.AsUrl),
             stream = false
         };
 
@@ -328,16 +314,31 @@ public abstract class OpenAiCompatibleService(
         }
     }
 
-    private void MergeMessages(List<ChatMessage> conversation, List<Message> messages)
+    internal static void MergeMessages(List<ChatMessage> conversation, List<Message> messages)
     {
-        var existing = new HashSet<(string, string)>(conversation.Select(m => (m.Role, m.Content)));
+        var existing = new HashSet<(string, object)>(conversation.Select(m => (m.Role, m.Content)));
         foreach (var msg in messages)
         {
             var role = msg.Role.ToLowerInvariant();
-            if (!existing.Contains((role, msg.Content)))
+        
+            if (HasImages(msg))
             {
-                conversation.Add(new ChatMessage(role, msg.Content));
-                existing.Add((role, msg.Content));
+                var simplifiedContent = $"{msg.Content} [Contains image]";
+                if (!existing.Contains((role, simplifiedContent)))
+                {
+                    var chatMessage = new ChatMessage(role, msg.Content);
+                    chatMessage.OriginalMessage = msg;
+                    conversation.Add(chatMessage);
+                    existing.Add((role, simplifiedContent));
+                }
+            }
+            else
+            {
+                if (!existing.Contains((role, msg.Content)))
+                {
+                    conversation.Add(new ChatMessage(role, msg.Content));
+                    existing.Add((role, msg.Content));
+                }
             }
         }
     }
@@ -359,6 +360,41 @@ public abstract class OpenAiCompatibleService(
         };
     }
 
+    internal static async Task<object[]> BuildMessagesArray(List<ChatMessage> conversation, Chat chat, ImageType imageType)
+    {
+        var messages = new List<object>();
+    
+        foreach (var msg in conversation)
+        {
+            var content = msg.OriginalMessage != null ? BuildMessageContent(msg.OriginalMessage, imageType) : msg.Content;            
+            if (chat.InterferenceParams.Grammar != null && msg.Role == "user")
+            {
+                var jsonGrammarConverter = new GBNFToJsonConverter();
+                var jsonGrammar = jsonGrammarConverter.ConvertToJson(chat.InterferenceParams.Grammar);
+                var grammarInstruction = $" | Respond only using the following JSON format: \n{jsonGrammar}\n. Do not add explanations, code tags, or any extra content.";
+            
+                if (content is string textContent)
+                {
+                    content = textContent + grammarInstruction;
+                }
+                else if (content is List<object> contentParts)
+                {
+                    var modifiedParts = contentParts.ToList();
+                    modifiedParts.Add(new { type = "text", text = grammarInstruction });
+                    content = modifiedParts;
+                }
+            }
+        
+            messages.Add(new
+            {
+                role = msg.Role,
+                content = content
+            });
+        }
+    
+        return messages.ToArray();
+    }
+    
     private static async Task InvokeTokenCallbackAsync(Func<LLMTokenValue, Task>? callback, LLMTokenValue token)
     {
         if (callback != null)
@@ -366,20 +402,114 @@ public abstract class OpenAiCompatibleService(
             await callback.Invoke(token);
         }
     }
+    
+    private static bool HasImages(Message message)
+    {
+        return message.Image != null && message.Image.Length > 0;
+    }
+
+    private static object BuildMessageContent(Message message, ImageType imageType)
+    {
+        if (!HasImages(message))
+        {
+            return message.Content;
+        }
+
+        var contentParts = new List<object>();
+
+        if (!string.IsNullOrEmpty(message.Content))
+        {
+            contentParts.Add(new
+            {
+                type = "text",
+                text = message.Content
+            });
+        }
+
+        if (message.Image != null && message.Image.Length > 0)
+        {
+            var base64Data = Convert.ToBase64String(message.Image);
+            var mimeType = DetectImageMimeType(message.Image);
+
+            switch (imageType)
+            {
+                case ImageType.AsUrl:
+                    contentParts.Add(new
+                    {
+                        type = "image_url",
+                        image_url = new
+                        {
+                            url = $"data:{mimeType};base64,{base64Data}",
+                            detail = "auto"
+                        }
+                    });
+                    break;
+                case ImageType.AsBase64:
+                    contentParts.Add(new
+                    {
+                        type = "image",
+                        source = new
+                        {
+                            data = base64Data,
+                            media_type = mimeType,
+                            type = "base64"
+                        }
+                    });
+                    break;
+            }
+        }
+
+        return contentParts;
+    }
+
+    private static string DetectImageMimeType(byte[] imageBytes)
+    {
+        if (imageBytes.Length < 4)
+            return "image/jpeg";
+
+        if (imageBytes[0] == 0xFF && imageBytes[1] == 0xD8)
+            return "image/jpeg";
+    
+        if (imageBytes.Length >= 8 && 
+            imageBytes[0] == 0x89 && imageBytes[1] == 0x50 && 
+            imageBytes[2] == 0x4E && imageBytes[3] == 0x47)
+            return "image/png";
+        
+        if (imageBytes.Length >= 6 && 
+            imageBytes[0] == 0x47 && imageBytes[1] == 0x49 && 
+            imageBytes[2] == 0x46 && imageBytes[3] == 0x38)
+            return "image/gif";
+        
+        if (imageBytes.Length >= 12 && 
+            imageBytes[0] == 0x52 && imageBytes[1] == 0x49 && 
+            imageBytes[2] == 0x46 && imageBytes[3] == 0x46 &&
+            imageBytes[8] == 0x57 && imageBytes[9] == 0x45 && 
+            imageBytes[10] == 0x42 && imageBytes[11] == 0x50)
+            return "image/webp";
+
+        return "image/jpeg";
+    }
 }
 
 public class ChatRequestOptions
 {
     public bool InteractiveUpdates { get; set; }
     public bool CreateSession { get; set; }
-    public bool SaveConv { get; set; } = true;
+    public bool SaveConv  {get; set; } = true;
     public Func<LLMTokenValue, Task>? TokenCallback { get; set; }
 }
 
-internal class ChatMessage(string role, string content)
+internal class ChatMessage(string role, object content)
 {
     public string Role { get; set; } = role;
-    public string Content { get; set; } = content;
+    public object Content { get; set; } = content;
+    public Message? OriginalMessage { get; set; }
+}
+
+internal enum ImageType
+{
+    AsUrl,
+    AsBase64
 }
 
 file class ChatCompletionResponse
@@ -413,7 +543,7 @@ file class Delta
 }
 
 file class OpenAiModelsResponse
-{
+{ 
     public List<OpenAiModel>? Data { get; set; }
 }
 
