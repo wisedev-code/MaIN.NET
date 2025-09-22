@@ -151,23 +151,10 @@ public sealed class AnthropicService(
             conversation = new List<ChatMessage>();
         }
 
-        MergeMessages(conversation, chat.Messages);
+        OpenAiCompatibleService.MergeMessages(conversation, chat.Messages);
         return conversation;
     }
-
-    private void MergeMessages(List<ChatMessage> conversation, List<Message> messages)
-    {
-        var existing = new HashSet<(string Role, object Content)>(conversation.Select(m => (m.Role, m.Content)));
-        foreach (var msg in messages)
-        {
-            var role = msg.Role.ToLowerInvariant();
-            if (!existing.Contains((role, msg.Content)))
-            {
-                conversation.Add(new ChatMessage(role, msg.Content));
-                existing.Add((role, msg.Content));
-            }
-        }
-    }
+    
 
     private void UpdateSessionCache(string chatId, string assistantResponse, bool createSession)
     {
@@ -200,16 +187,7 @@ public sealed class AnthropicService(
             max_tokens = chat.InterferenceParams.MaxTokens < 0 ? 4096 : chat.InterferenceParams.MaxTokens,
             stream = true,
             system = chat.InterferenceParams.Grammar is not null ? $"Respond only using the following grammar format: \n{chat.InterferenceParams.Grammar}\n. Do not add explanations, code tags, or any extra content." : "",
-            messages = conversation.Select(m => new
-            {
-                role = m.Role switch
-                {
-                    "user" => "user",
-                    "assistant" => "assistant",
-                    _ => "user"
-                },
-                content = m.Content
-            }).ToArray()
+            messages = await OpenAiCompatibleService.BuildMessagesArray(conversation, chat, ImageType.AsBase64)
             //todo: Add thinking support
         };
 
@@ -276,6 +254,7 @@ public sealed class AnthropicService(
         }
     }
 
+    
     private LLMTokenValue? ProcessAnthropicStreamChunk(string data)
     {
         var chunk = JsonSerializer.Deserialize<AnthropicStreamChunk>(data, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
@@ -305,16 +284,7 @@ public sealed class AnthropicService(
             max_tokens = chat.InterferenceParams.MaxTokens < 0 ? 4096 : chat.InterferenceParams.MaxTokens,
             stream = false,
             system = chat.InterferenceParams.Grammar is not null ? $"Respond only using the following grammar format: \n{chat.InterferenceParams.Grammar}\n. Do not add explanations, code tags, or any extra content." : "",
-            messages = conversation.Select(m => new
-            {
-                role = m.Role switch
-                {
-                    "user" => "user",
-                    "assistant" => "assistant",
-                    _ => "user"
-                },
-                content = m.Content
-            }).ToArray()
+            messages = await OpenAiCompatibleService.BuildMessagesArray(conversation, chat, ImageType.AsBase64)
         };
 
         var requestJson = JsonSerializer.Serialize(requestBody);
