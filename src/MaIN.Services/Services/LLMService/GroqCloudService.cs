@@ -19,7 +19,6 @@ public sealed class GroqCloudService(
     : OpenAiCompatibleService(notificationService, httpClientFactory, memoryFactory, memoryService, logger)
 {
     private readonly MaINSettings _settings = settings ?? throw new ArgumentNullException(nameof(settings));
-    private readonly IHttpClientFactory _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
 
     protected override string HttpClientName => ServiceConstants.HttpClients.GroqCloudClient;
     protected override string ChatCompletionsUrl => ServiceConstants.ApiUrls.GroqCloudOpenAiChatCompletions;
