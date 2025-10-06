@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Generation API Test</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 40px auto; }
+        input { width: 100%; padding: 8px; margin-bottom: 10px; }
+        button { padding: 10px 15px; }
+        #result-image { max-width: 100%; margin-top: 20px; border: 1px solid #ccc; }
+        #status-message { color: #555; }
+    </style>
+</head>
+<body>
+
+    <h1>API Stable Diffusion Test</h1>
+    <p>Enter your prompt and push the button to generate an image.</p>
+
+    <input type="text" id="prompt-input" placeholder="np. a cat wearing a wizard hat...">
+    <button id="generate-button">Generate an Image</button>
+
+    <p id="status-message"></p>
+    <img id="result-image" src="" alt="Generated Image will appear here.">
+
+    <script>
+        const promptInput = document.getElementById('prompt-input');
+        const generateButton = document.getElementById('generate-button');
+        const resultImage = document.getElementById('result-image');
+        const statusMessage = document.getElementById('status-message');
+
+        promptInput.value = "a beautiful oil painting of a cat wearing a wizard hat";
+
+        generateButton.addEventListener('click', async () => {
+            const prompt = promptInput.value;
+            if (!prompt) {
+                alert('Prompt cannot be empty!');
+                return;
+            }
+
+            statusMessage.textContent = 'Generating an Image... This can take a while.';
+            resultImage.src = '';
+            generateButton.disabled = true;
+
+            try {
+                const response = await fetch('http://localhost:5015/generate', { 
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ prompt: prompt }) 
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Błąd serwera: ${response.status} ${response.statusText}`);
+                }
+
+                const imageBlob = await response.blob();
+                
+                const imageUrl = URL.createObjectURL(imageBlob);
+                
+                resultImage.src = imageUrl;
+                statusMessage.textContent = 'Image Generated!';
+
+            } catch (error) {
+                statusMessage.textContent = `Error: ${error.message}`;
+                console.error('Error details:', error);
+            } finally {
+                generateButton.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
