@@ -15,6 +15,7 @@ using MaIN.Services.Services.LLMService.Utils;
 using MaIN.Services.Services.Models;
 using MaIN.Services.Utils;
 using Microsoft.KernelMemory;
+using Grammar = LLama.Sampling.Grammar;
 using InferenceParams = MaIN.Domain.Entities.InferenceParams;
 #pragma warning disable KMEXP00
 
@@ -362,7 +363,7 @@ public class LLMService : ILLMService
         {
             return new GreedySamplingPipeline()
             {
-                Grammar = interferenceParams.Grammar != null ? new Grammar(interferenceParams.Grammar, "root") : null
+                Grammar = interferenceParams.Grammar != null ? new Grammar(interferenceParams.Grammar.Value, "root") : null
             };
         }
 
@@ -371,7 +372,7 @@ public class LLMService : ILLMService
             Temperature = interferenceParams.Temperature,
             TopP = interferenceParams.TopP,
             TopK = interferenceParams.TopK,
-            Grammar = interferenceParams.Grammar != null ? new Grammar(interferenceParams.Grammar, "root") : null
+            Grammar = interferenceParams.Grammar != null ? new Grammar(interferenceParams.Grammar.Value, "root") : null
         };
     }
 

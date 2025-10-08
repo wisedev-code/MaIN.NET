@@ -119,7 +119,7 @@ public abstract class OpenAiCompatibleService(
         var userQuery = chat.Messages.Last().Content;
         if (chat.MemoryParams.Grammar != null)
         {
-            var jsonGrammarConverter = new GBNFToJsonConverter();
+            var jsonGrammarConverter = new GrammarToJsonConverter();
             var jsonGrammar = jsonGrammarConverter.ConvertToJson(chat.MemoryParams.Grammar);
             userQuery = $"{userQuery} | Respond only using the following JSON format: \n{jsonGrammar}\n. Do not add explanations, code tags, or any extra content.";
         }
@@ -369,8 +369,9 @@ public abstract class OpenAiCompatibleService(
             var content = msg.OriginalMessage != null ? BuildMessageContent(msg.OriginalMessage, imageType) : msg.Content;            
             if (chat.InterferenceParams.Grammar != null && msg.Role == "user")
             {
-                var jsonGrammarConverter = new GBNFToJsonConverter();
-                var jsonGrammar = jsonGrammarConverter.ConvertToJson(chat.InterferenceParams.Grammar);
+                var jsonGrammarConverter = new GrammarToJsonConverter();
+                string jsonGrammar = jsonGrammarConverter.ConvertToJson(chat.InterferenceParams.Grammar);
+                
                 var grammarInstruction = $" | Respond only using the following JSON format: \n{jsonGrammar}\n. Do not add explanations, code tags, or any extra content.";
             
                 if (content is string textContent)

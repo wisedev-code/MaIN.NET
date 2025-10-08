@@ -1,5 +1,3 @@
-using MaIN.Domain.Models;
-
 namespace MaIN.Infrastructure.Models;
 
 public class MessageDocument

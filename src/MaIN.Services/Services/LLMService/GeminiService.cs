@@ -82,7 +82,7 @@ public sealed class GeminiService(
         var userQuery = chat.Messages.Last().Content;
         if (chat.MemoryParams.Grammar != null)
         {
-            var jsonGrammarConverter = new GBNFToJsonConverter();
+            var jsonGrammarConverter = new GrammarToJsonConverter();
             var jsonGrammar = jsonGrammarConverter.ConvertToJson(chat.MemoryParams.Grammar);
             userQuery =
                 $"{userQuery} | For your next response only, please respond using exactly the following JSON format: \n{jsonGrammar}\n. Do not include any explanations, code blocks, or additional content. After this single JSON response, resume your normal conversational style.";

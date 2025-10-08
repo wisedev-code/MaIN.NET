@@ -1,7 +1,7 @@
 using System.Text.Json;
 using MaIN.Core.Hub;
 
-namespace Examples;
+namespace Examples.Chat;
 
 public class ChatFromExistingExample : IExample
 {

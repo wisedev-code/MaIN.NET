@@ -1,17 +1,14 @@
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents.Knowledge;
+using MaIN.Domain.Models;
 using MaIN.Services.Constants;
-using MaIN.Services.Dtos;
-using MaIN.Services.Mappers;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.LLMService;
 using MaIN.Services.Services.LLMService.Factory;
 using MaIN.Services.Services.Models;
 using MaIN.Services.Services.Models.Commands;
-using MaIN.Services.Services.Models.Utils;
 using MaIN.Services.Utils;
 
 namespace MaIN.Services.Services.Steps.Commands;
@@ -68,7 +65,7 @@ public class AnswerCommandHandler(
         var indexAsKnowledge = knowledge?.Index.Items.ToDictionary(x => x.Name, x => x.Tags);
         var index = JsonSerializer.Serialize(indexAsKnowledge, JsonOptions);
 
-        chat.InterferenceParams.Grammar = ServiceConstants.Grammars.DecisionGrammar;
+        chat.InterferenceParams.Grammar = new Grammar(ServiceConstants.Grammars.DecisionGrammar, GrammarFormat.GBNF);
         chat.Messages.Last().Content =
             $"""
              KNOWLEDGE:
@@ -100,7 +97,7 @@ public class AnswerCommandHandler(
         var indexAsKnowledge = knowledge?.Index.Items.ToDictionary(x => x.Name, x => x.Tags);
         var index = JsonSerializer.Serialize(indexAsKnowledge, JsonOptions);
 
-        chat.InterferenceParams.Grammar = ServiceConstants.Grammars.KnowledgeGrammar;
+        chat.InterferenceParams.Grammar = new Grammar(ServiceConstants.Grammars.KnowledgeGrammar, GrammarFormat.GBNF);
         chat.Messages.Last().Content =
             $"""
              KNOWLEDGE:

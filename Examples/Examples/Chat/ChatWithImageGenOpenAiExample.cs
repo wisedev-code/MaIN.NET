@@ -1,8 +1,7 @@
 using Examples.Utils;
 using MaIN.Core.Hub;
-using MaIN.Domain.Models;
 
-namespace Examples;
+namespace Examples.Chat;
 
 public class ChatWithImageGenOpenAiExample : IExample
 {
