@@ -28,7 +28,7 @@ public static class KernelMemoryLlamaExtensions
             AntiPrompts = ["INFO", "<|im_end|>", "Question:", "Answer:", "INFO NOT FOUND"],
             SamplingPipeline = new DefaultSamplingPipeline()
             {
-                Grammar = memoryParams.Grammar != null ? new Grammar(memoryParams.Grammar, "root") : null
+                Grammar = memoryParams.Grammar != null ? new Grammar(memoryParams.Grammar.Value, "root") : null
             }
         };
         textGen = new LlamaSharpTextGen(

@@ -1,6 +1,7 @@
 ﻿using Examples;
 using Examples.Agents;
 using Examples.Agents.Flows;
+using Examples.Chat;
 using Examples.Mcp;
 using MaIN.Core;
 using Microsoft.Extensions.Configuration;
@@ -68,6 +69,7 @@ static void RegisterExamples(IServiceCollection services)
     services.AddTransient<AgentWithWebDataSourceOpenAiExample>();
     services.AddTransient<ChatWithImageGenOpenAiExample>();
     services.AddTransient<ChatExampleGemini>();
+    services.AddTransient<ChatGrammarExampleGemini>();
     services.AddTransient<ChatWithImageGenGeminiExample>();
     services.AddTransient<ChatWithFilesExampleGemini>();
     services.AddTransient<ChatWithReasoningDeepSeekExample>();
@@ -160,6 +162,7 @@ public class ExampleRegistry(IServiceProvider serviceProvider)
             ("\u25a0 OpenAi Chat with image", serviceProvider.GetRequiredService<ChatWithImageGenOpenAiExample>()),
             ("\u25a0 OpenAi Agent with Web Data Source", serviceProvider.GetRequiredService<AgentWithWebDataSourceOpenAiExample>()),
             ("\u25a0 Gemini Chat", serviceProvider.GetRequiredService<ChatExampleGemini>()),
+            ("\u25a0 Gemini Chat with grammar", serviceProvider.GetRequiredService<ChatGrammarExampleGemini>()),
             ("\u25a0 Gemini Chat with image", serviceProvider.GetRequiredService<ChatWithImageGenGeminiExample>()),
             ("\u25a0 Gemini Chat with files", serviceProvider.GetRequiredService<ChatWithFilesExampleGemini>()),
             ("\u25a0 DeepSeek Chat with reasoning", serviceProvider.GetRequiredService<ChatWithReasoningDeepSeekExample>()),

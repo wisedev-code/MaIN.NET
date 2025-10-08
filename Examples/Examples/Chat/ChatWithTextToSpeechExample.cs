@@ -2,7 +2,7 @@
 using MaIN.Domain.Entities;
 using MaIN.Services.Services.TTSService;
 
-namespace Examples;
+namespace Examples.Chat;
 
 public class ChatWithTextToSpeechExample : IExample
 {
