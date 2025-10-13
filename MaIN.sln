@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36429.23 d17.14
+VisualStudioVersion = 17.14.36429.23
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MaIN", "src\MaIN\MaIN.csproj", "{7E8DD6E0-F9A8-4BD0-8733-49F0F2F4FCA0}"
 EndProject
@@ -28,8 +28,6 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MaIN.InferPage", "src\MaIN.InferPage\MaIN.InferPage.csproj", "{B691188A-1170-489D-8729-A13108C12C57}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MaIN.Core.IntegrationTests", "MaIN.Core.IntegrationTests\MaIN.Core.IntegrationTests.csproj", "{2C15062A-E9F6-47FC-A4CD-1190A49E3FE3}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MaIN.ImageGen", "ImageGen\MaIN.ImageGen\MaIN.ImageGen.csproj", "{2345FAF2-6462-465B-8D80-7BD2819D66CF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -81,10 +79,6 @@ Global
 		{2C15062A-E9F6-47FC-A4CD-1190A49E3FE3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2C15062A-E9F6-47FC-A4CD-1190A49E3FE3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2C15062A-E9F6-47FC-A4CD-1190A49E3FE3}.Release|Any CPU.Build.0 = Release|Any CPU
-		{2345FAF2-6462-465B-8D80-7BD2819D66CF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{2345FAF2-6462-465B-8D80-7BD2819D66CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{2345FAF2-6462-465B-8D80-7BD2819D66CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{2345FAF2-6462-465B-8D80-7BD2819D66CF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
