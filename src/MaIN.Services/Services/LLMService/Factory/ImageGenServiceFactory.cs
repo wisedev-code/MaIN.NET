@@ -20,7 +20,8 @@ public class ImageGenServiceFactory(IServiceProvider serviceProvider) : IImageGe
             BackendType.Anthropic => null,
             BackendType.Self => new ImageGenService(serviceProvider.GetRequiredService<IHttpClientFactory>(),
                 serviceProvider.GetRequiredService<MaINSettings>()),
-            
+            BackendType.ONNX => new ImageGenONNXService(serviceProvider.GetRequiredService<MaINSettings>()),
+
             // Add other backends as needed
             _ => throw new NotSupportedException("Not support image generation."),
         };

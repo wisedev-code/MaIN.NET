@@ -59,7 +59,7 @@ public class ChatService(
     }
 
     var result = chat.Visual 
-        ? await imageGenServiceFactory.CreateService(chat.Backend.Value)!.Send(chat) 
+        ? await imageGenServiceFactory.CreateService(BackendType.ONNX)!.Send(chat) 
         : await llmServiceFactory.CreateService(chat.Backend.Value).Send(chat, new ChatRequestOptions()
         {
             InteractiveUpdates = interactiveUpdates,
