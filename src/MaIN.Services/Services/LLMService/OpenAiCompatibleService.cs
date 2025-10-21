@@ -11,6 +11,7 @@ using System.Net.Http.Headers;
 using System.Net.Mime;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using MaIN.Domain.Entities;
 using MaIN.Services.Services.LLMService.Memory;
 using LLama.Common;
@@ -36,11 +37,16 @@ public abstract class OpenAiCompatibleService(
     private static readonly JsonSerializerOptions DefaultJsonSerializerOptions =
         new() { PropertyNameCaseInsensitive = true };
 
+    private const string ToolCallsProperty = "ToolCalls";
+    private const string ToolCallIdProperty = "ToolCallId";
+    private const string ToolNameProperty = "ToolName";
+
     protected abstract string GetApiKey();
     protected abstract void ValidateApiKey();
     protected virtual string HttpClientName => ServiceConstants.HttpClients.OpenAiClient;
     protected virtual string ChatCompletionsUrl => ServiceConstants.ApiUrls.OpenAiChatCompletions;
     protected virtual string ModelsUrl => ServiceConstants.ApiUrls.OpenAiModels;
+    protected virtual int MaxToolIterations => 5;
 
     public async Task<ChatResult?> Send(
         Chat chat,
@@ -63,30 +69,44 @@ public abstract class OpenAiCompatibleService(
             var result = ChatHelper.ExtractMemoryOptions(lastMessage);
             var memoryResult = await AskMemory(chat, result, cancellationToken);
             resultBuilder.Append(memoryResult!.Message.Content);
+            lastMessage.MarkProcessed();
+            UpdateSessionCache(chat.Id, resultBuilder.ToString(), options.CreateSession);
+            return CreateChatResult(chat, resultBuilder.ToString(), tokens);
+        }
+
+        // Handle tool execution loop
+        if (chat.ToolsConfiguration?.Tools != null && chat.ToolsConfiguration.Tools.Any())
+        {
+            return await ProcessWithToolsAsync(
+                chat,
+                conversation,
+                apiKey,
+                tokens,
+                options,
+                cancellationToken);
+        }
+
+        // Regular non-tool flow
+        if (options.InteractiveUpdates || options.TokenCallback != null)
+        {
+            await ProcessStreamingChatAsync(
+                chat,
+                conversation,
+                apiKey,
+                tokens,
+                resultBuilder,
+                options,
+                cancellationToken);
         }
         else
         {
-            if (options.InteractiveUpdates || options.TokenCallback != null)
-            {
-                await ProcessStreamingChatAsync(
-                    chat,
-                    conversation,
-                    apiKey,
-                    tokens,
-                    resultBuilder,
-                    options,
-                    cancellationToken);
-            }
-            else
-            {
-                await ProcessNonStreamingChatAsync(
-                    chat,
-                    conversation,
-                    apiKey,
-                    resultBuilder,
-                    options,
-                    cancellationToken);
-            }
+            await ProcessNonStreamingChatAsync(
+                chat,
+                conversation,
+                apiKey,
+                resultBuilder,
+                options,
+                cancellationToken);
         }
 
         var finalToken = new LLMTokenValue { Text = resultBuilder.ToString(), Type = TokenType.FullAnswer };
@@ -102,6 +122,279 @@ public abstract class OpenAiCompatibleService(
         lastMessage.MarkProcessed();
         UpdateSessionCache(chat.Id, resultBuilder.ToString(), options.CreateSession);
         return CreateChatResult(chat, resultBuilder.ToString(), tokens);
+    }
+
+    private async Task<ChatResult> ProcessWithToolsAsync(
+        Chat chat,
+        List<ChatMessage> conversation,
+        string apiKey,
+        List<LLMTokenValue> tokens,
+        ChatRequestOptions options,
+        CancellationToken cancellationToken)
+    {
+        StringBuilder resultBuilder = new();
+        int iterations = 0;
+
+        while (iterations < MaxToolIterations)
+        {
+            List<ToolCall>? currentToolCalls = null;
+            if (options.InteractiveUpdates || options.TokenCallback != null)
+            {
+                currentToolCalls = await ProcessStreamingChatWithToolsAsync(
+                    chat,
+                    conversation,
+                    apiKey,
+                    tokens,
+                    resultBuilder,
+                    options,
+                    cancellationToken);
+            }
+            else
+            {
+                currentToolCalls = await ProcessNonStreamingChatWithToolsAsync(
+                    chat,
+                    conversation,
+                    apiKey,
+                    resultBuilder,
+                    options,
+                    cancellationToken);
+            }
+
+            if (currentToolCalls == null || !currentToolCalls.Any())
+            {
+                break;
+            }
+
+            conversation.Add(new ChatMessage(ServiceConstants.Roles.Assistant, resultBuilder.ToString())
+            {
+                ToolCalls = currentToolCalls
+            });
+
+            foreach (var toolCall in currentToolCalls)
+            {
+                var executor = chat.ToolsConfiguration?.GetExecutor(toolCall.Function.Name);
+
+                if (executor == null)
+                {
+                    var errorMessage = $"No executor found for tool: {toolCall.Function.Name}";
+                    logger?.LogError(errorMessage);
+                    throw new InvalidOperationException(errorMessage);
+                }
+
+                try
+                {
+                    var toolResult = await executor(toolCall.Function.Arguments);
+
+                    var toolMessage = new ChatMessage(ServiceConstants.Roles.Tool, toolResult)
+                    {
+                        ToolCallId = toolCall.Id,
+                        Name = toolCall.Function.Name
+                    };
+                    conversation.Add(toolMessage);
+
+                    var persistedMessage = new Message
+                    {
+                        Role = ServiceConstants.Roles.Tool,
+                        Content = toolResult,
+                        Type = MessageType.CloudLLM,
+                        Time = DateTime.UtcNow,
+                        Tool = true
+                    };
+                    persistedMessage.Properties[ToolCallIdProperty] = toolCall.Id;
+                    persistedMessage.Properties[ToolNameProperty] = toolCall.Function.Name;
+                    chat.Messages.Add(persistedMessage);
+                }
+                catch (Exception ex)
+                {
+                    logger?.LogError(ex, "Error executing tool {ToolName}", toolCall.Function.Name);
+                    
+                    var errorResult = JsonSerializer.Serialize(new { error = ex.Message });
+                    var toolMessage = new ChatMessage(ServiceConstants.Roles.Tool, errorResult)
+                    {
+                        ToolCallId = toolCall.Id,
+                        Name = toolCall.Function.Name
+                    };
+                    conversation.Add(toolMessage);
+                }
+            }
+
+            resultBuilder.Clear();
+            iterations++;
+        }
+
+        if (iterations >= MaxToolIterations)
+        {
+            logger?.LogWarning("Maximum tool iterations ({MaxIterations}) reached for chat {ChatId}", 
+                MaxToolIterations, chat.Id);
+        }
+
+        var finalToken = new LLMTokenValue { Text = resultBuilder.ToString(), Type = TokenType.FullAnswer };
+        tokens.Add(finalToken);
+
+        if (options.InteractiveUpdates)
+        {
+            await _notificationService.DispatchNotification(
+                NotificationMessageBuilder.CreateChatCompletion(chat.Id, finalToken, true),
+                ServiceConstants.Notifications.ReceiveMessageUpdate);
+        }
+
+        chat.Messages.Last().MarkProcessed();
+        UpdateSessionCache(chat.Id, resultBuilder.ToString(), options.CreateSession);
+        return CreateChatResult(chat, resultBuilder.ToString(), tokens);
+    }
+
+    private async Task<List<ToolCall>?> ProcessStreamingChatWithToolsAsync(
+        Chat chat,
+        List<ChatMessage> conversation,
+        string apiKey,
+        List<LLMTokenValue> tokens,
+        StringBuilder resultBuilder,
+        ChatRequestOptions options,
+        CancellationToken cancellationToken)
+    {
+        var client = _httpClientFactory.CreateClient(HttpClientName);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+
+        var requestBody = BuildRequestBody(chat, conversation, true);
+
+        var requestJson = JsonSerializer.Serialize(requestBody);
+        var content = new StringContent(requestJson, Encoding.UTF8, MediaTypeNames.Application.Json);
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, ChatCompletionsUrl)
+        {
+            Content = content
+        };
+
+        using var response = await client.SendAsync(
+            request,
+            HttpCompletionOption.ResponseHeadersRead,
+            cancellationToken);
+        
+        response.EnsureSuccessStatusCode();
+
+        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        using var reader = new StreamReader(stream);
+
+        var toolCallsBuilder = new Dictionary<int, ToolCallBuilder>();
+
+        while (!reader.EndOfStream)
+        {
+            var line = await reader.ReadLineAsync(cancellationToken);
+            if (string.IsNullOrWhiteSpace(line))
+                continue;
+
+            if (line.StartsWith("data: "))
+            {
+                var data = line.Substring("data: ".Length).Trim();
+                if (data == "[DONE]")
+                    break;
+
+                try
+                {
+                    var chunk = JsonSerializer.Deserialize<ChatCompletionChunk>(data,
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                    var choice = chunk?.Choices?.FirstOrDefault();
+                    if (choice?.Delta != null)
+                    {
+                        // Handle content
+                        if (!string.IsNullOrEmpty(choice.Delta.Content))
+                        {
+                            var token = new LLMTokenValue
+                            {
+                                Text = choice.Delta.Content,
+                                Type = TokenType.Message
+                            };
+                            tokens.Add(token);
+                            resultBuilder.Append(choice.Delta.Content);
+
+                            await InvokeTokenCallbackAsync(options.TokenCallback, token);
+
+                            if (options.InteractiveUpdates)
+                            {
+                                await _notificationService.DispatchNotification(
+                                    NotificationMessageBuilder.CreateChatCompletion(chat.Id, token, false),
+                                    ServiceConstants.Notifications.ReceiveMessageUpdate);
+                            }
+                        }
+
+                        // Handle tool calls (streaming)
+                        if (choice.Delta.ToolCalls != null)
+                        {
+                            foreach (var toolCallChunk in choice.Delta.ToolCalls)
+                            {
+                                if (!toolCallsBuilder.ContainsKey(toolCallChunk.Index))
+                                {
+                                    toolCallsBuilder[toolCallChunk.Index] = new ToolCallBuilder();
+                                }
+
+                                var builder = toolCallsBuilder[toolCallChunk.Index];
+
+                                if (!string.IsNullOrEmpty(toolCallChunk.Id))
+                                    builder.Id = toolCallChunk.Id;
+
+                                if (!string.IsNullOrEmpty(toolCallChunk.Type))
+                                    builder.Type = toolCallChunk.Type;
+
+                                if (toolCallChunk.Function != null)
+                                {
+                                    if (!string.IsNullOrEmpty(toolCallChunk.Function.Name))
+                                        builder.FunctionName = toolCallChunk.Function.Name;
+
+                                    if (!string.IsNullOrEmpty(toolCallChunk.Function.Arguments))
+                                        builder.FunctionArguments.Append(toolCallChunk.Function.Arguments);
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (JsonException ex)
+                {
+                    logger?.LogError(ex, "Failed to parse chunk: {Data}", data);
+                }
+            }
+        }
+
+        // Build final tool calls from accumulated chunks
+        if (toolCallsBuilder.Any())
+        {
+            return toolCallsBuilder.Values.Select(b => b.Build()).ToList();
+        }
+
+        return null;
+    }
+
+    private async Task<List<ToolCall>?> ProcessNonStreamingChatWithToolsAsync(
+        Chat chat,
+        List<ChatMessage> conversation,
+        string apiKey,
+        StringBuilder resultBuilder,
+        ChatRequestOptions options,
+        CancellationToken cancellationToken)
+    {
+        var client = _httpClientFactory.CreateClient(HttpClientName);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+
+        var requestBody = BuildRequestBody(chat, conversation, false);
+
+        var requestJson = JsonSerializer.Serialize(requestBody);
+        var content = new StringContent(requestJson, Encoding.UTF8, MediaTypeNames.Application.Json);
+
+        using var response = await client.PostAsync(ChatCompletionsUrl, content, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
+        var chatResponse = JsonSerializer.Deserialize<ChatCompletionResponse>(
+            responseJson, DefaultJsonSerializerOptions);
+
+        var message = chatResponse?.Choices?.FirstOrDefault()?.Message;
+
+        if (message?.Content != null)
+        {
+            resultBuilder.Append(message.Content);
+        }
+
+        return message?.ToolCalls;
     }
 
     public virtual async Task<ChatResult?> AskMemory(
@@ -267,22 +560,8 @@ public abstract class OpenAiCompatibleService(
         var chunk = JsonSerializer.Deserialize<ChatCompletionChunk>(data,
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-        var choice = chunk?.Choices?.FirstOrDefault();
-        if (choice == null) return null;
+        var value = chunk?.Choices?.FirstOrDefault()?.Delta?.Content;
 
-        var delta = choice.Delta;
-        
-        // Handle tool calls in streaming
-        if (delta?.ToolCalls != null && delta.ToolCalls.Any())
-        {
-            return new LLMTokenValue 
-            { 
-                Text = JsonSerializer.Serialize(delta.ToolCalls), 
-                Type = TokenType.ToolCall 
-            };
-        }
-
-        var value = delta?.Content;
         return string.IsNullOrEmpty(value)
             ? null
             : new LLMTokenValue { Text = value, Type = TokenType.Message };
@@ -327,13 +606,23 @@ public abstract class OpenAiCompatibleService(
             ["stream"] = stream
         };
 
-        if (chat.Tools != null && chat.Tools.Any())
+        if (chat.ToolsConfiguration?.Tools != null && chat.ToolsConfiguration.Tools.Any())
         {
-            requestBody["tools"] = chat.Tools;
-            
-            if (!string.IsNullOrEmpty(chat.ToolChoice))
+            // Only send tool definitions (not the Execute functions)
+            requestBody["tools"] = chat.ToolsConfiguration.Tools.Select(t => new
             {
-                requestBody["tool_choice"] = chat.ToolChoice;
+                type = t.Type,
+                function = new
+                {
+                    name = t.Function.Name,
+                    description = t.Function.Description,
+                    parameters = t.Function.Parameters
+                }
+            }).ToList();
+            
+            if (!string.IsNullOrEmpty(chat.ToolsConfiguration.ToolChoice))
+            {
+                requestBody["tool_choice"] = chat.ToolsConfiguration.ToolChoice;
             }
         }
 
@@ -362,7 +651,26 @@ public abstract class OpenAiCompatibleService(
             {
                 if (!existing.Contains((role, msg.Content)))
                 {
-                    conversation.Add(new ChatMessage(role, msg.Content));
+                    var chatMessage = new ChatMessage(role, msg.Content);
+                    
+                    // Extract tool-related data from Properties
+                    if (msg.Tool && msg.Properties.ContainsKey(ToolCallsProperty))
+                    {
+                        var toolCallsJson = msg.Properties[ToolCallsProperty];
+                        chatMessage.ToolCalls = JsonSerializer.Deserialize<List<ToolCall>>(toolCallsJson);
+                    }
+                    
+                    if (msg.Properties.ContainsKey(ToolCallIdProperty))
+                    {
+                        chatMessage.ToolCallId = msg.Properties[ToolCallIdProperty];
+                    }
+                    
+                    if (msg.Properties.ContainsKey(ToolNameProperty))
+                    {
+                        chatMessage.Name = msg.Properties[ToolNameProperty];
+                    }
+                    
+                    conversation.Add(chatMessage);
                     existing.Add((role, msg.Content));
                 }
             }
@@ -415,7 +723,7 @@ public abstract class OpenAiCompatibleService(
             var messageObj = new Dictionary<string, object>
             {
                 ["role"] = msg.Role,
-                ["content"] = content
+                ["content"] = content ?? string.Empty
             };
 
             // Add tool calls if present (for assistant messages)
@@ -428,6 +736,12 @@ public abstract class OpenAiCompatibleService(
             if (!string.IsNullOrEmpty(msg.ToolCallId))
             {
                 messageObj["tool_call_id"] = msg.ToolCallId;
+                
+                // Tool messages also need the function name
+                if (!string.IsNullOrEmpty(msg.Name))
+                {
+                    messageObj["name"] = msg.Name;
+                }
             }
 
             messages.Add(messageObj);
@@ -532,11 +846,25 @@ public abstract class OpenAiCompatibleService(
     }
 }
 
-// Tool definition classes
+// Tool configuration class
+public class ToolsConfiguration
+{
+    public List<ToolDefinition>? Tools { get; set; }
+    public string? ToolChoice { get; set; }
+    
+    public Func<string, Task<string>>? GetExecutor(string functionName)
+    {
+        return Tools?.FirstOrDefault(t => t.Function.Name == functionName)?.Execute;
+    }
+}
+
 public class ToolDefinition
 {
     public string Type { get; set; } = "function";
     public FunctionDefinition Function { get; set; } = null!;
+    
+    [System.Text.Json.Serialization.JsonIgnore]
+    public Func<string, Task<string>>? Execute { get; set; }
 }
 
 public class FunctionDefinition
@@ -548,14 +876,19 @@ public class FunctionDefinition
 
 public class ToolCall
 {
+    [JsonPropertyName("id")]
     public string Id { get; set; } = null!;
+    [JsonPropertyName("type")]
     public string Type { get; set; } = "function";
+    [JsonPropertyName("function")]
     public FunctionCall Function { get; set; } = null!;
 }
 
 public class FunctionCall
 {
+    [JsonPropertyName("name")]
     public string Name { get; set; } = null!;
+    [JsonPropertyName("arguments")]
     public string Arguments { get; set; } = null!;
 }
 
@@ -566,11 +899,35 @@ internal class ChatMessage
     public Message? OriginalMessage { get; set; }
     public List<ToolCall>? ToolCalls { get; set; }
     public string? ToolCallId { get; set; }
+    public string? Name { get; set; }
 
     public ChatMessage(string role, object content)
     {
         Role = role;
         Content = content;
+    }
+}
+
+// Helper class for building tool calls from streaming chunks
+internal class ToolCallBuilder
+{
+    public string Id { get; set; } = string.Empty;
+    public string Type { get; set; } = "function";
+    public string FunctionName { get; set; } = string.Empty;
+    public StringBuilder FunctionArguments { get; set; } = new();
+
+    public ToolCall Build()
+    {
+        return new ToolCall
+        {
+            Id = Id,
+            Type = Type,
+            Function = new FunctionCall
+            {
+                Name = FunctionName,
+                Arguments = FunctionArguments.ToString()
+            }
+        };
     }
 }
 
@@ -609,7 +966,23 @@ file class ChoiceChunk
 file class Delta
 {
     public string? Content { get; set; }
-    public List<ToolCall>? ToolCalls { get; set; }
+    
+    [JsonPropertyName("tool_calls")]
+    public List<ToolCallChunk>? ToolCalls { get; set; }
+}
+
+file class ToolCallChunk
+{
+    public int Index { get; set; }
+    public string? Id { get; set; }
+    public string? Type { get; set; }
+    public FunctionCallChunk? Function { get; set; }
+}
+
+file class FunctionCallChunk
+{
+    public string? Name { get; set; }
+    public string? Arguments { get; set; }
 }
 
 file class OpenAiModelsResponse

@@ -1,4 +1,4 @@
-﻿namespace MaIN.Services.Services.LLMService.Tools;
+﻿namespace MaIN.Domain.Entities.Tools;
 
 public class FunctionCall
 {
