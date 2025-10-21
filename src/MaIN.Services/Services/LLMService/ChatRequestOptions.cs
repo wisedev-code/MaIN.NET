@@ -1,5 +1,5 @@
-﻿using MaIN.Domain.Models;
-using MaIN.Services.Services.LLMService.Tools;
+﻿using MaIN.Domain.Entities.Tools;
+using MaIN.Domain.Models;
 
 namespace MaIN.Services.Services.LLMService;
 

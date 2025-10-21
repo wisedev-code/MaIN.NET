@@ -11,6 +11,7 @@ using System.Text;
 using LLama.Common;
 using MaIN.Domain.Configuration;
 using MaIN.Services.Services.LLMService.Utils;
+using MaIN.Services.Services.LLMService;
 
 namespace MaIN.Services.Services.LLMService;
 
@@ -27,6 +28,11 @@ public sealed class AnthropicService(
 
     private const string CompletionsUrl = ServiceConstants.ApiUrls.AnthropicChatMessages;
     private const string ModelsUrl = ServiceConstants.ApiUrls.AnthropicModels;
+    private const int MaxToolIterations = 5;
+    
+    private const string ToolCallsProperty = "ToolCalls";
+    private const string ToolCallIdProperty = "ToolCallId";
+    private const string ToolNameProperty = "ToolName";
 
     private HttpClient CreateAnthropicHttpClient()
     {
@@ -70,30 +76,44 @@ public sealed class AnthropicService(
             var result = ChatHelper.ExtractMemoryOptions(lastMessage);
             var memoryResult = await AskMemory(chat, result, cancellationToken);
             resultBuilder.Append(memoryResult!.Message.Content);
+            lastMessage.MarkProcessed();
+            UpdateSessionCache(chat.Id, resultBuilder.ToString(), options.CreateSession);
+            return CreateChatResult(chat, resultBuilder.ToString(), tokens);
+        }
+
+        // Handle tool execution loop
+        if (chat.ToolsConfiguration?.Tools != null && chat.ToolsConfiguration.Tools.Any())
+        {
+            return await ProcessWithToolsAsync(
+                chat,
+                conversation,
+                apiKey,
+                tokens,
+                options,
+                cancellationToken);
+        }
+
+        // Regular non-tool flow
+        if (options.InteractiveUpdates || options.TokenCallback != null)
+        {
+            await ProcessStreamingChatAsync(
+                chat,
+                conversation,
+                apiKey,
+                tokens,
+                resultBuilder,
+                options.TokenCallback,
+                options.InteractiveUpdates,
+                cancellationToken);
         }
         else
         {
-            if (options.InteractiveUpdates || options.TokenCallback != null)
-            {
-                await ProcessStreamingChatAsync(
-                    chat,
-                    conversation,
-                    apiKey,
-                    tokens,
-                    resultBuilder,
-                    options.TokenCallback,
-                    options.InteractiveUpdates,
-                    cancellationToken);
-            }
-            else
-            {
-                await ProcessNonStreamingChatAsync(
-                    chat,
-                    conversation,
-                    apiKey,
-                    resultBuilder,
-                    cancellationToken);
-            }
+            await ProcessNonStreamingChatAsync(
+                chat,
+                conversation,
+                apiKey,
+                resultBuilder,
+                cancellationToken);
         }
 
         var finalToken = new LLMTokenValue { Text = resultBuilder.ToString(), Type = TokenType.FullAnswer };
@@ -108,9 +128,348 @@ public sealed class AnthropicService(
 
         lastMessage.MarkProcessed();
         UpdateSessionCache(chat.Id, resultBuilder.ToString(), options.CreateSession);
-        chat.Messages.Last().MarkProcessed();
 
         return CreateChatResult(chat, resultBuilder.ToString(), tokens);
+    }
+
+    private async Task<ChatResult> ProcessWithToolsAsync(
+        Chat chat,
+        List<ChatMessage> conversation,
+        string apiKey,
+        List<LLMTokenValue> tokens,
+        ChatRequestOptions options,
+        CancellationToken cancellationToken)
+    {
+        StringBuilder resultBuilder = new();
+        int iterations = 0;
+        List<AnthropicToolUse>? currentToolUses = null;
+
+        while (iterations < MaxToolIterations)
+        {
+            currentToolUses = null;
+
+            if (options.InteractiveUpdates || options.TokenCallback != null)
+            {
+                currentToolUses = await ProcessStreamingChatWithToolsAsync(
+                    chat,
+                    conversation,
+                    apiKey,
+                    tokens,
+                    resultBuilder,
+                    options,
+                    cancellationToken);
+            }
+            else
+            {
+                currentToolUses = await ProcessNonStreamingChatWithToolsAsync(
+                    chat,
+                    conversation,
+                    apiKey,
+                    resultBuilder,
+                    cancellationToken);
+            }
+
+            // No tool uses means we're done
+            if (currentToolUses == null || !currentToolUses.Any())
+            {
+                break;
+            }
+
+            // Add assistant message with tool uses to conversation
+            var assistantContent = new List<object>();
+            if (!string.IsNullOrEmpty(resultBuilder.ToString()))
+            {
+                assistantContent.Add(new { type = "text", text = resultBuilder.ToString() });
+            }
+            assistantContent.AddRange(currentToolUses.Select(tu => new
+            {
+                type = "tool_use",
+                id = tu.Id,
+                name = tu.Name,
+                input = tu.Input
+            }));
+
+            conversation.Add(new ChatMessage(ServiceConstants.Roles.Assistant, assistantContent));
+
+            // Execute tools and add responses to conversation
+            var toolResults = new List<object>();
+            foreach (var toolUse in currentToolUses)
+            {
+                var executor = chat.ToolsConfiguration?.GetExecutor(toolUse.Name);
+
+                if (executor == null)
+                {
+                    var errorMessage = $"No executor found for tool: {toolUse.Name}";
+                    logger?.LogError(errorMessage);
+                    throw new InvalidOperationException(errorMessage);
+                }
+
+                try
+                {
+                    // Convert input object to JSON string for executor
+                    var inputJson = JsonSerializer.Serialize(toolUse.Input);
+                    var toolResult = await executor(inputJson);
+
+                    toolResults.Add(new
+                    {
+                        type = "tool_result",
+                        tool_use_id = toolUse.Id,
+                        content = toolResult
+                    });
+
+                    // Also add to chat messages for persistence
+                    var persistedMessage = new Message
+                    {
+                        Role = ServiceConstants.Roles.Tool,
+                        Content = toolResult,
+                        Type = MessageType.CloudLLM,
+                        Time = DateTime.UtcNow,
+                        Tool = true
+                    };
+                    persistedMessage.Properties[ToolCallIdProperty] = toolUse.Id;
+                    persistedMessage.Properties[ToolNameProperty] = toolUse.Name;
+                    chat.Messages.Add(persistedMessage);
+                }
+                catch (Exception ex)
+                {
+                    logger?.LogError(ex, "Error executing tool {ToolName}", toolUse.Name);
+
+                    var errorResult = JsonSerializer.Serialize(new { error = ex.Message });
+                    toolResults.Add(new
+                    {
+                        type = "tool_result",
+                        tool_use_id = toolUse.Id,
+                        content = errorResult,
+                        is_error = true
+                    });
+                }
+            }
+
+            // Add tool results as a user message
+            conversation.Add(new ChatMessage(ServiceConstants.Roles.User, toolResults));
+
+            // Clear result builder for next iteration
+            resultBuilder.Clear();
+            iterations++;
+        }
+
+        if (iterations >= MaxToolIterations)
+        {
+            logger?.LogWarning("Maximum tool iterations ({MaxIterations}) reached for chat {ChatId}",
+                MaxToolIterations, chat.Id);
+        }
+
+        var finalToken = new LLMTokenValue { Text = resultBuilder.ToString(), Type = TokenType.FullAnswer };
+        tokens.Add(finalToken);
+
+        if (options.InteractiveUpdates)
+        {
+            await notificationService.DispatchNotification(
+                NotificationMessageBuilder.CreateChatCompletion(chat.Id, finalToken, true),
+                ServiceConstants.Notifications.ReceiveMessageUpdate);
+        }
+
+        chat.Messages.Last().MarkProcessed();
+        UpdateSessionCache(chat.Id, resultBuilder.ToString(), options.CreateSession);
+        return CreateChatResult(chat, resultBuilder.ToString(), tokens);
+    }
+
+    private async Task<List<AnthropicToolUse>?> ProcessStreamingChatWithToolsAsync(
+        Chat chat,
+        List<ChatMessage> conversation,
+        string apiKey,
+        List<LLMTokenValue> tokens,
+        StringBuilder resultBuilder,
+        ChatRequestOptions options,
+        CancellationToken cancellationToken)
+    {
+        var httpClient = CreateAnthropicHttpClient();
+
+        var requestBody = BuildAnthropicRequestBody(chat, conversation, true);
+        var requestJson = JsonSerializer.Serialize(requestBody);
+        var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, CompletionsUrl)
+        {
+            Content = content
+        };
+
+        using var response = await httpClient.SendAsync(
+            request,
+            HttpCompletionOption.ResponseHeadersRead,
+            cancellationToken);
+
+        response.EnsureSuccessStatusCode();
+
+        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        using var reader = new StreamReader(stream);
+
+        var toolUseBuilders = new Dictionary<int, AnthropicToolUseBuilder>();
+        int currentIndex = -1;
+
+        while (!reader.EndOfStream)
+        {
+            var line = await reader.ReadLineAsync(cancellationToken);
+            if (string.IsNullOrWhiteSpace(line))
+                continue;
+
+            if (line.StartsWith("data: "))
+            {
+                var data = line["data: ".Length..].Trim();
+                if (data == "[DONE]")
+                    break;
+
+                try
+                {
+                    var chunk = JsonSerializer.Deserialize<AnthropicStreamChunk>(data,
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                    if (chunk?.Type == "content_block_start")
+                    {
+                        currentIndex = chunk.Index;
+                        if (chunk.ContentBlock?.Type == "tool_use")
+                        {
+                            toolUseBuilders[currentIndex] = new AnthropicToolUseBuilder
+                            {
+                                Id = chunk.ContentBlock.Id,
+                                Name = chunk.ContentBlock.Name
+                            };
+                        }
+                    }
+                    else if (chunk?.Type == "content_block_delta")
+                    {
+                        if (chunk.Delta?.Type == "text_delta" && !string.IsNullOrEmpty(chunk.Delta.Text))
+                        {
+                            var token = new LLMTokenValue
+                            {
+                                Text = chunk.Delta.Text,
+                                Type = TokenType.Message
+                            };
+                            tokens.Add(token);
+                            resultBuilder.Append(chunk.Delta.Text);
+
+                            if (options.TokenCallback != null)
+                                await options.TokenCallback(token);
+
+                            if (options.InteractiveUpdates)
+                            {
+                                await notificationService.DispatchNotification(
+                                    NotificationMessageBuilder.CreateChatCompletion(chat.Id, token, false),
+                                    ServiceConstants.Notifications.ReceiveMessageUpdate);
+                            }
+                        }
+                        else if (chunk.Delta?.Type == "input_json_delta" && currentIndex >= 0 &&
+                                 toolUseBuilders.ContainsKey(currentIndex))
+                        {
+                            toolUseBuilders[currentIndex].InputJson.Append(chunk.Delta.PartialJson);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger?.LogError(ex, "Failed to parse Anthropic chunk: {Chunk}", data);
+                }
+            }
+        }
+
+        if (toolUseBuilders.Any())
+        {
+            return toolUseBuilders.Values.Select(b => b.Build()).ToList();
+        }
+
+        return null;
+    }
+
+    private async Task<List<AnthropicToolUse>?> ProcessNonStreamingChatWithToolsAsync(
+        Chat chat,
+        List<ChatMessage> conversation,
+        string apiKey,
+        StringBuilder resultBuilder,
+        CancellationToken cancellationToken)
+    {
+        var httpClient = CreateAnthropicHttpClient();
+
+        var requestBody = BuildAnthropicRequestBody(chat, conversation, false);
+        var requestJson = JsonSerializer.Serialize(requestBody);
+        var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
+
+        using var response = await httpClient.PostAsync(CompletionsUrl, content, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
+        var chatResponse = JsonSerializer.Deserialize<AnthropicMessageResponse>(responseJson,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+        var toolUses = new List<AnthropicToolUse>();
+
+        if (chatResponse?.Content != null)
+        {
+            foreach (var contentBlock in chatResponse.Content)
+            {
+                if (contentBlock.Type == "text" && !string.IsNullOrEmpty(contentBlock.Text))
+                {
+                    resultBuilder.Append(contentBlock.Text);
+                }
+                else if (contentBlock.Type == "tool_use")
+                {
+                    toolUses.Add(new AnthropicToolUse
+                    {
+                        Id = contentBlock.Id!,
+                        Name = contentBlock.Name!,
+                        Input = contentBlock.Input!
+                    });
+                }
+            }
+        }
+
+        return toolUses.Any() ? toolUses : null;
+    }
+
+    private object BuildAnthropicRequestBody(Chat chat, List<ChatMessage> conversation, bool stream)
+    {
+        var requestBody = new Dictionary<string, object>
+        {
+            ["model"] = chat.Model,
+            ["max_tokens"] = chat.InterferenceParams.MaxTokens < 0 ? 4096 : chat.InterferenceParams.MaxTokens,
+            ["stream"] = stream,
+            ["messages"] = BuildAnthropicMessages(conversation)
+        };
+
+        // Add system message if grammar is specified
+        if (chat.InterferenceParams.Grammar is not null)
+        {
+            requestBody["system"] = $"Respond only using the following grammar format: \n{chat.InterferenceParams.Grammar.Value}\n. Do not add explanations, code tags, or any extra content.";
+        }
+
+        // Add tools if configured
+        if (chat.ToolsConfiguration?.Tools != null && chat.ToolsConfiguration.Tools.Any())
+        {
+            requestBody["tools"] = chat.ToolsConfiguration.Tools.Select(t => new
+            {
+                name = t.Function.Name,
+                description = t.Function.Description,
+                input_schema = t.Function.Parameters
+            }).ToList();
+        }
+
+        return requestBody;
+    }
+
+    private List<object> BuildAnthropicMessages(List<ChatMessage> conversation)
+    {
+        var messages = new List<object>();
+
+        foreach (var msg in conversation)
+        {
+            // For Anthropic, content can be text, image, tool_use, or tool_result
+            messages.Add(new
+            {
+                role = msg.Role,
+                content = msg.Content
+            });
+        }
+
+        return messages;
     }
 
 
@@ -154,7 +513,6 @@ public sealed class AnthropicService(
         OpenAiCompatibleService.MergeMessages(conversation, chat.Messages);
         return conversation;
     }
-    
 
     private void UpdateSessionCache(string chatId, string assistantResponse, bool createSession)
     {
@@ -170,14 +528,14 @@ public sealed class AnthropicService(
     }
 
     private async Task ProcessStreamingChatAsync(
-    Chat chat,
-    List<ChatMessage> conversation,
-    string apiKey,
-    List<LLMTokenValue> tokens,
-    StringBuilder resultBuilder,
-    Func<LLMTokenValue, Task>? tokenCallback,
-    bool interactiveUpdates,
-    CancellationToken cancellationToken)
+        Chat chat,
+        List<ChatMessage> conversation,
+        string apiKey,
+        List<LLMTokenValue> tokens,
+        StringBuilder resultBuilder,
+        Func<LLMTokenValue, Task>? tokenCallback,
+        bool interactiveUpdates,
+        CancellationToken cancellationToken)
     {
         var httpClient = CreateAnthropicHttpClient();
 
@@ -188,7 +546,6 @@ public sealed class AnthropicService(
             stream = true,
             system = chat.InterferenceParams.Grammar is not null ? $"Respond only using the following grammar format: \n{chat.InterferenceParams.Grammar.Value}\n. Do not add explanations, code tags, or any extra content." : "",
             messages = await OpenAiCompatibleService.BuildMessagesArray(conversation, chat, ImageType.AsBase64)
-            //todo: Add thinking support
         };
 
         var requestJson = JsonSerializer.Serialize(requestBody);
@@ -254,7 +611,6 @@ public sealed class AnthropicService(
         }
     }
 
-    
     private LLMTokenValue? ProcessAnthropicStreamChunk(string data)
     {
         var chunk = JsonSerializer.Deserialize<AnthropicStreamChunk>(data, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
@@ -315,8 +671,33 @@ public sealed class AnthropicService(
                 Content = content,
                 Tokens = tokens,
                 Role = AuthorRole.Assistant.ToString(),
-                Type = MessageType.LocalLLM
+                Type = MessageType.CloudLLM
             }.MarkProcessed()
+        };
+    }
+}
+
+internal class AnthropicToolUse
+{
+    public string Id { get; set; } = null!;
+    public string Name { get; set; } = null!;
+    public object Input { get; set; } = null!;
+}
+
+internal class AnthropicToolUseBuilder
+{
+    public string Id { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public StringBuilder InputJson { get; set; } = new();
+
+    public AnthropicToolUse Build()
+    {
+        var input = JsonSerializer.Deserialize<object>(InputJson.ToString());
+        return new AnthropicToolUse
+        {
+            Id = Id,
+            Name = Name,
+            Input = input ?? new { }
         };
     }
 }
@@ -329,19 +710,33 @@ file class AnthropicMessageResponse
 file class AnthropicMessageContent
 {
     public string Type { get; set; } = default!;
-    public string Text { get; set; } = default!;
+    public string? Text { get; set; }
+    public string? Id { get; set; }
+    public string? Name { get; set; }
+    public object? Input { get; set; }
 }
 
 file class AnthropicStreamChunk
 {
+    public string? Type { get; set; }
+    public int Index { get; set; }
     public AnthropicDelta? Delta { get; set; }
+    public AnthropicContentBlock? ContentBlock { get; set; }
+}
+
+file class AnthropicContentBlock
+{
+    public string? Type { get; set; }
+    public string? Id { get; set; }
+    public string? Name { get; set; }
 }
 
 file class AnthropicDelta
 {
+    public string? Type { get; set; }
     public string? Text { get; set; }
+    public string? PartialJson { get; set; }
 }
-
 
 file class AnthropicModelListResponse
 {
