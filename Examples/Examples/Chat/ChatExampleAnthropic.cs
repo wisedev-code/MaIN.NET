@@ -1,5 +1,6 @@
 using Examples.Utils;
 using MaIN.Core.Hub;
+using MaIN.Domain.Configuration;
 
 namespace Examples.Chat;
 

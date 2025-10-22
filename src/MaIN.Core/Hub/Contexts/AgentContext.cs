@@ -7,6 +7,7 @@ using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
 using MaIN.Core.Hub.Utils;
 using MaIN.Domain.Entities.Agents.Knowledge;
+using MaIN.Domain.Entities.Tools;
 
 namespace MaIN.Core.Hub.Contexts;
 
@@ -51,7 +52,7 @@ public class AgentContext
         _agent.Id = id;
         return this;
     }
-
+    
     public string GetAgentId() => _agent.Id;
     
     public Agent GetAgent() => _agent;
@@ -187,6 +188,12 @@ public class AgentContext
         return this;
     }
 
+    public AgentContext WithTools(ToolsConfiguration toolsConfiguration)
+    {
+        _agent.ToolsConfiguration = toolsConfiguration;
+        return this;
+    }
+    
     internal void LoadExistingKnowledgeIfExists()
     {
         _knowledge ??= new Knowledge(_agent);

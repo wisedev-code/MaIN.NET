@@ -81,7 +81,6 @@ public sealed class AnthropicService(
             return CreateChatResult(chat, resultBuilder.ToString(), tokens);
         }
 
-        // Handle tool execution loop
         if (chat.ToolsConfiguration?.Tools != null && chat.ToolsConfiguration.Tools.Any())
         {
             return await ProcessWithToolsAsync(
@@ -93,7 +92,6 @@ public sealed class AnthropicService(
                 cancellationToken);
         }
 
-        // Regular non-tool flow
         if (options.InteractiveUpdates || options.TokenCallback != null)
         {
             await ProcessStreamingChatAsync(
@@ -141,12 +139,27 @@ public sealed class AnthropicService(
         CancellationToken cancellationToken)
     {
         StringBuilder resultBuilder = new();
+        StringBuilder fullResponseBuilder = new();
         int iterations = 0;
         List<AnthropicToolUse>? currentToolUses = null;
 
         while (iterations < MaxToolIterations)
         {
-            currentToolUses = null;
+            if (iterations > 0 && fullResponseBuilder.Length > 0)
+            {
+                var spaceToken = new LLMTokenValue { Text = " ", Type = TokenType.Message };
+                tokens.Add(spaceToken);
+                
+                if (options.TokenCallback != null)
+                    await options.TokenCallback(spaceToken);
+
+                if (options.InteractiveUpdates)
+                {
+                    await notificationService.DispatchNotification(
+                        NotificationMessageBuilder.CreateChatCompletion(chat.Id, spaceToken, false),
+                        ServiceConstants.Notifications.ReceiveMessageUpdate);
+                }
+            }
 
             if (options.InteractiveUpdates || options.TokenCallback != null)
             {
@@ -169,15 +182,22 @@ public sealed class AnthropicService(
                     cancellationToken);
             }
 
-            // No tool uses means we're done
+            if (resultBuilder.Length > 0)
+            {
+                if (fullResponseBuilder.Length > 0)
+                {
+                    fullResponseBuilder.Append(" ");
+                }
+                fullResponseBuilder.Append(resultBuilder);
+            }
+
             if (currentToolUses == null || !currentToolUses.Any())
             {
                 break;
             }
 
-            // Add assistant message with tool uses to conversation
             var assistantContent = new List<object>();
-            if (!string.IsNullOrEmpty(resultBuilder.ToString()))
+            if (resultBuilder.Length > 0)
             {
                 assistantContent.Add(new { type = "text", text = resultBuilder.ToString() });
             }
@@ -191,7 +211,6 @@ public sealed class AnthropicService(
 
             conversation.Add(new ChatMessage(ServiceConstants.Roles.Assistant, assistantContent));
 
-            // Execute tools and add responses to conversation
             var toolResults = new List<object>();
             foreach (var toolUse in currentToolUses)
             {
@@ -199,14 +218,11 @@ public sealed class AnthropicService(
 
                 if (executor == null)
                 {
-                    var errorMessage = $"No executor found for tool: {toolUse.Name}";
-                    logger?.LogError(errorMessage);
-                    throw new InvalidOperationException(errorMessage);
+                    throw new InvalidOperationException($"No executor found for tool: {toolUse.Name}");
                 }
 
                 try
                 {
-                    // Convert input object to JSON string for executor
                     var inputJson = JsonSerializer.Serialize(toolUse.Input);
                     var toolResult = await executor(inputJson);
 
@@ -217,7 +233,6 @@ public sealed class AnthropicService(
                         content = toolResult
                     });
 
-                    // Also add to chat messages for persistence
                     var persistedMessage = new Message
                     {
                         Role = ServiceConstants.Roles.Tool,
@@ -245,10 +260,8 @@ public sealed class AnthropicService(
                 }
             }
 
-            // Add tool results as a user message
             conversation.Add(new ChatMessage(ServiceConstants.Roles.User, toolResults));
 
-            // Clear result builder for next iteration
             resultBuilder.Clear();
             iterations++;
         }
@@ -259,7 +272,8 @@ public sealed class AnthropicService(
                 MaxToolIterations, chat.Id);
         }
 
-        var finalToken = new LLMTokenValue { Text = resultBuilder.ToString(), Type = TokenType.FullAnswer };
+        var finalResponse = fullResponseBuilder.ToString();
+        var finalToken = new LLMTokenValue { Text = finalResponse, Type = TokenType.FullAnswer };
         tokens.Add(finalToken);
 
         if (options.InteractiveUpdates)
@@ -270,8 +284,8 @@ public sealed class AnthropicService(
         }
 
         chat.Messages.Last().MarkProcessed();
-        UpdateSessionCache(chat.Id, resultBuilder.ToString(), options.CreateSession);
-        return CreateChatResult(chat, resultBuilder.ToString(), tokens);
+        UpdateSessionCache(chat.Id, finalResponse, options.CreateSession);
+        return CreateChatResult(chat, finalResponse, tokens);
     }
 
     private async Task<List<AnthropicToolUse>?> ProcessStreamingChatWithToolsAsync(
@@ -305,7 +319,6 @@ public sealed class AnthropicService(
         using var reader = new StreamReader(stream);
 
         var toolUseBuilders = new Dictionary<int, AnthropicToolUseBuilder>();
-        int currentIndex = -1;
 
         while (!reader.EndOfStream)
         {
@@ -313,11 +326,14 @@ public sealed class AnthropicService(
             if (string.IsNullOrWhiteSpace(line))
                 continue;
 
-            if (line.StartsWith("data: "))
+            if (line.StartsWith("event:"))
             {
-                var data = line["data: ".Length..].Trim();
-                if (data == "[DONE]")
-                    break;
+                continue;
+            }
+
+            if (line.StartsWith("data:"))
+            {
+                var data = line.Substring("data:".Length).Trim();
 
                 try
                 {
@@ -326,13 +342,12 @@ public sealed class AnthropicService(
 
                     if (chunk?.Type == "content_block_start")
                     {
-                        currentIndex = chunk.Index;
                         if (chunk.ContentBlock?.Type == "tool_use")
                         {
-                            toolUseBuilders[currentIndex] = new AnthropicToolUseBuilder
+                            toolUseBuilders[chunk.Index] = new AnthropicToolUseBuilder
                             {
-                                Id = chunk.ContentBlock.Id,
-                                Name = chunk.ContentBlock.Name
+                                Id = chunk.ContentBlock.Id ?? string.Empty,
+                                Name = chunk.ContentBlock.Name ?? string.Empty
                             };
                         }
                     }
@@ -358,16 +373,23 @@ public sealed class AnthropicService(
                                     ServiceConstants.Notifications.ReceiveMessageUpdate);
                             }
                         }
-                        else if (chunk.Delta?.Type == "input_json_delta" && currentIndex >= 0 &&
-                                 toolUseBuilders.ContainsKey(currentIndex))
+                        else if (chunk.Delta?.Type == "input_json_delta")
                         {
-                            toolUseBuilders[currentIndex].InputJson.Append(chunk.Delta.PartialJson);
+                            if (toolUseBuilders.ContainsKey(chunk.Index) && 
+                                !string.IsNullOrEmpty(chunk.Delta.PartialJson))
+                            {
+                                toolUseBuilders[chunk.Index].InputJson.Append(chunk.Delta.PartialJson);
+                            }
                         }
                     }
+                    else if (chunk?.Type == "message_stop")
+                    {
+                        break;
+                    }
                 }
-                catch (Exception ex)
+                catch (JsonException ex)
                 {
-                    logger?.LogError(ex, "Failed to parse Anthropic chunk: {Chunk}", data);
+                    logger?.LogError(ex, "Failed to parse Anthropic chunk");
                 }
             }
         }
@@ -435,13 +457,11 @@ public sealed class AnthropicService(
             ["messages"] = BuildAnthropicMessages(conversation)
         };
 
-        // Add system message if grammar is specified
         if (chat.InterferenceParams.Grammar is not null)
         {
             requestBody["system"] = $"Respond only using the following grammar format: \n{chat.InterferenceParams.Grammar.Value}\n. Do not add explanations, code tags, or any extra content.";
         }
 
-        // Add tools if configured
         if (chat.ToolsConfiguration?.Tools != null && chat.ToolsConfiguration.Tools.Any())
         {
             requestBody["tools"] = chat.ToolsConfiguration.Tools.Select(t => new
@@ -461,17 +481,30 @@ public sealed class AnthropicService(
 
         foreach (var msg in conversation)
         {
-            // For Anthropic, content can be text, image, tool_use, or tool_result
+            object content;
+
+            if (msg.Content is string textContent)
+            {
+                content = textContent;
+            }
+            else if (msg.Content is List<object> contentBlocks)
+            {
+                content = contentBlocks;
+            }
+            else
+            {
+                content = msg.Content;
+            }
+
             messages.Add(new
             {
                 role = msg.Role,
-                content = msg.Content
+                content = content
             });
         }
 
         return messages;
     }
-
 
     public async Task<ChatResult?> AskMemory(Chat chat, ChatMemoryOptions memoryOptions, CancellationToken cancellationToken = default)
     {
@@ -572,17 +605,23 @@ public sealed class AnthropicService(
             if (string.IsNullOrWhiteSpace(line))
                 continue;
 
-            if (line.StartsWith("data: "))
+            if (line.StartsWith("data:"))
             {
-                var data = line["data: ".Length..].Trim();
-                if (data == "[DONE]")
-                    break;
+                var data = line.Substring("data:".Length).Trim();
 
                 try
                 {
-                    var token = ProcessAnthropicStreamChunk(data);
-                    if (token is not null)
+                    var chunk = JsonSerializer.Deserialize<AnthropicStreamChunk>(data, 
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    
+                    if (chunk?.Delta?.Type == "text_delta" && !string.IsNullOrEmpty(chunk.Delta.Text))
                     {
+                        var token = new LLMTokenValue
+                        {
+                            Text = chunk.Delta.Text,
+                            Type = TokenType.Message
+                        };
+                        
                         tokens.Add(token);
 
                         if (tokenCallback != null)
@@ -590,10 +629,7 @@ public sealed class AnthropicService(
                             await tokenCallback(token);
                         }
 
-                        if (token.Type == TokenType.Message)
-                        {
-                            resultBuilder.Append(token.Text);
-                        }
+                        resultBuilder.Append(chunk.Delta.Text);
 
                         if (interactiveUpdates)
                         {
@@ -603,26 +639,11 @@ public sealed class AnthropicService(
                         }
                     }
                 }
-                catch (Exception ex)
+                catch (JsonException)
                 {
-                    logger?.LogError(ex, "Failed to parse Anthropic chunk: {Chunk}", data);
                 }
             }
         }
-    }
-
-    private LLMTokenValue? ProcessAnthropicStreamChunk(string data)
-    {
-        var chunk = JsonSerializer.Deserialize<AnthropicStreamChunk>(data, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-        var textDelta = chunk?.Delta?.Text;
-
-        return string.IsNullOrEmpty(textDelta)
-            ? null
-            : new LLMTokenValue
-            {
-                Text = textDelta,
-                Type = TokenType.Message
-            };
     }
 
     private async Task ProcessNonStreamingChatAsync(
@@ -692,12 +713,30 @@ internal class AnthropicToolUseBuilder
 
     public AnthropicToolUse Build()
     {
-        var input = JsonSerializer.Deserialize<object>(InputJson.ToString());
+        object input;
+        var jsonString = InputJson.ToString().Trim();
+        
+        if (string.IsNullOrWhiteSpace(jsonString))
+        {
+            input = new { };
+        }
+        else
+        {
+            try
+            {
+                input = JsonSerializer.Deserialize<object>(jsonString) ?? new { };
+            }
+            catch (JsonException)
+            {
+                input = new { };
+            }
+        }
+        
         return new AnthropicToolUse
         {
             Id = Id,
             Name = Name,
-            Input = input ?? new { }
+            Input = input
         };
     }
 }
@@ -718,23 +757,43 @@ file class AnthropicMessageContent
 
 file class AnthropicStreamChunk
 {
+    [System.Text.Json.Serialization.JsonPropertyName("type")]
     public string? Type { get; set; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("index")]
     public int Index { get; set; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("delta")]
     public AnthropicDelta? Delta { get; set; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("content_block")]
     public AnthropicContentBlock? ContentBlock { get; set; }
 }
 
 file class AnthropicContentBlock
 {
+    [System.Text.Json.Serialization.JsonPropertyName("type")]
     public string? Type { get; set; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("id")]
     public string? Id { get; set; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("name")]
     public string? Name { get; set; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("input")]
+    public object? Input { get; set; }
 }
 
 file class AnthropicDelta
 {
+    [System.Text.Json.Serialization.JsonPropertyName("type")]
     public string? Type { get; set; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("text")]
     public string? Text { get; set; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("partial_json")]
     public string? PartialJson { get; set; }
 }
 
