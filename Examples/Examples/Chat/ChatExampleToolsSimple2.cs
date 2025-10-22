@@ -11,12 +11,12 @@ public class ChatExampleToolsSimple2 : IExample
     {
         //OpenAiExample.Setup(); //We need to provide OpenAi API key
         
-        Console.WriteLine("(OpenAi) ChatExample is running!"); 
-        
-        await AIHub.Chat()
+        Console.WriteLine("(OpenAi) ChatExample is running!");
+
+        var context = AIHub.Chat()
             .WithBackend(BackendType.OpenAi)
             .WithModel("gpt-5-nano")
-            .WithMessage("What time is it right now?")
+            .WithMessage("What notes do I have?")
             .WithTools(new ToolsConfigurationBuilder()
                 .AddTool<ListNotesArgs>(
                     "list_notes",
@@ -38,7 +38,8 @@ public class ChatExampleToolsSimple2 : IExample
                         type = "object",
                         properties = new
                         {
-                            noteName = new { type = "string", description = "Name of the note (without .txt extension)" }
+                            noteName = new
+                                { type = "string", description = "Name of the note (without .txt extension)" }
                         },
                         required = new[] { "noteName" }
                     },
@@ -51,14 +52,27 @@ public class ChatExampleToolsSimple2 : IExample
                         type = "object",
                         properties = new
                         {
-                            noteName = new { type = "string", description = "Name of the note (without .txt extension)" },
+                            noteName = new
+                                { type = "string", description = "Name of the note (without .txt extension)" },
                             content = new { type = "string", description = "Content to save in the note" }
                         },
                         required = new[] { "noteName", "content" }
                     },
                     NoteTools.SaveNote)
                 .WithToolChoice("auto")
-                .Build())
+                .Build());
+
+        await context.CompleteAsync(interactive: true);
+        
+        Console.WriteLine("--//");
+
+        await context.WithMessage("Create funny note about elephant")
             .CompleteAsync(interactive: true);
+        
+        Console.WriteLine("--//");
+        
+        await context.WithMessage("Read latest note")
+            .CompleteAsync(interactive: true);
+
     }
 }
