@@ -15,6 +15,7 @@ using System.Text.Json.Serialization;
 using MaIN.Domain.Entities;
 using MaIN.Services.Services.LLMService.Memory;
 using LLama.Common;
+using MaIN.Domain.Entities.Tools;
 
 namespace MaIN.Services.Services.LLMService;
 
@@ -133,11 +134,27 @@ public abstract class OpenAiCompatibleService(
         CancellationToken cancellationToken)
     {
         StringBuilder resultBuilder = new();
+        StringBuilder fullResponseBuilder = new();  
         int iterations = 0;
+        List<ToolCall>? currentToolCalls = null;
 
         while (iterations < MaxToolIterations)
         {
-            List<ToolCall>? currentToolCalls = null;
+            currentToolCalls = null;
+            
+            if (iterations > 0 && options.InteractiveUpdates && fullResponseBuilder.Length > 0)
+            {
+                var spaceToken = new LLMTokenValue { Text = " ", Type = TokenType.Message };
+                tokens.Add(spaceToken);
+                
+                if (options.TokenCallback != null)
+                    await options.TokenCallback(spaceToken);
+                    
+                await _notificationService.DispatchNotification(
+                    NotificationMessageBuilder.CreateChatCompletion(chat.Id, spaceToken, false),
+                    ServiceConstants.Notifications.ReceiveMessageUpdate);
+            }
+
             if (options.InteractiveUpdates || options.TokenCallback != null)
             {
                 currentToolCalls = await ProcessStreamingChatWithToolsAsync(
@@ -159,7 +176,16 @@ public abstract class OpenAiCompatibleService(
                     options,
                     cancellationToken);
             }
-
+            
+            if (resultBuilder.Length > 0) 
+            {
+                if (fullResponseBuilder.Length > 0)
+                {
+                    fullResponseBuilder.Append(" ");
+                }
+                fullResponseBuilder.Append(resultBuilder);
+            }
+            
             if (currentToolCalls == null || !currentToolCalls.Any())
             {
                 break;
@@ -170,6 +196,7 @@ public abstract class OpenAiCompatibleService(
                 ToolCalls = currentToolCalls
             });
 
+            // Execute tools and add responses to conversation
             foreach (var toolCall in currentToolCalls)
             {
                 var executor = chat.ToolsConfiguration?.GetExecutor(toolCall.Function.Name);
@@ -196,7 +223,7 @@ public abstract class OpenAiCompatibleService(
                     {
                         Role = ServiceConstants.Roles.Tool,
                         Content = toolResult,
-                        Type = MessageType.CloudLLM,
+                        Type = MessageType.LocalLLM,
                         Time = DateTime.UtcNow,
                         Tool = true
                     };
@@ -228,7 +255,8 @@ public abstract class OpenAiCompatibleService(
                 MaxToolIterations, chat.Id);
         }
 
-        var finalToken = new LLMTokenValue { Text = resultBuilder.ToString(), Type = TokenType.FullAnswer };
+        var finalResponse = fullResponseBuilder.ToString();
+        var finalToken = new LLMTokenValue { Text = finalResponse, Type = TokenType.FullAnswer };
         tokens.Add(finalToken);
 
         if (options.InteractiveUpdates)
@@ -269,7 +297,7 @@ public abstract class OpenAiCompatibleService(
             request,
             HttpCompletionOption.ResponseHeadersRead,
             cancellationToken);
-        
+
         response.EnsureSuccessStatusCode();
 
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
@@ -846,17 +874,6 @@ public abstract class OpenAiCompatibleService(
     }
 }
 
-// Tool configuration class
-public class ToolsConfiguration
-{
-    public List<ToolDefinition>? Tools { get; set; }
-    public string? ToolChoice { get; set; }
-    
-    public Func<string, Task<string>>? GetExecutor(string functionName)
-    {
-        return Tools?.FirstOrDefault(t => t.Function.Name == functionName)?.Execute;
-    }
-}
 
 public class ToolDefinition
 {

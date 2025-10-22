@@ -1,4 +1,5 @@
 using MaIN.Domain.Configuration;
+using MaIN.Domain.Entities.Tools;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace MaIN.Infrastructure.Models;
@@ -19,4 +20,5 @@ public class ChatDocument
     public InferenceParamsDocument? InferenceParams { get; init; }
     public MemoryParamsDocument? MemoryParams { get; init; }
     public object? ConvState { get; init; }
+    public ToolsConfiguration? ToolsConfiguration { get; set; }
 }

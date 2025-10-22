@@ -86,6 +86,7 @@ public class AgentService(
             Model = agent.Model,
             Name = agent.Name,
             Visual = agent.Model == ImageGenService.LocalImageModels.FLUX,
+            ToolsConfiguration = agent.ToolsConfiguration,
             InterferenceParams = inferenceParams ?? new InferenceParams(),
             MemoryParams = memoryParams ?? new MemoryParams(),
             Messages = new List<Message>(),
