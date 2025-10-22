@@ -136,12 +136,10 @@ public abstract class OpenAiCompatibleService(
         StringBuilder resultBuilder = new();
         StringBuilder fullResponseBuilder = new();  
         int iterations = 0;
-        List<ToolCall>? currentToolCalls = null;
+        List<ToolCall>? currentToolCalls;
 
         while (iterations < MaxToolIterations)
         {
-            currentToolCalls = null;
-            
             if (iterations > 0 && options.InteractiveUpdates && fullResponseBuilder.Length > 0)
             {
                 var spaceToken = new LLMTokenValue { Text = " ", Type = TokenType.Message };
@@ -218,18 +216,6 @@ public abstract class OpenAiCompatibleService(
                         Name = toolCall.Function.Name
                     };
                     conversation.Add(toolMessage);
-
-                    var persistedMessage = new Message
-                    {
-                        Role = ServiceConstants.Roles.Tool,
-                        Content = toolResult,
-                        Type = MessageType.LocalLLM,
-                        Time = DateTime.UtcNow,
-                        Tool = true
-                    };
-                    persistedMessage.Properties[ToolCallIdProperty] = toolCall.Id;
-                    persistedMessage.Properties[ToolNameProperty] = toolCall.Function.Name;
-                    chat.Messages.Add(persistedMessage);
                 }
                 catch (Exception ex)
                 {
