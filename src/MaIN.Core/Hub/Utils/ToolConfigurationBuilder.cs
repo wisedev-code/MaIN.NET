@@ -6,7 +6,17 @@ namespace MaIN.Core.Hub.Utils;
 public class ToolsConfigurationBuilder
 {
     private readonly ToolsConfiguration _config = new() { Tools = new List<ToolDefinition>() };
-
+    
+    public ToolsConfigurationBuilder AddDefaultTool(
+        string type)
+    {
+        _config.Tools!.Add(new ToolDefinition
+        {
+            Type = type
+        });
+        return this;
+    }
+    
     public ToolsConfigurationBuilder AddTool(
         string name, 
         string description, 

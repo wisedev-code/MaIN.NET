@@ -9,12 +9,11 @@ public class ChatExampleToolsSimple : IExample
 {
     public async Task Start()
     {
-        //OpenAiExample.Setup(); //We need to provide OpenAi API key
+        OpenAiExample.Setup(); //We need to provide OpenAi API key
         
-        Console.WriteLine("(OpenAi) ChatExample is running!"); 
+        Console.WriteLine("(OpenAi) ChatExample with tools is running!"); 
         
         await AIHub.Chat()
-            .WithBackend(BackendType.OpenAi)
             .WithModel("gpt-5-nano")
             .WithMessage("What time is it right now?")
             .WithTools(new ToolsConfigurationBuilder()

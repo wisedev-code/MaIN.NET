@@ -67,6 +67,5 @@ public class AgentExampleTools : IExample
         Console.WriteLine("--//--");
         
         await context.ProcessAsync("Create a new note for a shopping list that includes healthy foods.");
-
     }
 }
