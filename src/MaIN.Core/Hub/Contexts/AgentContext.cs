@@ -237,7 +237,7 @@ public class AgentContext
         {
             Content = message,
             Role = "User",
-            Type = MessageType.LocalLLM, //TODO this need an improvement - we dont know if the message is from local or cloud
+            Type = MessageType.LocalLLM,
             Time = DateTime.Now
         });
         var result = await _agentService.Process(chat, _agent.Id, _knowledge, translate);
@@ -259,6 +259,26 @@ public class AgentContext
         }
         var chat = await _agentService.GetChatByAgent(_agent.Id);
         chat.Messages.Add(message);
+        var result = await _agentService.Process(chat, _agent.Id, _knowledge, translate);
+        var messageResult = result.Messages.LastOrDefault()!;
+        return new ChatResult()
+        {
+            Done = true,
+            Model = result.Model,
+            Message = messageResult,
+            CreatedAt = DateTime.Now
+        };
+    }
+    
+    public async Task<ChatResult> ProcessAsync(IEnumerable<Message> messages, bool translate = false)
+    {
+        if (_knowledge == null)
+        {
+            LoadExistingKnowledgeIfExists();
+        }
+        var chat = await _agentService.GetChatByAgent(_agent.Id);
+        chat.Messages.Clear();
+        chat.Messages.AddRange(messages);
         var result = await _agentService.Process(chat, _agent.Id, _knowledge, translate);
         var messageResult = result.Messages.LastOrDefault()!;
         return new ChatResult()
