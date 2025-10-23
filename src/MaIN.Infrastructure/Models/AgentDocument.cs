@@ -1,4 +1,5 @@
 using MaIN.Domain.Configuration;
+using MaIN.Domain.Entities.Tools;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace MaIN.Infrastructure.Models;
@@ -18,4 +19,5 @@ public class AgentDocument
     public Dictionary<string, string> Behaviours { get; init; } = [];
     public string CurrentBehaviour { get; set; } = null!;
     public bool Flow { get; init; }
+    public ToolsConfiguration? ToolsConfiguration { get; set; }
 }
