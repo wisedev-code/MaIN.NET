@@ -52,7 +52,7 @@ static void RegisterExamples(IServiceCollection services)
     services.AddTransient<ChatFromExistingExample>();
     services.AddTransient<ChatWithReasoningExample>();
     services.AddTransient<ChatExampleToolsSimple>();
-    services.AddTransient<ChatExampleToolsSimple2>();
+    services.AddTransient<AgentExampleTools>();
     services.AddTransient<AgentExample>();
     services.AddTransient<AgentConversationExample>();
     services.AddTransient<AgentWithRedirectExample>();
@@ -145,7 +145,6 @@ public class ExampleRegistry(IServiceProvider serviceProvider)
             ("\u25a0 Chat with Files from stream", serviceProvider.GetRequiredService<ChatWithFilesFromStreamExample>()),
             ("\u25a0 Chat with Vision", serviceProvider.GetRequiredService<ChatWithVisionExample>()),
             ("\u25a0 Chat with Tools (simple)", serviceProvider.GetRequiredService<ChatExampleToolsSimple>()),
-            ("\u25a0 Chat with Tools (advanced)", serviceProvider.GetRequiredService<ChatExampleToolsSimple2>()),
             ("\u25a0 Chat with Image Generation", serviceProvider.GetRequiredService<ChatWithImageGenExample>()),
             ("\u25a0 Chat from Existing", serviceProvider.GetRequiredService<ChatFromExistingExample>()),
             ("\u25a0 Chat with reasoning", serviceProvider.GetRequiredService<ChatWithReasoningExample>()),
@@ -155,6 +154,7 @@ public class ExampleRegistry(IServiceProvider serviceProvider)
             ("\u25a0 Agent with Redirect (Multi backends)", serviceProvider.GetRequiredService<MultiBackendAgentWithRedirectExample>()),
             ("\u25a0 Agent with Redirect Image", serviceProvider.GetRequiredService<AgentWithRedirectImageExample>()),
             ("\u25a0 Agent with Become", serviceProvider.GetRequiredService<AgentWithBecomeExample>()),
+            ("\u25a0 Agent with Tools (advanced)", serviceProvider.GetRequiredService<AgentExampleTools>()),
             ("\u25a0 Agent with Knowledge", serviceProvider.GetRequiredService<AgentWithKnowledgeFileExample>()),
             ("\u25a0 Agent with Web Knowledge", serviceProvider.GetRequiredService<AgentWithKnowledgeWebExample>()),
             ("\u25a0 Agent with Mcp Knowledge", serviceProvider.GetRequiredService<AgentWithKnowledgeMcpExample>()),
