@@ -15,7 +15,7 @@ public class AnswerStepHandler(ICommandDispatcher commandDispatcher) : IStepHand
 
     public async Task<StepResult> Handle(StepContext context)
     {
-        await context.NotifyProgress("true", context.Agent.Id, null, context.Agent.CurrentBehaviour);
+        await context.NotifyProgress("true", context.Agent.Id, null, context.Agent.CurrentBehaviour, StepName);
         var useMemory = context.Arguments.Contains("USE_MEMORY");
         var useKnowledge = context.Arguments.Contains("USE_KNOWLEDGE");
         var useKnowledgeAlways = context.Arguments.Contains("USE_KNOWLEDGE+ALWAYS");

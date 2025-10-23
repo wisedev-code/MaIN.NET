@@ -1,22 +1,21 @@
 using Examples.Utils;
 using MaIN.Core.Hub;
 using MaIN.Core.Hub.Utils;
-using MaIN.Domain.Configuration;
 
-namespace Examples.Chat;
+namespace Examples.Agents;
 
-public class ChatExampleToolsSimple2 : IExample
+public class AgentExampleTools : IExample
 {
     public async Task Start()
     {
-        //OpenAiExample.Setup(); //We need to provide OpenAi API key
-        
-        Console.WriteLine("(OpenAi) ChatExample is running!");
+        AnthropicExample.Setup();
+        Console.WriteLine("(Anthropic) Tool example is running!");
 
-        var context = AIHub.Chat()
-            .WithBackend(BackendType.OpenAi)
-            .WithModel("gpt-5-nano")
-            .WithMessage("What notes do I have?")
+        var context = await AIHub.Agent()
+            .WithModel("claude-sonnet-4-5-20250929")
+            .WithSteps(StepBuilder.Instance
+                .Answer()
+                .Build())
             .WithTools(new ToolsConfigurationBuilder()
                 .AddTool<ListNotesArgs>(
                     "list_notes",
@@ -60,19 +59,14 @@ public class ChatExampleToolsSimple2 : IExample
                     },
                     NoteTools.SaveNote)
                 .WithToolChoice("auto")
-                .Build());
+                .Build())
+            .CreateAsync(interactiveResponse: true);
 
-        await context.CompleteAsync(interactive: true);
+        await context.ProcessAsync("What notes do I currently have?");
         
-        Console.WriteLine("--//");
-
-        await context.WithMessage("Create funny note about elephant")
-            .CompleteAsync(interactive: true);
+        Console.WriteLine("--//--");
         
-        Console.WriteLine("--//");
-        
-        await context.WithMessage("Read latest note")
-            .CompleteAsync(interactive: true);
+        await context.ProcessAsync("Create a new note for a shopping list that includes healthy foods.");
 
     }
 }

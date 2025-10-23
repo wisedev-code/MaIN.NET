@@ -32,7 +32,7 @@ public class BecomeStepHandler : IStepHandler
         context.Agent.CurrentBehaviour = newBehaviour;
         context.Chat.Messages[0].Content = messageFilter ?? context.Agent.Context!.Instruction!;
         
-        await context.NotifyProgress("true", context.Agent.Id, null, context.Agent.CurrentBehaviour);
+        await context.NotifyProgress("true", context.Agent.Id, null, context.Agent.CurrentBehaviour, StepName);
 
         context.Chat.Messages.Add(new()
         {

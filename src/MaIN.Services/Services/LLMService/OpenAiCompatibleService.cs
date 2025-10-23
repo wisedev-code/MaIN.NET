@@ -75,7 +75,6 @@ public abstract class OpenAiCompatibleService(
             return CreateChatResult(chat, resultBuilder.ToString(), tokens);
         }
 
-        // Handle tool execution loop
         if (chat.ToolsConfiguration?.Tools != null && chat.ToolsConfiguration.Tools.Any())
         {
             return await ProcessWithToolsAsync(
@@ -87,7 +86,6 @@ public abstract class OpenAiCompatibleService(
                 cancellationToken);
         }
 
-        // Regular non-tool flow
         if (options.InteractiveUpdates || options.TokenCallback != null)
         {
             await ProcessStreamingChatAsync(
@@ -136,7 +134,6 @@ public abstract class OpenAiCompatibleService(
         StringBuilder resultBuilder = new();
         StringBuilder fullResponseBuilder = new();  
         int iterations = 0;
-        List<ToolCall>? currentToolCalls;
 
         while (iterations < MaxToolIterations)
         {
@@ -153,6 +150,7 @@ public abstract class OpenAiCompatibleService(
                     ServiceConstants.Notifications.ReceiveMessageUpdate);
             }
 
+            List<ToolCall>? currentToolCalls;
             if (options.InteractiveUpdates || options.TokenCallback != null)
             {
                 currentToolCalls = await ProcessStreamingChatWithToolsAsync(
@@ -194,9 +192,17 @@ public abstract class OpenAiCompatibleService(
                 ToolCalls = currentToolCalls
             });
 
-            // Execute tools and add responses to conversation
             foreach (var toolCall in currentToolCalls)
             {
+                if (chat.Properties.CheckProperty(ServiceConstants.Properties.AgentIdProperty))
+                {
+                    await _notificationService.DispatchNotification(
+                        NotificationMessageBuilder.ProcessingTools(chat.Properties[ServiceConstants.Properties.AgentIdProperty],
+                            string.Empty,
+                            toolCall.Function.Name),
+                        ServiceConstants.Notifications.ReceiveAgentUpdate);
+                }
+
                 var executor = chat.ToolsConfiguration?.GetExecutor(toolCall.Function.Name);
 
                 if (executor == null)
@@ -332,7 +338,6 @@ public abstract class OpenAiCompatibleService(
                             }
                         }
 
-                        // Handle tool calls (streaming)
                         if (choice.Delta.ToolCalls != null)
                         {
                             foreach (var toolCallChunk in choice.Delta.ToolCalls)
@@ -622,7 +627,6 @@ public abstract class OpenAiCompatibleService(
 
         if (chat.ToolsConfiguration?.Tools != null && chat.ToolsConfiguration.Tools.Any())
         {
-            // Only send tool definitions (not the Execute functions)
             requestBody["tools"] = chat.ToolsConfiguration.Tools.Select(t => new
             {
                 type = t.Type,

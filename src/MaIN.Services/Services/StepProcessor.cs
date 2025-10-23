@@ -24,12 +24,12 @@ public class StepProcessor : IStepProcessor
         }
     }
 
-    public async Task<Chat> ProcessSteps( //TODO try without delegates
+    public async Task<Chat> ProcessSteps(
         AgentContextDocument context,
         AgentDocument agent,
         Knowledge? knowledge,
         Chat chat,
-        Func<string, string, string?, string, Task> notifyProgress,
+        Func<string, string, string?, string, string, Task> notifyProgress,
         Func<Chat, Task> updateChat,
         ILogger logger)
     {

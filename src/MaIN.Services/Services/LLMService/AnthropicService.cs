@@ -29,10 +29,6 @@ public sealed class AnthropicService(
     private const string CompletionsUrl = ServiceConstants.ApiUrls.AnthropicChatMessages;
     private const string ModelsUrl = ServiceConstants.ApiUrls.AnthropicModels;
     private const int MaxToolIterations = 5;
-    
-    private const string ToolCallsProperty = "ToolCalls";
-    private const string ToolCallIdProperty = "ToolCallId";
-    private const string ToolNameProperty = "ToolName";
 
     private HttpClient CreateAnthropicHttpClient()
     {
@@ -214,6 +210,15 @@ public sealed class AnthropicService(
             var toolResults = new List<object>();
             foreach (var toolUse in currentToolUses)
             {
+                if (chat.Properties.CheckProperty(ServiceConstants.Properties.AgentIdProperty))
+                {
+                    await notificationService.DispatchNotification(
+                        NotificationMessageBuilder.ProcessingTools(chat.Properties[ServiceConstants.Properties.AgentIdProperty],
+                            string.Empty,
+                            toolUse.Name),
+                        ServiceConstants.Notifications.ReceiveAgentUpdate);
+                }
+                
                 var executor = chat.ToolsConfiguration?.GetExecutor(toolUse.Name);
 
                 if (executor == null)
@@ -232,18 +237,6 @@ public sealed class AnthropicService(
                         tool_use_id = toolUse.Id,
                         content = toolResult
                     });
-
-                    var persistedMessage = new Message
-                    {
-                        Role = ServiceConstants.Roles.Tool,
-                        Content = toolResult,
-                        Type = MessageType.CloudLLM,
-                        Time = DateTime.UtcNow,
-                        Tool = true
-                    };
-                    persistedMessage.Properties[ToolCallIdProperty] = toolUse.Id;
-                    persistedMessage.Properties[ToolNameProperty] = toolUse.Name;
-                    chat.Messages.Add(persistedMessage);
                 }
                 catch (Exception ex)
                 {
@@ -456,6 +449,14 @@ public sealed class AnthropicService(
             ["stream"] = stream,
             ["messages"] = BuildAnthropicMessages(conversation)
         };
+        
+        var systemMessage = conversation.FirstOrDefault(m => 
+            m.Role.Equals("system", StringComparison.OrdinalIgnoreCase));
+    
+        if (systemMessage != null && systemMessage.Content is string systemContent)
+        {
+            requestBody["system"] = systemContent;
+        }
 
         if (chat.InterferenceParams.Grammar is not null)
         {
@@ -481,6 +482,9 @@ public sealed class AnthropicService(
 
         foreach (var msg in conversation)
         {
+            if (msg.Role.Equals("system", StringComparison.OrdinalIgnoreCase))
+                continue;
+            
             object content;
 
             if (msg.Content is string textContent)
@@ -691,7 +695,7 @@ public sealed class AnthropicService(
             {
                 Content = content,
                 Tokens = tokens,
-                Role = AuthorRole.Assistant.ToString(),
+                Role = nameof(AuthorRole.Assistant),
                 Type = MessageType.CloudLLM
             }.MarkProcessed()
         };

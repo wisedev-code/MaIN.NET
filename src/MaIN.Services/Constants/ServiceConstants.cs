@@ -48,6 +48,7 @@ public static class ServiceConstants
     {
         public const string PreProcessProperty = "Pre_Process";
         public const string DisableCacheProperty = "DisableCache";
+        public const string AgentIdProperty = "AgentId";
     }
 
     public static class Defaults
@@ -59,6 +60,8 @@ public static class ServiceConstants
     public static class Notifications
     {
         public const string ReceiveMessageUpdate = "ReceiveMessageUpdate";
+        public const string ReceiveAgentUpdate = "ReceiveAgentUpdate";
+
     }
 
     public static class Roles
