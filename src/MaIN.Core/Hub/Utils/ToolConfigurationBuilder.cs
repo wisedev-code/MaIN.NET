@@ -2,15 +2,15 @@ using System.Text.Json;
 using MaIN.Domain.Entities.Tools;
 
 namespace MaIN.Core.Hub.Utils;
-
+//TODO try to share logic of adding tool to the list across methods https://github.com/wisedev-code/MaIN.NET/pull/98#discussion_r2454997846
 public class ToolsConfigurationBuilder
 {
-    private readonly ToolsConfiguration _config = new() { Tools = new List<ToolDefinition>() };
+    private readonly ToolsConfiguration _config = new() { Tools = [] };
     
     public ToolsConfigurationBuilder AddDefaultTool(
         string type)
     {
-        _config.Tools!.Add(new ToolDefinition
+        _config.Tools.Add(new ToolDefinition
         {
             Type = type
         });
@@ -23,7 +23,7 @@ public class ToolsConfigurationBuilder
         object parameters,
         Func<string, Task<string>> execute)
     {
-        _config.Tools!.Add(new ToolDefinition
+        _config.Tools.Add(new ToolDefinition
         {
             Function = new FunctionDefinition
             {
@@ -61,7 +61,7 @@ public class ToolsConfigurationBuilder
         object parameters,
         Func<TArgs, Task<object>> execute) where TArgs : class
     {
-        _config.Tools!.Add(new ToolDefinition
+        _config.Tools.Add(new ToolDefinition
         {
             Function = new FunctionDefinition
             {
@@ -110,7 +110,7 @@ public class ToolsConfigurationBuilder
         string description,
         Func<Task<object>> execute)
     {
-        _config.Tools!.Add(new ToolDefinition
+        _config.Tools.Add(new ToolDefinition
         {
             Function = new FunctionDefinition
             {
@@ -132,7 +132,7 @@ public class ToolsConfigurationBuilder
         string description,
         Func<object> execute)
     {
-        _config.Tools!.Add(new ToolDefinition
+        _config.Tools.Add(new ToolDefinition
         {
             Function = new FunctionDefinition
             {
