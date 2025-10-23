@@ -33,7 +33,7 @@ public class AgentWithKnowledgeMcpExample : IExample
                     Arguments = ["-y",
                         "@modelcontextprotocol/server-filesystem",
                         "C:\\Users\\stach\\Desktop",  //Align paths to fit your system
-                        "C:\\WiseDev", //Align paths to fit your system
+                        "C:\\WiseDev" //Align paths to fit your system
                         ], //Align paths to fit your system
                     Backend = BackendType.GroqCloud,
                     Model = "openai/gpt-oss-20b"

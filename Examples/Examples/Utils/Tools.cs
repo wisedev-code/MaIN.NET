@@ -22,7 +22,6 @@ public static class NoteTools
 {
     private const string NotesFolder = "notes";
     
-
     public static async Task<object> ListNotes(ListNotesArgs args)
     {
         if (!Directory.Exists(args.Folder))
