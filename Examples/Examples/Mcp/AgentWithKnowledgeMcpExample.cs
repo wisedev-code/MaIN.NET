@@ -22,7 +22,7 @@ public class AgentWithKnowledgeMcpExample : IExample
                     Name = "ExaDeepSearch",
                     Arguments = ["-y", "exa-mcp-server"],
                     Command = "npx",
-                    EnvironmentVariables = {{"EXA_API_KEY","7e16b939-263f-40cc-9880-6948e104fa42"}},
+                    EnvironmentVariables = {{"EXA_API_KEY","<raw_key>"}},
                     Backend = BackendType.Gemini,
                     Model = "gemini-2.0-flash"
                 }, ["search", "browser", "web access", "research"])
@@ -32,7 +32,8 @@ public class AgentWithKnowledgeMcpExample : IExample
                     Command = "npx",
                     Arguments = ["-y",
                         "@modelcontextprotocol/server-filesystem",
-                        "/Users/pstach/WiseDev", //Align paths to fit your system
+                        "C:\\Users\\stach\\Desktop",  //Align paths to fit your system
+                        "C:\\WiseDev", //Align paths to fit your system
                         ], //Align paths to fit your system
                     Backend = BackendType.GroqCloud,
                     Model = "openai/gpt-oss-20b"
