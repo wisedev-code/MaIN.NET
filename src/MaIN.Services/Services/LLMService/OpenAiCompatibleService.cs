@@ -630,12 +630,12 @@ public abstract class OpenAiCompatibleService(
             requestBody["tools"] = chat.ToolsConfiguration.Tools.Select(t => new
             {
                 type = t.Type,
-                function = new
+                function = t.Function != null ? new
                 {
                     name = t.Function.Name,
                     description = t.Function.Description,
                     parameters = t.Function.Parameters
-                }
+                } : null
             }).ToList();
             
             if (!string.IsNullOrEmpty(chat.ToolsConfiguration.ToolChoice))
