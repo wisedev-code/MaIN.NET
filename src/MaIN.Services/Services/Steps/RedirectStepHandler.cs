@@ -23,7 +23,7 @@ public class RedirectStepHandler(ICommandDispatcher commandDispatcher) : IStepHa
         var options = ParseOptions(context.Arguments);
         var redirectCommand = CreateRedirectCommand(context, options);
 
-        await context.NotifyProgress("false", context.Agent.Id, null, context.Agent.CurrentBehaviour);
+        await context.NotifyProgress("false", context.Agent.Id, null, context.Agent.CurrentBehaviour, StepName);
 
         var message = await commandDispatcher.DispatchAsync(redirectCommand);
         if (message == null)

@@ -11,7 +11,7 @@ public interface IStepProcessor
         AgentDocument agent,
         Knowledge? knowledge,
         Chat chat,
-        Func<string, string, string?, string, Task> notifyProgress,
+        Func<string, string, string?, string, string, Task> notifyProgress,
         Func<Chat, Task> updateChat,
         ILogger logger);
 }
