@@ -81,6 +81,12 @@ public class ChatContext
         return this;
     }
 
+    public ChatContext WithMessages(IEnumerable<Message> messages)
+    {
+        _chat.Messages.AddRange(messages);
+        return this;
+    }
+    
     public ChatContext WithMessage(string content)
     {
         var message = new Message
@@ -94,7 +100,6 @@ public class ChatContext
         _chat.Messages.Add(message);
         return this;
     }
-    
     
     public ChatContext WithMessage(string content, byte[] image)
     {
