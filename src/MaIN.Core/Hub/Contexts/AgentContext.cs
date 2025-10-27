@@ -226,7 +226,7 @@ public class AgentContext
         };
     }
     
-    public async Task<ChatResult> ProcessAsync(string message, bool translate = false)
+    public async Task<ChatResult> ProcessAsync(string message, bool translate = false, Func<LLMTokenValue, Task>? callback = null)
     {
         if (_knowledge == null)
         {
@@ -240,7 +240,7 @@ public class AgentContext
             Type = MessageType.LocalLLM,
             Time = DateTime.Now
         });
-        var result = await _agentService.Process(chat, _agent.Id, _knowledge, translate);
+        var result = await _agentService.Process(chat, _agent.Id, _knowledge, translate, callback);
         var messageResult = result.Messages.LastOrDefault()!;
         return new ChatResult()
         {
@@ -251,7 +251,7 @@ public class AgentContext
         };
     }
     
-    public async Task<ChatResult> ProcessAsync(Message message, bool translate = false)
+    public async Task<ChatResult> ProcessAsync(Message message, bool translate = false, Func<LLMTokenValue, Task>? callback = null)
     {
         if (_knowledge == null)
         {
@@ -259,7 +259,7 @@ public class AgentContext
         }
         var chat = await _agentService.GetChatByAgent(_agent.Id);
         chat.Messages.Add(message);
-        var result = await _agentService.Process(chat, _agent.Id, _knowledge, translate);
+        var result = await _agentService.Process(chat, _agent.Id, _knowledge, translate, callback);
         var messageResult = result.Messages.LastOrDefault()!;
         return new ChatResult()
         {
@@ -270,7 +270,7 @@ public class AgentContext
         };
     }
     
-    public async Task<ChatResult> ProcessAsync(IEnumerable<Message> messages, bool translate = false)
+    public async Task<ChatResult> ProcessAsync(IEnumerable<Message> messages, bool translate = false, Func<LLMTokenValue, Task>? callback = null)
     {
         if (_knowledge == null)
         {
@@ -279,7 +279,7 @@ public class AgentContext
         var chat = await _agentService.GetChatByAgent(_agent.Id);
         chat.Messages.Clear();
         chat.Messages.AddRange(messages);
-        var result = await _agentService.Process(chat, _agent.Id, _knowledge, translate);
+        var result = await _agentService.Process(chat, _agent.Id, _knowledge, translate, callback);
         var messageResult = result.Messages.LastOrDefault()!;
         return new ChatResult()
         {

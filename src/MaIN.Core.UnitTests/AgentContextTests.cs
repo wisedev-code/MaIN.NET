@@ -173,7 +173,7 @@ public class AgentContextTests
             .ReturnsAsync(chat);
 
         _mockAgentService
-            .Setup(s => s.Process(It.IsAny<Chat>(), _agentContext.GetAgentId(), It.IsAny<Knowledge>(), It.IsAny<bool>()))
+            .Setup(s => s.Process(It.IsAny<Chat>(), _agentContext.GetAgentId(), It.IsAny<Knowledge>(), It.IsAny<bool>(), null))
             .ReturnsAsync(new Chat { 
                 Model = "test-model", 
                 Name = "test",
