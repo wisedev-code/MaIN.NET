@@ -1,12 +1,15 @@
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
 using MaIN.Domain.Entities.Agents.Knowledge;
+using MaIN.Domain.Models;
+using MaIN.Services.Services.LLMService;
 
 namespace MaIN.Services.Services.Abstract;
 
 public interface IAgentService
 {
-    Task<Chat> Process(Chat chat, string agentId, Knowledge? knowledge, bool translatePrompt = false);
+    Task<Chat> Process(Chat chat, string agentId, Knowledge? knowledge, bool translatePrompt = false,
+        Func<LLMTokenValue, Task>? callback = null);
     Task<Agent> CreateAgent(Agent agent, bool flow = false, bool interactiveResponse = false,
         InferenceParams? inferenceParams = null, MemoryParams? memoryParams = null, bool disableCache = false);
     Task<Chat> GetChatByAgent(string agentId);
