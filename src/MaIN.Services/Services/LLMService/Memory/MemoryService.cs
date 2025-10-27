@@ -60,7 +60,7 @@ public class MemoryService : IMemoryService
     }
     
 
-    private async Task ImportStreamData((IKernelMemory km, ITextEmbeddingGenerator? generator) memory, Dictionary<string, FileStream>? streamData,
+    private async Task ImportStreamData((IKernelMemory km, ITextEmbeddingGenerator? generator) memory, Dictionary<string, Stream>? streamData,
         CancellationToken cancellationToken)
     {
         if (streamData?.Any() != true)
