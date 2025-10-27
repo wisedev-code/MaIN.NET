@@ -1,5 +1,6 @@
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents.Knowledge;
+using MaIN.Domain.Models;
 using MaIN.Infrastructure.Models;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
@@ -29,14 +30,18 @@ public class StepProcessor : IStepProcessor
         AgentDocument agent,
         Knowledge? knowledge,
         Chat chat,
+        Func<LLMTokenValue, Task>? callback,
         Func<string, string, string?, string, string, Task> notifyProgress,
         Func<Chat, Task> updateChat,
         ILogger logger)
     {
         Message redirectMessage = chat.Messages.Last();
+        var stepCount = 0;
         var tagsToReplaceWithFilter = new List<string>();
         foreach (var step in context.Steps!)
         {
+            stepCount++;
+            var lastStep = stepCount.Equals(context.Steps.Count);
             logger.LogInformation("Processing step: {Step} on agent {agent}", step, agent.Name);
             
             var (stepName, arguments) = ParseStep(step);
@@ -53,6 +58,7 @@ public class StepProcessor : IStepProcessor
                 McpConfig = context.McpConfig,
                 NotifyProgress = notifyProgress,
                 UpdateChat = updateChat,
+                Callback = lastStep ? callback : null,
                 StepName = stepName
             };
 

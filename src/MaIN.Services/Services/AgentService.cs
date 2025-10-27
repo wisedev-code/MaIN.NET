@@ -3,11 +3,13 @@ using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
 using MaIN.Domain.Entities.Agents.Knowledge;
+using MaIN.Domain.Models;
 using MaIN.Infrastructure.Repositories.Abstract;
 using MaIN.Services.Constants;
 using MaIN.Services.Mappers;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.ImageGenServices;
+using MaIN.Services.Services.LLMService;
 using MaIN.Services.Services.LLMService.Factory;
 using MaIN.Services.Services.Models.Commands;
 using MaIN.Services.Services.Steps.Commands;
@@ -28,7 +30,12 @@ public class AgentService(
     MaINSettings maInSettings)
     : IAgentService
 {
-    public async Task<Chat> Process(Chat chat, string agentId, Knowledge? knowledge, bool translatePrompt = false)
+    public async Task<Chat> Process(
+        Chat chat,
+        string agentId,
+        Knowledge? knowledge,
+        bool translatePrompt = false,
+        Func<LLMTokenValue, Task>? callback = null)
     {
         var agent = await agentRepository.GetAgentById(agentId);
         if (agent == null) 
@@ -46,6 +53,7 @@ public class AgentService(
                 agent,
                 knowledge,
                 chat,
+                callback,
                 async (status, id, progress, behaviour, details) =>
                 {
                     await notificationService.DispatchNotification(

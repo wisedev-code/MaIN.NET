@@ -1,5 +1,6 @@
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents.Knowledge;
+using MaIN.Domain.Models;
 using MaIN.Infrastructure.Models;
 
 namespace MaIN.Services.Services.Models;
@@ -16,4 +17,5 @@ public class StepContext
     public required Func<Chat, Task> UpdateChat { get; init; }
     public required string StepName { get; init; }
     public Knowledge? Knowledge { get; set; }
+    public Func<LLMTokenValue, Task>? Callback { get; set; }
 }
