@@ -72,6 +72,14 @@ public abstract class OpenAiCompatibleService(
             resultBuilder.Append(memoryResult!.Message.Content);
             lastMessage.MarkProcessed();
             UpdateSessionCache(chat.Id, resultBuilder.ToString(), options.CreateSession);
+            if (options.TokenCallback != null)
+            {
+                await InvokeTokenCallbackAsync(options.TokenCallback, new LLMTokenValue()
+                {
+                    Text = resultBuilder.ToString(),
+                    Type = TokenType.FullAnswer
+                });
+            }
             return CreateChatResult(chat, resultBuilder.ToString(), tokens);
         }
 
