@@ -42,7 +42,7 @@ public static class DocumentProcessor
         foreach (var sData in options.StreamData)
         {
             var path = Path.GetTempPath() + $".{sData.Key}";
-            var fileStream = new FileStream(path, FileMode.Create, FileAccess.Write);
+            await using var fileStream = new FileStream(path, FileMode.Create, FileAccess.Write);
             await sData.Value.CopyToAsync(fileStream);
             files.Add(path);
         }
