@@ -10,8 +10,7 @@ public static class ImageTools
 {
     private const string TogetherApiUrl = "https://api.together.xyz/v1/images/generations";
     private const string ImgbbApiUrl = "https://api.imgbb.com/1/upload";
-    private const string ModelGenerate = "black-forest-labs/FLUX.1-schnell";
-    private const string ModelEdit = "black-forest-labs/FLUX.1-kontext-dev";
+    private const string Model = "black-forest-labs/FLUX.1-schnell";
     private static readonly HttpClient HttpClient = new();
     private static string? TogetherApiKey => "<>";
     private static string? ImgbbApiKey => "<>";
@@ -22,14 +21,14 @@ public static class ImageTools
         {
             if (string.IsNullOrEmpty(TogetherApiKey))
                 return new { error = "Set TOGETHER_API_KEY environment variable" };
-            
+
             if (string.IsNullOrEmpty(ImgbbApiKey))
                 return new { error = "Set IMGBB_API_KEY environment variable" };
 
             // Generate image with Together AI
             var requestBody = new
             {
-                model = ModelGenerate,
+                model = Model,
                 prompt = args.Prompt,
                 width = 1024,
                 height = 768,
@@ -80,20 +79,33 @@ public static class ImageTools
         {
             if (string.IsNullOrEmpty(TogetherApiKey))
                 return new { error = "Set TOGETHER_API_KEY environment variable" };
-            
+
             if (string.IsNullOrEmpty(ImgbbApiKey))
                 return new { error = "Set IMGBB_API_KEY environment variable" };
 
             if (string.IsNullOrEmpty(args.ImageUrl))
                 return new { error = "Provide ImageUrl" };
 
-            // Edit image with Together AI
+            string imageBase64;
+            try
+            {
+                var imageBytes = await HttpClient.GetByteArrayAsync(args.ImageUrl);
+                imageBase64 = Convert.ToBase64String(imageBytes);
+            }
+            catch (Exception ex)
+            {
+                return new { error = $"Failed to download image: {ex.Message}" };
+            }
+
             var requestBody = new
             {
-                model = ModelEdit,
+                model = Model,
                 prompt = args.Prompt,
-                image_url = args.ImageUrl,
+                image = imageBase64, 
+                width = 1024,
+                height = 768,
                 steps = 4,
+                n = 1,
                 response_format = "b64_json"
             };
 
@@ -114,10 +126,9 @@ public static class ImageTools
             if (result?.Data == null || result.Data.Length == 0)
                 return new { error = "No edited image returned" };
 
-            var imageBase64 = result.Data[0].B64Json;
+            var editedImageBase64 = result.Data[0].B64Json;
 
-            // Upload to imgbb
-            var imgbbUrl = await UploadToImgbb(imageBase64);
+            var imgbbUrl = await UploadToImgbb(editedImageBase64);
             if (imgbbUrl == null)
                 return new { error = "Failed to upload to imgbb" };
 
@@ -159,24 +170,20 @@ public static class ImageTools
 
 public class TogetherImageResponse
 {
-    [JsonPropertyName("data")]
-    public TogetherImageData[]? Data { get; set; }
+    [JsonPropertyName("data")] public TogetherImageData[]? Data { get; set; }
 }
 
 public class TogetherImageData
 {
-    [JsonPropertyName("b64_json")]
-    public string B64Json { get; set; } = string.Empty;
+    [JsonPropertyName("b64_json")] public string B64Json { get; set; } = string.Empty;
 }
 
 public class ImgbbResponse
 {
-    [JsonPropertyName("data")]
-    public ImgbbData? Data { get; set; }
+    [JsonPropertyName("data")] public ImgbbData? Data { get; set; }
 }
 
 public class ImgbbData
 {
-    [JsonPropertyName("url")]
-    public string Url { get; set; } = string.Empty;
+    [JsonPropertyName("url")] public string Url { get; set; } = string.Empty;
 }

@@ -17,7 +17,6 @@
                 .Answer()
                 .Build())
             .WithTools(new ToolsConfigurationBuilder()
-                
                 .AddTool<GenerateImageArgs>(
                     "generate_image",
                     "Generate an image from a text prompt. Returns imgbb URL.",
@@ -35,7 +34,6 @@
                         required = new[] { "prompt" }
                     },
                     ImageTools.GenerateImage)
-                
                 .AddTool<EditImageArgs>(
                     "edit_image",
                     "Edit an existing image using its URL. When user says 'add X to it' or similar, use the URL from the previous generate/edit response in this conversation.",
