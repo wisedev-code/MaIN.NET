@@ -8,6 +8,7 @@ using MaIN.Services.Services.Models;
 using MaIN.Core.Hub.Utils;
 using MaIN.Domain.Entities.Agents.Knowledge;
 using MaIN.Domain.Entities.Tools;
+using MaIN.Services.Constants;
 
 namespace MaIN.Core.Hub.Contexts;
 
@@ -277,7 +278,12 @@ public class AgentContext
             LoadExistingKnowledgeIfExists();
         }
         var chat = await _agentService.GetChatByAgent(_agent.Id);
+        var systemMsg = chat.Messages.FirstOrDefault(m => m.Role == ServiceConstants.Roles.System);
         chat.Messages.Clear();
+        if (systemMsg != null)
+        {
+            chat.Messages.Add(systemMsg);
+        }
         chat.Messages.AddRange(messages);
         var result = await _agentService.Process(chat, _agent.Id, _knowledge, translate, callback);
         var messageResult = result.Messages.LastOrDefault()!;
