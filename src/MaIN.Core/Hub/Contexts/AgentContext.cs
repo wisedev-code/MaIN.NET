@@ -278,7 +278,7 @@ public class AgentContext
             LoadExistingKnowledgeIfExists();
         }
         var chat = await _agentService.GetChatByAgent(_agent.Id);
-        var systemMsg = chat.Messages.FirstOrDefault(m => m.Role == ServiceConstants.Roles.System);
+        var systemMsg = chat.Messages.FirstOrDefault(m => m.Role.Equals(ServiceConstants.Roles.System, StringComparison.InvariantCultureIgnoreCase));
         chat.Messages.Clear();
         if (systemMsg != null)
         {
