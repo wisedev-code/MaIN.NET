@@ -222,8 +222,19 @@ public abstract class OpenAiCompatibleService(
 
                 try
                 {
+                    options.ToolCallback?.Invoke(new ToolInvocation()
+                    {
+                        ToolName = toolCall.Function.Name,
+                        Arguments = toolCall.Function.Arguments,
+                        Done = false
+                    });
                     var toolResult = await executor(toolCall.Function.Arguments);
-
+                    options.ToolCallback?.Invoke(new ToolInvocation()
+                    {
+                        ToolName = toolCall.Function.Name,
+                        Arguments = toolCall.Function.Arguments,
+                        Done = true
+                    });
                     var toolMessage = new ChatMessage(ServiceConstants.Roles.Tool, toolResult)
                     {
                         ToolCallId = toolCall.Id,
@@ -752,18 +763,15 @@ public abstract class OpenAiCompatibleService(
                 ["content"] = content ?? string.Empty
             };
 
-            // Add tool calls if present (for assistant messages)
             if (msg.ToolCalls != null && msg.ToolCalls.Any())
             {
                 messageObj["tool_calls"] = msg.ToolCalls;
             }
 
-            // Add tool call id if present (for tool messages)
             if (!string.IsNullOrEmpty(msg.ToolCallId))
             {
                 messageObj["tool_call_id"] = msg.ToolCallId;
                 
-                // Tool messages also need the function name
                 if (!string.IsNullOrEmpty(msg.Name))
                 {
                     messageObj["name"] = msg.Name;

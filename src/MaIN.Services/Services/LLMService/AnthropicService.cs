@@ -10,6 +10,7 @@ using System.Text.Json;
 using System.Text;
 using LLama.Common;
 using MaIN.Domain.Configuration;
+using MaIN.Domain.Entities.Tools;
 using MaIN.Services.Services.LLMService.Utils;
 using MaIN.Services.Services.LLMService;
 
@@ -237,7 +238,19 @@ public sealed class AnthropicService(
                 try
                 {
                     var inputJson = JsonSerializer.Serialize(toolUse.Input);
+                    options.ToolCallback?.Invoke(new ToolInvocation()
+                    {
+                        ToolName = toolUse.Name,
+                        Arguments = toolUse.Input.ToString() ?? string.Empty,
+                        Done = false
+                    });
                     var toolResult = await executor(inputJson);
+                    options.ToolCallback?.Invoke(new ToolInvocation()
+                    {
+                        ToolName = toolUse.Name,
+                        Arguments = toolUse.Input.ToString() ?? string.Empty,
+                        Done = true
+                    });
 
                     toolResults.Add(new
                     {

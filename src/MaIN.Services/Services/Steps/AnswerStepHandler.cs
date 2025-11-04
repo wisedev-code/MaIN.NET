@@ -30,7 +30,8 @@ public class AnswerStepHandler(ICommandDispatcher commandDispatcher) : IStepHand
                         : KnowledgeUsage.None,
             Knowledge = context.Knowledge,
             AgentId = context.Agent.Id,
-            Callback = context.Callback
+            Callback = context.Callback,
+            ToolCallback = context.ToolCallback
         };
         
         var answerResponse = await commandDispatcher.DispatchAsync(answerCommand);

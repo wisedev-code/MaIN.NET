@@ -53,7 +53,7 @@ public class AnswerCommandHandler(
         result = command.Chat.Visual
             ? await imageGenService!.Send(command.Chat)
             : await llmService.Send(command.Chat,
-                new ChatRequestOptions { InteractiveUpdates = command.Chat.Interactive, TokenCallback = command.Callback });
+                new ChatRequestOptions { InteractiveUpdates = command.Chat.Interactive, TokenCallback = command.Callback, ToolCallback = command.ToolCallback });
 
         return result!.Message;
     }
