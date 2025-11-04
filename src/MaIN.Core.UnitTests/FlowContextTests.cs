@@ -98,7 +98,7 @@ public class FlowContextTests
             .ReturnsAsync(chat);
 
         _mockAgentService
-            .Setup(s => s.Process(It.IsAny<Chat>(), firstAgent.Id, It.IsAny<Knowledge>(), It.IsAny<bool>(), null))
+            .Setup(s => s.Process(It.IsAny<Chat>(), firstAgent.Id, It.IsAny<Knowledge>(), It.IsAny<bool>(), null, null))
             .ReturnsAsync(new Chat { 
                 Model = "test-model", 
                 Name = "test",

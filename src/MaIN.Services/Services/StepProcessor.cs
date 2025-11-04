@@ -1,5 +1,6 @@
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents.Knowledge;
+using MaIN.Domain.Entities.Tools;
 using MaIN.Domain.Models;
 using MaIN.Infrastructure.Models;
 using MaIN.Services.Services.Abstract;
@@ -25,12 +26,12 @@ public class StepProcessor : IStepProcessor
         }
     }
 
-    public async Task<Chat> ProcessSteps(
-        AgentContextDocument context,
+    public async Task<Chat> ProcessSteps(AgentContextDocument context,
         AgentDocument agent,
         Knowledge? knowledge,
         Chat chat,
-        Func<LLMTokenValue, Task>? callback,
+        Func<LLMTokenValue, Task>? callbackToken,
+        Func<ToolInvocation, Task>? callbackTool,
         Func<string, string, string?, string, string, Task> notifyProgress,
         Func<Chat, Task> updateChat,
         ILogger logger)
@@ -58,7 +59,8 @@ public class StepProcessor : IStepProcessor
                 McpConfig = context.McpConfig,
                 NotifyProgress = notifyProgress,
                 UpdateChat = updateChat,
-                Callback = lastStep ? callback : null,
+                Callback = lastStep ? callbackToken : null,
+                ToolCallback = callbackTool,
                 StepName = stepName
             };
 

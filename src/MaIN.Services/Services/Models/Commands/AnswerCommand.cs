@@ -1,5 +1,6 @@
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents.Knowledge;
+using MaIN.Domain.Entities.Tools;
 using MaIN.Domain.Models;
 using MaIN.Services.Constants;
 using MaIN.Services.Services.Models.Commands.Base;
@@ -16,4 +17,5 @@ public class AnswerCommand : BaseCommand, ICommand<Message?>
     public Knowledge? Knowledge { get; init; }
     public string CommandName => "ANSWER";
     public Func<LLMTokenValue, Task>? Callback { get; set; }
+    public Func<ToolInvocation, Task>? ToolCallback { get; set; }
 }

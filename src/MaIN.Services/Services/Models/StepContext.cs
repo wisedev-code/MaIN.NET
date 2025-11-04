@@ -1,5 +1,6 @@
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents.Knowledge;
+using MaIN.Domain.Entities.Tools;
 using MaIN.Domain.Models;
 using MaIN.Infrastructure.Models;
 
@@ -18,4 +19,5 @@ public class StepContext
     public required string StepName { get; init; }
     public Knowledge? Knowledge { get; set; }
     public Func<LLMTokenValue, Task>? Callback { get; set; }
+    public Func<ToolInvocation, Task>? ToolCallback { get; set; }
 }

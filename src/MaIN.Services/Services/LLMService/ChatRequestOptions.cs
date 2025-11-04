@@ -11,4 +11,5 @@ public class ChatRequestOptions
     public Func<LLMTokenValue, Task>? TokenCallback { get; set; }
     public List<ToolDefinition>? Tools { get; set; }
     public string? ToolChoice { get; set; }
+    public Func<ToolInvocation, Task>? ToolCallback { get; set; }
 }
