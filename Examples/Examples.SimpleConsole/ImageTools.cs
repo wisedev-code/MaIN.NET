@@ -32,7 +32,7 @@ public static class ImageTools
                 prompt = args.Prompt,
                 width = 1024,
                 height = 768,
-                steps = 4,
+                steps = 10,
                 n = 1,
                 response_format = "b64_json"
             };
@@ -85,28 +85,16 @@ public static class ImageTools
 
             if (string.IsNullOrEmpty(args.ImageUrl))
                 return new { error = "Provide ImageUrl" };
-
-            string imageBase64;
-            try
-            {
-                var imageBytes = await HttpClient.GetByteArrayAsync(args.ImageUrl);
-                imageBase64 = Convert.ToBase64String(imageBytes);
-            }
-            catch (Exception ex)
-            {
-                return new { error = $"Failed to download image: {ex.Message}" };
-            }
+            
 
             var requestBody = new
             {
-                model = Model,
-                prompt = args.Prompt,
-                image = imageBase64, 
+                model = "black-forest-labs/FLUX.1-kontext-dev",
+                prompt = "make this dragon with cat head",
+                image_url = "https://ik.imagekit.io/g3m8563jj/together-image.png?updatedAt=1762246376998", 
                 width = 1024,
                 height = 768,
-                steps = 4,
-                n = 1,
-                response_format = "b64_json"
+                //response_format = "b64_json"
             };
 
             var json = JsonSerializer.Serialize(requestBody);

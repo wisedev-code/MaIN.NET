@@ -11,8 +11,8 @@
         Console.WriteLine();
 
         var context = await AIHub.Agent()
-            .WithBackend(BackendType.Anthropic)
-            .WithModel("claude-sonnet-4-5-20250929")
+            .WithBackend(BackendType.GroqCloud)
+            .WithModel("meta-llama/llama-4-maverick-17b-128e-instruct")
             .WithSteps(StepBuilder.Instance
                 .Answer()
                 .Build())
