@@ -2,7 +2,7 @@ using System.Text.Json;
 using MaIN.Core.Hub;
 using MaIN.Domain.Exceptions;
 
-namespace Examples;
+namespace Examples.Chat;
 
 public class ChatFromExistingExample : IExample
 {

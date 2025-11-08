@@ -1,24 +1,26 @@
-using LLama.Common;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Services.Services.Abstract;
+using MaIN.Services.Services.LLMService.Utils;
 using MaIN.Services.Services.Models;
 using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.Google;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using ModelContextProtocol.Client;
+
 #pragma warning disable SKEXP0001
 #pragma warning disable SKEXP0070
 
 namespace MaIN.Services.Services;
 
-public class McpService(MaINSettings settings) : IMcpService
+public class McpService(MaINSettings settings, IServiceProvider serviceProvider) : IMcpService
 {
-    public async Task<McpResult> Prompt(Mcp config, string prompt)
+    public async Task<McpResult> Prompt(Mcp config, List<Message> messageHistory)
     {
         await using var mcpClient = await McpClientFactory.CreateAsync(
             new StdioClientTransport(
-                new StdioClientTransportOptions()
+                new StdioClientTransportOptions
                 {
                     Command = config.Command,
                     Arguments = config.Arguments,
@@ -32,14 +34,32 @@ public class McpService(MaINSettings settings) : IMcpService
         var tools = await mcpClient.ListToolsAsync();
         kernel.Plugins.AddFromFunctions("Tools", tools.Select(x => x.AsKernelFunction()));
 
-        var res = await kernel.InvokePromptAsync(prompt,new KernelArguments(promptSettings));
+        var chatHistory = new ChatHistory();
+        foreach (var message in messageHistory)
+        {
+            var role = message.Role switch
+            {
+                nameof(AuthorRole.User) => AuthorRole.User,
+                nameof(AuthorRole.Assistant) => AuthorRole.Assistant,
+                nameof(AuthorRole.System) => AuthorRole.System,
+                _ => AuthorRole.User
+            };
+            chatHistory.AddMessage(role, message.Content);
+        }
 
-        return new McpResult()
+        var chatService = kernel.GetRequiredService<IChatCompletionService>();
+    
+        var result = await chatService.GetChatMessageContentsAsync(
+            chatHistory, 
+            promptSettings, 
+            kernel);
+
+        return new McpResult
         {
             CreatedAt = DateTime.Now,
-            Message = new Message()
+            Message = new Message
             {
-                Content = res.ToString(),
+                Content = result.Last().Content!,
                 Role = nameof(AuthorRole.Assistant),
                 Type = MessageType.CloudLLM
             },
@@ -53,22 +73,43 @@ public class McpService(MaINSettings settings) : IMcpService
         {
             case BackendType.OpenAi:
                 kernelBuilder.Services.AddOpenAIChatCompletion(model, GetOpenAiKey() ?? throw new ArgumentNullException(nameof(GetOpenAiKey)));
+                return new OpenAIPromptExecutionSettings
+                {
+                    FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(options: new() { RetainArgumentTypes = true })
+                };
+
+            case BackendType.Gemini:
+                kernelBuilder.Services.AddGoogleAIGeminiChatCompletion(model, GetGeminiKey() ?? throw new ArgumentNullException(nameof(GetGeminiKey)));
+                return new GeminiPromptExecutionSettings
+                {
+                    ModelId = model,
+                    FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(options: new() { RetainArgumentTypes = true })
+                };
+
+            case BackendType.DeepSeek:
+                throw new NotSupportedException("DeepSeek models does not support MCP integration.");
+
+            case BackendType.GroqCloud:
+                kernelBuilder.Services.AddOpenAIChatCompletion(
+                    modelId: model,
+                    apiKey: GetGroqCloudKey() ?? throw new ArgumentNullException(nameof(GetGroqCloudKey)),
+                    endpoint: new Uri("https://api.groq.com/openai/v1"));
+
                 return new OpenAIPromptExecutionSettings()
                 {
                     FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(options: new() { RetainArgumentTypes = true })
                 };
-            case BackendType.Gemini:
-                kernelBuilder.Services.AddGoogleAIGeminiChatCompletion(model, GetGeminiKey() ?? throw new ArgumentNullException(nameof(GetGeminiKey)));
-                return new GeminiPromptExecutionSettings()
+
+            case BackendType.Anthropic:
+                kernelBuilder.AddAnthropicChatCompletion(serviceProvider, model, GetAnthropicKey() ?? throw new ArgumentNullException(nameof(GetAnthropicKey)));
+                return new PromptExecutionSettings
                 {
-                    ToolCallBehavior = GeminiToolCallBehavior.AutoInvokeKernelFunctions,
-                    ModelId = model,
-                    FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(options: new() { RetainArgumentTypes = true })
+                    ExtensionData = new Dictionary<string, object>{ ["max_tokens"] = 4096 }
                 };
-            case BackendType.DeepSeek:
-                throw new NotSupportedException("DeepSeek models does not support MCP integration.");
+
             case BackendType.Self:
                 throw new NotSupportedException("Self backend (local models) does not support MCP integration.");
+
             default:
                 throw new ArgumentOutOfRangeException(nameof(backendType));
         }
@@ -78,4 +119,8 @@ public class McpService(MaINSettings settings) : IMcpService
         => settings.OpenAiKey ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY");
     string? GetGeminiKey()
         => settings.GeminiKey ?? Environment.GetEnvironmentVariable("GEMINI_API_KEY");
+    string? GetGroqCloudKey()
+        => settings.GroqCloudKey ?? Environment.GetEnvironmentVariable("GROQ_API_KEY");
+    string? GetAnthropicKey()
+        => settings.AnthropicKey ?? Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY");
 }

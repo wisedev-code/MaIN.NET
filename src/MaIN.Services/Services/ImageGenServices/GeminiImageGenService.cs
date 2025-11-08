@@ -20,10 +20,14 @@ internal class GeminiImageGenService(IHttpClientFactory httpClientFactory, MaINS
         string apiKey = _settings.GeminiKey ?? Environment.GetEnvironmentVariable("GEMINI_API_KEY")
             ?? throw new InvalidOperationException("Gemini API key is not configured");
 
+        if (string.IsNullOrEmpty(chat.Model))
+        {
+            chat.Model = Models.IMAGEN_GENERATE;
+        }
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
         var requestBody = new
         {
-            model = Models.IMAGEN_GENERATE,
+            model = chat.Model,
             prompt = BuildPromptFromChat(chat),
             response_format = "b64_json", // necessary for gemini api
             size = ServiceConstants.Defaults.ImageSize,
@@ -74,7 +78,7 @@ internal class GeminiImageGenService(IHttpClientFactory httpClientFactory, MaINS
 
     private struct Models
     {
-        public const string IMAGEN_GENERATE = "imagen-3.0-generate-002";
+        public const string IMAGEN_GENERATE = "imagen-4.0-fast-generate-001";
     }
 }
 

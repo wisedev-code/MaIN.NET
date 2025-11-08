@@ -1,4 +1,3 @@
-using System.Net.Mime;
 using MaIN.Core;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Models;
@@ -65,6 +64,18 @@ try
                 apiKeyVariable = "DEEPSEEK_API_KEY";
                 apiName = "Deepseek";
                 break;
+
+            case "groqcloud":
+                Utils.GroqCloud = true;
+                apiKeyVariable = "GROQ_API_KEY";
+                apiName = "GroqCloud";
+                break;
+
+            case "anthropic":
+                Utils.Anthropic = true;
+                apiKeyVariable = "ANTHROPIC_API_KEY";
+                apiName = "Anthropic";
+                break;
         }
 
         var key = Environment.GetEnvironmentVariable(apiKeyVariable);
@@ -101,6 +112,20 @@ else if (Utils.DeepSeek)
     builder.Services.AddMaIN(builder.Configuration, settings =>
     {
         settings.BackendType = BackendType.DeepSeek;
+    });
+}
+else if (Utils.GroqCloud)
+{
+    builder.Services.AddMaIN(builder.Configuration, settings =>
+    {
+        settings.BackendType = BackendType.GroqCloud;
+    });
+}
+else if(Utils.Anthropic)
+{
+    builder.Services.AddMaIN(builder.Configuration, settings =>
+    {
+        settings.BackendType = BackendType.Anthropic;
     });
 }
 else

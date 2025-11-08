@@ -1,6 +1,7 @@
 
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
+using MaIN.Services.Constants;
 using MaIN.Services.Services;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
@@ -37,6 +38,11 @@ public class McpContext
             throw new InvalidOperationException("MCP config not found");
         }
         
-        return await _mcpService.Prompt(_mcpConfig!, prompt);
+        return await _mcpService.Prompt(_mcpConfig!, [new Message()
+        {
+            Content = prompt,
+            Role = ServiceConstants.Roles.User,
+            Type = MessageType.CloudLLM
+        }]);
     }
 }

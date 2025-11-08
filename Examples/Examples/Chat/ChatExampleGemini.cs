@@ -1,7 +1,7 @@
 using Examples.Utils;
 using MaIN.Core.Hub;
 
-namespace Examples;
+namespace Examples.Chat;
 
 public class ChatExampleGemini : IExample
 {
@@ -11,7 +11,7 @@ public class ChatExampleGemini : IExample
         Console.WriteLine("(Gemini) ChatExample is running!");
 
         await AIHub.Chat()
-            .WithModel("gemini-2.0-flash")
+            .WithModel("gemini-2.5-flash")
             .WithMessage("Is the killer whale the smartest animal?")
             .CompleteAsync(interactive: true);
     }

@@ -1,6 +1,6 @@
 using MaIN.Core.Hub;
 
-namespace Examples;
+namespace Examples.Chat;
 
 public class ChatWithFilesExample : IExample
 {
@@ -17,6 +17,7 @@ public class ChatWithFilesExample : IExample
             .WithModel("gemma3:4b")
             .WithMessage("You have 2 documents in memory. Whats the difference of work between Galileo and Copernicus?. Give answer based on the documents.")
             .WithFiles(files)
+            .DisableCache()
             .CompleteAsync();
         
         Console.WriteLine(result.Message.Content);

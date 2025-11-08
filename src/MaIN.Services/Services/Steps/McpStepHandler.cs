@@ -20,7 +20,7 @@ public class McpStepHandler(ICommandDispatcher commandDispatcher) : IStepHandler
             throw new MissingFieldException("MCP config is missing");
         }
         
-        await context.NotifyProgress("true", context.Agent.Id, null, context.Agent.CurrentBehaviour);
+        await context.NotifyProgress("true", context.Agent.Id, null, context.Agent.CurrentBehaviour, StepName);
         var mcpCommand = new McpCommand()
         {
             Chat = StepHandlerExtensions.EnsureUserMessageReadiness(context.Chat), 

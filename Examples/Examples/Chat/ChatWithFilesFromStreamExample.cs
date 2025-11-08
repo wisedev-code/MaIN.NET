@@ -1,6 +1,6 @@
 ﻿using MaIN.Core.Hub;
 
-namespace Examples;
+namespace Examples.Chat;
 
 //TODO: this will be moved to test cases. It's same as normal files but I want to test streams
 public class ChatWithFilesFromStreamExample : IExample

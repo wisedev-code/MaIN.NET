@@ -1,10 +1,10 @@
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
+using MaIN.Domain.Entities.Tools;
 using MaIN.Domain.Exceptions;
 using MaIN.Domain.Models;
 using MaIN.Services;
 using MaIN.Services.Constants;
-using MaIN.Services.Dtos;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
 using FileInfo = MaIN.Domain.Entities.FileInfo;
@@ -49,6 +49,12 @@ public class ChatContext
         return this;
     }
 
+    public ChatContext WithTools(ToolsConfiguration toolsConfiguration)
+    {
+        _chat.ToolsConfiguration = toolsConfiguration;
+        return this;
+    }
+    
     public ChatContext WithMemoryParams(MemoryParams memoryParams)
     {
         _chat.MemoryParams = memoryParams;
@@ -62,12 +68,26 @@ public class ChatContext
         return this;
     }
 
+    public ChatContext Speak(TextToSpeechParams textToSpeechParams)
+    {
+        _chat.Visual = false;
+        _chat.TextToSpeechParams = textToSpeechParams;
+        
+        return this;
+    }
+
     public ChatContext WithBackend(BackendType backendType)
     {
         _chat.Backend = backendType;
         return this;
     }
 
+    public ChatContext WithMessages(IEnumerable<Message> messages)
+    {
+        _chat.Messages.AddRange(messages);
+        return this;
+    }
+    
     public ChatContext WithMessage(string content)
     {
         var message = new Message
@@ -81,7 +101,6 @@ public class ChatContext
         _chat.Messages.Add(message);
         return this;
     }
-    
     
     public ChatContext WithMessage(string content, byte[] image)
     {
@@ -152,6 +171,7 @@ public class ChatContext
     public ChatContext EnableVisual()
     {
         _chat.Visual = true;
+        _chat.TextToSpeechParams = null;
         return this;
     }
 

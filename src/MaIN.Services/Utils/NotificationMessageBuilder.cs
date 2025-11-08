@@ -8,14 +8,29 @@ public static class NotificationMessageBuilder
         string agentId, 
         string isProcessing, 
         string? progress, 
-        string behaviour)
+        string behaviour,
+        string details)
     {
         return new Dictionary<string, string>
         {
             { "AgentId", agentId },
             { "IsProcessing", isProcessing },
-            { "Progress", progress ?? "" },
-            { "Behaviour", behaviour }
+            { "State", progress ?? "" },
+            { "Behaviour", behaviour },
+            { "Details", details }
+        };
+    }
+    
+    public static Dictionary<string, string> CreateActorKnowledgeStepProgress(
+        string agentId, 
+        List<string>? itemNamesAndTasks,
+        string model)
+    {
+        return new Dictionary<string, string>
+        {
+            { "AgentId", agentId },
+            { "Items", string.Join('+', itemNamesAndTasks!) },
+            { "Model", model},
         };
     }
     
@@ -33,12 +48,15 @@ public static class NotificationMessageBuilder
         };
     }
 
-    public static Dictionary<string, string> ProcessingStarted(string agentId, string behaviour) =>
-        CreateActorProgress(agentId, "true", null, behaviour);
+    public static Dictionary<string, string> ProcessingTools(string agentId, string behaviour, string details) =>
+        CreateActorProgress(agentId, "true", "TOOL", behaviour, details);
+    
+    public static Dictionary<string, string> ProcessingStarted(string agentId, string behaviour, string details) =>
+        CreateActorProgress(agentId, "true", "START", behaviour, details);
 
-    public static Dictionary<string, string> ProcessingComplete(string agentId, string behaviour) =>
-        CreateActorProgress(agentId, "false", "DONE", behaviour);
+    public static Dictionary<string, string> ProcessingComplete(string agentId, string behaviour, string details) =>
+        CreateActorProgress(agentId, "false", "DONE", behaviour, details);
 
-    public static Dictionary<string, string> ProcessingFailed(string agentId, string behaviour) =>
-        CreateActorProgress(agentId, "false", "FAILED", behaviour);
+    public static Dictionary<string, string> ProcessingFailed(string agentId, string behaviour, string details) =>
+        CreateActorProgress(agentId, "false", "FAILED", behaviour, details);
 }

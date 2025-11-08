@@ -8,6 +8,7 @@ using Microsoft.KernelMemory;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using MaIN.Domain.Entities;
+using MaIN.Services.Utils;
 
 namespace MaIN.Services.Services.LLMService;
 
@@ -21,7 +22,10 @@ public sealed class GeminiService(
     : OpenAiCompatibleService(notificationService, httpClientFactory, memoryFactory, memoryService, logger)
 {
     private readonly MaINSettings _settings = settings ?? throw new ArgumentNullException(nameof(settings));
-    private readonly IHttpClientFactory _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
+
+    private readonly IHttpClientFactory _httpClientFactory =
+        httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
+
     private readonly IMemoryService _memoryService = memoryService;
     private readonly IMemoryFactory _memoryFactory = memoryFactory;
 
@@ -42,10 +46,10 @@ public sealed class GeminiService(
         var modelsResponse = JsonSerializer.Deserialize<GeminiModelsResponse>(responseJson);
 
         return modelsResponse?.Models?
-                    .Where(m => m.Name!.StartsWith("models/gemini", StringComparison.InvariantCultureIgnoreCase))
-                    .Select(m => m.Name![7..]) // remove "models/" part => get baseModelId
-                    .ToArray()
-                ?? [];
+                   .Where(m => m.Name!.StartsWith("models/gemini", StringComparison.InvariantCultureIgnoreCase))
+                   .Select(m => m.Name![7..]) // remove "models/" part => get baseModelId
+                   .ToArray()
+               ?? [];
     }
 
     protected override string GetApiKey()
@@ -56,7 +60,8 @@ public sealed class GeminiService(
 
     protected override void ValidateApiKey()
     {
-        if (string.IsNullOrEmpty(_settings.GeminiKey) && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("GEMINI_API_KEY")))
+        if (string.IsNullOrEmpty(_settings.GeminiKey) &&
+            string.IsNullOrEmpty(Environment.GetEnvironmentVariable("GEMINI_API_KEY")))
         {
             throw new InvalidOperationException("Gemini Key not configured");
         }
@@ -72,9 +77,17 @@ public sealed class GeminiService(
 
         var kernel = _memoryFactory.CreateMemoryWithGemini(GetApiKey(), chat.MemoryParams);
 
-        await _memoryService.ImportDataToMemory(kernel, memoryOptions, cancellationToken);
+        await _memoryService.ImportDataToMemory((kernel, null), memoryOptions, cancellationToken);
 
         var userQuery = chat.Messages.Last().Content;
+        if (chat.MemoryParams.Grammar != null)
+        {
+            var jsonGrammarConverter = new GrammarToJsonConverter();
+            var jsonGrammar = jsonGrammarConverter.ConvertToJson(chat.MemoryParams.Grammar);
+            userQuery =
+                $"{userQuery} | For your next response only, please respond using exactly the following JSON format: \n{jsonGrammar}\n. Do not include any explanations, code blocks, or additional content. After this single JSON response, resume your normal conversational style.";
+        }
+
         var retrievedContext = await kernel.AskAsync(userQuery, cancellationToken: cancellationToken);
         chat.Messages.Last().MarkProcessed();
         await kernel.DeleteIndexAsync(cancellationToken: cancellationToken);
@@ -84,12 +97,10 @@ public sealed class GeminiService(
 
 file class GeminiModelsResponse
 {
-    [JsonPropertyName("models")]
-    public List<GeminiModel>? Models { get; set; }
+    [JsonPropertyName("models")] public List<GeminiModel>? Models { get; set; }
 }
 
 file class GeminiModel
 {
-    [JsonPropertyName("name")]
-    public string? Name { get; set; }
+    [JsonPropertyName("name")] public string? Name { get; set; }
 }

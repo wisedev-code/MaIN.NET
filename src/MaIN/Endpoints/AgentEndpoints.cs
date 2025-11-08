@@ -19,7 +19,7 @@ public static class AgentEndpoints
                 string agentId,
                 ChatDto request) =>
             {
-                var chat = await agentService.Process(request.ToDomain(), agentId);
+                var chat = await agentService.Process(request.ToDomain(), agentId, null);
                 context.Response.ContentType = "application/json";
                 await context.Response.WriteAsync(JsonSerializer.Serialize(chat?.ToDto()));
             })
