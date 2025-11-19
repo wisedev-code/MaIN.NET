@@ -1,4 +1,6 @@
-﻿namespace MaIN.Domain.Entities;
+﻿using MaIN.Domain.Models;
+
+namespace MaIN.Domain.Entities;
 
 public class MemoryParams
 {
@@ -17,6 +19,6 @@ public class MemoryParams
 
     public bool MultiModalMode { get; set; } = false;
     
-    public string? Grammar { get; set; }
+    public Grammar? Grammar { get; set; }
     public bool IncludeQuestionSource { get; set; } = false;
 }

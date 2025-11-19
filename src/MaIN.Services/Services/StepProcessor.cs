@@ -1,5 +1,7 @@
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents.Knowledge;
+using MaIN.Domain.Entities.Tools;
+using MaIN.Domain.Models;
 using MaIN.Infrastructure.Models;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
@@ -24,19 +26,23 @@ public class StepProcessor : IStepProcessor
         }
     }
 
-    public async Task<Chat> ProcessSteps( //TODO try without delegates
-        AgentContextDocument context,
+    public async Task<Chat> ProcessSteps(AgentContextDocument context,
         AgentDocument agent,
         Knowledge? knowledge,
         Chat chat,
-        Func<string, string, string?, string, Task> notifyProgress,
+        Func<LLMTokenValue, Task>? callbackToken,
+        Func<ToolInvocation, Task>? callbackTool,
+        Func<string, string, string?, string, string, Task> notifyProgress,
         Func<Chat, Task> updateChat,
         ILogger logger)
     {
         Message redirectMessage = chat.Messages.Last();
+        var stepCount = 0;
         var tagsToReplaceWithFilter = new List<string>();
         foreach (var step in context.Steps!)
         {
+            stepCount++;
+            var lastStep = stepCount.Equals(context.Steps.Count);
             logger.LogInformation("Processing step: {Step} on agent {agent}", step, agent.Name);
             
             var (stepName, arguments) = ParseStep(step);
@@ -53,6 +59,8 @@ public class StepProcessor : IStepProcessor
                 McpConfig = context.McpConfig,
                 NotifyProgress = notifyProgress,
                 UpdateChat = updateChat,
+                Callback = lastStep ? callbackToken : null,
+                ToolCallback = callbackTool,
                 StepName = stepName
             };
 

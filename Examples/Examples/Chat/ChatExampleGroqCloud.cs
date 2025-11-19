@@ -1,8 +1,7 @@
 using Examples.Utils;
 using MaIN.Core.Hub;
-using MaIN.Domain.Configuration;
 
-namespace Examples;
+namespace Examples.Chat;
 
 public class ChatExampleGroqCloud : IExample
 {

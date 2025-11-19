@@ -1,4 +1,5 @@
 using MaIN.Domain.Configuration;
+using MaIN.Domain.Entities.Tools;
 
 namespace MaIN.Domain.Entities.Agents;
 
@@ -16,4 +17,5 @@ public class Agent
     public BackendType? Backend { get; set; }
     public Dictionary<string, string> Behaviours { get; set; } = [];
     public required string CurrentBehaviour { get; set; }
+    public ToolsConfiguration? ToolsConfiguration { get; set; }
 }

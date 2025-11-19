@@ -1,5 +1,6 @@
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
+using MaIN.Domain.Entities.Tools;
 using MaIN.Domain.Models;
 using MaIN.Services;
 using MaIN.Services.Constants;
@@ -47,6 +48,12 @@ public class ChatContext
         return this;
     }
 
+    public ChatContext WithTools(ToolsConfiguration toolsConfiguration)
+    {
+        _chat.ToolsConfiguration = toolsConfiguration;
+        return this;
+    }
+    
     public ChatContext WithMemoryParams(MemoryParams memoryParams)
     {
         _chat.MemoryParams = memoryParams;
@@ -74,6 +81,12 @@ public class ChatContext
         return this;
     }
 
+    public ChatContext WithMessages(IEnumerable<Message> messages)
+    {
+        _chat.Messages.AddRange(messages);
+        return this;
+    }
+    
     public ChatContext WithMessage(string content)
     {
         var message = new Message
@@ -87,7 +100,6 @@ public class ChatContext
         _chat.Messages.Add(message);
         return this;
     }
-    
     
     public ChatContext WithMessage(string content, byte[] image)
     {

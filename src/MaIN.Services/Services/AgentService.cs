@@ -3,6 +3,8 @@ using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
 using MaIN.Domain.Entities.Agents.Knowledge;
+using MaIN.Domain.Entities.Tools;
+using MaIN.Domain.Models;
 using MaIN.Infrastructure.Repositories.Abstract;
 using MaIN.Services.Constants;
 using MaIN.Services.Mappers;
@@ -28,7 +30,13 @@ public class AgentService(
     MaINSettings maInSettings)
     : IAgentService
 {
-    public async Task<Chat> Process(Chat chat, string agentId, Knowledge? knowledge, bool translatePrompt = false)
+    public async Task<Chat> Process(
+        Chat chat,
+        string agentId,
+        Knowledge? knowledge,
+        bool translatePrompt = false,
+        Func<LLMTokenValue, Task>? callbackToken = null,
+        Func<ToolInvocation, Task>? callbackTool = null)
     {
         var agent = await agentRepository.GetAgentById(agentId);
         if (agent == null) 
@@ -37,7 +45,7 @@ public class AgentService(
             throw new ArgumentException("Agent context not found.");
 
         await notificationService.DispatchNotification(
-            NotificationMessageBuilder.ProcessingStarted(agentId, agent.CurrentBehaviour), "ReceiveAgentUpdate");
+            NotificationMessageBuilder.ProcessingStarted(agentId, agent.CurrentBehaviour, "STARTED"), "ReceiveAgentUpdate");
 
         try
         {
@@ -46,10 +54,12 @@ public class AgentService(
                 agent,
                 knowledge,
                 chat,
-                async (status, id, progress, behaviour) =>
+                callbackToken,
+                callbackTool,
+                async (status, id, progress, behaviour, details) =>
                 {
                     await notificationService.DispatchNotification(
-                        NotificationMessageBuilder.CreateActorProgress(id, status, progress, behaviour), "ReceiveAgentUpdate"); //TODO prepare static lookup for magic string :) 
+                        NotificationMessageBuilder.CreateActorProgress(id, status, progress, behaviour, details), "ReceiveAgentUpdate"); //TODO prepare static lookup for magic string :) 
                 },
                 async c => await chatRepository.UpdateChat(c.Id, c.ToDocument()),
                 logger
@@ -58,7 +68,7 @@ public class AgentService(
             await agentRepository.UpdateAgent(agent.Id, agent);
 
             await notificationService.DispatchNotification(
-                NotificationMessageBuilder.ProcessingComplete(agentId, agent.CurrentBehaviour), "ReceiveAgentUpdate");
+                NotificationMessageBuilder.ProcessingComplete(agentId, agent.CurrentBehaviour, "COMPLETED"), "ReceiveAgentUpdate");
 
             //normalize message before returning it to user
             chat.Messages.Last().Content = Replace(
@@ -69,10 +79,10 @@ public class AgentService(
             
             return chat;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             await notificationService.DispatchNotification(
-                NotificationMessageBuilder.ProcessingFailed(agentId, agent.CurrentBehaviour), "ReceiveAgentUpdate");
+                NotificationMessageBuilder.ProcessingFailed(agentId, agent.CurrentBehaviour, ex.Message), "ReceiveAgentUpdate");
             throw;
         }
     }
@@ -86,6 +96,7 @@ public class AgentService(
             Model = agent.Model,
             Name = agent.Name,
             Visual = agent.Model == ImageGenService.LocalImageModels.FLUX,
+            ToolsConfiguration = agent.ToolsConfiguration,
             InterferenceParams = inferenceParams ?? new InferenceParams(),
             MemoryParams = memoryParams ?? new MemoryParams(),
             Messages = new List<Message>(),
@@ -94,6 +105,7 @@ public class AgentService(
             Type = flow ? ChatType.Flow : ChatType.Rag,
         };
 
+        chat.Properties.AddProperty(ServiceConstants.Properties.AgentIdProperty, agent.Id);
         if (disableCache)
         {
             chat.Properties.AddProperty(ServiceConstants.Properties.DisableCacheProperty);

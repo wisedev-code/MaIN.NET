@@ -1,8 +1,9 @@
-using LLama.Sampling;
 using MaIN.Core.Hub;
 using MaIN.Domain.Entities;
+using MaIN.Domain.Models;
+using Grammar = MaIN.Domain.Models.Grammar;
 
-namespace Examples;
+namespace Examples.Chat;
 
 public class ChatCustomGrammarExample : IExample
 {
@@ -10,17 +11,17 @@ public class ChatCustomGrammarExample : IExample
     {
         Console.WriteLine("ChatExample with grammar is running!");
 
-        var personGrammar = """
-                            root ::= person
-                            person ::= "{" ws "\"name\":" ws name "," ws "\"age\":" ws age "," ws "\"city\":" ws city ws "}"
-                            name ::= "\"" [A-Za-z ]+ "\""
-                            age ::= [1-9] | [1-9][0-9]
-                            city ::= "\"" [A-Za-z ]+ "\""
-                            ws ::= [ \t]*
-                            """;
+        var personGrammar = new Grammar("""
+                                        root ::= person
+                                        person ::= "{" ws "\"name\":" ws name "," ws "\"age\":" ws age "," ws "\"city\":" ws city ws "}"
+                                        name ::= "\"" [A-Za-z ]+ "\""
+                                        age ::= [1-9] | [1-9][0-9]
+                                        city ::= "\"" [A-Za-z ]+ "\""
+                                        ws ::= [ \t]*
+                                        """, GrammarFormat.GBNF);
 
         await AIHub.Chat()
-            .WithInferenceParams(new InferenceParams()
+            .WithInferenceParams(new InferenceParams
             {
                 Grammar = personGrammar
             })

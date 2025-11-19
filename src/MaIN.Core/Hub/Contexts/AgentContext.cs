@@ -7,6 +7,8 @@ using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
 using MaIN.Core.Hub.Utils;
 using MaIN.Domain.Entities.Agents.Knowledge;
+using MaIN.Domain.Entities.Tools;
+using MaIN.Services.Constants;
 
 namespace MaIN.Core.Hub.Contexts;
 
@@ -51,7 +53,7 @@ public class AgentContext
         _agent.Id = id;
         return this;
     }
-
+    
     public string GetAgentId() => _agent.Id;
     
     public Agent GetAgent() => _agent;
@@ -187,6 +189,12 @@ public class AgentContext
         return this;
     }
 
+    public AgentContext WithTools(ToolsConfiguration toolsConfiguration)
+    {
+        _agent.ToolsConfiguration = toolsConfiguration;
+        return this;
+    }
+    
     internal void LoadExistingKnowledgeIfExists()
     {
         _knowledge ??= new Knowledge(_agent);
@@ -219,7 +227,11 @@ public class AgentContext
         };
     }
     
-    public async Task<ChatResult> ProcessAsync(string message, bool translate = false)
+    public async Task<ChatResult> ProcessAsync(
+        string message,
+        bool translate = false,
+        Func<LLMTokenValue, Task>? tokenCallback = null,
+        Func<ToolInvocation, Task>? toolCallback = null)
     {
         if (_knowledge == null)
         {
@@ -230,10 +242,10 @@ public class AgentContext
         {
             Content = message,
             Role = "User",
-            Type = MessageType.LocalLLM, //TODO this need an improvement - we dont know if the message is from local or cloud
+            Type = MessageType.LocalLLM,
             Time = DateTime.Now
         });
-        var result = await _agentService.Process(chat, _agent.Id, _knowledge, translate);
+        var result = await _agentService.Process(chat, _agent.Id, _knowledge, translate, tokenCallback, toolCallback);
         var messageResult = result.Messages.LastOrDefault()!;
         return new ChatResult()
         {
@@ -244,7 +256,10 @@ public class AgentContext
         };
     }
     
-    public async Task<ChatResult> ProcessAsync(Message message, bool translate = false)
+    public async Task<ChatResult> ProcessAsync(Message message, 
+        bool translate = false,
+        Func<LLMTokenValue, Task>? tokenCallback = null,
+        Func<ToolInvocation, Task>? toolCallback = null)
     {
         if (_knowledge == null)
         {
@@ -252,7 +267,36 @@ public class AgentContext
         }
         var chat = await _agentService.GetChatByAgent(_agent.Id);
         chat.Messages.Add(message);
-        var result = await _agentService.Process(chat, _agent.Id, _knowledge, translate);
+        var result = await _agentService.Process(chat, _agent.Id, _knowledge, translate, tokenCallback, toolCallback);;
+        var messageResult = result.Messages.LastOrDefault()!;
+        return new ChatResult()
+        {
+            Done = true,
+            Model = result.Model,
+            Message = messageResult,
+            CreatedAt = DateTime.Now
+        };
+    }
+    
+    public async Task<ChatResult> ProcessAsync(
+        IEnumerable<Message> messages,
+        bool translate = false,
+        Func<LLMTokenValue, Task>? tokenCallback = null,
+        Func<ToolInvocation, Task>? toolCallback = null)
+    {
+        if (_knowledge == null)
+        {
+            LoadExistingKnowledgeIfExists();
+        }
+        var chat = await _agentService.GetChatByAgent(_agent.Id);
+        var systemMsg = chat.Messages.FirstOrDefault(m => m.Role.Equals(ServiceConstants.Roles.System, StringComparison.InvariantCultureIgnoreCase));
+        chat.Messages.Clear();
+        if (systemMsg != null)
+        {
+            chat.Messages.Add(systemMsg);
+        }
+        chat.Messages.AddRange(messages);
+        var result = await _agentService.Process(chat, _agent.Id, _knowledge, translate, tokenCallback, toolCallback);;
         var messageResult = result.Messages.LastOrDefault()!;
         return new ChatResult()
         {
