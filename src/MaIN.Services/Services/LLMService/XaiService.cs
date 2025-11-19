@@ -1,15 +1,15 @@
-using System.Text;
-using MaIN.Domain.Configuration;
-using MaIN.Domain.Entities;
-using MaIN.Services.Services.Abstract;
-using Microsoft.Extensions.Logging;
-using MaIN.Services.Services.LLMService.Memory;
+﻿using MaIN.Domain.Configuration;
 using MaIN.Services.Constants;
 using MaIN.Services.Services.Models;
+using MaIN.Domain.Entities;
+using MaIN.Services.Services.Abstract;
+using MaIN.Services.Services.LLMService.Memory;
+using Microsoft.Extensions.Logging;
+using System.Text;
 
 namespace MaIN.Services.Services.LLMService;
 
-public sealed class GroqCloudService(
+public sealed class XaiService(
     MaINSettings settings,
     INotificationService notificationService,
     IHttpClientFactory httpClientFactory,
@@ -20,21 +20,21 @@ public sealed class GroqCloudService(
 {
     private readonly MaINSettings _settings = settings ?? throw new ArgumentNullException(nameof(settings));
 
-    protected override string HttpClientName => ServiceConstants.HttpClients.GroqCloudClient;
-    protected override string ChatCompletionsUrl => ServiceConstants.ApiUrls.GroqCloudOpenAiChatCompletions;
-    protected override string ModelsUrl => ServiceConstants.ApiUrls.GroqCloudModels;
+    protected override string HttpClientName => ServiceConstants.HttpClients.XaiClient;
+    protected override string ChatCompletionsUrl => ServiceConstants.ApiUrls.XaiOpenAiChatCompletions;
+    protected override string ModelsUrl => ServiceConstants.ApiUrls.XaiModels;
 
     protected override string GetApiKey()
     {
-        return _settings.GroqCloudKey ?? Environment.GetEnvironmentVariable("GROQ_API_KEY") ??
-            throw new InvalidOperationException("GroqCloud Key not configured");
+        return _settings.XaiKey ?? Environment.GetEnvironmentVariable("XAI_API_KEY") ??
+            throw new InvalidOperationException("xAI Key not configured");
     }
 
     protected override void ValidateApiKey()
     {
-        if (string.IsNullOrEmpty(_settings.GroqCloudKey) && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("GROQ_API_KEY")))
+        if (string.IsNullOrEmpty(_settings.XaiKey) && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("XAI_API_KEY")))
         {
-            throw new InvalidOperationException("GroqCloud Key not configured");
+            throw new InvalidOperationException("xAI Key not configured");
         }
     }
 
