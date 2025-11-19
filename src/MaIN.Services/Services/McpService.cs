@@ -107,6 +107,16 @@ public class McpService(MaINSettings settings, IServiceProvider serviceProvider)
                     ExtensionData = new Dictionary<string, object>{ ["max_tokens"] = 4096 }
                 };
 
+            case BackendType.Xai:
+                kernelBuilder.Services.AddOpenAIChatCompletion(
+                    modelId: model,
+                    apiKey: GetXaiKey() ?? throw new ArgumentNullException(nameof(GetXaiKey)),
+                    endpoint: new Uri("https://api.x.ai/v1"));
+                return new OpenAIPromptExecutionSettings()
+                {
+                    FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(options: new() { RetainArgumentTypes = true })
+                };
+
             case BackendType.Self:
                 throw new NotSupportedException("Self backend (local models) does not support MCP integration.");
 
@@ -123,4 +133,6 @@ public class McpService(MaINSettings settings, IServiceProvider serviceProvider)
         => settings.GroqCloudKey ?? Environment.GetEnvironmentVariable("GROQ_API_KEY");
     string? GetAnthropicKey()
         => settings.AnthropicKey ?? Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY");
+    string? GetXaiKey()
+        => settings.XaiKey ?? Environment.GetEnvironmentVariable("XAI_API_KEY");
 }
