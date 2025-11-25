@@ -18,6 +18,8 @@ public class ImageGenServiceFactory(IServiceProvider serviceProvider) : IImageGe
             BackendType.DeepSeek => null,
             BackendType.GroqCloud => null,
             BackendType.Anthropic => null,
+            BackendType.Xai => new XaiImageGenService(serviceProvider.GetRequiredService<IHttpClientFactory>(),
+                serviceProvider.GetRequiredService<MaINSettings>()),
             BackendType.Self => new ImageGenService(serviceProvider.GetRequiredService<IHttpClientFactory>(),
                 serviceProvider.GetRequiredService<MaINSettings>()),
             

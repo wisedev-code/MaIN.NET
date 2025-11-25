@@ -39,6 +39,13 @@ public class LLMServiceFactory(IServiceProvider serviceProvider) : ILLMServiceFa
                 serviceProvider.GetRequiredService<IMemoryFactory>(),
                 serviceProvider.GetRequiredService<IMemoryService>()),
 
+            BackendType.Xai => new XaiService(
+                serviceProvider.GetRequiredService<MaINSettings>(),
+                serviceProvider.GetRequiredService<INotificationService>(),
+                serviceProvider.GetRequiredService<IHttpClientFactory>(),
+                serviceProvider.GetRequiredService<IMemoryFactory>(),
+                serviceProvider.GetRequiredService<IMemoryService>()),
+
             BackendType.Anthropic => new AnthropicService(
                 serviceProvider.GetRequiredService<MaINSettings>(),
                 serviceProvider.GetRequiredService<INotificationService>(),
