@@ -2,8 +2,6 @@ using MaIN.Domain.Configuration;
 using MaIN.Services.Services.Abstract;
 using Microsoft.Extensions.Logging;
 using MaIN.Services.Services.LLMService.Memory;
-using System.Net.Http.Headers;
-using System.Text.Json;
 
 namespace MaIN.Services.Services.LLMService;
 
