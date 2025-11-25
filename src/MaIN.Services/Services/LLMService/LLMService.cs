@@ -58,7 +58,7 @@ public class LLMService : ILLMService
         if (ChatHelper.HasFiles(lastMsg))
         {
             var memoryOptions = ChatHelper.ExtractMemoryOptions(lastMsg);
-            return await AskMemory(chat, memoryOptions, cancellationToken);
+            return await AskMemory(chat, memoryOptions, requestOptions, cancellationToken);
         }
 
         var model = KnownModels.GetModel(chat.Model);
@@ -90,6 +90,7 @@ public class LLMService : ILLMService
     public async Task<ChatResult?> AskMemory(
         Chat chat,
         ChatMemoryOptions memoryOptions,
+        ChatRequestOptions requestOptions,
         CancellationToken cancellationToken = default)
     {
         var model = KnownModels.GetModel(chat.Model);
@@ -127,18 +128,8 @@ public class LLMService : ILLMService
         memory.generator._embedder._weights.Dispose();
         memory.generator.Dispose();
 
-        return new ChatResult
-        {
-            Done = true,
-            CreatedAt = DateTime.Now,
-            Model = chat.Model,
-            Message = new Message
-            {
-                Content = memoryService.CleanResponseText(result.Result),
-                Role = nameof(AuthorRole.Assistant),
-                Type = MessageType.LocalLLM,
-            }
-        };
+        var tokens = await ProcessChatRequest(chat, model, userMessage, requestOptions, cancellationToken);
+        return await CreateChatResult(chat, tokens, requestOptions);
     }
 
     private async Task<List<LLMTokenValue>> ProcessChatRequest(

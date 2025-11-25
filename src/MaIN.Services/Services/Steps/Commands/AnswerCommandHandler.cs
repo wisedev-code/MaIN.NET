@@ -35,8 +35,8 @@ public class AnswerCommandHandler(
         switch (command.KnowledgeUsage)
         {
             case KnowledgeUsage.UseMemory:
-                result = await llmService.AskMemory(command.Chat,
-                    new ChatMemoryOptions { Memory = command.Chat.Memory });
+                result = await llmService.AskMemory(command.Chat, new ChatMemoryOptions { Memory = command.Chat.Memory }, 
+                    new ChatRequestOptions());
                 return result!.Message;
             case KnowledgeUsage.UseKnowledge:
                 var isKnowledgeNeeded = await ShouldUseKnowledge(command.Knowledge, command.Chat);
@@ -138,7 +138,7 @@ public class AnswerCommandHandler(
             return result.Message;
         }
 
-        var knowledgeResult = await llmService.AskMemory(chat, memoryOptions);
+        var knowledgeResult = await llmService.AskMemory(chat, memoryOptions, new ChatRequestOptions());
         chat.Messages.Last().Content = originalContent;
         return knowledgeResult?.Message;
     }

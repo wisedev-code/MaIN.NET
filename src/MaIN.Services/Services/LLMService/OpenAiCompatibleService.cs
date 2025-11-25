@@ -68,7 +68,7 @@ public abstract class OpenAiCompatibleService(
         if (HasFiles(lastMessage))
         {
             var result = ChatHelper.ExtractMemoryOptions(lastMessage);
-            var memoryResult = await AskMemory(chat, result, cancellationToken);
+            var memoryResult = await AskMemory(chat, result, options, cancellationToken);
             resultBuilder.Append(memoryResult!.Message.Content);
             lastMessage.MarkProcessed();
             UpdateSessionCache(chat.Id, resultBuilder.ToString(), options.CreateSession);
@@ -80,7 +80,7 @@ public abstract class OpenAiCompatibleService(
                     Type = TokenType.FullAnswer
                 });
             }
-            return CreateChatResult(chat, resultBuilder.ToString(), tokens);
+            return await CreateChatResult(chat, resultBuilder.ToString(), tokens, options);
         }
 
         if (chat.ToolsConfiguration?.Tools != null && chat.ToolsConfiguration.Tools.Any())
@@ -128,7 +128,7 @@ public abstract class OpenAiCompatibleService(
 
         lastMessage.MarkProcessed();
         UpdateSessionCache(chat.Id, resultBuilder.ToString(), options.CreateSession);
-        return CreateChatResult(chat, resultBuilder.ToString(), tokens);
+        return await CreateChatResult(chat, resultBuilder.ToString(), tokens, options);
     }
 
     private async Task<ChatResult> ProcessWithToolsAsync(
@@ -279,7 +279,7 @@ public abstract class OpenAiCompatibleService(
 
         chat.Messages.Last().MarkProcessed();
         UpdateSessionCache(chat.Id, resultBuilder.ToString(), options.CreateSession);
-        return CreateChatResult(chat, resultBuilder.ToString(), tokens);
+        return await CreateChatResult(chat, resultBuilder.ToString(), tokens, options);
     }
 
     private async Task<List<ToolCall>?> ProcessStreamingChatWithToolsAsync(
@@ -438,6 +438,7 @@ public abstract class OpenAiCompatibleService(
     public virtual async Task<ChatResult?> AskMemory(
         Chat chat,
         ChatMemoryOptions memoryOptions,
+        ChatRequestOptions requestOptions,
         CancellationToken cancellationToken = default)
     {
         if (!chat.Messages.Any())
@@ -458,7 +459,7 @@ public abstract class OpenAiCompatibleService(
         var retrievedContext = await kernel.AskAsync(userQuery, cancellationToken: cancellationToken);
 
         await kernel.DeleteIndexAsync(cancellationToken: cancellationToken);
-        return CreateChatResult(chat, retrievedContext.Result, []);
+        return await CreateChatResult(chat, retrievedContext.Result, [], requestOptions);
     }
 
     public virtual async Task<string[]> GetCurrentModels()
@@ -714,8 +715,19 @@ public abstract class OpenAiCompatibleService(
         }
     }
 
-    protected static ChatResult CreateChatResult(Chat chat, string content, List<LLMTokenValue> tokens)
+    protected async Task<ChatResult> CreateChatResult(Chat chat, string content, List<LLMTokenValue> tokens, ChatRequestOptions requestOptions)
     {
+        var responseText = string.Concat(tokens.Select(x => x.Text));
+
+        if (requestOptions.InteractiveUpdates)
+        {
+            await SendNotification(chat.Id, new LLMTokenValue
+            {
+                Type = TokenType.FullAnswer,
+                Text = responseText
+            }, true);
+        }
+        
         return new ChatResult
         {
             Done = true,
@@ -729,6 +741,13 @@ public abstract class OpenAiCompatibleService(
                 Type = MessageType.LocalLLM
             }.MarkProcessed()
         };
+    }
+    
+    private async Task SendNotification(string chatId, LLMTokenValue token, bool isComplete)
+    {
+        await notificationService.DispatchNotification(
+            NotificationMessageBuilder.CreateChatCompletion(chatId, token, isComplete),
+            ServiceConstants.Notifications.ReceiveMessageUpdate);
     }
 
     internal static async Task<object[]> BuildMessagesArray(List<ChatMessage> conversation, Chat chat, ImageType imageType)

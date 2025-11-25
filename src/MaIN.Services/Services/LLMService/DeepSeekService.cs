@@ -48,6 +48,7 @@ public sealed class DeepSeekService(
     public override async Task<ChatResult?> AskMemory(
         Chat chat,
         ChatMemoryOptions memoryOptions,
+        ChatRequestOptions requestOptions,
         CancellationToken cancellationToken = default)
     {
         var lastMsg = chat.Messages.Last();
@@ -63,7 +64,7 @@ public sealed class DeepSeekService(
         chat.Messages.Last().Files = [];
         var result = await Send(chat, new ChatRequestOptions(), cancellationToken);
         chat.Messages.Last().Content = lastMsg.Content;
-        return result;
+        return await CreateChatResult(chat, result.Message.Content, [], requestOptions);
     }
 
     private string ComposeMessage(Message lastMsg, string[] filePaths)

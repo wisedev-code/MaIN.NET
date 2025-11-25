@@ -70,6 +70,7 @@ public sealed class GeminiService(
     public override async Task<ChatResult?> AskMemory(
         Chat chat,
         ChatMemoryOptions memoryOptions,
+        ChatRequestOptions requestOptions,
         CancellationToken cancellationToken = default)
     {
         if (!chat.Messages.Any())
@@ -91,7 +92,7 @@ public sealed class GeminiService(
         var retrievedContext = await kernel.AskAsync(userQuery, cancellationToken: cancellationToken);
         chat.Messages.Last().MarkProcessed();
         await kernel.DeleteIndexAsync(cancellationToken: cancellationToken);
-        return CreateChatResult(chat, retrievedContext.Result, []);
+        return await CreateChatResult(chat, retrievedContext.Result, [], requestOptions);
     }
 }
 
