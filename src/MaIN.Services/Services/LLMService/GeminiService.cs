@@ -1,4 +1,5 @@
-﻿using MaIN.Domain.Configuration;
+﻿using System.Text;
+using MaIN.Domain.Configuration;
 using MaIN.Services.Constants;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.LLMService.Memory;
@@ -8,6 +9,7 @@ using Microsoft.KernelMemory;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using MaIN.Domain.Entities;
+using MaIN.Domain.Models;
 using MaIN.Services.Utils;
 
 namespace MaIN.Services.Services.LLMService;
@@ -70,6 +72,7 @@ public sealed class GeminiService(
     public override async Task<ChatResult?> AskMemory(
         Chat chat,
         ChatMemoryOptions memoryOptions,
+        ChatRequestOptions requestOptions,
         CancellationToken cancellationToken = default)
     {
         if (!chat.Messages.Any())
@@ -88,7 +91,60 @@ public sealed class GeminiService(
                 $"{userQuery} | For your next response only, please respond using exactly the following JSON format: \n{jsonGrammar}\n. Do not include any explanations, code blocks, or additional content. After this single JSON response, resume your normal conversational style.";
         }
 
-        var retrievedContext = await kernel.AskAsync(userQuery, cancellationToken: cancellationToken);
+        MemoryAnswer retrievedContext;
+
+        if (requestOptions.InteractiveUpdates)
+        {
+            var responseBuilder = new StringBuilder();
+        
+            var searchOptions = new SearchOptions
+            {
+                Stream = true
+            };
+
+            await foreach (var chunk in kernel.AskStreamingAsync(
+                               userQuery,
+                               options: searchOptions,
+                               cancellationToken: cancellationToken))
+            {
+                if (!string.IsNullOrEmpty(chunk.Result))
+                {
+                    responseBuilder.Append(chunk.Result);
+                    
+                    var tokenValue = new LLMTokenValue
+                    {
+                        Text = chunk.Result,
+                        Type = TokenType.Message
+                    };
+                    
+                    await notificationService.DispatchNotification(
+                        NotificationMessageBuilder.CreateChatCompletion(chat.Id, tokenValue, false),
+                        ServiceConstants.Notifications.ReceiveMessageUpdate);
+                    
+                    requestOptions.TokenCallback?.Invoke(tokenValue);
+                }
+            }
+            
+            retrievedContext = new MemoryAnswer
+            {
+                Question = userQuery,
+                Result = responseBuilder.ToString(),
+                NoResult = responseBuilder.Length == 0
+            };
+        }
+        else
+        {
+            var searchOptions = new SearchOptions
+            {
+                Stream = false
+            };
+
+            retrievedContext = await kernel.AskAsync(
+                userQuery,
+                options: searchOptions,
+                cancellationToken: cancellationToken);
+        }
+        
         chat.Messages.Last().MarkProcessed();
         await kernel.DeleteIndexAsync(cancellationToken: cancellationToken);
         return CreateChatResult(chat, retrievedContext.Result, []);

@@ -48,6 +48,7 @@ public sealed class DeepSeekService(
     public override async Task<ChatResult?> AskMemory(
         Chat chat,
         ChatMemoryOptions memoryOptions,
+        ChatRequestOptions requestOptions,
         CancellationToken cancellationToken = default)
     {
         var lastMsg = chat.Messages.Last();
