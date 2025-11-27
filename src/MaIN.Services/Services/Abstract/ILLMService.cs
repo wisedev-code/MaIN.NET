@@ -32,6 +32,7 @@ public interface ILLMService
     /// <returns></returns>
     Task<ChatResult?> AskMemory(Chat chat,
         ChatMemoryOptions memoryOptions,
+        ChatRequestOptions requestOptions,
         CancellationToken cancellationToken = default);
     
     /// <summary>
