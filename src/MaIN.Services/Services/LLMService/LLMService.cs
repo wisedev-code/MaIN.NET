@@ -116,7 +116,7 @@ public class LLMService : ILLMService
         
         MemoryAnswer result;
 
-        if (requestOptions.InteractiveUpdates)
+        if (requestOptions.InteractiveUpdates || requestOptions.TokenCallback != null)
         {
             var responseBuilder = new StringBuilder();
         
@@ -140,9 +140,12 @@ public class LLMService : ILLMService
                         Type = TokenType.Message
                     };
                     
-                    await notificationService.DispatchNotification(
-                        NotificationMessageBuilder.CreateChatCompletion(chat.Id, tokenValue, false),
-                        ServiceConstants.Notifications.ReceiveMessageUpdate);
+                    if (requestOptions.InteractiveUpdates)
+                    {
+                        await notificationService.DispatchNotification(
+                            NotificationMessageBuilder.CreateChatCompletion(chat.Id, tokenValue, false),
+                            ServiceConstants.Notifications.ReceiveMessageUpdate);
+                    }
                     
                     requestOptions.TokenCallback?.Invoke(tokenValue);
                 }

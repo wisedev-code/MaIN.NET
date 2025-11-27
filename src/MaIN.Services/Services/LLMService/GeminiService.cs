@@ -93,7 +93,7 @@ public sealed class GeminiService(
 
         MemoryAnswer retrievedContext;
 
-        if (requestOptions.InteractiveUpdates)
+        if (requestOptions.InteractiveUpdates || requestOptions.TokenCallback != null)
         {
             var responseBuilder = new StringBuilder();
         
@@ -116,10 +116,13 @@ public sealed class GeminiService(
                         Text = chunk.Result,
                         Type = TokenType.Message
                     };
-                    
-                    await notificationService.DispatchNotification(
-                        NotificationMessageBuilder.CreateChatCompletion(chat.Id, tokenValue, false),
-                        ServiceConstants.Notifications.ReceiveMessageUpdate);
+
+                    if (requestOptions.InteractiveUpdates)
+                    {
+                        await notificationService.DispatchNotification(
+                            NotificationMessageBuilder.CreateChatCompletion(chat.Id, tokenValue, false),
+                            ServiceConstants.Notifications.ReceiveMessageUpdate);
+                    }
                     
                     requestOptions.TokenCallback?.Invoke(tokenValue);
                 }

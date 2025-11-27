@@ -458,7 +458,7 @@ public abstract class OpenAiCompatibleService(
         
         MemoryAnswer retrievedContext;
 
-        if (requestOptions.InteractiveUpdates)
+        if (requestOptions.InteractiveUpdates || requestOptions.TokenCallback != null)
         {
             var responseBuilder = new StringBuilder();
         
@@ -481,11 +481,14 @@ public abstract class OpenAiCompatibleService(
                         Text = chunk.Result,
                         Type = TokenType.Message
                     };
-                    
-                    await notificationService.DispatchNotification(
-                        NotificationMessageBuilder.CreateChatCompletion(chat.Id, tokenValue, false),
-                        ServiceConstants.Notifications.ReceiveMessageUpdate);
-                    
+
+                    if (requestOptions.InteractiveUpdates)
+                    {
+                        await notificationService.DispatchNotification(
+                            NotificationMessageBuilder.CreateChatCompletion(chat.Id, tokenValue, false),
+                            ServiceConstants.Notifications.ReceiveMessageUpdate);
+                    }
+
                     requestOptions.TokenCallback?.Invoke(tokenValue);
                 }
             }
