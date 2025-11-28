@@ -71,7 +71,7 @@ public sealed class AnthropicService(
         if (HasFiles(lastMessage))
         {
             var result = ChatHelper.ExtractMemoryOptions(lastMessage);
-            var memoryResult = await AskMemory(chat, result, cancellationToken);
+            var memoryResult = await AskMemory(chat, result, options, cancellationToken);
             resultBuilder.Append(memoryResult!.Message.Content);
             lastMessage.MarkProcessed();
             UpdateSessionCache(chat.Id, resultBuilder.ToString(), options.CreateSession);
@@ -531,7 +531,7 @@ public sealed class AnthropicService(
         return messages;
     }
 
-    public async Task<ChatResult?> AskMemory(Chat chat, ChatMemoryOptions memoryOptions, CancellationToken cancellationToken = default)
+    public async Task<ChatResult?> AskMemory(Chat chat, ChatMemoryOptions memoryOptions, ChatRequestOptions requestOptions, CancellationToken cancellationToken = default)
     {
         throw new NotSupportedException("Embeddings are not supported by the Anthropic. Document reading requires embedding support.");
     }
