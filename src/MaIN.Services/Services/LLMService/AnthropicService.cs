@@ -488,7 +488,7 @@ public sealed class AnthropicService(
         {
             requestBody["tools"] = chat.ToolsConfiguration.Tools.Select(t => new
             {
-                name = t.Function.Name,
+                name = t.Function!.Name,
                 description = t.Function.Description,
                 input_schema = t.Function.Parameters
             }).ToList();
@@ -824,10 +824,10 @@ file class AnthropicDelta
 
 file class AnthropicModelListResponse
 {
-    public List<AnthropicModelInfo> Data { get; set; }
+    public required List<AnthropicModelInfo> Data { get; set; }
 }
 
 file class AnthropicModelInfo
 {
-    public string Id { get; set; }
+    public required string Id { get; set; }
 }

@@ -22,8 +22,7 @@ var serializeOptions = new JsonSerializerOptions
 app.MapGet("/items/", () => Results.Ok(
         JsonSerializer.Deserialize<List<Hardware>>(
             File.ReadAllText("json/items.json"), serializeOptions)))
-    .WithName("GetHardwareItems")
-    .WithOpenApi();
+    .WithName("GetHardwareItems");
 
 app.Run();
 
