@@ -143,7 +143,7 @@ public sealed class AnthropicChatCompletionService : IChatCompletionService
         {
             model = _model,
             messages,
-            max_tokens = executionSettings?.ExtensionData["max_tokens"] ?? 1024,
+            max_tokens = executionSettings?.ExtensionData?["max_tokens"] ?? 1024,
             stream = false,
             tools = tools.Count > 0 ? tools : null
         };
@@ -195,7 +195,7 @@ public sealed class AnthropicChatCompletionService : IChatCompletionService
         {
             jsonProperties[param.Name] = new
             {
-                type = MapToJsonSchemaType(param.ParameterType),
+                type = MapToJsonSchemaType(param.ParameterType!),
                 description = param.Description
             };
         }
