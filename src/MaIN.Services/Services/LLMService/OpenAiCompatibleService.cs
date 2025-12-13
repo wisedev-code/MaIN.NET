@@ -68,7 +68,7 @@ public abstract class OpenAiCompatibleService(
         if (HasFiles(lastMessage))
         {
             var result = ChatHelper.ExtractMemoryOptions(lastMessage);
-            var memoryResult = await AskMemory(chat, result, cancellationToken);
+            var memoryResult = await AskMemory(chat, result, options, cancellationToken);
             resultBuilder.Append(memoryResult!.Message.Content);
             lastMessage.MarkProcessed();
             UpdateSessionCache(chat.Id, resultBuilder.ToString(), options.CreateSession);
@@ -438,6 +438,7 @@ public abstract class OpenAiCompatibleService(
     public virtual async Task<ChatResult?> AskMemory(
         Chat chat,
         ChatMemoryOptions memoryOptions,
+        ChatRequestOptions requestOptions,
         CancellationToken cancellationToken = default)
     {
         if (!chat.Messages.Any())
@@ -455,8 +456,63 @@ public abstract class OpenAiCompatibleService(
             userQuery = $"{userQuery} | Respond only using the following JSON format: \n{jsonGrammar}\n. Do not add explanations, code tags, or any extra content.";
         }
         
-        var retrievedContext = await kernel.AskAsync(userQuery, cancellationToken: cancellationToken);
+        MemoryAnswer retrievedContext;
 
+        if (requestOptions.InteractiveUpdates || requestOptions.TokenCallback != null)
+        {
+            var responseBuilder = new StringBuilder();
+        
+            var searchOptions = new SearchOptions
+            {
+                Stream = true
+            };
+
+            await foreach (var chunk in kernel.AskStreamingAsync(
+                               userQuery,
+                               options: searchOptions,
+                               cancellationToken: cancellationToken))
+            {
+                if (!string.IsNullOrEmpty(chunk.Result))
+                {
+                    responseBuilder.Append(chunk.Result);
+                    
+                    var tokenValue = new LLMTokenValue
+                    {
+                        Text = chunk.Result,
+                        Type = TokenType.Message
+                    };
+
+                    if (requestOptions.InteractiveUpdates)
+                    {
+                        await notificationService.DispatchNotification(
+                            NotificationMessageBuilder.CreateChatCompletion(chat.Id, tokenValue, false),
+                            ServiceConstants.Notifications.ReceiveMessageUpdate);
+                    }
+
+                    requestOptions.TokenCallback?.Invoke(tokenValue);
+                }
+            }
+            
+            retrievedContext = new MemoryAnswer
+            {
+                Question = userQuery,
+                Result = responseBuilder.ToString(),
+                NoResult = responseBuilder.Length == 0
+            };
+        }
+        else
+        {
+            var searchOptions = new SearchOptions
+            {
+                Stream = false
+            };
+
+            retrievedContext = await kernel.AskAsync(
+                userQuery,
+                options: searchOptions,
+                cancellationToken: cancellationToken);
+        }
+        
         await kernel.DeleteIndexAsync(cancellationToken: cancellationToken);
         return CreateChatResult(chat, retrievedContext.Result, []);
     }

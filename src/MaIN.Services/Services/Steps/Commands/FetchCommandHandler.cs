@@ -94,7 +94,7 @@ public class FetchCommandHandler(
                     {
                         FilesData = filesDictionary,
                         PreProcess = fileData.PreProcess
-                    }
+                    }, new ChatRequestOptions()
                 );
 
             return result!.Message;
@@ -112,7 +112,7 @@ public class FetchCommandHandler(
         {
             var memoryChat = command.MemoryChat;
             var result = await llmServiceFactory.CreateService(command.Chat.Backend ?? settings.BackendType)
-                .AskMemory(memoryChat!, new ChatMemoryOptions { WebUrls = [webData!.Url] });
+                .AskMemory(memoryChat!, new ChatMemoryOptions { WebUrls = [webData!.Url] }, new  ChatRequestOptions());
             result!.Message.Role = command.ResponseType == FetchResponseType.AS_System ? "System" : "Assistant";
             return result!.Message;
         }
@@ -131,7 +131,7 @@ public class FetchCommandHandler(
         var result = await llmServiceFactory.CreateService(command.Chat.Backend ?? settings.BackendType).AskMemory(command.MemoryChat!, new ChatMemoryOptions
         {
             TextData = chunks
-        });
+        }, new ChatRequestOptions());
 
         result!.Message.Role = command.ResponseType == FetchResponseType.AS_System ? "System" : "Assistant";
         var newMessage = result!.Message;

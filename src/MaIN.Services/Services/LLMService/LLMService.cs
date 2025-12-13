@@ -58,7 +58,7 @@ public class LLMService : ILLMService
         if (ChatHelper.HasFiles(lastMsg))
         {
             var memoryOptions = ChatHelper.ExtractMemoryOptions(lastMsg);
-            return await AskMemory(chat, memoryOptions, cancellationToken);
+            return await AskMemory(chat, memoryOptions, requestOptions, cancellationToken);
         }
 
         var model = KnownModels.GetModel(chat.Model);
@@ -90,6 +90,7 @@ public class LLMService : ILLMService
     public async Task<ChatResult?> AskMemory(
         Chat chat,
         ChatMemoryOptions memoryOptions,
+        ChatRequestOptions requestOptions,
         CancellationToken cancellationToken = default)
     {
         var model = KnownModels.GetModel(chat.Model);
@@ -112,9 +113,64 @@ public class LLMService : ILLMService
 
         await memoryService.ImportDataToMemory((memory.km, memory.generator), memoryOptions, cancellationToken);
         var userMessage = chat.Messages.Last();
-        var result = await memory.km.AskAsync(
-            userMessage.Content,
-            cancellationToken: cancellationToken);
+        
+        MemoryAnswer result;
+
+        if (requestOptions.InteractiveUpdates || requestOptions.TokenCallback != null)
+        {
+            var responseBuilder = new StringBuilder();
+        
+            var searchOptions = new SearchOptions
+            {
+                Stream = true
+            };
+
+            await foreach (var chunk in memory.km.AskStreamingAsync(
+                               userMessage.Content,
+                               options: searchOptions,
+                               cancellationToken: cancellationToken))
+            {
+                if (!string.IsNullOrEmpty(chunk.Result))
+                {
+                    responseBuilder.Append(chunk.Result);
+                    
+                    var tokenValue = new LLMTokenValue
+                    {
+                        Text = chunk.Result,
+                        Type = TokenType.Message
+                    };
+                    
+                    if (requestOptions.InteractiveUpdates)
+                    {
+                        await notificationService.DispatchNotification(
+                            NotificationMessageBuilder.CreateChatCompletion(chat.Id, tokenValue, false),
+                            ServiceConstants.Notifications.ReceiveMessageUpdate);
+                    }
+                    
+                    requestOptions.TokenCallback?.Invoke(tokenValue);
+                }
+            }
+            
+            result = new MemoryAnswer
+            {
+                Question = userMessage.Content,
+                Result = responseBuilder.ToString(),
+                NoResult = responseBuilder.Length == 0
+            };
+        }
+        else
+        {
+            var searchOptions = new SearchOptions
+            {
+                Stream = false
+            };
+
+            result = await memory.km.AskAsync(
+                userMessage.Content,
+                options: searchOptions,
+                cancellationToken: cancellationToken);
+        }
+        
         await memory.km.DeleteIndexAsync(cancellationToken: cancellationToken);
         
         if (disableCache)
