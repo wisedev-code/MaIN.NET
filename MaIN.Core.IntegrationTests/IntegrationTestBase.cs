@@ -1,32 +1,51 @@
 ﻿using System.Net.Sockets;
 using MaIN.Services;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace MaIN.Core.IntegrationTests;
 
-public class IntegrationTestBase : IClassFixture<WebApplicationFactory<Program>>
+public class IntegrationTestBase : IDisposable
 {
-    protected readonly WebApplicationFactory<Program> _factory;
-    protected readonly HttpClient _client;
+    protected readonly IHost _host;
+    protected readonly IServiceProvider _services;
 
-    public IntegrationTestBase(WebApplicationFactory<Program> factory)
+    public IntegrationTestBase()
     {
-        _factory = factory.WithWebHostBuilder(builder =>
-        {
-            builder.ConfigureServices((context, services) =>
-            {
-                services.AddMaIN(context.Configuration);
-                
-                var provider = services.BuildServiceProvider();
-                provider.UseMaIN();
-            });
-        });
+        _host = CreateHost();
+        _host.Start();
         
-        _client = _factory.CreateClient();
+        _services = _host.Services;
     }
-    
+
+    private IHost CreateHost()
+    {
+        var hostBuilder = Host.CreateDefaultBuilder()
+            .ConfigureWebHostDefaults(webBuilder =>
+            {
+                webBuilder
+                    .UseUrls("http://localhost:0") // Random available port
+                    .ConfigureServices((context, services) =>
+                    {
+                        services.AddMaIN(context.Configuration);
+                        
+                        var provider = services.BuildServiceProvider();
+                        provider.UseMaIN();
+                    });
+            });
+
+        return hostBuilder.Build();
+    }
+
+    protected T GetService<T>() where T : notnull
+    {
+        return _services.GetRequiredService<T>();
+    }
+
     protected static bool PingHost(string host, int port, int timeout)
     {
         try
@@ -49,5 +68,10 @@ public class IntegrationTestBase : IClassFixture<WebApplicationFactory<Program>>
         {
             return false;
         }
+    }
+
+    public void Dispose()
+    {
+        _host?.Dispose();
     }
 }
