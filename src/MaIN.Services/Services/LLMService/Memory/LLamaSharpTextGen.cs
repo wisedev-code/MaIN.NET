@@ -28,9 +28,7 @@ public sealed class LlamaSharpTextGen : ITextGenerator, IDisposable
 {
     private readonly BatchedExecutor _executor;
     private readonly LLamaWeights _weights;
-    private readonly bool _ownsWeights;
     private readonly LLamaContext _context;
-    private readonly bool _ownsContext;
     private readonly InferenceParams? _defaultInferenceParams;
     private readonly MemoryParams? _memoryParams;
 
@@ -49,7 +47,6 @@ public sealed class LlamaSharpTextGen : ITextGenerator, IDisposable
         _context = _weights.CreateContext(@params);
         _executor = new BatchedExecutor(_weights, @params);
         _defaultInferenceParams = config?.DefaultInferenceParams;
-        _ownsWeights = _ownsContext = true;
         contextSize = @params.ContextSize;
         MaxTokenTotal = (int)contextSize.Value;
     }

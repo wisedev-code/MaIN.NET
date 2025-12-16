@@ -1,6 +1,7 @@
 ﻿using MaIN.Core.Hub;
 using MaIN.Domain.Entities;
 using MaIN.Services.Services.TTSService;
+#pragma warning disable CS0618 // Type or member is obsolete
 
 namespace Examples.Chat;
 

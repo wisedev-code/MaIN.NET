@@ -9,6 +9,7 @@ using Microsoft.KernelMemory.Configuration;
 using Microsoft.KernelMemory.SemanticKernel;
 using Microsoft.SemanticKernel.Connectors.Google;
 using InferenceParams = LLama.Common.InferenceParams;
+#pragma warning disable CS0618 // Type or member is obsolete
 
 namespace MaIN.Services.Services.LLMService.Memory;
 

@@ -59,7 +59,7 @@ public static class VoiceService
         return new Voice
         {
             Name = name,
-            Features = newFeatures
+            Features = newFeatures!
         };
     }
     

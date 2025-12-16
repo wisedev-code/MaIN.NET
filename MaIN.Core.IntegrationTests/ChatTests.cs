@@ -1,15 +1,11 @@
-﻿using System.Text.Json;
-using MaIN.Core.Hub;
-using MaIN.Domain.Configuration;
+﻿using MaIN.Core.Hub;
 using MaIN.Domain.Entities;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.Configuration;
 
 namespace MaIN.Core.IntegrationTests;
 
 public class ChatTests : IntegrationTestBase
 {
-    public ChatTests(WebApplicationFactory<Program> factory) : base(factory)
+    public ChatTests() : base()
     {
     }
     
