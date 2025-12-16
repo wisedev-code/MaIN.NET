@@ -24,7 +24,7 @@ jobs:
       run: dotnet build src/MaIN.InferPage --configuration Release --no-restore
 
     - name: Publish project
-      run: dotnet publish src/MaIN.InferPage --configuration Release --output ./publish --no-build
+      run: dotnet publish src/MaIN.InferPage --framework net10.0 --configuration Release --output ./publish --no-build
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
