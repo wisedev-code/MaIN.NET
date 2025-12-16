@@ -17,7 +17,9 @@ public class TextToSpeechService : ITextToSpeechService
     public TextToSpeechService(MaINSettings options)
     {
         this.options = options;
+#pragma warning disable CS0618 // Type or member is obsolete
         VoiceService.SetVoicesPath(options.VoicesPath ?? "voices");
+#pragma warning restore CS0618 // Type or member is obsolete
     }
 
     public async Task<byte[]> Send(Message message, string modelName, Voice voice, bool playback)
