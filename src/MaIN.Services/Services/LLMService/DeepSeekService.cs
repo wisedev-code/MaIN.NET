@@ -9,6 +9,7 @@ using MaIN.Services.Services.Models;
 using MaIN.Domain.Models;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using MaIN.Domain.Exceptions;
 
 namespace MaIN.Services.Services.LLMService;
 
@@ -33,7 +34,7 @@ public sealed class DeepSeekService(
     protected override string GetApiKey()
     {
         return _settings.DeepSeekKey ?? Environment.GetEnvironmentVariable("DEEPSEEK_API_KEY") ??
-            throw new InvalidOperationException("DeepSeek Key not configured");
+            throw new APIKeyNotConfiguredException("DeepSeek");
     }
 
     protected override void ValidateApiKey()
@@ -41,7 +42,7 @@ public sealed class DeepSeekService(
         if (string.IsNullOrEmpty(_settings.DeepSeekKey) &&
             string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DEEPSEEK_API_KEY")))
         {
-            throw new InvalidOperationException("DeepSeek Key not configured");
+            throw new APIKeyNotConfiguredException("DeepSeek");
         }
     }
 

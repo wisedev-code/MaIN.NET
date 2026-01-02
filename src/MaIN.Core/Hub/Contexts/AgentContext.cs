@@ -8,6 +8,7 @@ using MaIN.Services.Services.Models;
 using MaIN.Core.Hub.Utils;
 using MaIN.Domain.Entities.Agents.Knowledge;
 using MaIN.Domain.Entities.Tools;
+using MaIN.Domain.Exceptions;
 using MaIN.Services.Constants;
 
 namespace MaIN.Core.Hub.Contexts;
@@ -341,7 +342,9 @@ public class AgentContext
     {
         var existingAgent = await agentService.GetAgentById(agentId);
         if (existingAgent == null)
-            throw new ArgumentException("Agent not found", nameof(agentId));
+        {
+            throw new AgentNotFoundException(agentId);
+        }
             
         var context = new AgentContext(agentService, existingAgent);
         context.LoadExistingKnowledgeIfExists();

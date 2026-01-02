@@ -2,6 +2,7 @@ using LLama.Native;
 using MaIN.Core.Hub.Contexts;
 using MaIN.Core.Interfaces;
 using MaIN.Domain.Configuration;
+using MaIN.Domain.Exceptions;
 using MaIN.Services.Services.Abstract;
 
 namespace MaIN.Core.Hub;
@@ -23,8 +24,7 @@ public static class AIHub
 
     private static IAIHubServices Services =>
         _services ??
-        throw new InvalidOperationException(
-            "AIHub has not been initialized. Make sure to call AddAIHub() in your service configuration.");
+        throw new AIHubNotInitializedException();
 
     public static ModelContext Model() => new ModelContext(_settings, _httpClientFactory);
     public static ChatContext Chat() => new(Services.ChatService);

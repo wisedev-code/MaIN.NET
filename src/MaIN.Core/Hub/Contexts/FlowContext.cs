@@ -4,6 +4,7 @@ using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
 using MaIN.Domain.Entities.Agents.AgentSource;
+using MaIN.Domain.Exceptions;
 using MaIN.Services.Dtos;
 using MaIN.Services.Mappers;
 using MaIN.Services.Services.Abstract;
@@ -210,7 +211,7 @@ public class FlowContext
     public async Task Delete()
     {
         if (_flow.Id == null)
-            throw new InvalidOperationException("Flow has not been created yet.");
+            throw new FlowNotInitializedException();
             
         await _flowService.DeleteFlow(_flow.Id);
     }
@@ -219,7 +220,7 @@ public class FlowContext
     public async Task<AgentFlow> GetCurrentFlow()
     {
         if (_flow.Id == null)
-            throw new InvalidOperationException("Flow has not been created yet.");
+            throw new FlowNotInitializedException();
             
         return await _flowService.GetFlowById(_flow.Id);
     }
@@ -233,9 +234,8 @@ public class FlowContext
     public async Task<FlowContext> FromExisting(string flowId)
     {
         var existingFlow = await _flowService.GetFlowById(flowId);
-        if (existingFlow == null)
-            throw new ArgumentException("Flow not found", nameof(flowId));
-
-        return this;
+        return existingFlow == null
+            ? throw new FlowFoundException(flowId)
+            : this;
     }
 }

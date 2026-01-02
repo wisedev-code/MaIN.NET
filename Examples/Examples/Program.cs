@@ -4,6 +4,7 @@ using Examples.Agents.Flows;
 using Examples.Chat;
 using Examples.Mcp;
 using MaIN.Core;
+using MaIN.Domain.Exceptions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -121,7 +122,20 @@ async Task RunSelectedExample(IServiceProvider serviceProvider)
         Console.ResetColor();
 
         var selectedExample = examples[selection - 1].Instance;
-        await selectedExample.Start();
+        try
+        {
+            await selectedExample.Start();
+        }
+        catch (Exception ex)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("╔════════════════════════════════════════════════════════════════════╗");
+            Console.WriteLine("║                               Error                                ║");
+            Console.WriteLine("╚════════════════════════════════════════════════════════════════════╝");
+            Console.ResetColor();
+            
+                Console.WriteLine(ex.Message);
+        }
     }
     else
     {

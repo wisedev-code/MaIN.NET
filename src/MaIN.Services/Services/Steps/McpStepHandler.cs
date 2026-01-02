@@ -17,7 +17,7 @@ public class McpStepHandler(ICommandDispatcher commandDispatcher) : IStepHandler
     {
         if (context.McpConfig == null)
         {
-            throw new MissingFieldException("MCP config is missing");
+            throw new MPCConfigNotFoundException();
         }
         
         await context.NotifyProgress("true", context.Agent.Id, null, context.Agent.CurrentBehaviour, StepName);

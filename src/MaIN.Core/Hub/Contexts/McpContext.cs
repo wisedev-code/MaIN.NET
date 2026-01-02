@@ -1,6 +1,7 @@
 
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
+using MaIN.Domain.Exceptions;
 using MaIN.Services.Constants;
 using MaIN.Services.Services;
 using MaIN.Services.Services.Abstract;
@@ -35,7 +36,7 @@ public class McpContext
     {
         if (_mcpConfig == null)
         {
-            throw new InvalidOperationException("MCP config not found");
+            throw new MPCConfigNotFoundException();
         }
         
         return await _mcpService.Prompt(_mcpConfig!, [new Message()

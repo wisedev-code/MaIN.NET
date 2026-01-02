@@ -11,6 +11,7 @@ using System.Text;
 using LLama.Common;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities.Tools;
+using MaIN.Domain.Exceptions;
 using MaIN.Services.Services.LLMService.Utils;
 using MaIN.Services.Services.LLMService;
 
@@ -43,14 +44,14 @@ public sealed class AnthropicService(
     private string GetApiKey()
     {
         return _settings.AnthropicKey ?? Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY") ??
-            throw new InvalidOperationException("Anthropic Key not configured");
+            throw new APIKeyNotConfiguredException("Anthropic");
     }
 
     private void ValidateApiKey()
     {
         if (string.IsNullOrEmpty(_settings.AnthropicKey) && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY")))
         {
-            throw new InvalidOperationException("Anthropic Key not configured");
+            throw new APIKeyNotConfiguredException("Anthropic");
         }
     }
 
