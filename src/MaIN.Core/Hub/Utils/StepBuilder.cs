@@ -3,7 +3,7 @@ using MaIN.Services.Services.Models.Commands;
 
 namespace MaIN.Core.Hub.Utils;
 
-public class StepBuilder
+public sealed class StepBuilder
 {
     private readonly List<string> Steps = new();
     public static StepBuilder Instance => new();
