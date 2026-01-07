@@ -4,14 +4,12 @@ using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
 using MaIN.Domain.Entities.Agents.AgentSource;
-using MaIN.Services.Dtos;
-using MaIN.Services.Mappers;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
 
 namespace MaIN.Core.Hub.Contexts;
 
-public class FlowContext
+public sealed class FlowContext
 {
     private readonly IAgentFlowService _flowService;
     private readonly IAgentService _agentService;
