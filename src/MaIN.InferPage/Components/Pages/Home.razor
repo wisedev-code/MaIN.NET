@@ -13,6 +13,23 @@
 
 <PageTitle>MaIN Infer</PageTitle>
 
+<div class="error-notification-wrapper">
+    @if (!string.IsNullOrEmpty(_errorMessage))
+    {
+        <div class="error-shake">
+            <FluentMessageBar @key="_errorMessage" 
+                              Intent="@MessageIntent.Error"
+                              AllowDismiss="true"
+                              Multiline="true"
+                              OnDismiss="@(() => _errorMessage = null)"
+                              Class="high-alert-error">
+                <Title>Error</Title>
+                @_errorMessage
+            </FluentMessageBar>
+        </div>
+    }
+</div>
+
 <FluentGrid>
     <FluentGridItem sm="1" xs="1" lg="1"></FluentGridItem>
     <FluentGridItem sm="10" xs="10" lg="10" Style="align-self: center; align-items: center">
@@ -183,6 +200,7 @@
     private bool _isLoading;
     private bool _isThinking;
     private bool _reasoning;
+    private string? _errorMessage;
     private string? _incomingMessage = null;
     private string? _incomingReasoning = null;
     private readonly string? _displayName = Utils.Model;
@@ -249,38 +267,56 @@
             _prompt = string.Empty;
             StateHasChanged();
             bool wasAtBottom = await JS.InvokeAsync<bool>("scrollManager.isAtBottom", "messages-container");
-            await ctx!.WithMessage(msg)
-                .CompleteAsync(changeOfValue: async message =>
-                {
-                    if (message?.Type == TokenType.Reason)
-                    {
-                        _isThinking = true;
-                        _incomingReasoning += message.Text;
-                    }
-                    else if (message?.Type == TokenType.Message)
-                    {
-                        _isThinking = false;
-                        _incomingMessage += message.Text;
-                    }
 
-                    StateHasChanged();
-                    if (wasAtBottom)
-                    {
-                        await JS.InvokeVoidAsync("scrollManager.scrollToBottomSmooth", _bottomElement);
-                    }
-                });
-
-            _isLoading = false;
-            var currentChat = (await ctx.GetCurrentChat());
-            Chat.Messages.Add(currentChat.Messages.Last());
-            Messages = Chat.Messages.Select(x => new MessageExt()
+            try
             {
-                Message = x
-            }).ToList();
-            _incomingReasoning = null;
-            _incomingMessage = null;
-            await JS.InvokeVoidAsync("scrollManager.scrollToBottomSmooth", _bottomElement);
-            StateHasChanged();
+                await ctx!.WithMessage(msg)
+                    .CompleteAsync(changeOfValue: async message =>
+                    {
+                        if (message?.Type == TokenType.Reason)
+                        {
+                            _isThinking = true;
+                            _incomingReasoning += message.Text;
+                        }
+                        else if (message?.Type == TokenType.Message)
+                        {
+                            _isThinking = false;
+                            _incomingMessage += message.Text;
+                        }
+
+                        StateHasChanged();
+                        if (wasAtBottom)
+                        {
+                            await JS.InvokeVoidAsync("scrollManager.scrollToBottomSmooth", _bottomElement);
+                        }
+                    });
+                
+                _isLoading = false;
+                var currentChat = (await ctx.GetCurrentChat());
+                Chat.Messages.Add(currentChat.Messages.Last());
+                Messages = Chat.Messages.Select(x => new MessageExt()
+                {
+                    Message = x
+                }).ToList();
+                _incomingReasoning = null;
+                _incomingMessage = null;
+                await JS.InvokeVoidAsync("scrollManager.scrollToBottomSmooth", _bottomElement);
+                StateHasChanged();
+
+            }
+            catch (Exception ex)
+            {
+                _errorMessage = null;
+                StateHasChanged();
+                
+                _errorMessage = $"{ex.Message}";
+            }
+            finally
+            {
+                _isLoading = false;
+                _isThinking = false;
+                StateHasChanged();
+            }
         }
     }
 
@@ -288,5 +324,4 @@
     {
         _prompt = obj.Value?.ToString()!;
     }
-
 }
