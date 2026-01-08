@@ -13,7 +13,7 @@ public static class AIHub
     private static IHttpClientFactory _httpClientFactory = null!;
 
     internal static void Initialize(IAIHubServices services,
-        MaINSettings settings, 
+        MaINSettings settings,
         IHttpClientFactory httpClientFactory)
     {
         _services = services;
@@ -38,7 +38,7 @@ public static class AIHub
         {
             NativeLogConfig.llama_log_set((_,_) => {});
         }
-        
+
         public static void DisableNotificationsLogs()
         {
             INotificationService.Disable = true;

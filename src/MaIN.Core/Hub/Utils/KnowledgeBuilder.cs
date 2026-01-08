@@ -5,7 +5,7 @@ using MaIN.Domain.Entities.Agents.Knowledge;
 
 namespace MaIN.Core.Hub.Utils;
 
-public class KnowledgeBuilder
+public sealed class KnowledgeBuilder
 {
     private Agent? _agent;
     private KnowledgeIndex? _index;

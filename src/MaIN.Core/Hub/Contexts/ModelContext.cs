@@ -7,7 +7,7 @@ using MaIN.Services.Services.LLMService.Utils;
 
 namespace MaIN.Core.Hub.Contexts;
 
-public class ModelContext
+public sealed class ModelContext
 {
     private readonly MaINSettings _settings;
     private readonly IHttpClientFactory _httpClientFactory;

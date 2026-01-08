@@ -3,7 +3,7 @@ using MaIN.Domain.Entities.Tools;
 
 namespace MaIN.Core.Hub.Utils;
 //TODO try to share logic of adding tool to the list across methods https://github.com/wisedev-code/MaIN.NET/pull/98#discussion_r2454997846
-public class ToolsConfigurationBuilder
+public sealed class ToolsConfigurationBuilder
 {
     private readonly ToolsConfiguration _config = new() { Tools = [] };
     

@@ -1,14 +1,12 @@
-
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Services.Constants;
-using MaIN.Services.Services;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
 
 namespace MaIN.Core.Hub.Contexts;
 
-public class McpContext
+public sealed class McpContext
 {
     private readonly IMcpService _mcpService;
     private Mcp? _mcpConfig;
