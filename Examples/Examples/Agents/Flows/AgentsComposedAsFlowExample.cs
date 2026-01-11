@@ -1,7 +1,7 @@
 using MaIN.Core.Hub;
 using MaIN.Core.Hub.Utils;
 
-namespace Examples.Agents;
+namespace Examples.Agents.Flows;
 
 public class AgentsComposedAsFlowExample : IExample
 {

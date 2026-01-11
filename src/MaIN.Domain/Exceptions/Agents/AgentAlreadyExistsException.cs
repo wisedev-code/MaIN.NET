@@ -1,6 +1,6 @@
 ﻿using System.Net;
 
-namespace MaIN.Domain.Exceptions;
+namespace MaIN.Domain.Exceptions.Agents;
 
 public class AgentAlreadyExistsException(string agentId) 
     : MaINCustomException($"Agent with id: '{agentId}' already exists.")

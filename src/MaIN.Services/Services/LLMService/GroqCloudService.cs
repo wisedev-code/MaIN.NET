@@ -6,6 +6,7 @@ using MaIN.Services.Services.Abstract;
 using Microsoft.Extensions.Logging;
 using MaIN.Services.Services.LLMService.Memory;
 using MaIN.Services.Constants;
+using MaIN.Services.Services.LLMService.Utils;
 using MaIN.Services.Services.Models;
 
 namespace MaIN.Services.Services.LLMService;
@@ -27,15 +28,18 @@ public sealed class GroqCloudService(
 
     protected override string GetApiKey()
     {
-        return _settings.GroqCloudKey ?? Environment.GetEnvironmentVariable("GROQ_API_KEY") ??
-            throw new APIKeyNotConfiguredException("GroqCloud");
+        return _settings.GroqCloudKey ?? Environment.GetEnvironmentVariable(LLMApiRegistry.Groq.ApiKeyEnvName) ??
+            throw new APIKeyNotConfiguredException(LLMApiRegistry.Groq.ApiName);
     }
+
+    protected override string GetApiName() => LLMApiRegistry.Groq.ApiName;
 
     protected override void ValidateApiKey()
     {
-        if (string.IsNullOrEmpty(_settings.GroqCloudKey) && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("GROQ_API_KEY")))
+        if (string.IsNullOrEmpty(_settings.GroqCloudKey) &&
+            string.IsNullOrEmpty(Environment.GetEnvironmentVariable(LLMApiRegistry.Groq.ApiKeyEnvName)))
         {
-            throw new APIKeyNotConfiguredException("GroqCloud");
+            throw new APIKeyNotConfiguredException(LLMApiRegistry.Groq.ApiName);
         }
     }
 

@@ -1,6 +1,6 @@
 ﻿using System.Net;
 
-namespace MaIN.Domain.Exceptions;
+namespace MaIN.Domain.Exceptions.Agents;
 
 public class AgentContextNotFoundException(string agentId) : MaINCustomException($"Context of agent with id: '{agentId}' not found.")
 {

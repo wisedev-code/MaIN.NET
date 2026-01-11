@@ -1,6 +1,6 @@
 ﻿using System.Net;
 
-namespace MaIN.Domain.Exceptions;
+namespace MaIN.Domain.Exceptions.Chats;
 
 public class ChatNotFoundException(string chatId) 
     : MaINCustomException($"Chat with id: '{chatId}' not found.")

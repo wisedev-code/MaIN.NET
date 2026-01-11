@@ -1,6 +1,6 @@
 ﻿using System.Net;
 
-namespace MaIN.Domain.Exceptions;
+namespace MaIN.Domain.Exceptions.MPC;
 
 public class MPCConfigNotFoundException() : MaINCustomException("MPC configuration not found.")
 {

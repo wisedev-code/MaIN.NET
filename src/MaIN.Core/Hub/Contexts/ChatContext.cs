@@ -2,6 +2,7 @@ using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Tools;
 using MaIN.Domain.Exceptions;
+using MaIN.Domain.Exceptions.Chats;
 using MaIN.Domain.Models;
 using MaIN.Services;
 using MaIN.Services.Constants;

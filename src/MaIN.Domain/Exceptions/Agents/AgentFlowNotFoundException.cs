@@ -1,6 +1,6 @@
 ﻿using System.Net;
 
-namespace MaIN.Domain.Exceptions;
+namespace MaIN.Domain.Exceptions.Agents;
 
 public class AgentFlowNotFoundException(string flowId) : MaINCustomException($"Agent flow with id: '{flowId}' not found.")
 {

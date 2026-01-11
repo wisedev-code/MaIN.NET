@@ -1,5 +1,7 @@
 ﻿using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
+using MaIN.Domain.Exceptions;
+using MaIN.Domain.Exceptions.Models;
 using MaIN.Domain.Models;
 using NAudio.Wave;
 
@@ -98,11 +100,8 @@ public class TextToSpeechService : ITextToSpeechService
     private string GetModelsPath()
     {
         var path = options.ModelsPath ?? Environment.GetEnvironmentVariable("MaIN_ModelsPath");
-        if (string.IsNullOrEmpty(path))
-        {
-            throw new InvalidOperationException("Models path not found in configuration or environment variables");
-        }
-
-        return path;
+        return string.IsNullOrEmpty(path) 
+            ? throw new ModelsPathNotFoundException() 
+            : path;
     }
 }

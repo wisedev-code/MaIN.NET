@@ -9,7 +9,9 @@ using Microsoft.KernelMemory;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using MaIN.Domain.Entities;
+using MaIN.Domain.Exceptions;
 using MaIN.Domain.Models;
+using MaIN.Services.Services.LLMService.Utils;
 using MaIN.Services.Utils;
 
 namespace MaIN.Services.Services.LLMService;
@@ -58,16 +60,18 @@ public sealed class GeminiService(
 
     protected override string GetApiKey()
     {
-        return _settings.GeminiKey ?? Environment.GetEnvironmentVariable("GEMINI_API_KEY") ??
-            throw new InvalidOperationException("Gemini Key not configured");
+        return _settings.GeminiKey ?? Environment.GetEnvironmentVariable(LLMApiRegistry.Gemini.ApiKeyEnvName) ??
+            throw new APIKeyNotConfiguredException(LLMApiRegistry.Gemini.ApiName);
     }
+
+    protected override string GetApiName() => LLMApiRegistry.Gemini.ApiName;
 
     protected override void ValidateApiKey()
     {
         if (string.IsNullOrEmpty(_settings.GeminiKey) &&
-            string.IsNullOrEmpty(Environment.GetEnvironmentVariable("GEMINI_API_KEY")))
+            string.IsNullOrEmpty(Environment.GetEnvironmentVariable(LLMApiRegistry.Gemini.ApiKeyEnvName)))
         {
-            throw new InvalidOperationException("Gemini Key not configured");
+            throw new APIKeyNotConfiguredException(LLMApiRegistry.Gemini.ApiName);
         }
     }
 

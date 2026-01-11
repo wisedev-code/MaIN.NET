@@ -3,6 +3,7 @@ using MaIN.Domain.Configuration;
 using MaIN.Domain.Models;
 using Microsoft.FluentUI.AspNetCore.Components;
 using MaIN.InferPage.Components;
+using MaIN.Services.Services.LLMService.Utils;
 using Utils = MaIN.InferPage.Utils;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -49,32 +50,32 @@ try
         {
             case "openai":
                 Utils.OpenAi = true;
-                apiKeyVariable = "OPENAI_API_KEY";
-                apiName = "OpenAI";
+                apiKeyVariable = LLMApiRegistry.OpenAi.ApiKeyEnvName;
+                apiName = LLMApiRegistry.OpenAi.ApiName;
                 break;
 
             case "gemini":
                 Utils.Gemini = true;
-                apiKeyVariable = "GEMINI_API_KEY";
-                apiName = "Gemini";
+                apiKeyVariable = LLMApiRegistry.Gemini.ApiKeyEnvName;
+                apiName = LLMApiRegistry.Gemini.ApiName;
                 break;
             
             case "deepseek":
                 Utils.DeepSeek = true;
-                apiKeyVariable = "DEEPSEEK_API_KEY";
-                apiName = "Deepseek";
+                apiKeyVariable = LLMApiRegistry.Deepseek.ApiKeyEnvName;
+                apiName = LLMApiRegistry.Deepseek.ApiName;
                 break;
 
             case "groqcloud":
                 Utils.GroqCloud = true;
-                apiKeyVariable = "GROQ_API_KEY";
-                apiName = "GroqCloud";
+                apiKeyVariable = LLMApiRegistry.Groq.ApiKeyEnvName;
+                apiName = LLMApiRegistry.Groq.ApiName;
                 break;
 
             case "anthropic":
                 Utils.Anthropic = true;
-                apiKeyVariable = "ANTHROPIC_API_KEY";
-                apiName = "Anthropic";
+                apiKeyVariable = LLMApiRegistry.Anthropic.ApiKeyEnvName;
+                apiName = LLMApiRegistry.Anthropic.ApiName;
                 break;
         }
 

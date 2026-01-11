@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Net;
 using MaIN.Domain.Configuration;
+using MaIN.Domain.Exceptions;
+using MaIN.Domain.Exceptions.Models;
 using MaIN.Domain.Models;
 using MaIN.Services.Constants;
 using MaIN.Services.Services.LLMService.Utils;
@@ -319,5 +321,5 @@ public class ModelContext
     private string ResolvePath(string? settingsModelsPath) =>
         settingsModelsPath
         ?? Environment.GetEnvironmentVariable("MaIN_ModelsPath")
-        ?? throw new InvalidOperationException("Models path not found in settings or environment variables");
+        ?? throw new ModelsPathNotFoundException();
 }

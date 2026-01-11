@@ -1,6 +1,6 @@
 ﻿using System.Net;
 
-namespace MaIN.Domain.Exceptions;
+namespace MaIN.Domain.Exceptions.Flows;
 
 public class FlowFoundException(string flowId)
     : MaINCustomException($"Flow with id: '{flowId}' not found.")

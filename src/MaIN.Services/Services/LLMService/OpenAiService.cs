@@ -3,6 +3,7 @@ using MaIN.Domain.Exceptions;
 using MaIN.Services.Services.Abstract;
 using Microsoft.Extensions.Logging;
 using MaIN.Services.Services.LLMService.Memory;
+using MaIN.Services.Services.LLMService.Utils;
 
 namespace MaIN.Services.Services.LLMService;
 
@@ -19,15 +20,17 @@ public sealed class OpenAiService(
       
     protected override string GetApiKey()
     {
-        return _settings.OpenAiKey ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY") ??
-            throw new APIKeyNotConfiguredException("OpenAi");
+        return _settings.OpenAiKey ?? Environment.GetEnvironmentVariable(LLMApiRegistry.OpenAi.ApiKeyEnvName) ??
+            throw new APIKeyNotConfiguredException(LLMApiRegistry.OpenAi.ApiName);
     }
+
+    protected override string GetApiName() => LLMApiRegistry.OpenAi.ApiName;
 
     protected override void ValidateApiKey()
     {
-        if (string.IsNullOrEmpty(_settings.OpenAiKey) && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OPENAI_API_KEY")))
+        if (string.IsNullOrEmpty(_settings.OpenAiKey) && string.IsNullOrEmpty(Environment.GetEnvironmentVariable(LLMApiRegistry.OpenAi.ApiKeyEnvName)))
         {
-            throw new APIKeyNotConfiguredException("OpenAi");
+            throw new APIKeyNotConfiguredException(LLMApiRegistry.OpenAi.ApiName);
         }
     }
 

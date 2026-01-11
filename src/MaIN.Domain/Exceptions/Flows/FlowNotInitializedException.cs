@@ -1,6 +1,6 @@
 ﻿using System.Net;
 
-namespace MaIN.Domain.Exceptions;
+namespace MaIN.Domain.Exceptions.Flows;
 
 public class FlowNotInitializedException() : MaINCustomException("Flow has not been created yet.")
 {

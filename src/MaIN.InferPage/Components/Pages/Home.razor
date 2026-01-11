@@ -4,6 +4,7 @@
 @using MaIN.Core.Hub
 @using MaIN.Core.Hub.Contexts
 @using MaIN.Domain.Entities
+@using MaIN.Domain.Exceptions
 @using MaIN.Domain.Models
 @using Markdig
 @using Microsoft.FluentUI.AspNetCore.Components.Icons.Regular
@@ -13,22 +14,7 @@
 
 <PageTitle>MaIN Infer</PageTitle>
 
-<div class="error-notification-wrapper">
-    @if (!string.IsNullOrEmpty(_errorMessage))
-    {
-        <div class="error-shake">
-            <FluentMessageBar @key="_errorMessage" 
-                              Intent="@MessageIntent.Error"
-                              AllowDismiss="true"
-                              Multiline="true"
-                              OnDismiss="@(() => _errorMessage = null)"
-                              Class="high-alert-error">
-                <Title>Error</Title>
-                @_errorMessage
-            </FluentMessageBar>
-        </div>
-    }
-</div>
+<ErrorNotification @bind-ErrorMessage="_errorMessage" />
 
 <FluentGrid>
     <FluentGridItem sm="1" xs="1" lg="1"></FluentGridItem>
@@ -308,14 +294,17 @@
             {
                 _errorMessage = null;
                 StateHasChanged();
-                
-                _errorMessage = $"{ex.Message}";
+
+                _errorMessage = ex is MaINCustomException maInException 
+                    ? $"{maInException.PublicErrorMessage}" 
+                    : $"{ex.Message}";
+
+                StateHasChanged();
             }
             finally
             {
                 _isLoading = false;
                 _isThinking = false;
-                StateHasChanged();
             }
         }
     }

@@ -2,7 +2,7 @@ using MaIN.Core.Hub;
 using MaIN.Core.Hub.Utils;
 using MaIN.Domain.Configuration;
 
-namespace Examples;
+namespace Examples.Mcp;
 
 public class McpAgentsExample : IExample
 {

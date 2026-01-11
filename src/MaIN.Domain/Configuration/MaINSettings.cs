@@ -1,6 +1,4 @@
 
-using MaIN.Services.Configuration;
-
 namespace MaIN.Domain.Configuration;
 
 public class MaINSettings

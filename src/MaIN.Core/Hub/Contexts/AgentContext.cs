@@ -9,6 +9,7 @@ using MaIN.Core.Hub.Utils;
 using MaIN.Domain.Entities.Agents.Knowledge;
 using MaIN.Domain.Entities.Tools;
 using MaIN.Domain.Exceptions;
+using MaIN.Domain.Exceptions.Agents;
 using MaIN.Services.Constants;
 
 namespace MaIN.Core.Hub.Contexts;

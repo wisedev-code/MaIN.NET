@@ -7,6 +7,8 @@ using LLama.Native;
 using LLama.Sampling;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
+using MaIN.Domain.Exceptions;
+using MaIN.Domain.Exceptions.Models;
 using MaIN.Domain.Models;
 using MaIN.Services.Constants;
 using MaIN.Services.Services.Abstract;
@@ -436,12 +438,9 @@ public class LLMService : ILLMService
     private string GetModelsPath()
     {
         var path = options.ModelsPath ?? Environment.GetEnvironmentVariable(DEFAULT_MODEL_ENV_PATH);
-        if (string.IsNullOrEmpty(path))
-        {
-            throw new InvalidOperationException("Models path not found in configuration or environment variables");
-        }
-
-        return path;
+        return string.IsNullOrEmpty(path) 
+            ? throw new ModelsPathNotFoundException() 
+            : path;
     }
 
     private async Task<ChatResult> CreateChatResult(Chat chat, List<LLMTokenValue> tokens,

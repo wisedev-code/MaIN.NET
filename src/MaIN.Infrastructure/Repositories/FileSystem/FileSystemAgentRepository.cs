@@ -1,5 +1,6 @@
 using System.Text.Json;
 using MaIN.Domain.Exceptions;
+using MaIN.Domain.Exceptions.Agents;
 using MaIN.Infrastructure.Models;
 using MaIN.Infrastructure.Repositories.Abstract;
 

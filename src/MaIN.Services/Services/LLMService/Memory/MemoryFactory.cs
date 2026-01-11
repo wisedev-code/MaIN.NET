@@ -3,7 +3,10 @@ using LLama;
 using LLama.Common;
 using LLamaSharp.KernelMemory;
 using MaIN.Domain.Entities;
+using MaIN.Domain.Exceptions;
+using MaIN.Domain.Exceptions.Models;
 using MaIN.Domain.Models;
+using MaIN.Services.Services.LLMService.Memory.Embeddings;
 using Microsoft.KernelMemory;
 using Microsoft.KernelMemory.Configuration;
 using Microsoft.KernelMemory.SemanticKernel;
@@ -83,12 +86,9 @@ public class MemoryFactory() : IMemoryFactory
     {
         var path = modelsPath;
 
-        if (string.IsNullOrEmpty(path))
-        {
-            throw new InvalidOperationException("Models path not found");
-        }
-
-        return path;
+        return string.IsNullOrEmpty(path) 
+            ? throw new ModelsPathNotFoundException() 
+            : path;
     }
 
     private static LLamaSharpTextEmbeddingMaINClone ConfigureGeneratorOptions(string embeddingModelPath,

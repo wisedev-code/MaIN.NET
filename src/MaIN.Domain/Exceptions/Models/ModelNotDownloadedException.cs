@@ -1,6 +1,6 @@
 ﻿using System.Net;
 
-namespace MaIN.Domain.Exceptions;
+namespace MaIN.Domain.Exceptions.Models;
 
 public class ModelNotDownloadedException(string? modelName) 
     : MaINCustomException($"Given model {modelName ?? string.Empty} is not downloaded.")

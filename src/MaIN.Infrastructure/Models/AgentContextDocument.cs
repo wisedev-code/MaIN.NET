@@ -1,5 +1,4 @@
 using MaIN.Domain.Entities;
-using MaIN.Models.Rag;
 
 namespace MaIN.Infrastructure.Models;
 
