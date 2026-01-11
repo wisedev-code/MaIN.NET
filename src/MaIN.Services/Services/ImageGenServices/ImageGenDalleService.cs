@@ -2,8 +2,10 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
+using MaIN.Domain.Exceptions;
 using MaIN.Services.Constants;
 using MaIN.Services.Services.Abstract;
+using MaIN.Services.Services.LLMService.Utils;
 using MaIN.Services.Services.Models;
 
 namespace MaIN.Services.Services.ImageGenServices;
@@ -19,8 +21,8 @@ public class OpenAiImageGenService(
     public async Task<ChatResult?> Send(Chat chat)
     {
         var client = _httpClientFactory.CreateClient(ServiceConstants.HttpClients.OpenAiClient);
-        string apiKey = _settings.OpenAiKey ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY") 
-            ?? throw new InvalidOperationException("OpenAI API key is not configured");
+        string apiKey = _settings.OpenAiKey ?? Environment.GetEnvironmentVariable(LLMApiRegistry.OpenAi.ApiKeyEnvName) 
+            ?? throw new APIKeyNotConfiguredException(LLMApiRegistry.OpenAi.ApiName);
         
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
         var requestBody = new
@@ -83,7 +85,6 @@ public class OpenAiImageGenService(
         public const string DALLE = "dall-e-3";
     }
 }
-
 
 file class OpenAiImageResponse
 {

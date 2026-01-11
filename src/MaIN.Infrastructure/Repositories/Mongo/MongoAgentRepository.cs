@@ -2,7 +2,7 @@ using MaIN.Infrastructure.Models;
 using MaIN.Infrastructure.Repositories.Abstract;
 using MongoDB.Driver;
 
-namespace MaIN.Infrastructure.Repositories;
+namespace MaIN.Infrastructure.Repositories.Mongo;
 
 public class MongoAgentRepository(IMongoDatabase database, string collectionName) : IAgentRepository
 {

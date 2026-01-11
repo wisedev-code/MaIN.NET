@@ -1,13 +1,13 @@
+using System.Text;
 using LLama;
+using LLama.Abstractions;
 using LLama.Common;
 using LLama.Native;
+using LLamaSharp.KernelMemory;
 using Microsoft.KernelMemory;
 using Microsoft.KernelMemory.AI;
-using System.Text;
-using LLama.Abstractions;
-using MaIN.Services.Services.LLMService.Memory.Embeddings;
 
-namespace LLamaSharp.KernelMemory
+namespace MaIN.Services.Services.LLMService.Memory.Embeddings
 {
     /// <summary>
     /// Provides text embedding generation for LLamaSharp. - Clone in MaIN.Package to support embeddings in custom manner

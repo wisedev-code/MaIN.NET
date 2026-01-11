@@ -1,6 +1,8 @@
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Tools;
+using MaIN.Domain.Exceptions;
+using MaIN.Domain.Exceptions.Chats;
 using MaIN.Domain.Models;
 using MaIN.Services;
 using MaIN.Services.Constants;
@@ -189,8 +191,9 @@ public class ChatContext
     {
         if (_chat.Messages.Count == 0)
         {
-            throw new InvalidOperationException("Chat has no messages."); //TODO good candidate for domain exception
+            throw new EmptyChatException(_chat.Id);
         }
+        
         _chat.Messages.Last().Files = _files;
         if(_preProcess)
         {
@@ -210,7 +213,9 @@ public class ChatContext
     public async Task<Chat> GetCurrentChat()
     {
         if (_chat.Id == null)
-            throw new InvalidOperationException("Chat has not been created yet. Call CompleteAsync first.");
+        {
+            throw new ChatNotInitializedException();
+        }
             
         return await _chatService.GetById(_chat.Id);
     }
@@ -223,8 +228,10 @@ public class ChatContext
     public async Task DeleteChat()
     {
         if (_chat.Id == null)
-            throw new InvalidOperationException("Chat has not been created yet.");
-            
+        {
+            throw new ChatNotInitializedException();
+        }
+        
         await _chatService.Delete(_chat.Id);
     }
 
@@ -247,7 +254,7 @@ public class ChatContext
         var existingChat = await _chatService.GetById(chatId);
         if (existingChat == null)
         {
-            throw new Exception("Chat not found");
+            throw new ChatNotFoundException(chatId);
         }
         return new ChatContext(_chatService, existingChat);
     }

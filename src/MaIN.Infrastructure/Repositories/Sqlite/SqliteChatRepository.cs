@@ -5,6 +5,8 @@ using MaIN.Domain.Entities;
 using MaIN.Infrastructure.Models;
 using MaIN.Infrastructure.Repositories.Abstract;
 
+namespace MaIN.Infrastructure.Repositories.Sqlite;
+
 public class SqliteChatRepository(IDbConnection connection) : IChatRepository
 {
     private readonly JsonSerializerOptions? _jsonOptions = new()

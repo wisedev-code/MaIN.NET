@@ -1,4 +1,6 @@
 using MaIN.Domain.Entities.Agents.AgentSource;
+using MaIN.Domain.Exceptions;
+using MaIN.Domain.Exceptions.Agents;
 using MaIN.Infrastructure.Models;
 using MaIN.Infrastructure.Repositories.Abstract;
 using MaIN.Services.Mappers;
@@ -11,8 +13,10 @@ public class AgentFlowService(IAgentFlowRepository flowRepository, IAgentService
     public async Task<AgentFlow> GetFlowById(string id)
     {
         var flow = await flowRepository.GetFlowById(id);
-        if(flow is null)
-            throw new Exception("Flow not found");
+        if (flow is null)
+        {
+            throw new AgentFlowNotFoundException(id);
+        }
         
         return flow.ToDomain();
     }
