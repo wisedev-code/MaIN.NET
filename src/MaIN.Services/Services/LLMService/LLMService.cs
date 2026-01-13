@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text;
+using System.Text.Json;
 using LLama;
 using LLama.Batched;
 using LLama.Common;
@@ -8,6 +9,7 @@ using LLama.Sampling;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Exceptions.Models;
+using MaIN.Domain.Entities.Tools;
 using MaIN.Domain.Models;
 using MaIN.Services.Constants;
 using MaIN.Services.Services.Abstract;
@@ -26,6 +28,7 @@ public class LLMService : ILLMService
 {
     private const string DEFAULT_MODEL_ENV_PATH = "MaIN_ModelsPath";
     private static readonly ConcurrentDictionary<string, ChatSession> _sessionCache = new();
+    private const int MaxToolIterations = 5;
 
     private readonly MaINSettings options;
     private readonly INotificationService notificationService;
@@ -60,6 +63,11 @@ public class LLMService : ILLMService
         {
             var memoryOptions = ChatHelper.ExtractMemoryOptions(lastMsg);
             return await AskMemory(chat, memoryOptions, requestOptions, cancellationToken);
+        }
+
+        if (chat.ToolsConfiguration?.Tools != null && chat.ToolsConfiguration.Tools.Any())
+        {
+            return await ProcessWithToolsAsync(chat, requestOptions, cancellationToken);
         }
 
         var model = KnownModels.GetModel(chat.Model);
@@ -319,14 +327,24 @@ public class LLMService : ILLMService
         var template = new LLamaTemplate(llmModel);
         var finalPrompt = ChatHelper.GetFinalPrompt(lastMsg, model, isNewConversation);
 
+        var hasTools = chat.ToolsConfiguration?.Tools != null && chat.ToolsConfiguration.Tools.Any();
+
         if (isNewConversation)
         {
-            foreach (var messageToProcess in chat.Messages
-                         .Where(x => x.Properties.ContainsKey(Message.UnprocessedMessageProperty))
-                         .SkipLast(1))
+            var messagesToProcess = hasTools
+                ? chat.Messages.SkipLast(1)
+                : chat.Messages.Where(x => x.Properties.ContainsKey(Message.UnprocessedMessageProperty)).SkipLast(1);
+
+            foreach (var messageToProcess in messagesToProcess)
             {
                 template.Add(messageToProcess.Role, messageToProcess.Content);
             }
+        }
+
+        if (hasTools)
+        {
+            var toolsPrompt = FormatToolsForPrompt(chat.ToolsConfiguration!);
+            finalPrompt = $"{toolsPrompt}\n\n{finalPrompt}";
         }
 
         template.Add(ServiceConstants.Roles.User, finalPrompt);
@@ -338,6 +356,151 @@ public class LLMService : ILLMService
             : executor.Context.Tokenize(templatedMessage);
 
         conversation.Prompt(tokens);
+    }
+
+    private static string FormatToolsForPrompt(ToolsConfiguration toolsConfig)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("## TOOLS");
+        sb.AppendLine("You can call these tools if needed. To call a tool, respond with a JSON object inside <tool_call> tags.");
+
+        foreach (var tool in toolsConfig.Tools)
+        {
+            // TODO: refactor to not allow null Function
+            sb.AppendLine($"- {tool.Function.Name}: {tool.Function.Description}");
+            sb.AppendLine($"  Parameters: {JsonSerializer.Serialize(tool.Function.Parameters)}");
+        }
+
+        sb.AppendLine("\n## RESPONSE FORMAT");
+        sb.AppendLine("1. For normal conversation, just respond with plain text.");
+        sb.AppendLine("2. For tool calls, use this format:");
+        sb.AppendLine("<tool_call>");
+        sb.AppendLine("{\"tool_calls\": [{\"id\": \"abc\", \"type\": \"function\", \"function\": {\"name\": \"fn\", \"arguments\": \"{\\\"p\\\":\\\"v\\\"}\"}}]}");
+        sb.AppendLine("</tool_call>");
+
+        return sb.ToString();
+    }
+
+    private List<ToolCall>? ParseToolCalls(string response)
+    {
+        if (string.IsNullOrWhiteSpace(response)) return null;
+
+        try
+        {
+            string jsonContent = ExtractJsonContent(response);
+            if (string.IsNullOrEmpty(jsonContent)) return null;
+
+            using var doc = JsonDocument.Parse(jsonContent);
+            var root = doc.RootElement;
+
+            // OpenAI standard { "tool_calls": [...] }
+            if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("tool_calls", out var toolCallsProp))
+            {
+                var calls = toolCallsProp.Deserialize<List<ToolCall>>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                return NormalizeToolCalls(calls);
+            }
+
+            // TODO: test if those formats are used by any model
+            // model returned table [ { ... }, { ... } ]
+            if (root.ValueKind == JsonValueKind.Array)
+            {
+                var calls = root.Deserialize<List<ToolCall>>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                return NormalizeToolCalls(calls);
+            }
+
+            // flat format { "tool_name": "...", "arguments": {...} }
+            if (root.ValueKind == JsonValueKind.Object && (root.TryGetProperty("tool_name", out _) || root.TryGetProperty("function", out _)))
+            {
+                var singleCall = ParseSingleLegacyCall(root);
+                if (singleCall != null) return new List<ToolCall> { singleCall };
+            }
+        }
+        catch (Exception)
+        {
+            // No tool calls found
+        }
+
+        return null;
+    }
+
+    private string ExtractJsonContent(string text)
+    {
+        text = text.Trim();
+
+        int firstBrace = text.IndexOf('{');
+        int firstBracket = text.IndexOf('[');
+        int startIndex = (firstBrace >= 0 && firstBracket >= 0) ? Math.Min(firstBrace, firstBracket) : Math.Max(firstBrace, firstBracket);
+
+        int lastBrace = text.LastIndexOf('}');
+        int lastBracket = text.LastIndexOf(']');
+        int endIndex = Math.Max(lastBrace, lastBracket);
+
+        if (startIndex >= 0 && endIndex > startIndex)
+        {
+            return text.Substring(startIndex, endIndex - startIndex + 1);
+        }
+
+        return text;
+    }
+
+    private ToolCall? ParseSingleLegacyCall(JsonElement root)
+    {
+        string name = string.Empty;
+        if (root.TryGetProperty("tool_name", out var tn)) name = tn.GetString();
+        else if (root.TryGetProperty("function", out var fn) && fn.ValueKind == JsonValueKind.String) name = fn.GetString();
+        else if (root.TryGetProperty("function", out var fnObj) && fnObj.TryGetProperty("name", out var n)) name = n.GetString();
+
+        if (string.IsNullOrEmpty(name)) return null;
+
+        string? args = "{}";
+        if (root.TryGetProperty("arguments", out var argProp))
+        {
+            args = argProp.ValueKind == JsonValueKind.String ? argProp.GetString() : argProp.GetRawText();
+        }
+        else if (root.TryGetProperty("parameters", out var paramProp))
+        {
+            args = paramProp.GetRawText();
+        }
+
+        return new ToolCall
+        {
+            Id = Guid.NewGuid().ToString().Substring(0, 8),
+            Type = "function",
+            Function = new FunctionCall { Name = name, Arguments = args! }
+        };
+    }
+
+    private List<ToolCall> NormalizeToolCalls(List<ToolCall>? calls)
+    {
+        if (calls == null) return new List<ToolCall>();
+        foreach (var call in calls)
+        {
+            if (string.IsNullOrEmpty(call.Id)) call.Id = Guid.NewGuid().ToString().Substring(0, 8);
+            if (string.IsNullOrEmpty(call.Type)) call.Type = "function";
+            if (call.Function == null) call.Function = new FunctionCall();
+        }
+        return calls;
+    }
+
+    public class ToolCall
+    {
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public string Id { get; set; } = Guid.NewGuid().ToString();
+
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        public string Type { get; set; } = "function";
+
+        [System.Text.Json.Serialization.JsonPropertyName("function")]
+        public FunctionCall Function { get; set; } = new();
+    }
+
+    public class FunctionCall
+    {
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        public string Name { get; set; } = string.Empty;
+
+        [System.Text.Json.Serialization.JsonPropertyName("arguments")]
+        public string Arguments { get; set; } = "{}";
     }
 
     private async Task<(List<LLMTokenValue> Tokens, bool IsComplete, bool HasFailed)> ProcessTokens(
@@ -477,4 +640,162 @@ public class LLMService : ILLMService
             NotificationMessageBuilder.CreateChatCompletion(chatId, token, isComplete),
             ServiceConstants.Notifications.ReceiveMessageUpdate);
     }
+
+    private async Task<ChatResult> ProcessWithToolsAsync(
+        Chat chat,
+        ChatRequestOptions requestOptions,
+        CancellationToken cancellationToken)
+    {        
+        var model = KnownModels.GetModel(chat.Model);
+        var tokens = new List<LLMTokenValue>();
+        var fullResponseBuilder = new StringBuilder();
+        var iterations = 0;
+
+        while (iterations < MaxToolIterations)
+        {            
+            if (iterations > 0 && requestOptions.InteractiveUpdates && fullResponseBuilder.Length > 0)
+            {
+                var spaceToken = new LLMTokenValue { Text = " ", Type = TokenType.Message };
+                tokens.Add(spaceToken);
+
+                requestOptions.TokenCallback?.Invoke(spaceToken);
+
+                await notificationService.DispatchNotification(
+                    NotificationMessageBuilder.CreateChatCompletion(chat.Id, spaceToken, false),
+                    ServiceConstants.Notifications.ReceiveMessageUpdate);
+            }
+
+            var lastMsg = chat.Messages.Last();
+            var iterationTokens = await ProcessChatRequest(chat, model, lastMsg, requestOptions, cancellationToken);
+            
+            var responseText = string.Concat(iterationTokens.Select(x => x.Text));
+            
+            if (fullResponseBuilder.Length > 0)
+            {
+                fullResponseBuilder.Append(" ");
+            }
+            fullResponseBuilder.Append(responseText);
+            tokens.AddRange(iterationTokens);
+
+            var toolCalls = ParseToolCalls(responseText);
+
+            if (toolCalls == null || !toolCalls.Any())
+            {
+                break;
+            }
+
+            var assistantMessage = new Message
+            {
+                Content = responseText,
+                Role = AuthorRole.Assistant.ToString(),
+                Type = MessageType.LocalLLM,
+                Tool = true
+            };
+            assistantMessage.Properties[ToolCallsProperty] = JsonSerializer.Serialize(toolCalls);
+            chat.Messages.Add(assistantMessage.MarkProcessed());
+
+            foreach (var toolCall in toolCalls)
+            {                
+                if (chat.Properties.CheckProperty(ServiceConstants.Properties.AgentIdProperty))
+                {
+                    await notificationService.DispatchNotification(
+                        NotificationMessageBuilder.ProcessingTools(
+                            chat.Properties[ServiceConstants.Properties.AgentIdProperty],
+                            string.Empty,
+                            toolCall.Function.Name),
+                        ServiceConstants.Notifications.ReceiveAgentUpdate);
+                }
+
+                var executor = chat.ToolsConfiguration?.GetExecutor(toolCall.Function.Name);
+
+                if (executor == null)
+                {
+                    var errorMessage = $"No executor found for tool: {toolCall.Function.Name}";
+                    throw new InvalidOperationException(errorMessage);
+                }
+
+
+                try
+                {
+                    requestOptions.ToolCallback?.Invoke(new ToolInvocation
+                    {
+                        ToolName = toolCall.Function.Name,
+                        Arguments = toolCall.Function.Arguments,
+                        Done = false
+                    });
+
+                    var toolResult = await executor(toolCall.Function.Arguments);
+
+                    requestOptions.ToolCallback?.Invoke(new ToolInvocation
+                    {
+                        ToolName = toolCall.Function.Name,
+                        Arguments = toolCall.Function.Arguments,
+                        Done = true
+                    });
+
+                    var toolMessage = new Message
+                    {
+                        Content = $"Tool result for {toolCall.Function.Name}: {toolResult}",
+                        Role = ServiceConstants.Roles.Tool,
+                        Type = MessageType.LocalLLM,
+                        Tool = true
+                    };
+                    toolMessage.Properties[ToolCallIdProperty] = toolCall.Id;
+                    toolMessage.Properties[ToolNameProperty] = toolCall.Function.Name;
+                    chat.Messages.Add(toolMessage.MarkProcessed());
+                }
+                catch (Exception ex)
+                {
+                    var errorResult = JsonSerializer.Serialize(new { error = ex.Message });
+                    var toolMessage = new Message
+                    {
+                        Content = $"Tool error for {toolCall.Function.Name}: {errorResult}",
+                        Role = ServiceConstants.Roles.Tool,
+                        Type = MessageType.LocalLLM,
+                        Tool = true
+                    };
+                    toolMessage.Properties[ToolCallIdProperty] = toolCall.Id;
+                    toolMessage.Properties[ToolNameProperty] = toolCall.Function.Name;
+                    chat.Messages.Add(toolMessage.MarkProcessed());
+                }
+            }
+
+            iterations++;
+        }
+
+        if (iterations >= MaxToolIterations)
+        {
+        }
+
+        var finalResponse = fullResponseBuilder.ToString();
+        var finalToken = new LLMTokenValue { Text = finalResponse, Type = TokenType.FullAnswer };
+        tokens.Add(finalToken);
+
+        if (requestOptions.InteractiveUpdates)
+        {
+            await notificationService.DispatchNotification(
+                NotificationMessageBuilder.CreateChatCompletion(chat.Id, finalToken, true),
+                ServiceConstants.Notifications.ReceiveMessageUpdate);
+        }
+
+        chat.Messages.Last().MarkProcessed();
+
+        return new ChatResult
+        {
+            Done = true,
+            CreatedAt = DateTime.Now,
+            Model = chat.Model,
+            Message = new Message
+            {
+                Content = finalResponse,
+                Tokens = tokens,
+                Role = AuthorRole.Assistant.ToString(),
+                Type = MessageType.LocalLLM,
+            }.MarkProcessed()
+        };
+    }
+
+    private const string ToolCallsProperty = "ToolCalls";
+    private const string ToolCallIdProperty = "ToolCallId";
+    private const string ToolNameProperty = "ToolName";
 }
