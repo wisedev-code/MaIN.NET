@@ -1,7 +1,9 @@
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Tools;
+using MaIN.Domain.Exceptions;
 using MaIN.Domain.Models;
+using MaIN.Domain.Models.Abstract;
 using MaIN.Services;
 using MaIN.Services.Constants;
 using MaIN.Services.Services.Abstract;
@@ -14,8 +16,8 @@ public sealed class ChatContext
 {
     private readonly IChatService _chatService;
     private bool _preProcess;
-    private Chat _chat { get; set; }
-    private List<FileInfo> _files { get; set; } = [];
+    private readonly Chat _chat;
+    private List<FileInfo> _files = [];
 
     internal ChatContext(IChatService chatService)
     {
@@ -24,8 +26,8 @@ public sealed class ChatContext
         {
             Name = "New Chat",
             Id = Guid.NewGuid().ToString(),
-            Messages = new List<Message>(),
-            Model = string.Empty
+            Messages = [],
+            ModelId = string.Empty
         };
         _files = [];
     }
@@ -36,12 +38,28 @@ public sealed class ChatContext
         _chat = existingChat;
     }
 
-    public ChatContext WithModel(string model)
+    public ChatContext WithModel<TModel>() where TModel : AIModel, new()
     {
-        _chat.Model = model;
+        var model = new TModel();
+        SetModel(model);
         return this;
     }
-    
+
+    [Obsolete("Use WithModel<TModel>() instead.")]
+    public ChatContext WithModel(string modelId)
+    {
+        var model = ModelRegistry.GetById(modelId);
+        SetModel(model);
+        return this;
+    }
+
+    private void SetModel(AIModel model)
+    {
+        _chat.ModelId = model.Id;
+        _chat.ModelInstance = model;
+        _chat.Backend = model.Backend;
+    }
+
     public ChatContext WithInferenceParams(InferenceParams inferenceParams)
     {
         _chat.InterferenceParams = inferenceParams;
@@ -60,10 +78,11 @@ public sealed class ChatContext
         return this;
     }
 
+    [Obsolete("Use WithModel<TModel>() instead.")]
     public ChatContext WithCustomModel(string model, string path, string? mmProject = null)
     {
         KnownModels.AddModel(model, path, mmProject);
-        _chat.Model = model;
+        _chat.ModelId = model;
         return this;
     }
 
@@ -183,13 +202,17 @@ public sealed class ChatContext
     public string GetChatId() => _chat.Id;
 
     public async Task<ChatResult> CompleteAsync(
-        bool translate = false,
-        bool interactive = false,
+        bool translate = false, // Move to WithTranslate
+        bool interactive = false, // Move to WithInteractive
         Func<LLMTokenValue?, Task>? changeOfValue = null)
     {
+        if (_chat.ModelInstance is null)
+        {
+            throw new ChatConfigurationException("Model is required. Use .WithModel() before calling CompleteAsync().");
+        }
         if (_chat.Messages.Count == 0)
         {
-            throw new InvalidOperationException("Chat has no messages."); //TODO good candidate for domain exception
+            throw new ChatConfigurationException("Chat has no messages.");
         }
         _chat.Messages.Last().Files = _files;
         if(_preProcess)
