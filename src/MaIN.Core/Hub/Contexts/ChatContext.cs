@@ -4,6 +4,7 @@ using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Tools;
 using MaIN.Domain.Exceptions.Chats;
 using MaIN.Domain.Models;
+using MaIN.Domain.Models.Abstract;
 using MaIN.Services;
 using MaIN.Services.Constants;
 using MaIN.Services.Services.Abstract;
@@ -16,8 +17,8 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
 {
     private readonly IChatService _chatService;
     private bool _preProcess;
-    private Chat _chat { get; set; }
-    private List<FileInfo> _files { get; set; } = [];
+    private readonly Chat _chat;
+    private List<FileInfo> _files = [];
 
     internal ChatContext(IChatService chatService)
     {
@@ -26,8 +27,8 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
         {
             Name = "New Chat",
             Id = Guid.NewGuid().ToString(),
-            Messages = new List<Message>(),
-            Model = string.Empty
+            Messages = [],
+            ModelId = string.Empty
         };
         _files = [];
     }
@@ -38,14 +39,29 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
         _chat = existingChat;
     }
 
-
-    public IChatMessageBuilder WithModel(string model)
+    public IChatMessageBuilder WithModel<TModel>() where TModel : AIModel, new()
     {
-        _chat.Model = model;
+        var model = new TModel();
+        SetModel(model);
         return this;
     }
 
-    public IChatMessageBuilder WithCustomModel(string model, string path, string? mmProject = null)
+    [Obsolete("Use WithModel<TModel>() instead.")]
+    public ChatContext WithModel(string modelId)
+    {
+        var model = ModelRegistry.GetById(modelId);
+        SetModel(model);
+        return this;
+    }
+
+    private void SetModel(AIModel model)
+    {
+        _chat.ModelId = model.Id;
+        _chat.ModelInstance = model;
+        _chat.Backend = model.Backend;
+    }
+
+    public IChatMessageBuilder WithInferenceParams(InferenceParams inferenceParams)
     {
         KnownModels.AddModel(model, path, mmProject);
         _chat.Model = model;
@@ -64,9 +80,11 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
         return this;
     }
 
-    public IChatConfigurationBuilder WithTools(ToolsConfiguration toolsConfiguration)
+    [Obsolete("Use WithModel<TModel>() instead.")]
+    public ChatContext WithCustomModel(string model, string path, string? mmProject = null)
     {
-        _chat.ToolsConfiguration = toolsConfiguration;
+        KnownModels.AddModel(model, path, mmProject);
+        _chat.ModelId = model;
         return this;
     }
 
@@ -167,10 +185,14 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
     }
     
     public async Task<ChatResult> CompleteAsync(
-        bool translate = false,
-        bool interactive = false,
+        bool translate = false, // Move to WithTranslate
+        bool interactive = false, // Move to WithInteractive
         Func<LLMTokenValue?, Task>? changeOfValue = null)
     {
+        if (_chat.ModelInstance is null)
+        {
+            throw new ChatConfigurationException("Model is required. Use .WithModel() before calling CompleteAsync().");
+        }
         if (_chat.Messages.Count == 0)
         {
             throw new EmptyChatException(_chat.Id);

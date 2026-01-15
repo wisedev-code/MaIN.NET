@@ -1,11 +1,10 @@
-﻿using MaIN.Domain.Abstractions;
-using MaIN.Domain.Configuration; // TODO: change localization
+﻿using MaIN.Domain.Configuration; // TODO: change localization
 
 namespace MaIN.Domain.Models.Abstract;
 
 public abstract class AIModel
 {
-    /// <summary> Internal Id. </summary>
+    /// <summary> Internal Id. For cloud models it is the cloud Id. </summary>
     public abstract string Id { get; }
 
     /// <summary> Name displayed to users. </summary>
@@ -22,8 +21,6 @@ public abstract class AIModel
 
     /// <summary> Max context widnow size supported by the model. </summary>
     public abstract uint MaxContextWindowSize { get; }
-
-    public abstract T Accept<T>(IModelVisitor<T> visitor);
 }
 
 public abstract class LocalModel : AIModel
@@ -35,9 +32,6 @@ public abstract class LocalModel : AIModel
     public abstract Uri DownloadUrl { get; }
     public override BackendType Backend => BackendType.Self;
 
-    // Visitor Pattern
-    public override T Accept<T>(IModelVisitor<T> visitor) => visitor.Visit(this);
-
     public bool IsDownloaded(string basePath)
         => File.Exists(Path.Combine(basePath, FileName));
 }
@@ -45,7 +39,4 @@ public abstract class LocalModel : AIModel
 public abstract class CloudModel : AIModel
 {
     public abstract override BackendType Backend { get; }
-
-    // Visitor Pattern
-    public override T Accept<T>(IModelVisitor<T> visitor) => visitor.Visit(this);
 }
