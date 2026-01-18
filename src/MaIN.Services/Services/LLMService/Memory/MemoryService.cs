@@ -1,5 +1,4 @@
 using LLama.Native;
-using LLamaSharp.KernelMemory;
 using MaIN.Services.Services.LLMService.Memory.Embeddings;
 using MaIN.Services.Utils;
 using Microsoft.KernelMemory;

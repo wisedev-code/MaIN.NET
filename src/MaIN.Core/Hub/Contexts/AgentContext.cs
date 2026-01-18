@@ -1,3 +1,4 @@
+using MaIN.Core.Hub.Contexts.Interfaces.AgentContext;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
@@ -8,13 +9,12 @@ using MaIN.Services.Services.Models;
 using MaIN.Core.Hub.Utils;
 using MaIN.Domain.Entities.Agents.Knowledge;
 using MaIN.Domain.Entities.Tools;
-using MaIN.Domain.Exceptions;
 using MaIN.Domain.Exceptions.Agents;
 using MaIN.Services.Constants;
 
 namespace MaIN.Core.Hub.Contexts;
 
-public sealed class AgentContext
+public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationBuilder, IAgentContextExecutor
 {
     private readonly IAgentService _agentService;
     private InferenceParams? _inferenceParams;
@@ -50,31 +50,69 @@ public sealed class AgentContext
         _agent = existingAgent;
     }
 
-    public AgentContext WithId(string id)
+    // --- IAgentActions ---
+    public string GetAgentId() => _agent.Id;
+    public Agent GetAgent() => _agent;
+    public Knowledge? GetKnowledge() => _knowledge;
+    public async Task<Chat> GetChat() => await _agentService.GetChatByAgent(_agent.Id);
+    public async Task<Chat> RestartChat() => await _agentService.Restart(_agent.Id);
+    public async Task<List<Agent>> GetAllAgents() => await _agentService.GetAgents();
+    public async Task<Agent?> GetAgentById(string id) => await _agentService.GetAgentById(id);
+    public async Task Delete() => await _agentService.DeleteAgent(_agent.Id);
+    public async Task<bool> Exists() => await _agentService.AgentExists(_agent.Id);
+    
+    
+    public IAgentConfigurationBuilder WithModel(string model)
+    {
+        _agent.Model = model;
+        return this;
+    }
+
+    public IAgentConfigurationBuilder WithCustomModel(string model, string path, string? mmProject = null)
+    {
+        KnownModels.AddModel(model, path, mmProject);
+        _agent.Model = model;
+        return this;
+    }
+
+    public async Task<IAgentContextExecutor> FromExisting(string agentId)
+    {
+        var existingAgent = await _agentService.GetAgentById(agentId);
+        if (existingAgent == null)
+        {
+            throw new AgentNotFoundException(agentId);
+        }
+            
+        var context = new AgentContext(_agentService, existingAgent);
+        context.LoadExistingKnowledgeIfExists();
+        return context;
+    }
+    
+    public IAgentConfigurationBuilder WithInitialPrompt(string prompt)
+    {
+        _agent.Context.Instruction = prompt;
+        return this;
+    }
+    
+    public IAgentConfigurationBuilder WithId(string id)
     {
         _agent.Id = id;
         return this;
     }
-    
-    public string GetAgentId() => _agent.Id;
-    
-    public Agent GetAgent() => _agent;
-    
-    public Knowledge? GetKnowledge() => _knowledge;
-    
-    public AgentContext WithOrder(int order)
+
+    public IAgentConfigurationBuilder WithOrder(int order)
     {
         _agent.Order = order;
         return this;
     }
 
-    public AgentContext DisableCache()
+    public IAgentConfigurationBuilder DisableCache()
     {
         _disableCache = true;
         return this;
     }
 
-    public AgentContext WithSource(IAgentSource source, AgentSourceType type)
+    public IAgentConfigurationBuilder WithSource(IAgentSource source, AgentSourceType type)
     {
         _agent.Context.Source = new AgentSource()
         {
@@ -84,25 +122,19 @@ public sealed class AgentContext
         return this;
     }
     
-    public AgentContext WithName(string name)
+    public IAgentConfigurationBuilder WithName(string name)
     {
         _agent.Name = name;
         return this;
     }
 
-    public AgentContext WithBackend(BackendType backendType)
+    public IAgentConfigurationBuilder WithBackend(BackendType backendType)
     {
         _agent.Backend = backendType;
         return this;
     }
 
-    public AgentContext WithModel(string model)
-    {
-        _agent.Model = model;
-        return this;
-    }
-
-    public AgentContext WithMcpConfig(Mcp mcpConfig)
+    public IAgentConfigurationBuilder WithMcpConfig(Mcp mcpConfig)
     {
         if (_agent.Backend != null)
         {
@@ -112,57 +144,44 @@ public sealed class AgentContext
         return this;
     }
     
-    public AgentContext WithInferenceParams(InferenceParams inferenceParams)
+    public IAgentConfigurationBuilder WithInferenceParams(InferenceParams inferenceParams)
     {
         _inferenceParams = inferenceParams;
         return this;
     }
 
-    public AgentContext WithMemoryParams(MemoryParams memoryParams)
+    public IAgentConfigurationBuilder WithMemoryParams(MemoryParams memoryParams)
     {
         _memoryParams = memoryParams;
         return this;
     }
 
-    public AgentContext WithCustomModel(string model, string path, string? mmProject = null)
-    {
-        KnownModels.AddModel(model, path, mmProject);
-        _agent.Model = model;
-        return this;
-    }
-
-    public AgentContext WithInitialPrompt(string prompt)
-    {
-        _agent.Context.Instruction = prompt;
-        return this;
-    }
-
-    public AgentContext WithSteps(List<string>? steps)
+    public IAgentConfigurationBuilder WithSteps(List<string>? steps)
     {
         _agent.Context.Steps = steps;
         return this;
     }
 
-    public AgentContext WithKnowledge(Func<KnowledgeBuilder, KnowledgeBuilder> knowledgeConfig)
+    public IAgentConfigurationBuilder WithKnowledge(Func<KnowledgeBuilder, KnowledgeBuilder> knowledgeConfig)
     {
         var builder = KnowledgeBuilder.Instance.ForAgent(_agent);
         _knowledge = knowledgeConfig(builder).Build();
         return this;
     }
 
-    public AgentContext WithKnowledge(KnowledgeBuilder knowledge)
+    public IAgentConfigurationBuilder WithKnowledge(KnowledgeBuilder knowledge)
     {
         _knowledge = knowledge.ForAgent(_agent).Build();
         return this;
     }
     
-    public AgentContext WithKnowledge(Knowledge knowledge)
+    public IAgentConfigurationBuilder WithKnowledge(Knowledge knowledge)
     {
         _knowledge = knowledge;
         return this;
     }
 
-    public AgentContext WithInMemoryKnowledge(Func<KnowledgeBuilder, KnowledgeBuilder> knowledgeConfig)
+    public IAgentConfigurationBuilder WithInMemoryKnowledge(Func<KnowledgeBuilder, KnowledgeBuilder> knowledgeConfig)
     {
         var builder = KnowledgeBuilder.Instance
             .ForAgent(_agent)
@@ -171,7 +190,7 @@ public sealed class AgentContext
         return this;
     }
     
-    public AgentContext WithBehaviour(string name, string instruction)
+    public IAgentConfigurationBuilder WithBehaviour(string name, string instruction)
     {
         _agent.Behaviours ??= new Dictionary<string, string>();
         _agent.Behaviours[name] = instruction;
@@ -179,19 +198,19 @@ public sealed class AgentContext
         return this;
     }
 
-    public async Task<AgentContext> CreateAsync(bool flow = false, bool interactiveResponse = false)
+    public async Task<IAgentContextExecutor> CreateAsync(bool flow = false, bool interactiveResponse = false)
     {
         await _agentService.CreateAgent(_agent, flow, interactiveResponse, _inferenceParams, _memoryParams, _disableCache);
         return this;
     }
     
-    public AgentContext Create(bool flow = false, bool interactiveResponse = false)
+    public IAgentContextExecutor Create(bool flow = false, bool interactiveResponse = false)
     {
         _ = _agentService.CreateAgent(_agent, flow, interactiveResponse, _inferenceParams, _memoryParams, _disableCache).Result;
         return this;
     }
 
-    public AgentContext WithTools(ToolsConfiguration toolsConfiguration)
+    public IAgentConfigurationBuilder WithTools(ToolsConfiguration toolsConfiguration)
     {
         _agent.ToolsConfiguration = toolsConfiguration;
         return this;
@@ -307,36 +326,6 @@ public sealed class AgentContext
             Message = messageResult,
             CreatedAt = DateTime.Now
         };
-    }
-
-    public async Task<Chat> GetChat()
-    {
-        return await _agentService.GetChatByAgent(_agent.Id);
-    }
-
-    public async Task<Chat> RestartChat()
-    {
-        return await _agentService.Restart(_agent.Id);
-    }
-
-    public async Task<List<Agent>> GetAllAgents()
-    {
-        return await _agentService.GetAgents();
-    }
-    
-    public async Task<Agent?> GetAgentById(string id)
-    {
-        return await _agentService.GetAgentById(id);
-    }
-    
-    public async Task Delete()
-    {
-        await _agentService.DeleteAgent(_agent.Id);
-    }
-
-    public async Task<bool> Exists()
-    {
-        return await _agentService.AgentExists(_agent.Id);
     }
 
     public static async Task<AgentContext> FromExisting(IAgentService agentService, string agentId)

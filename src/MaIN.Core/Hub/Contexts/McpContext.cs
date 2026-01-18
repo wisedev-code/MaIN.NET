@@ -1,6 +1,5 @@
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
-using MaIN.Domain.Exceptions;
 using MaIN.Domain.Exceptions.MPC;
 using MaIN.Services.Constants;
 using MaIN.Services.Services.Abstract;

@@ -1,5 +1,4 @@
 using System.Text.Json;
-using MaIN.Domain.Configuration;
 
 namespace MaIN.Domain.Entities.Agents.Knowledge;
 

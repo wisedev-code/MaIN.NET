@@ -7,7 +7,6 @@ using LLama.Native;
 using LLama.Sampling;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
-using MaIN.Domain.Exceptions;
 using MaIN.Domain.Exceptions.Models;
 using MaIN.Domain.Models;
 using MaIN.Services.Constants;

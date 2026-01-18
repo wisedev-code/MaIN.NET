@@ -13,7 +13,6 @@ using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities.Tools;
 using MaIN.Domain.Exceptions;
 using MaIN.Services.Services.LLMService.Utils;
-using MaIN.Services.Services.LLMService;
 
 namespace MaIN.Services.Services.LLMService;
 

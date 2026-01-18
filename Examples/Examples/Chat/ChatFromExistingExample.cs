@@ -1,6 +1,5 @@
 using System.Text.Json;
 using MaIN.Core.Hub;
-using MaIN.Domain.Exceptions;
 using MaIN.Domain.Exceptions.Chats;
 
 namespace Examples.Chat;

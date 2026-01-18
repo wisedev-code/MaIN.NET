@@ -3,6 +3,7 @@
 @inject IJSRuntime JS
 @using MaIN.Core.Hub
 @using MaIN.Core.Hub.Contexts
+@using MaIN.Core.Hub.Contexts.Interfaces.ChatContext
 @using MaIN.Domain.Entities
 @using MaIN.Domain.Exceptions
 @using MaIN.Domain.Models
@@ -190,7 +191,8 @@
     private string? _incomingMessage = null;
     private string? _incomingReasoning = null;
     private readonly string? _displayName = Utils.Model;
-    private ChatContext? ctx;
+    private IChatMessageBuilder? ctxBuilder;
+    // private ChatContext? ctx;
     private Chat Chat { get; } = new() { Name = "MaIN Infer", Model = Utils.Model! };
     private List<MessageExt> Messages { get; set; } = new();
     private ElementReference? _bottomElement;
@@ -206,7 +208,7 @@
 
     protected override Task OnInitializedAsync()
     {
-        ctx = Utils.Visual
+        ctxBuilder = Utils.Visual
             ? AIHub.Chat().EnableVisual()
             : Utils.Path != null
                 ? AIHub.Chat().WithCustomModel(model: Utils.Model!, path: Utils.Path)
@@ -256,7 +258,7 @@
 
             try
             {
-                await ctx!.WithMessage(msg)
+                await ctxBuilder!.WithMessage(msg)
                     .CompleteAsync(changeOfValue: async message =>
                     {
                         if (message?.Type == TokenType.Reason)
@@ -278,7 +280,7 @@
                     });
                 
                 _isLoading = false;
-                var currentChat = (await ctx.GetCurrentChat());
+                var currentChat = (await ctxBuilder.GetCurrentChat());
                 Chat.Messages.Add(currentChat.Messages.Last());
                 Messages = Chat.Messages.Select(x => new MessageExt()
                 {

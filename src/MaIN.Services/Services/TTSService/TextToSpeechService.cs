@@ -1,6 +1,5 @@
 ﻿using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
-using MaIN.Domain.Exceptions;
 using MaIN.Domain.Exceptions.Models;
 using MaIN.Domain.Models;
 using NAudio.Wave;

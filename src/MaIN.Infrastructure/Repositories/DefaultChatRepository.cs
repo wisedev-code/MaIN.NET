@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using MaIN.Domain.Exceptions;
 using MaIN.Domain.Exceptions.Chats;
 using MaIN.Infrastructure.Models;
 using MaIN.Infrastructure.Repositories.Abstract;

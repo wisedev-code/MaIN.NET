@@ -2,7 +2,6 @@ using LLama;
 using LLama.Batched;
 using LLama.Common;
 using LLama.Sampling;
-using LLamaSharp.KernelMemory;
 using MaIN.Domain.Entities;
 using MaIN.Services.Services.LLMService.Memory.Embeddings;
 using Microsoft.KernelMemory;

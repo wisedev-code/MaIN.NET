@@ -26,7 +26,7 @@ public static class AIHub
         _services ??
         throw new AIHubNotInitializedException();
 
-    public static ModelContext Model() => new ModelContext(_settings, _httpClientFactory);
+    public static ModelContext Model() => new(_settings, _httpClientFactory);
     public static ChatContext Chat() => new(Services.ChatService);
     public static AgentContext Agent() => new(Services.AgentService);
     public static FlowContext Flow() => new(Services.FlowService, Services.AgentService);

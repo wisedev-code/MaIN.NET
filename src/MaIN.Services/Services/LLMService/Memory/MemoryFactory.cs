@@ -3,7 +3,6 @@ using LLama;
 using LLama.Common;
 using LLamaSharp.KernelMemory;
 using MaIN.Domain.Entities;
-using MaIN.Domain.Exceptions;
 using MaIN.Domain.Exceptions.Models;
 using MaIN.Domain.Models;
 using MaIN.Services.Services.LLMService.Memory.Embeddings;

@@ -1,4 +1,3 @@
-using MaIN.Domain.Exceptions;
 using MaIN.Domain.Exceptions.Models;
 
 namespace MaIN.Domain.Models;
