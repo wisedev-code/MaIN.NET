@@ -14,7 +14,7 @@ using MaIN.Services.Constants;
 
 namespace MaIN.Core.Hub.Contexts;
 
-public class AgentContext
+public sealed class AgentContext
 {
     private readonly IAgentService _agentService;
     private InferenceParams? _inferenceParams;

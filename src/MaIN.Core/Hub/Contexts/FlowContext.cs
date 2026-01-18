@@ -13,7 +13,7 @@ using MaIN.Services.Services.Models;
 
 namespace MaIN.Core.Hub.Contexts;
 
-public class FlowContext
+public sealed class FlowContext
 {
     private readonly IAgentFlowService _flowService;
     private readonly IAgentService _agentService;

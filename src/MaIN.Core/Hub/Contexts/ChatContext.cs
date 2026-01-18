@@ -12,7 +12,7 @@ using FileInfo = MaIN.Domain.Entities.FileInfo;
 
 namespace MaIN.Core.Hub.Contexts;
 
-public class ChatContext
+public sealed class ChatContext
 {
     private readonly IChatService _chatService;
     private bool _preProcess;
