@@ -1,7 +1,3 @@
-using System;
-using System.Linq;
-using System.Net.Http;
-using System.Threading.Tasks;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Services.Constants;

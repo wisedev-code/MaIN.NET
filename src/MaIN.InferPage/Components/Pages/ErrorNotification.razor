@@ -1,0 +1,29 @@
+﻿<div class="error-notification-wrapper">
+    @if (!string.IsNullOrEmpty(ErrorMessage))
+    {
+        <div class="error-shake">
+            <FluentMessageBar @key="ErrorMessage" 
+                              Intent="@MessageIntent.Error"
+                              AllowDismiss="true"
+                              Multiline="true"
+                              OnDismiss="@(async () => await HandleDismiss())"
+                              Class="high-alert-error">
+                @ErrorMessage
+            </FluentMessageBar>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string? ErrorMessage { get; set; }
+
+    [Parameter]
+    public EventCallback<string?> ErrorMessageChanged { get; set; }
+
+    private async Task HandleDismiss()
+    {
+        ErrorMessage = null;
+        await ErrorMessageChanged.InvokeAsync(null);
+    }
+}

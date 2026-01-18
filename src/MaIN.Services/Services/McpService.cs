@@ -126,13 +126,13 @@ public class McpService(MaINSettings settings, IServiceProvider serviceProvider)
     }
 
     string? GetOpenAiKey()
-        => settings.OpenAiKey ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+        => settings.OpenAiKey ?? Environment.GetEnvironmentVariable(LLMApiRegistry.OpenAi.ApiKeyEnvName);
     string? GetGeminiKey()
-        => settings.GeminiKey ?? Environment.GetEnvironmentVariable("GEMINI_API_KEY");
+        => settings.GeminiKey ?? Environment.GetEnvironmentVariable(LLMApiRegistry.Gemini.ApiKeyEnvName);
     string? GetGroqCloudKey()
-        => settings.GroqCloudKey ?? Environment.GetEnvironmentVariable("GROQ_API_KEY");
+        => settings.GroqCloudKey ?? Environment.GetEnvironmentVariable(LLMApiRegistry.Groq.ApiKeyEnvName);
     string? GetAnthropicKey()
-        => settings.AnthropicKey ?? Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY");
+        => settings.AnthropicKey ?? Environment.GetEnvironmentVariable(LLMApiRegistry.Anthropic.ApiKeyEnvName);
     string? GetXaiKey()
-        => settings.XaiKey ?? Environment.GetEnvironmentVariable("XAI_API_KEY");
+        => settings.XaiKey ?? Environment.GetEnvironmentVariable(LLMApiRegistry.Xai.ApiKeyEnvName);
 }

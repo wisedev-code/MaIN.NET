@@ -1,4 +1,5 @@
 using System.Text.Json;
+using MaIN.Domain.Exceptions.Chats;
 using MaIN.Infrastructure.Models;
 using MaIN.Infrastructure.Repositories.Abstract;
 
@@ -45,7 +46,7 @@ public class FileSystemChatRepository : IChatRepository
     {
         var filePath = GetFilePath(chat.Id);
         if (File.Exists(filePath))
-            throw new InvalidOperationException($"Chat with ID {chat.Id} already exists.");
+            throw new ChatAlreadyExistsException(chat.Id);
 
         var json = JsonSerializer.Serialize(chat, JsonOptions);
         await File.WriteAllTextAsync(filePath, json);

@@ -1,9 +1,6 @@
-using Examples.Utils;
 using MaIN.Core.Hub;
 using MaIN.Core.Hub.Utils;
 using MaIN.Domain.Entities;
-using MaIN.Domain.Entities.Agents.AgentSource;
-using Microsoft.Identity.Client;
 
 namespace Examples.Agents;
 

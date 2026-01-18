@@ -1,7 +1,7 @@
-﻿using MaIN.Domain.Models;
-using System;
-using System.Text.Encodings.Web;
+﻿using System.Text.Encodings.Web;
 using System.Text.Json;
+
+namespace MaIN.Services.Utils;
 
 public static class JsonCleaner
 {

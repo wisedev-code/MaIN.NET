@@ -2,7 +2,6 @@ using System.Text.Json;
 using MaIN.Domain.Entities.Agents;
 using MaIN.Domain.Entities.Agents.AgentSource;
 using MaIN.Infrastructure.Models;
-using MaIN.Models.Rag;
 using MaIN.Services.Dtos.Rag;
 using MaIN.Services.Dtos.Rag.AgentSource;
 

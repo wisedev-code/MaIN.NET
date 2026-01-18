@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using MaIN.Domain.Exceptions.Flows;
 using MaIN.Infrastructure.Models;
 using MaIN.Infrastructure.Repositories.Abstract;
 
@@ -17,7 +18,7 @@ public class DefaultAgentFlowRepository : IAgentFlowRepository
     public async Task AddFlow(AgentFlowDocument flow)
     {
         if (!_flows.TryAdd(flow.Id, flow))
-            throw new InvalidOperationException($"Flow with ID {flow.Id} already exists.");
+            throw new FlowAlreadyExistsException(flow.Id);
             
         await Task.CompletedTask;
     }

@@ -1,4 +1,4 @@
-namespace MaIN.Services.Services.Steps.Commands;
+namespace MaIN.Services.Services.Steps.Commands.Abstract;
 
 public interface ICommandDispatcher
 {

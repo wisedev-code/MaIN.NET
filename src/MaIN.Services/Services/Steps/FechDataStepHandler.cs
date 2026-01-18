@@ -1,10 +1,11 @@
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
+using MaIN.Domain.Exceptions;
 using MaIN.Services.Mappers;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
 using MaIN.Services.Services.Models.Commands;
-using MaIN.Services.Services.Steps.Commands;
+using MaIN.Services.Services.Steps.Commands.Abstract;
 
 namespace MaIN.Services.Services.Steps;
 
@@ -35,7 +36,7 @@ public class FetchDataStepHandler(
         var response = await commandDispatcher.DispatchAsync(fetchCommand);
         if (response == null)
         {
-            throw new InvalidOperationException("Data fetch command failed"); //TODO proper candidate for custom exception
+            throw new CommandFailedException(fetchCommand.CommandName);
         }
 
         if (context.StepName == "FETCH_DATA*")

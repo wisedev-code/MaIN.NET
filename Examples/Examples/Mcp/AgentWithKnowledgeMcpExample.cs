@@ -14,8 +14,8 @@ public class AgentWithKnowledgeMcpExample : IExample
 
         AIHub.Extensions.DisableLLamaLogs();
         var context = await AIHub.Agent()
-            .WithBackend(BackendType.OpenAi)
             .WithModel("gpt-4.1-mini")
+            .WithBackend(BackendType.OpenAi)
             .WithKnowledge(KnowledgeBuilder.Instance
                 .AddMcp(new MaIN.Domain.Entities.Mcp
                 {

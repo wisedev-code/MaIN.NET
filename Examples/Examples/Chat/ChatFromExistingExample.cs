@@ -1,5 +1,6 @@
 using System.Text.Json;
 using MaIN.Core.Hub;
+using MaIN.Domain.Exceptions.Chats;
 
 namespace Examples.Chat;
 
@@ -18,8 +19,16 @@ public class ChatFromExistingExample : IExample
         await result.WithMessage("And about physics?")
             .CompleteAsync();
 
-        var chatNewContext = await AIHub.Chat().FromExisting(result.GetChatId());
-        var messages = chatNewContext.GetChatHistory();
-        Console.WriteLine(JsonSerializer.Serialize(messages));
+        try
+        {
+            var chatNewContext = await AIHub.Chat().FromExisting(result.GetChatId());
+            var messages = chatNewContext.GetChatHistory();
+            Console.WriteLine(JsonSerializer.Serialize(messages));
+        }
+        catch (ChatNotFoundException ex)
+        {
+            Console.WriteLine(ex.PublicErrorMessage);
+        }
+
     }
 }
