@@ -9,7 +9,7 @@ public class Chat
 {
     public string Id { get; init; } = string.Empty;
     public required string Name { get; init; }
-    public required string ModelId { get; set; }
+    public required string ModelId { get; set; } // TODO: make set private and settable by the ModelInstance setter
     public AIModel? ModelInstance { get; set; }
     public List<Message> Messages { get; set; } = [];
     public ChatType Type { get; set; } = ChatType.Conversation;

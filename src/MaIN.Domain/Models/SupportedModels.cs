@@ -1,5 +1,8 @@
+using MaIN.Domain.Models.Abstract;
+
 namespace MaIN.Domain.Models;
 
+[Obsolete("Use AIModel and ModelRegistry instead. This class will be removed in future versions.")]
 public class Model
 {
     public required string Name { get; init; }
@@ -13,6 +16,7 @@ public class Model
     public bool HasReasoning() => ReasonFunction is not null;
 }
 
+[Obsolete("Use ModelRegistry instead. This class will be removed in future versions.")]
 public static class KnownModels
 {
     private static List<Model> Models { get; } =

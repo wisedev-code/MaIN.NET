@@ -93,7 +93,7 @@ public class AgentService(
         var chat = new Chat
         {
             Id = Guid.NewGuid().ToString(),
-            Model = agent.Model,
+            ModelId = agent.Model,
             Name = agent.Name,
             Visual = agent.Model == ImageGenService.LocalImageModels.FLUX,
             ToolsConfiguration = agent.ToolsConfiguration,

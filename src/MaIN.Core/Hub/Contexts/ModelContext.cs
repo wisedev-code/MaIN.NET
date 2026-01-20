@@ -2,6 +2,8 @@ using System.Diagnostics;
 using System.Net;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Models;
+using MaIN.Domain.Models.Abstract;
+using MaIN.Domain.Models.Concrete;
 using MaIN.Services.Constants;
 using MaIN.Services.Services.LLMService.Utils;
 
@@ -24,41 +26,79 @@ public sealed class ModelContext
         _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
     }
 
-    public List<Model> GetAll() => KnownModels.All();
+    /// <summary>
+    /// Gets all registered models.
+    /// </summary>
+    public IEnumerable<AIModel> GetAll() => ModelRegistry.GetAll();
 
-    public Model GetModel(string model) => KnownModels.GetModel(model);
+    /// <summary>
+    /// Gets all local models.
+    /// </summary>
+    public IEnumerable<LocalModel> GetAllLocal() => ModelRegistry.GetAllLocal();
 
-    public Model GetEmbeddingModel() => KnownModels.GetEmbeddingModel();
+    /// <summary>
+    /// Gets a model by its ID.
+    /// </summary>
+    public AIModel GetModel(string modelId) => ModelRegistry.GetById(modelId);
 
-    public bool Exists(string modelName)
+    /// <summary>
+    /// Gets the embedding model.
+    /// </summary>
+    public LocalModel GetEmbeddingModel() => new Nomic_Embedding();
+
+    /// <summary>
+    /// Checks if a local model file exists on disk.
+    /// </summary>
+    public bool Exists(string modelId)
     {
-        if (string.IsNullOrWhiteSpace(modelName))
+        if (string.IsNullOrWhiteSpace(modelId))
         {
-            throw new ArgumentException(nameof(modelName));
+            throw new ArgumentException(nameof(modelId));
         }
 
-        var model = KnownModels.GetModel(modelName);
-        var modelPath = GetModelFilePath(model.FileName);
+        var model = ModelRegistry.GetById(modelId);
+        if (model is not LocalModel localModel)
+        {
+            return false; // Cloud models don't have local files
+        }
+        
+        var modelPath = GetModelFilePath(localModel.FileName);
         return File.Exists(modelPath);
     }
 
-    public async Task<ModelContext> DownloadAsync(string modelName, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Downloads a model by its ID.
+    /// </summary>
+    public async Task<ModelContext> DownloadAsync(string modelId, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(modelName))
+        if (string.IsNullOrWhiteSpace(modelId))
         {
-            throw new ArgumentException(MissingModelName, nameof(modelName));
+            throw new ArgumentException(MissingModelName, nameof(modelId));
         }
 
-        var model = KnownModels.GetModel(modelName);
-        await DownloadModelAsync(model.DownloadUrl!, model.FileName, cancellationToken);
+        var model = ModelRegistry.GetById(modelId);
+        if (model is not LocalModel localModel)
+        {
+            throw new InvalidOperationException($"Model '{modelId}' is not a local model and cannot be downloaded.");
+        }
+        
+        if (localModel.DownloadUrl == null)
+        {
+            throw new InvalidOperationException($"Model '{modelId}' does not have a download URL.");
+        }
+        
+        await DownloadModelAsync(localModel.DownloadUrl.ToString(), localModel.FileName, cancellationToken);
         return this;
     }
 
-    public async Task<ModelContext> DownloadAsync(string model, string url)
+    /// <summary>
+    /// Downloads a custom model from a URL and registers it.
+    /// </summary>
+    public async Task<ModelContext> DownloadAsync(string modelId, string url)
     {
-        if (string.IsNullOrWhiteSpace(model))
+        if (string.IsNullOrWhiteSpace(modelId))
         {
-            throw new ArgumentException(MissingModelName, nameof(model));
+            throw new ArgumentException(MissingModelName, nameof(modelId));
         }
 
         if (string.IsNullOrWhiteSpace(url))
@@ -66,33 +106,45 @@ public sealed class ModelContext
             throw new ArgumentException("URL cannot be null or empty", nameof(url));
         }
 
-        var fileName = $"{model}.gguf";
+        var fileName = $"{modelId}.gguf";
         await DownloadModelAsync(url, fileName, CancellationToken.None);
         
-        var filePath = GetModelFilePath(fileName);
-        KnownModels.AddModel(model, filePath);
+        // Register the newly downloaded model
+        var newModel = new GenericLocalModel(
+            FileName: fileName,
+            Name: modelId,
+            Id: modelId,
+            DownloadUrl: new Uri(url)
+        );
+        ModelRegistry.RegisterOrReplace(newModel);
+        
         return this;
     }
 
     [Obsolete("Use async method instead")]
-    public ModelContext Download(string modelName)
+    public ModelContext Download(string modelId)
     {
-        if (string.IsNullOrWhiteSpace(modelName))
+        if (string.IsNullOrWhiteSpace(modelId))
         {
-            throw new ArgumentException(MissingModelName, nameof(modelName));
+            throw new ArgumentException(MissingModelName, nameof(modelId));
         }
 
-        var model = KnownModels.GetModel(modelName);
-        DownloadModelSync(model.DownloadUrl!, model.FileName);
+        var model = ModelRegistry.GetById(modelId);
+        if (model is not LocalModel localModel || localModel.DownloadUrl == null)
+        {
+            throw new InvalidOperationException($"Model '{modelId}' cannot be downloaded.");
+        }
+        
+        DownloadModelSync(localModel.DownloadUrl.ToString(), localModel.FileName);
         return this;
     }
 
-    [Obsolete("Obsolete async method instead")]
-    public ModelContext Download(string model, string url)
+    [Obsolete("Use async method instead")]
+    public ModelContext Download(string modelId, string url)
     {
-        if (string.IsNullOrWhiteSpace(model))
+        if (string.IsNullOrWhiteSpace(modelId))
         {
-            throw new ArgumentException(MissingModelName, nameof(model));
+            throw new ArgumentException(MissingModelName, nameof(modelId));
         }
 
         if (string.IsNullOrWhiteSpace(url))
@@ -100,15 +152,24 @@ public sealed class ModelContext
             throw new ArgumentException("URL cannot be null or empty", nameof(url));
         }
 
-        var fileName = $"{model}.gguf";
+        var fileName = $"{modelId}.gguf";
         DownloadModelSync(url, fileName);
         
-        var filePath = GetModelFilePath(fileName);
-        KnownModels.AddModel(model, filePath);
+        var newModel = new GenericLocalModel(
+            FileName: fileName,
+            Name: modelId,
+            Id: modelId,
+            DownloadUrl: new Uri(url)
+        );
+        ModelRegistry.RegisterOrReplace(newModel);
+        
         return this;
     }
 
-    public ModelContext LoadToCache(Model model)
+    /// <summary>
+    /// Loads a local model into cache for faster subsequent access.
+    /// </summary>
+    public ModelContext LoadToCache(LocalModel model)
     {
         ArgumentNullException.ThrowIfNull(model);
 
@@ -117,7 +178,10 @@ public sealed class ModelContext
         return this;
     }
 
-    public async Task<ModelContext> LoadToCacheAsync(Model model)
+    /// <summary>
+    /// Loads a local model into cache asynchronously.
+    /// </summary>
+    public async Task<ModelContext> LoadToCacheAsync(LocalModel model)
     {
         ArgumentNullException.ThrowIfNull(model);
 

@@ -695,7 +695,7 @@ public abstract class OpenAiCompatibleService(
     {
         var requestBody = new Dictionary<string, object>
         {
-            ["model"] = chat.Model,
+            ["model"] = chat.ModelId,
             ["messages"] = BuildMessagesArray(conversation, chat, ImageType.AsUrl).Result,
             ["stream"] = stream
         };
@@ -776,7 +776,7 @@ public abstract class OpenAiCompatibleService(
         {
             Done = true,
             CreatedAt = DateTime.UtcNow,
-            Model = chat.Model,
+            Model = chat.ModelId,
             Message = new Message
             {
                 Content = content,

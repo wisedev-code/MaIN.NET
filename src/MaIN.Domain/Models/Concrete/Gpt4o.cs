@@ -3,7 +3,7 @@ using MaIN.Domain.Models.Abstract;
 
 namespace MaIN.Domain.Models.Concrete;
 
-public sealed class Gpt4o : CloudModel
+public sealed record Gpt4o : CloudModel
 {
     public override string Id => "gpt-4o";
     public override string Name => "GPT-4 Omni";

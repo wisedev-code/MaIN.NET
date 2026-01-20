@@ -221,7 +221,7 @@ public sealed class AgentContext
         return new ChatResult()
         {
             Done = true,
-            Model = result.Model,
+            Model = result.ModelId,
             Message = message,
             CreatedAt = DateTime.Now
         };
@@ -250,7 +250,7 @@ public sealed class AgentContext
         return new ChatResult()
         {
             Done = true,
-            Model = result.Model,
+            Model = result.ModelId,
             Message = messageResult,
             CreatedAt = DateTime.Now
         };
@@ -272,7 +272,7 @@ public sealed class AgentContext
         return new ChatResult()
         {
             Done = true,
-            Model = result.Model,
+            Model = result.ModelId,
             Message = messageResult,
             CreatedAt = DateTime.Now
         };
@@ -301,7 +301,7 @@ public sealed class AgentContext
         return new ChatResult()
         {
             Done = true,
-            Model = result.Model,
+            Model = result.ModelId,
             Message = messageResult,
             CreatedAt = DateTime.Now
         };
