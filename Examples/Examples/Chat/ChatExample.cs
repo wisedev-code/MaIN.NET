@@ -1,4 +1,5 @@
 using MaIN.Core.Hub;
+using MaIN.Domain.Models.Concrete;
 
 namespace Examples.Chat;
 
@@ -8,8 +9,9 @@ public class ChatExample : IExample
     {
         Console.WriteLine("ChatExample is running!");
 
+        // Using strongly-typed model
         await AIHub.Chat()
-            .WithModel("gemma2:2b")
+            .WithModel<Gemma_2b>()
             .WithMessage("Where do hedgehogs goes at night?")
             .CompleteAsync(interactive: true);
     }

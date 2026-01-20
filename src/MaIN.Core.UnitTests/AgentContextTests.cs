@@ -159,7 +159,7 @@ public class AgentContextTests
     {
         // Arrange
         var message = "Hello, agent!";
-        var chat = new Chat { Id = _agentContext.GetAgentId(), Messages = new List<Message>(), Name = "test", Model = "default"};
+        var chat = new Chat { Id = _agentContext.GetAgentId(), Messages = new List<Message>(), Name = "test", ModelId = "default"};
         var chatResult = new ChatResult { Done = true, Model = "test-model", Message = new Message
             {
                 Role = "Assistant",
@@ -175,7 +175,7 @@ public class AgentContextTests
         _mockAgentService
             .Setup(s => s.Process(It.IsAny<Chat>(), _agentContext.GetAgentId(), It.IsAny<Knowledge>(), It.IsAny<bool>(), null, null))
             .ReturnsAsync(new Chat { 
-                Model = "test-model", 
+                ModelId = "test-model", 
                 Name = "test",
                 Messages = new List<Message> { 
                     new Message { Content = "Response", Role = "Assistant", Type = MessageType.LocalLLM} 

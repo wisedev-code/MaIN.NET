@@ -11,7 +11,7 @@ public static class AgentStateManager
         agent.CurrentBehaviour = "Default";
         chat.Properties.Clear();
         
-        if (chat.Model == ImageGenService.LocalImageModels.FLUX)
+        if (chat.ModelId == ImageGenService.LocalImageModels.FLUX)
         {
             chat.Messages = [];
         }

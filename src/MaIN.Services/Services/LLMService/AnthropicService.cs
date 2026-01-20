@@ -504,7 +504,7 @@ public sealed class AnthropicService(
     {
         var requestBody = new Dictionary<string, object>
         {
-            ["model"] = chat.Model,
+            ["model"] = chat.ModelId,
             ["max_tokens"] = chat.InterferenceParams.MaxTokens < 0 ? 4096 : chat.InterferenceParams.MaxTokens,
             ["stream"] = stream,
             ["messages"] = BuildAnthropicMessages(conversation)
@@ -645,7 +645,7 @@ public sealed class AnthropicService(
 
         var requestBody = new
         {
-            model = chat.Model,
+            model = chat.ModelId,
             max_tokens = chat.InterferenceParams.MaxTokens < 0 ? 4096 : chat.InterferenceParams.MaxTokens,
             stream = true,
             system = chat.InterferenceParams.Grammar is not null
@@ -733,7 +733,7 @@ public sealed class AnthropicService(
 
         var requestBody = new
         {
-            model = chat.Model,
+            model = chat.ModelId,
             max_tokens = chat.InterferenceParams.MaxTokens < 0 ? 4096 : chat.InterferenceParams.MaxTokens,
             stream = false,
             system = chat.InterferenceParams.Grammar is not null
@@ -770,7 +770,7 @@ public sealed class AnthropicService(
         {
             Done = true,
             CreatedAt = DateTime.UtcNow,
-            Model = chat.Model,
+            Model = chat.ModelId,
             Message = new Message
             {
                 Content = content,

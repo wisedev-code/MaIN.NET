@@ -92,7 +92,7 @@ public class FlowContextTests
         _flowContext.AddAgent(firstAgent);
 
         var message = "Hello, flow!";
-        var chat = new Chat { Id = firstAgent.Id, Messages = new List<Message>(), Model = "default", Name = "test"};
+        var chat = new Chat { Id = firstAgent.Id, Messages = new List<Message>(), ModelId = "default", Name = "test"};
 
         _mockAgentService
             .Setup(s => s.GetChatByAgent(firstAgent.Id))
@@ -101,7 +101,7 @@ public class FlowContextTests
         _mockAgentService
             .Setup(s => s.Process(It.IsAny<Chat>(), firstAgent.Id, It.IsAny<Knowledge>(), It.IsAny<bool>(), null, null))
             .ReturnsAsync(new Chat { 
-                Model = "test-model", 
+                ModelId = "test-model", 
                 Name = "test",
                 Messages = new List<Message> { 
                     new() { Content = "Response", Role = "Assistant", Type = MessageType.LocalLLM} 
