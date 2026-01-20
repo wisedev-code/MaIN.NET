@@ -26,5 +26,5 @@ public interface IChatBuilderEntryPoint : IChatActions
     /// Loads an existing chat session from the database using its unique identifier.
     /// </summary>
     /// <param name="chatId">The GUID of the existing chat.</param>
-    Task<IChatCompletionBuilder> FromExisting(string chatId);
+    Task<IChatConfigurationBuilder> FromExisting(string chatId);
 }

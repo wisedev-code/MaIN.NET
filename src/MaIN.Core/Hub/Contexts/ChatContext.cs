@@ -12,7 +12,7 @@ using FileInfo = MaIN.Domain.Entities.FileInfo;
 
 namespace MaIN.Core.Hub.Contexts;
 
-public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, IChatCompletionBuilder
+public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, IChatConfigurationBuilder
 {
     private readonly IChatService _chatService;
     private bool _preProcess;
@@ -58,38 +58,38 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
         return this;
     }
     
-    public IChatCompletionBuilder WithInferenceParams(InferenceParams inferenceParams)
+    public IChatConfigurationBuilder WithInferenceParams(InferenceParams inferenceParams)
     {
         _chat.InterferenceParams = inferenceParams;
         return this;
     }
 
-    public IChatCompletionBuilder WithTools(ToolsConfiguration toolsConfiguration)
+    public IChatConfigurationBuilder WithTools(ToolsConfiguration toolsConfiguration)
     {
         _chat.ToolsConfiguration = toolsConfiguration;
         return this;
     }
 
-    public IChatCompletionBuilder WithMemoryParams(MemoryParams memoryParams)
+    public IChatConfigurationBuilder WithMemoryParams(MemoryParams memoryParams)
     {
         _chat.MemoryParams = memoryParams;
         return this;
     }
 
-    public IChatCompletionBuilder Speak(TextToSpeechParams speechParams)
+    public IChatConfigurationBuilder Speak(TextToSpeechParams speechParams)
     {
         _chat.Visual = false;
         _chat.TextToSpeechParams = speechParams;
         return this;
     }
 
-    public IChatCompletionBuilder WithBackend(BackendType backendType)
+    public IChatConfigurationBuilder WithBackend(BackendType backendType)
     {
         _chat.Backend = backendType;
         return this;
     }
 
-    public IChatCompletionBuilder WithSystemPrompt(string systemPrompt)
+    public IChatConfigurationBuilder WithSystemPrompt(string systemPrompt)
     {
         var message = new Message
         {
@@ -103,13 +103,13 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
         return this;
     }
 
-    public IChatCompletionBuilder WithMessage(string content)
+    public IChatConfigurationBuilder WithMessage(string content)
     {
         _chat.Messages.Add(new Message { Role = "User", Content = content, Type = MessageType.LocalLLM, Time = DateTime.Now });
         return this;
     }
 
-    public IChatCompletionBuilder WithMessage(string content, byte[] image)
+    public IChatConfigurationBuilder WithMessage(string content, byte[] image)
     {
         var message = new Message
         {
@@ -124,13 +124,13 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
         return this;
     }
 
-    public IChatCompletionBuilder WithMessages(IEnumerable<Message> messages)
+    public IChatConfigurationBuilder WithMessages(IEnumerable<Message> messages)
     {
         _chat.Messages.AddRange(messages);
         return this;
     }
 
-    public IChatCompletionBuilder WithFiles(List<FileStream> file, bool preProcess = false)
+    public IChatConfigurationBuilder WithFiles(List<FileStream> file, bool preProcess = false)
     {
         _files = file.Select(f => new FileInfo { Name = Path.GetFileName(f.Name), StreamContent = f, Extension = Path.GetExtension(f.Name) })
             .ToList();
@@ -138,14 +138,14 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
         return this;
     }
 
-    public IChatCompletionBuilder WithFiles(List<FileInfo> file, bool preProcess = false)
+    public IChatConfigurationBuilder WithFiles(List<FileInfo> file, bool preProcess = false)
     {
         _files = file;
         _preProcess = preProcess;
         return this;
     }
 
-    public IChatCompletionBuilder WithFiles(List<string> file, bool preProcess = false)
+    public IChatConfigurationBuilder WithFiles(List<string> file, bool preProcess = false)
     {
         _files = file
             .Select(path =>
@@ -160,7 +160,7 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
         return this;
     }
 
-    public IChatCompletionBuilder DisableCache()
+    public IChatConfigurationBuilder DisableCache()
     {
         _chat.Properties.AddProperty(ServiceConstants.Properties.DisableCacheProperty);
         return this;
@@ -191,7 +191,7 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
         return result;
     }
 
-    public async Task<IChatCompletionBuilder> FromExisting(string chatId)
+    public async Task<IChatConfigurationBuilder> FromExisting(string chatId)
     {
         var existing = await _chatService.GetById(chatId);
         return existing == null 

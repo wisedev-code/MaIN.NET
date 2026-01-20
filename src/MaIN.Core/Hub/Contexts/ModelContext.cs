@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Net;
+using MaIN.Core.Hub.Contexts.Interfaces.ModelContext;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Exceptions.Models;
 using MaIN.Domain.Models;
@@ -8,7 +9,7 @@ using MaIN.Services.Services.LLMService.Utils;
 
 namespace MaIN.Core.Hub.Contexts;
 
-public sealed class ModelContext
+public sealed class ModelContext : IModelContext
 {
     private readonly MaINSettings _settings;
     private readonly IHttpClientFactory _httpClientFactory;
@@ -16,7 +17,6 @@ public sealed class ModelContext
     private const int DefaultBufferSize = 8192;
     private const int FileStreamBufferSize = 65536;
     private const int ProgressUpdateIntervalMilliseconds = 1000;
-    private const string MissingModelName = "Model name cannot be null or empty";
     private static readonly TimeSpan DefaultHttpTimeout = TimeSpan.FromMinutes(30);
 
     internal ModelContext(MaINSettings settings, IHttpClientFactory httpClientFactory)
@@ -43,11 +43,11 @@ public sealed class ModelContext
         return File.Exists(modelPath);
     }
 
-    public async Task<ModelContext> DownloadAsync(string modelName, CancellationToken cancellationToken = default)
+    public async Task<IModelContext> DownloadAsync(string modelName, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(modelName))
         {
-            throw new ArgumentException(MissingModelName, nameof(modelName));
+            throw new MissingModelNameException(nameof(modelName));
         }
 
         var model = KnownModels.GetModel(modelName);
@@ -55,11 +55,11 @@ public sealed class ModelContext
         return this;
     }
 
-    public async Task<ModelContext> DownloadAsync(string model, string url)
+    public async Task<IModelContext> DownloadAsync(string model, string url)
     {
         if (string.IsNullOrWhiteSpace(model))
         {
-            throw new ArgumentException(MissingModelName, nameof(model));
+            throw new MissingModelNameException(nameof(model));
         }
 
         if (string.IsNullOrWhiteSpace(url))
@@ -76,11 +76,11 @@ public sealed class ModelContext
     }
 
     [Obsolete("Use async method instead")]
-    public ModelContext Download(string modelName)
+    public IModelContext Download(string modelName)
     {
         if (string.IsNullOrWhiteSpace(modelName))
         {
-            throw new ArgumentException(MissingModelName, nameof(modelName));
+            throw new MissingModelNameException(nameof(modelName));
         }
 
         var model = KnownModels.GetModel(modelName);
@@ -89,11 +89,11 @@ public sealed class ModelContext
     }
 
     [Obsolete("Obsolete async method instead")]
-    public ModelContext Download(string model, string url)
+    public IModelContext Download(string model, string url)
     {
         if (string.IsNullOrWhiteSpace(model))
         {
-            throw new ArgumentException(MissingModelName, nameof(model));
+            throw new MissingModelNameException(nameof(model));
         }
 
         if (string.IsNullOrWhiteSpace(url))
@@ -109,7 +109,7 @@ public sealed class ModelContext
         return this;
     }
 
-    public ModelContext LoadToCache(Model model)
+    public IModelContext LoadToCache(Model model)
     {
         ArgumentNullException.ThrowIfNull(model);
 
@@ -118,7 +118,7 @@ public sealed class ModelContext
         return this;
     }
 
-    public async Task<ModelContext> LoadToCacheAsync(Model model)
+    public async Task<IModelContext> LoadToCacheAsync(Model model)
     {
         ArgumentNullException.ThrowIfNull(model);
 
