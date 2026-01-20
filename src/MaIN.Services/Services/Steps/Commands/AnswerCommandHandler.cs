@@ -131,7 +131,7 @@ public class AnswerCommandHandler(
         await notificationService.DispatchNotification(NotificationMessageBuilder.CreateActorKnowledgeStepProgress(
             agentId,
             knowledgeItems.Select(x => $" {x.Name}|{x.Type} ").ToList(),
-            mcpConfig?.Model ?? chat.Model), "ReceiveAgentUpdate");
+            mcpConfig?.Model ?? chat.ModelId), "ReceiveAgentUpdate");
         
         if (mcpConfig != null)
         {

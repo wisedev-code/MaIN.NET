@@ -7,6 +7,7 @@
 @using MaIN.Domain.Entities
 @using MaIN.Domain.Exceptions
 @using MaIN.Domain.Models
+@using MaIN.Domain.Models.Abstract
 @using Markdig
 @using Microsoft.FluentUI.AspNetCore.Components.Icons.Regular
 @using Message = MaIN.Domain.Entities.Message
@@ -191,9 +192,8 @@
     private string? _incomingMessage = null;
     private string? _incomingReasoning = null;
     private readonly string? _displayName = Utils.Model;
-    private IChatMessageBuilder? ctxBuilder;
-    // private ChatContext? ctx;
-    private Chat Chat { get; } = new() { Name = "MaIN Infer", Model = Utils.Model! };
+    private IChatMessageBuilder? ctx;
+    private Chat Chat { get; } = new() { Name = "MaIN Infer", ModelId = Utils.Model! };
     private List<MessageExt> Messages { get; set; } = new();
     private ElementReference? _bottomElement;
     private int _inputKey = 0;
@@ -221,7 +221,8 @@
         }
         else if (!Utils.OpenAi)
         {
-            _reasoning = !Utils.Visual && KnownModels.GetModel(Utils.Model!).HasReasoning();
+            var model = ModelRegistry.TryGetById(Utils.Model!, out var foundModel) ? foundModel : null;
+            _reasoning = !Utils.Visual && model?.HasReasoning == true;
             Utils.Reason = _reasoning;
         }
 
@@ -248,7 +249,7 @@
             {
                 Message = newMsg
             });
-            Chat.Model = Utils.Model!;
+            Chat.ModelId = Utils.Model!;
             _isLoading = true;
             Chat.Visual = Utils.Visual;
             _inputKey++;

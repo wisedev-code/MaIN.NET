@@ -30,7 +30,6 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
             Messages = [],
             ModelId = string.Empty
         };
-        _files = [];
     }
 
     internal ChatContext(IChatService chatService, Chat existingChat)
@@ -39,14 +38,21 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
         _chat = existingChat;
     }
 
-    public IChatMessageBuilder WithModel<TModel>() where TModel : AIModel, new()
+    public IChatMessageBuilder WithModel(AIModel model)
     {
-        var model = new TModel();
-        SetModel(model);
+        _chat.ModelInstance = model;
+        _chat.ModelId = model.Id;
+        _chat.Backend = model.Backend;
         return this;
     }
 
-    [Obsolete("Use WithModel<TModel>() instead.")]
+    public IChatMessageBuilder WithModel<TModel>() where TModel : AIModel, new()
+    {
+        var model = new TModel();
+        return WithModel(model);
+    }
+
+    [Obsolete("Use WithModel(AIModel model) or WithModel<TModel>() instead.")]
     public ChatContext WithModel(string modelId)
     {
         var model = ModelRegistry.GetById(modelId);
