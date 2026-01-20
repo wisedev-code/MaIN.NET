@@ -76,6 +76,18 @@ try
                 apiKeyVariable = "ANTHROPIC_API_KEY";
                 apiName = "Anthropic";
                 break;
+
+            case "xai":
+                Utils.Xai = true;
+                apiKeyVariable = "XAI_API_KEY";
+                apiName = "Xai";
+                break;
+
+            case "ollama":
+                Utils.Ollama = true;
+                apiKeyVariable = "OLLAMA_API_KEY";
+                apiName = "Ollama";
+                break;
         }
 
         var key = Environment.GetEnvironmentVariable(apiKeyVariable);
@@ -126,6 +138,20 @@ else if(Utils.Anthropic)
     builder.Services.AddMaIN(builder.Configuration, settings =>
     {
         settings.BackendType = BackendType.Anthropic;
+    });
+}
+else if (Utils.Xai)
+{
+    builder.Services.AddMaIN(builder.Configuration, settings =>
+    {
+        settings.BackendType = BackendType.Xai;
+    });
+}
+else if (Utils.Ollama)
+{
+    builder.Services.AddMaIN(builder.Configuration, settings =>
+    {
+        settings.BackendType = BackendType.Ollama;
     });
 }
 else

@@ -11,6 +11,7 @@ public static class ServiceConstants
         public const string GroqCloudClient = "GroqCloudClient";
         public const string AnthropicClient = "AnthropicClient";
         public const string XaiClient = "XaiClient";
+        public const string OllamaClient = "OllamaClient";
         public const string ImageDownloadClient = "ImageDownloadClient";
         public const string ModelContextDownloadClient = "ModelContextDownloadClient";
     }
@@ -41,6 +42,10 @@ public static class ServiceConstants
         public const string XaiImageGenerations = "https://api.x.ai/v1/images/generations";
         public const string XaiOpenAiChatCompletions = "https://api.x.ai/v1/chat/completions";
         public const string XaiModels = "https://api.x.ai/v1/models";
+
+        public const string OllamaImageGenerations = "https://ollama.com/v1/images/generations";
+        public const string OllamaOpenAiChatCompletions = "https://ollama.com/v1/chat/completions";
+        public const string OllamaModels = "https://ollama.com/v1/models";
     }
 
     public static class Messages
