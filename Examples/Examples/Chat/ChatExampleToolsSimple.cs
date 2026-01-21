@@ -16,7 +16,7 @@ public class ChatExampleToolsSimple : IExample
         
         await AIHub.Chat()
             .WithModel("gpt-5-nano")
-            .WithMessage("What time is it right now? Use tool provided.")
+            .WithMessage("What time is it right now?")
             .WithTools(new ToolsConfigurationBuilder()
                 .AddTool(
                     name: "get_current_time",

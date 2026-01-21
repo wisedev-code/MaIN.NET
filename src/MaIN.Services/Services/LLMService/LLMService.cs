@@ -36,6 +36,11 @@ public class LLMService : ILLMService
     private readonly IMemoryFactory memoryFactory;
     private readonly string modelsPath;
 
+    private readonly JsonSerializerOptions _jsonToolOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+    };
+
     public LLMService(
         MaINSettings options,
         INotificationService notificationService,
@@ -341,9 +346,10 @@ public class LLMService : ILLMService
             }
         }
 
-        if (hasTools)
+        if (hasTools && isNewConversation)
         {
             var toolsPrompt = FormatToolsForPrompt(chat.ToolsConfiguration!);
+            // Dodaj to jako wiadomoœæ systemow¹ lub na pocz¹tku pierwszego promptu u¿ytkownika
             finalPrompt = $"{toolsPrompt}\n\n{finalPrompt}";
         }
 
@@ -371,11 +377,14 @@ public class LLMService : ILLMService
             sb.AppendLine($"  Parameters: {JsonSerializer.Serialize(tool.Function.Parameters)}");
         }
 
-        sb.AppendLine("\n## RESPONSE FORMAT");
+        sb.AppendLine("\n## RESPONSE FORMAT (YOU HAVE TO CHOOSE ONE FORMAT AND CANNOT MIX THEM)##");
         sb.AppendLine("1. For normal conversation, just respond with plain text.");
-        sb.AppendLine("2. For tool calls, use this format:");
+        sb.AppendLine("2. For tool calls, use this format. " +
+            "You cannot respond with plain text before or after format. " +
+            "If you want to call multiple functions, you have to combine them into one array." +
+            "Your response MUST contain only one tool call block:");
         sb.AppendLine("<tool_call>");
-        sb.AppendLine("{\"tool_calls\": [{\"id\": \"abc\", \"type\": \"function\", \"function\": {\"name\": \"fn\", \"arguments\": \"{\\\"p\\\":\\\"v\\\"}\"}}]}");
+        sb.AppendLine("{\"tool_calls\": [{\"id\": \"call_1\", \"type\": \"function\", \"function\": {\"name\": \"tool_name\", \"arguments\": \"{\\\"param\\\":\\\"value\\\"}\"}},{\"id\": \"call_2\", \"type\": \"function\", \"function\": {\"name\": \"tool2_name\", \"arguments\": \"{\\\"param1\\\":\\\"value1\\\",\\\"param2\\\":\\\"value2\\\"}\"}}]}");
         sb.AppendLine("</tool_call>");
 
         return sb.ToString();
@@ -385,9 +394,9 @@ public class LLMService : ILLMService
     {
         if (string.IsNullOrWhiteSpace(response)) return null;
 
+        string jsonContent = ExtractJsonContent(response);
         try
         {
-            string jsonContent = ExtractJsonContent(response);
             if (string.IsNullOrEmpty(jsonContent)) return null;
 
             using var doc = JsonDocument.Parse(jsonContent);
@@ -396,7 +405,7 @@ public class LLMService : ILLMService
             // OpenAI standard { "tool_calls": [...] }
             if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("tool_calls", out var toolCallsProp))
             {
-                var calls = toolCallsProp.Deserialize<List<ToolCall>>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                var calls = toolCallsProp.Deserialize<List<ToolCall>>(_jsonToolOptions);
                 return NormalizeToolCalls(calls);
             }
 
@@ -417,7 +426,7 @@ public class LLMService : ILLMService
         }
         catch (Exception)
         {
-            // No tool calls found
+            // No tool calls found no need to throw nor log
         }
 
         return null;
@@ -429,14 +438,14 @@ public class LLMService : ILLMService
 
         int firstBrace = text.IndexOf('{');
         int firstBracket = text.IndexOf('[');
-        int startIndex = (firstBrace >= 0 && firstBracket >= 0) ? Math.Min(firstBrace, firstBracket) : Math.Max(firstBrace, firstBracket);
+            int startIndex = (firstBrace >= 0 && firstBracket >= 0) ? Math.Min(firstBrace, firstBracket) : Math.Max(firstBrace, firstBracket);
 
         int lastBrace = text.LastIndexOf('}');
         int lastBracket = text.LastIndexOf(']');
-        int endIndex = Math.Max(lastBrace, lastBracket);
+            int endIndex = Math.Max(lastBrace, lastBracket);
 
-        if (startIndex >= 0 && endIndex > startIndex)
-        {
+            if (startIndex >= 0 && endIndex > startIndex)
+            {
             return text.Substring(startIndex, endIndex - startIndex + 1);
         }
 
@@ -645,34 +654,35 @@ public class LLMService : ILLMService
         Chat chat,
         ChatRequestOptions requestOptions,
         CancellationToken cancellationToken)
-    {        
+    {
+        NativeLogConfig.llama_log_set((level, message) => {
+            if (level == LLamaLogLevel.Error)
+            {
+                Console.Error.Write(message);
+            }
+        }); // Remove llama native logging
+
         var model = KnownModels.GetModel(chat.Model);
         var tokens = new List<LLMTokenValue>();
         var fullResponseBuilder = new StringBuilder();
         var iterations = 0;
 
         while (iterations < MaxToolIterations)
-        {            
-            if (iterations > 0 && requestOptions.InteractiveUpdates && fullResponseBuilder.Length > 0)
-            {
-                var spaceToken = new LLMTokenValue { Text = " ", Type = TokenType.Message };
-                tokens.Add(spaceToken);
-
-                requestOptions.TokenCallback?.Invoke(spaceToken);
-
-                await notificationService.DispatchNotification(
-                    NotificationMessageBuilder.CreateChatCompletion(chat.Id, spaceToken, false),
-                    ServiceConstants.Notifications.ReceiveMessageUpdate);
-            }
-
+        {
             var lastMsg = chat.Messages.Last();
+            await SendNotification(chat.Id, new LLMTokenValue
+            {
+                Type = TokenType.FullAnswer,
+                Text = $"Processing with tools... iteration {iterations + 1}\n\n"
+            }, false);
+            requestOptions.InteractiveUpdates = false;
             var iterationTokens = await ProcessChatRequest(chat, model, lastMsg, requestOptions, cancellationToken);
             
             var responseText = string.Concat(iterationTokens.Select(x => x.Text));
             
             if (fullResponseBuilder.Length > 0)
             {
-                fullResponseBuilder.Append(" ");
+                fullResponseBuilder.Append('\n');
             }
             fullResponseBuilder.Append(responseText);
             tokens.AddRange(iterationTokens);
@@ -681,6 +691,12 @@ public class LLMService : ILLMService
 
             if (toolCalls == null || !toolCalls.Any())
             {
+                requestOptions.InteractiveUpdates = true;
+                await SendNotification(chat.Id, new LLMTokenValue
+                {
+                    Type = TokenType.FullAnswer,
+                    Text = responseText
+                }, false);
                 break;
             }
 
@@ -765,19 +781,14 @@ public class LLMService : ILLMService
 
         if (iterations >= MaxToolIterations)
         {
+            await SendNotification(chat.Id, new LLMTokenValue
+            {
+                Type = TokenType.FullAnswer,
+                Text = "Maximum tool invocation iterations reached. Ending the conversation."
+            }, false);
         }
 
         var finalResponse = fullResponseBuilder.ToString();
-        var finalToken = new LLMTokenValue { Text = finalResponse, Type = TokenType.FullAnswer };
-        tokens.Add(finalToken);
-
-        if (requestOptions.InteractiveUpdates)
-        {
-            await notificationService.DispatchNotification(
-                NotificationMessageBuilder.CreateChatCompletion(chat.Id, finalToken, true),
-                ServiceConstants.Notifications.ReceiveMessageUpdate);
-        }
-
         chat.Messages.Last().MarkProcessed();
 
         return new ChatResult

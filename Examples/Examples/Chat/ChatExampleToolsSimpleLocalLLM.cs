@@ -14,7 +14,7 @@ public class ChatExampleToolsSimpleLocalLLM : IExample
 
         await AIHub.Chat()
             .WithModel("gemma3:4b")
-            .WithMessage("What time is it right now? Use tool provided.")
+            .WithMessage("What time is it right now?")
             .WithTools(new ToolsConfigurationBuilder()
                 .AddTool(
                     name: "get_current_time",
