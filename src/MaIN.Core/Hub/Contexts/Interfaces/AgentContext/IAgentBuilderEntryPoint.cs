@@ -3,23 +3,25 @@
 public interface IAgentBuilderEntryPoint : IAgentActions
 {
     /// <summary>
-    /// Sets the LLM model to be used by the Agent.
+    /// Sets the AI model for the agent to use during its interactions.
     /// </summary>
-    /// <param name="model">The name or identifier of the model (e.g., "llama3.2").</param>
+    /// <param name="model">The name or identifier of the AI model to be used.</param>
+    /// <returns>The context instance implementing <see cref="IAgentConfigurationBuilder"/> for method chaining.</returns>
     IAgentConfigurationBuilder WithModel(string model);
     
     /// <summary>
-    /// Configures a custom model from a specific local path.
+    /// Specifies a custom model along with its file path for use by the agent. This allows using locally stored models in addition to predefined ones.
     /// </summary>
-    /// <param name="model">A custom name for the model.</param>
-    /// <param name="path">The file system path to the model files.</param>
+    /// <param name="model">The name of the custom model.</param>
+    /// <param name="path">The path to the custom model’s file.</param>
     /// <param name="mmProject">Optional multi-modal project identifier.</param>
+    /// <returns>The context instance implementing <see cref="IAgentConfigurationBuilder"/> for method chaining.</returns>
     IAgentConfigurationBuilder WithCustomModel(string model, string path, string? mmProject = null);
     
     /// <summary>
-    /// Loads an existing Agent from the database.
+    /// Fetches an existing agent by its ID, allowing you to create a new <see cref="AgentContext"/> from an already existing agent.
     /// </summary>
     /// <param name="agentId">The unique identifier of the Agent to load.</param>
-    /// <returns>An execution interface ready for processing messages.</returns>
+    /// <returns>The context instance implementing <see cref="IAgentContextExecutor"/> for method chaining.</returns>
     Task<IAgentContextExecutor> FromExisting(string agentId);
 }

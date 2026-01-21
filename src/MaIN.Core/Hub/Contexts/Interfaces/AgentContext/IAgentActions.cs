@@ -7,15 +7,15 @@ namespace MaIN.Core.Hub.Contexts.Interfaces.AgentContext;
 public interface IAgentActions
 {
     /// <summary>
-    /// Gets the unique identifier (GUID) of the current Agent.
+    /// Retrieves the unique identifier for the agent.
     /// </summary>
-    /// <returns>The Agent's ID as a string.</returns>
+    /// <returns>A string representing the agent's unique identifier.</returns>
     string GetAgentId();
 
     /// <summary>
-    /// Retrieves the full Agent entity with its current configuration and state.
+    /// Fetches the current agent instance.
     /// </summary>
-    /// <returns>An <see cref="Agent"/> object.</returns>
+    /// <returns>The <see cref="Agent"/> object containing all the properties and data for the current agent.</returns>
     Agent GetAgent();
 
     /// <summary>
@@ -25,21 +25,21 @@ public interface IAgentActions
     Knowledge? GetKnowledge();
 
     /// <summary>
-    /// Retrieves the current chat session associated with this Agent.
+    /// Retrieves the chat session associated with the current agent.
     /// </summary>
-    /// <returns>A task representing the asynchronous operation, containing the <see cref="Chat"/>.</returns>
+    /// <returns>A <see cref="Chat"/> object representing the chat session associated with the agent.</returns>
     Task<Chat> GetChat();
 
     /// <summary>
-    /// Clears the conversation history and restarts the chat session for this Agent.
+    /// Restarts the chat session associated with the current agent, typically resetting the conversation state.
     /// </summary>
-    /// <returns>A task representing the asynchronous operation, containing a new <see cref="Chat"/>.</returns>
+    /// <returns>A <see cref="Chat"/> object representing the restarted chat session.</returns>
     Task<Chat> RestartChat();
 
     /// <summary>
-    /// Lists all agents available in the system.
+    /// Fetches all agents managed by the underlying agent service.
     /// </summary>
-    /// <returns>A task containing a list of <see cref="Agent"/> objects.</returns>
+    /// <returns>A list of <see cref="Agent"/> objects representing all agents.</returns>
     Task<List<Agent>> GetAllAgents();
 
     /// <summary>
@@ -50,13 +50,13 @@ public interface IAgentActions
     Task<Agent?> GetAgentById(string id);
 
     /// <summary>
-    /// Permanently deletes the current Agent and all associated data.
+    /// Deletes the current agent from the system.
     /// </summary>
     Task Delete();
 
     /// <summary>
-    /// Checks if an agent with the current identifier exists in the system.
+    /// Checks if the current agent exists in the system.
     /// </summary>
-    /// <returns>True if the agent exists, otherwise false.</returns>
+    /// <returns>A boolean indicating whether the agent exists.</returns>
     Task<bool> Exists();
 }
