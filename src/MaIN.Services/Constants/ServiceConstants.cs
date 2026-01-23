@@ -12,6 +12,7 @@ public static class ServiceConstants
         public const string AnthropicClient = "AnthropicClient";
         public const string XaiClient = "XaiClient";
         public const string OllamaClient = "OllamaClient";
+        public const string OllamaLocalClient = "OllamaLocalClient";
         public const string ImageDownloadClient = "ImageDownloadClient";
         public const string ModelContextDownloadClient = "ModelContextDownloadClient";
     }
@@ -45,6 +46,9 @@ public static class ServiceConstants
 
         public const string OllamaOpenAiChatCompletions = "https://ollama.com/v1/chat/completions";
         public const string OllamaModels = "https://ollama.com/v1/models";
+        
+        public const string OllamaLocalOpenAiChatCompletions = "http://localhost:11434/v1/chat/completions";
+        public const string OllamaLocalModels = "http://localhost:11434/v1/models";
     }
 
     public static class Messages

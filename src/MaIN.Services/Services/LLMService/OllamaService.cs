@@ -20,22 +20,21 @@ public sealed class OllamaService(
 {
     private readonly MaINSettings _settings = settings ?? throw new ArgumentNullException(nameof(settings));
 
-    protected override string HttpClientName => ServiceConstants.HttpClients.OllamaClient;
-    protected override string ChatCompletionsUrl => ServiceConstants.ApiUrls.OllamaOpenAiChatCompletions;
-    protected override string ModelsUrl => ServiceConstants.ApiUrls.OllamaModels;
+    private bool HasApiKey => !string.IsNullOrEmpty(_settings.OllamaKey) || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OLLAMA_API_KEY"));
+
+    protected override string HttpClientName => HasApiKey ? ServiceConstants.HttpClients.OllamaClient : ServiceConstants.HttpClients.OllamaLocalClient;
+    protected override string ChatCompletionsUrl => HasApiKey ? ServiceConstants.ApiUrls.OllamaOpenAiChatCompletions : ServiceConstants.ApiUrls.OllamaLocalOpenAiChatCompletions;
+    protected override string ModelsUrl => HasApiKey ? ServiceConstants.ApiUrls.OllamaModels : ServiceConstants.ApiUrls.OllamaLocalModels;
 
     protected override string GetApiKey()
     {
-        return _settings.OllamaKey ?? Environment.GetEnvironmentVariable("OLLAMA_API_KEY") ??
-            throw new InvalidOperationException("Olama Key not configured");
+        return _settings.OllamaKey ?? Environment.GetEnvironmentVariable("OLLAMA_API_KEY") ?? string.Empty;
     }
 
     protected override void ValidateApiKey()
     {
-        if (string.IsNullOrEmpty(_settings.OllamaKey) && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OLLAMA_API_KEY")))
-        {
-            throw new InvalidOperationException("Ollama Key not configured");
-        }
+        // No validation required - local Ollama doesn't need an API key
+        // Cloud Ollama will fail at runtime if the key is missing
     }
 
     public override async Task<ChatResult?> AskMemory(
