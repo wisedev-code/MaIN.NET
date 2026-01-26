@@ -78,6 +78,7 @@ static void RegisterExamples(IServiceCollection services)
     services.AddTransient<ChatExampleGroqCloud>();
     services.AddTransient<ChatExampleAnthropic>();
     services.AddTransient<ChatExampleXai>();
+    services.AddTransient<ChatExampleOllama>();
 }
 
 async Task RunSelectedExample(IServiceProvider serviceProvider)
@@ -194,5 +195,45 @@ namespace Examples
                 ("\u25a0 McpAgent example", serviceProvider.GetRequiredService<McpAgentsExample>())
             ];
         }
+            ("\u25a0 Basic Chat", serviceProvider.GetRequiredService<ChatExample>()),
+            ("\u25a0 Chat with Files", serviceProvider.GetRequiredService<ChatWithFilesExample>()),
+            ("\u25a0 Chat with custom grammar", serviceProvider.GetRequiredService<ChatCustomGrammarExample>()),
+            ("\u25a0 Chat with Files from stream", serviceProvider.GetRequiredService<ChatWithFilesFromStreamExample>()),
+            ("\u25a0 Chat with Vision", serviceProvider.GetRequiredService<ChatWithVisionExample>()),
+            ("\u25a0 Chat with Tools (simple)", serviceProvider.GetRequiredService<ChatExampleToolsSimple>()),
+            ("\u25a0 Chat with Image Generation", serviceProvider.GetRequiredService<ChatWithImageGenExample>()),
+            ("\u25a0 Chat from Existing", serviceProvider.GetRequiredService<ChatFromExistingExample>()),
+            ("\u25a0 Chat with reasoning", serviceProvider.GetRequiredService<ChatWithReasoningExample>()),
+            ("\u25a0 Basic Agent", serviceProvider.GetRequiredService<AgentExample>()),
+            ("\u25a0 Conversation Agent", serviceProvider.GetRequiredService<AgentConversationExample>()),
+            ("\u25a0 Agent with Redirect", serviceProvider.GetRequiredService<AgentWithRedirectExample>()),
+            ("\u25a0 Agent with Redirect (Multi backends)", serviceProvider.GetRequiredService<MultiBackendAgentWithRedirectExample>()),
+            ("\u25a0 Agent with Redirect Image", serviceProvider.GetRequiredService<AgentWithRedirectImageExample>()),
+            ("\u25a0 Agent with Become", serviceProvider.GetRequiredService<AgentWithBecomeExample>()),
+            ("\u25a0 Agent with Tools (advanced)", serviceProvider.GetRequiredService<AgentExampleTools>()),
+            ("\u25a0 Agent with Knowledge", serviceProvider.GetRequiredService<AgentWithKnowledgeFileExample>()),
+            ("\u25a0 Agent with Web Knowledge", serviceProvider.GetRequiredService<AgentWithKnowledgeWebExample>()),
+            ("\u25a0 Agent with Mcp Knowledge", serviceProvider.GetRequiredService<AgentWithKnowledgeMcpExample>()),
+            ("\u25a0 Agent with API Data Source", serviceProvider.GetRequiredService<AgentWithApiDataSourceExample>()),
+            ("\u25a0 Agents Talking to Each Other", serviceProvider.GetRequiredService<AgentTalkingToEachOtherExample>()),
+            ("\u25a0 Agents Composed as Flow", serviceProvider.GetRequiredService<AgentsComposedAsFlowExample>()),
+            ("\u25a0 Agents Flow Loaded", serviceProvider.GetRequiredService<AgentsFlowLoadedExample>()),
+            ("\u25a0 OpenAi Chat", serviceProvider.GetRequiredService<ChatExampleOpenAi>()),
+            ("\u25a0 OpenAi Chat with image", serviceProvider.GetRequiredService<ChatWithImageGenOpenAiExample>()),
+            ("\u25a0 OpenAi Agent with Web Data Source", serviceProvider.GetRequiredService<AgentWithWebDataSourceOpenAiExample>()),
+            ("\u25a0 Gemini Chat", serviceProvider.GetRequiredService<ChatExampleGemini>()),
+            ("\u25a0 Gemini Chat with grammar", serviceProvider.GetRequiredService<ChatGrammarExampleGemini>()),
+            ("\u25a0 Gemini Chat with image", serviceProvider.GetRequiredService<ChatWithImageGenGeminiExample>()),
+            ("\u25a0 Gemini Chat with files", serviceProvider.GetRequiredService<ChatWithFilesExampleGemini>()),
+            ("\u25a0 DeepSeek Chat with reasoning", serviceProvider.GetRequiredService<ChatWithReasoningDeepSeekExample>()),
+            ("\u25a0 GroqCloud Chat", serviceProvider.GetRequiredService<ChatExampleGroqCloud>()),
+            ("\u25a0 Anthropic Chat", serviceProvider.GetRequiredService<ChatExampleAnthropic>()),
+            ("\u25a0 xAI Chat", serviceProvider.GetRequiredService<ChatExampleXai>()),
+            ("\u25a0 Ollama Chat", serviceProvider.GetRequiredService<ChatExampleOllama>()),
+            ("\u25a0 McpClient example", serviceProvider.GetRequiredService<McpExample>()),
+            ("\u25a0 McpAgent example", serviceProvider.GetRequiredService<McpAgentsExample>()),
+            ("\u25a0 Chat with TTS example", serviceProvider.GetRequiredService<ChatWithTextToSpeechExample>()),
+            ("\u25a0 McpAgent example", serviceProvider.GetRequiredService<McpAgentsExample>())
+        };
     }
 }

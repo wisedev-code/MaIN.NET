@@ -46,6 +46,13 @@ public class LLMServiceFactory(IServiceProvider serviceProvider) : ILLMServiceFa
                 serviceProvider.GetRequiredService<IMemoryFactory>(),
                 serviceProvider.GetRequiredService<IMemoryService>()),
 
+            BackendType.Ollama => new OllamaService(
+                serviceProvider.GetRequiredService<MaINSettings>(),
+                serviceProvider.GetRequiredService<INotificationService>(),
+                serviceProvider.GetRequiredService<IHttpClientFactory>(),
+                serviceProvider.GetRequiredService<IMemoryFactory>(),
+                serviceProvider.GetRequiredService<IMemoryService>()),
+
             BackendType.Anthropic => new AnthropicService(
                 serviceProvider.GetRequiredService<MaINSettings>(),
                 serviceProvider.GetRequiredService<INotificationService>(),
