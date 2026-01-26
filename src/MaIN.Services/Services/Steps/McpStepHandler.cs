@@ -1,10 +1,10 @@
 using System.Text.RegularExpressions;
-using DocumentFormat.OpenXml.Wordprocessing;
-using MaIN.Domain.Entities;
+using MaIN.Domain.Exceptions;
+using MaIN.Domain.Exceptions.MPC;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
 using MaIN.Services.Services.Models.Commands;
-using MaIN.Services.Services.Steps.Commands;
+using MaIN.Services.Services.Steps.Commands.Abstract;
 
 namespace MaIN.Services.Services.Steps;
 
@@ -16,7 +16,7 @@ public class McpStepHandler(ICommandDispatcher commandDispatcher) : IStepHandler
     {
         if (context.McpConfig == null)
         {
-            throw new MissingFieldException("MCP config is missing");
+            throw new MPCConfigNotFoundException();
         }
         
         await context.NotifyProgress("true", context.Agent.Id, null, context.Agent.CurrentBehaviour, StepName);
@@ -29,7 +29,7 @@ public class McpStepHandler(ICommandDispatcher commandDispatcher) : IStepHandler
         var mcpResponse = await commandDispatcher.DispatchAsync(mcpCommand);
         if (mcpResponse == null)
         {
-            throw new Exception("MCP command failed"); //TODO proper candidate for custom exception
+            throw new CommandFailedException(mcpCommand.CommandName);
         }
 
         var filterVal = GetFilter(mcpResponse.Content);

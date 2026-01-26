@@ -2,7 +2,7 @@ using MaIN.Core.Hub.Contexts;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
 using MaIN.Domain.Entities.Agents.Knowledge;
-using MaIN.Services.Dtos;
+using MaIN.Domain.Exceptions.Agents;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
 using Moq;
@@ -221,7 +221,7 @@ public class AgentContextTests
             .ReturnsAsync((Agent)null!);
 
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() => 
+        await Assert.ThrowsAsync<AgentNotFoundException>(() => 
             AgentContext.FromExisting(_mockAgentService.Object, nonExistentAgentId));
     }
 }

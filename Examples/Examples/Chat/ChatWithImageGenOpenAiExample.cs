@@ -11,8 +11,8 @@ public class ChatWithImageGenOpenAiExample : IExample
         OpenAiExample.Setup(); // We need to provide OpenAi API key
         
         var result = await AIHub.Chat()
-            .EnableVisual()
             .WithModel("dall-e-3")
+            .EnableVisual()
             .WithMessage("Generate rock style cow playing guitar")
             .CompleteAsync();
         

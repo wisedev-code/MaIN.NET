@@ -1,4 +1,5 @@
 using System.Text.Json;
+using MaIN.Domain.Exceptions.Agents;
 using MaIN.Infrastructure.Models;
 using MaIN.Infrastructure.Repositories.Abstract;
 
@@ -48,7 +49,7 @@ public class FileSystemAgentRepository : IAgentRepository
 
         var filePath = GetFilePath(agent.Id);
         if (File.Exists(filePath))
-            throw new InvalidOperationException($"Agent with ID {agent.Id} already exists.");
+            throw new AgentAlreadyExistsException(agent.Id);
 
         var json = JsonSerializer.Serialize(agent, JsonOptions);
         await File.WriteAllTextAsync(filePath, json);

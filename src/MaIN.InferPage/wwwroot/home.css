@@ -58,3 +58,53 @@
 .message-card p {
     margin: 0;
 }
+
+.error-notification-wrapper {
+    position: fixed;
+    top: 30px;
+    right: 30px;
+    z-index: 9999;
+    width: auto;
+    min-width: 300px;
+    max-width: 600px;
+    filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.2));
+    pointer-events: none;
+}
+
+.error-notification-wrapper > div {
+    pointer-events: auto;
+}
+
+.high-alert-error {
+    background-color: #d32f2f !important;
+    color: #ffffff !important;
+    border: none !important;
+    font-size: 1.1rem !important;
+    
+    overflow-wrap: break-word !important;
+    word-wrap: break-word !important;
+    word-break: break-word !important;
+    hyphens: auto;
+}
+
+.high-alert-error * {
+    color: #ffffff !important;
+    fill: #ffffff !important;
+    overflow-wrap: break-word !important;
+}
+
+.high-alert-error .content {
+    padding: 16px !important;
+    display: block !important;
+}
+
+.error-shake {
+    animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+@keyframes shake {
+    10%, 90% { transform: translate3d(-1px, 0, 0); }
+    20%, 80% { transform: translate3d(2px, 0, 0); }
+    30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+    40%, 60% { transform: translate3d(4px, 0, 0); }
+}

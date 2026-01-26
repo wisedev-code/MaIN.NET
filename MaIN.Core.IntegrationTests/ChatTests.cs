@@ -64,11 +64,12 @@ public class ChatTests : IntegrationTestBase
         
         var result = await AIHub.Chat()
             .WithModel("llama3.2:3b")
+            .WithMessage("What is the title of game?")
+
             .WithMemoryParams(new MemoryParams
             {
                 AnswerTokens = 1000
             })
-            .WithMessage("What is the title of game?")
             .WithFiles(images)
             .CompleteAsync();
         

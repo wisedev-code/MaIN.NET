@@ -2,7 +2,7 @@ using MaIN.Core.Hub;
 using MaIN.Core.Hub.Utils;
 using MaIN.Domain.Configuration;
 
-namespace Examples;
+namespace Examples.Mcp;
 
 public class McpAgentsExample : IExample
 {
@@ -17,6 +17,7 @@ public class McpAgentsExample : IExample
             .CreateAsync(interactiveResponse: true);
         
         var context = await AIHub.Agent()
+            .WithModel("gpt-4o-mini")
             .WithBackend(BackendType.OpenAi)
             .WithMcpConfig(new MaIN.Domain.Entities.Mcp
             {
@@ -29,7 +30,6 @@ public class McpAgentsExample : IExample
                 Command = "docker",
                 Model = "gpt-4o-mini"
             })
-            .WithModel("gpt-4o-mini")
             .WithSteps(StepBuilder.Instance
                 .Mcp()
                 .Redirect(agentId: contextSecond.GetAgentId())

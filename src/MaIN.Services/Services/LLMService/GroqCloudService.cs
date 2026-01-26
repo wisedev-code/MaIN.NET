@@ -1,10 +1,12 @@
 using System.Text;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
+using MaIN.Domain.Exceptions;
 using MaIN.Services.Services.Abstract;
 using Microsoft.Extensions.Logging;
 using MaIN.Services.Services.LLMService.Memory;
 using MaIN.Services.Constants;
+using MaIN.Services.Services.LLMService.Utils;
 using MaIN.Services.Services.Models;
 
 namespace MaIN.Services.Services.LLMService;
@@ -26,15 +28,18 @@ public sealed class GroqCloudService(
 
     protected override string GetApiKey()
     {
-        return _settings.GroqCloudKey ?? Environment.GetEnvironmentVariable("GROQ_API_KEY") ??
-            throw new InvalidOperationException("GroqCloud Key not configured");
+        return _settings.GroqCloudKey ?? Environment.GetEnvironmentVariable(LLMApiRegistry.Groq.ApiKeyEnvName) ??
+            throw new APIKeyNotConfiguredException(LLMApiRegistry.Groq.ApiName);
     }
+
+    protected override string GetApiName() => LLMApiRegistry.Groq.ApiName;
 
     protected override void ValidateApiKey()
     {
-        if (string.IsNullOrEmpty(_settings.GroqCloudKey) && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("GROQ_API_KEY")))
+        if (string.IsNullOrEmpty(_settings.GroqCloudKey) &&
+            string.IsNullOrEmpty(Environment.GetEnvironmentVariable(LLMApiRegistry.Groq.ApiKeyEnvName)))
         {
-            throw new InvalidOperationException("GroqCloud Key not configured");
+            throw new APIKeyNotConfiguredException(LLMApiRegistry.Groq.ApiName);
         }
     }
 
@@ -63,14 +68,14 @@ public sealed class GroqCloudService(
     private string ComposeMessage(Message lastMsg, string[] filePaths)
     {
         var stringBuilder = new StringBuilder();
-        stringBuilder.AppendLine($"== FILES IN MEMORY");
+        stringBuilder.AppendLine("== FILES IN MEMORY");
         foreach (var path in filePaths)
         {
             var doc = DocumentProcessor.ProcessDocument(path);
             stringBuilder.Append(doc);
             stringBuilder.AppendLine();
         }
-        stringBuilder.AppendLine($"== END OF FILES");
+        stringBuilder.AppendLine("== END OF FILES");
         stringBuilder.AppendLine();
         stringBuilder.Append(lastMsg.Content);
         return stringBuilder.ToString();

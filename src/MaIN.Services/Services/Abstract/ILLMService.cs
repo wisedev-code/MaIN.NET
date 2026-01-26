@@ -1,6 +1,4 @@
 using MaIN.Domain.Entities;
-using MaIN.Domain.Models;
-using MaIN.Services.Dtos;
 using MaIN.Services.Services.LLMService;
 using MaIN.Services.Services.Models;
 

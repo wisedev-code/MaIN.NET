@@ -38,12 +38,12 @@ public class ChatGrammarExampleGemini : IExample
                            """;
 
         await AIHub.Chat()
-            .WithInferenceParams(new InferenceParams
-            {
-                Grammar = new Grammar(grammarValue, GrammarFormat.JSONSchema)
-            })
-            .WithModel("gemini-2.5-flash")
-            .WithMessage("Generate random person")
-            .CompleteAsync(interactive: true);
+          .WithModel("gemini-2.5-flash")
+          .WithMessage("Generate random person")
+          .WithInferenceParams(new InferenceParams
+          {
+            Grammar = new Grammar(grammarValue, GrammarFormat.JSONSchema)
+          })
+          .CompleteAsync(interactive: true);
     }
 }

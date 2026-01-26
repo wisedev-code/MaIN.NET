@@ -2,7 +2,7 @@ using Examples.Utils;
 using MaIN.Core.Hub;
 using MaIN.Domain.Configuration;
 
-namespace Examples;
+namespace Examples.Mcp;
 
 public class McpExample : IExample
 {

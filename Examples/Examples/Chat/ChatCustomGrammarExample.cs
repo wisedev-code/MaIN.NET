@@ -21,12 +21,12 @@ public class ChatCustomGrammarExample : IExample
                                         """, GrammarFormat.GBNF);
 
         await AIHub.Chat()
+            .WithModel("gemma2:2b")
+            .WithMessage("Generate random person")
             .WithInferenceParams(new InferenceParams
             {
                 Grammar = personGrammar
             })
-            .WithModel("gemma2:2b")
-            .WithMessage("Generate random person")
             .CompleteAsync(interactive: true);
     }
 }

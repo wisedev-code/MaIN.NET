@@ -1,4 +1,5 @@
 using System.Text.Json;
+using MaIN.Domain.Exceptions.Flows;
 using MaIN.Infrastructure.Models;
 using MaIN.Infrastructure.Repositories.Abstract;
 
@@ -45,7 +46,7 @@ public class FileSystemAgentFlowRepository : IAgentFlowRepository
     {
         var filePath = GetFilePath(flow.Id);
         if (File.Exists(filePath))
-            throw new InvalidOperationException($"Flow with ID {flow.Id} already exists.");
+            throw new FlowAlreadyExistsException(flow.Id);
 
         var json = JsonSerializer.Serialize(flow, JsonOptions);
         await File.WriteAllTextAsync(filePath, json);

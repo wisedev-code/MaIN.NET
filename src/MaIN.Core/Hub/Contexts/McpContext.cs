@@ -1,12 +1,14 @@
+using MaIN.Core.Hub.Contexts.Interfaces.McpContext;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
+using MaIN.Domain.Exceptions.MPC;
 using MaIN.Services.Constants;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
 
 namespace MaIN.Core.Hub.Contexts;
 
-public sealed class McpContext
+public sealed class McpContext : IMcpContext
 {
     private readonly IMcpService _mcpService;
     private Mcp? _mcpConfig;
@@ -17,13 +19,13 @@ public sealed class McpContext
         _mcpConfig = Mcp.NotSet;
     }
     
-    public McpContext WithConfig(Mcp mcpConfig)
+    public IMcpContext WithConfig(Mcp mcpConfig)
     {
         _mcpConfig = mcpConfig;
         return this;
     }
     
-    public McpContext WithBackend(BackendType backendType)
+    public IMcpContext WithBackend(BackendType backendType)
     {
         _mcpConfig!.Backend = backendType;
         return this;
@@ -33,7 +35,7 @@ public sealed class McpContext
     {
         if (_mcpConfig == null)
         {
-            throw new InvalidOperationException("MCP config not found");
+            throw new MPCConfigNotFoundException();
         }
         
         return await _mcpService.Prompt(_mcpConfig!, [new Message()
