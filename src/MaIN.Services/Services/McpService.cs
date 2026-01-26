@@ -117,6 +117,9 @@ public class McpService(MaINSettings settings, IServiceProvider serviceProvider)
                     FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(options: new() { RetainArgumentTypes = true })
                 };
 
+            case BackendType.Ollama:
+                throw new NotSupportedException("Ollama models does not support MCP integration.");
+
             case BackendType.Self:
                 throw new NotSupportedException("Self backend (local models) does not support MCP integration.");
 

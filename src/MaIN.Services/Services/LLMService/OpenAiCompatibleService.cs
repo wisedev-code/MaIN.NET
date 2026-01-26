@@ -292,7 +292,7 @@ public abstract class OpenAiCompatibleService(
         CancellationToken cancellationToken)
     {
         var client = _httpClientFactory.CreateClient(HttpClientName);
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+        SetAuthorizationIfNeeded(client, apiKey);
 
         var requestBody = BuildRequestBody(chat, conversation, true);
 
@@ -411,7 +411,7 @@ public abstract class OpenAiCompatibleService(
         CancellationToken cancellationToken)
     {
         var client = _httpClientFactory.CreateClient(HttpClientName);
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+        SetAuthorizationIfNeeded(client, apiKey);
 
         var requestBody = BuildRequestBody(chat, conversation, false);
 
@@ -522,9 +522,7 @@ public abstract class OpenAiCompatibleService(
         ValidateApiKey();
 
         var client = _httpClientFactory.CreateClient(HttpClientName);
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
-            "Bearer",
-            GetApiKey());
+        SetAuthorizationIfNeeded(client, GetApiKey());
 
         using var response = await client.GetAsync(ModelsUrl);
         response.EnsureSuccessStatusCode();
@@ -575,6 +573,14 @@ public abstract class OpenAiCompatibleService(
         return message.Files != null && message.Files.Count > 0;
     }
 
+    private static void SetAuthorizationIfNeeded(HttpClient client, string apiKey)
+    {
+        if (!string.IsNullOrEmpty(apiKey))
+        {
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+        }
+    }
+
     private async Task ProcessStreamingChatAsync(
         Chat chat,
         List<ChatMessage> conversation,
@@ -585,7 +591,7 @@ public abstract class OpenAiCompatibleService(
         CancellationToken cancellationToken)
     {
         var client = _httpClientFactory.CreateClient(HttpClientName);
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+        SetAuthorizationIfNeeded(client, apiKey);
 
         var requestBody = BuildRequestBody(chat, conversation, true);
         
@@ -670,7 +676,7 @@ public abstract class OpenAiCompatibleService(
         CancellationToken cancellationToken)
     {
         var client = _httpClientFactory.CreateClient(HttpClientName);
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+        SetAuthorizationIfNeeded(client, apiKey);
 
         var requestBody = BuildRequestBody(chat, conversation, false);
 
