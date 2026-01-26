@@ -234,7 +234,7 @@ public sealed class FlowContext : IFlowContext
     {
         var existingFlow = await _flowService.GetFlowById(flowId);
         return existingFlow == null
-            ? throw new FlowFoundException(flowId)
+            ? throw new FlowNotFoundException(flowId)
             : this;
     }
 }

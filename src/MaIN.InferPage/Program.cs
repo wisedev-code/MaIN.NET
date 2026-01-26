@@ -80,14 +80,14 @@ try
 
             case "xai":
                 Utils.Xai = true;
-                apiKeyVariable = "XAI_API_KEY";
-                apiName = "Xai";
+                apiKeyVariable = LLMApiRegistry.Xai.ApiKeyEnvName;
+                apiName = LLMApiRegistry.Xai.ApiName;
                 break;
 
             case "ollama":
                 Utils.Ollama = true;
-                apiKeyVariable = "OLLAMA_API_KEY";
-                apiName = "Ollama";
+                apiKeyVariable = LLMApiRegistry.Ollama.ApiKeyEnvName;
+                apiName = LLMApiRegistry.Ollama.ApiName;
                 break;
         }
 

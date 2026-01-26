@@ -5,6 +5,7 @@ using MaIN.Services.Services.Abstract;
 using Moq;
 using MaIN.Domain.Entities.Agents.AgentSource;
 using MaIN.Domain.Entities.Agents.Knowledge;
+using MaIN.Domain.Exceptions.Flows;
 
 namespace MaIN.Core.UnitTests;
 
@@ -196,6 +197,6 @@ public class FlowContextTests
             .ReturnsAsync((AgentFlow)null!);
 
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() => _flowContext.FromExisting(nonExistentFlowId));
+        await Assert.ThrowsAsync<FlowNotFoundException>(() => _flowContext.FromExisting(nonExistentFlowId));
     }
 }

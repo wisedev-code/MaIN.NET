@@ -2,7 +2,7 @@
 
 namespace MaIN.Domain.Exceptions.Flows;
 
-public class FlowFoundException(string flowId)
+public class FlowNotFoundException(string flowId)
     : MaINCustomException($"Flow with id: '{flowId}' not found.")
 {
     public override string PublicErrorMessage => "Flow not found.";

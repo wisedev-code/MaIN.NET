@@ -675,7 +675,7 @@ public abstract class OpenAiCompatibleService(
     {
         var errorResponseBody = await response.Content.ReadAsStringAsync(cancellationToken);
         var errorMessage = ExtractApiErrorMessage(errorResponseBody);
-                
+        
         throw new LLMApiException(GetApiName(), response.StatusCode, errorMessage ?? errorResponseBody);
     }
 
@@ -684,8 +684,18 @@ public abstract class OpenAiCompatibleService(
         try
         {
             using var jasonDocument = JsonDocument.Parse(json);
-            if (jasonDocument.RootElement.TryGetProperty("error", out var error) &&
-                error.TryGetProperty("message", out var message))
+            
+            if (jasonDocument.RootElement.ValueKind == JsonValueKind.Array)
+            {
+                var firstElement = jasonDocument.RootElement[0];
+                if (firstElement.TryGetProperty("error", out var arrayError) &&
+                    arrayError.TryGetProperty("message", out var arrayMessage))
+                {
+                    return arrayMessage.GetString();
+                }
+            }
+            else if (jasonDocument.RootElement.TryGetProperty("error", out var error) &&
+                     error.TryGetProperty("message", out var message))
             {
                 return message.GetString();
             }
@@ -694,8 +704,9 @@ public abstract class OpenAiCompatibleService(
         {
             // If the response is not a valid JSON or doesn't match the expected schema,
             // we fall back to the raw response body in the calling method.
+            return null;
         }
-
+        
         return null;
     }
 
