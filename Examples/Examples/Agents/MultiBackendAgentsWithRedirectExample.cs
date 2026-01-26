@@ -26,9 +26,9 @@ public class MultiBackendAgentWithRedirectExample : IExample
             """;
 
         var contextSecond = await AIHub.Agent()
-            .WithBackend(BackendType.OpenAi)
             .WithModel("gpt-4o")
             .WithInitialPrompt(systemPromptSecond)
+            .WithBackend(BackendType.OpenAi)
             .CreateAsync(interactiveResponse: true);
         
         var context = await AIHub.Agent()

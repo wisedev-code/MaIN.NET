@@ -6,6 +6,8 @@ using MaIN.Services.Services.Models;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using MaIN.Domain.Exceptions;
+using MaIN.Services.Services.LLMService.Utils;
 
 namespace MaIN.Services.Services.ImageGenServices;
 
@@ -20,8 +22,8 @@ public class XaiImageGenService(
     public async Task<ChatResult?> Send(Chat chat)
     {
         var client = _httpClientFactory.CreateClient(ServiceConstants.HttpClients.XaiClient);
-        string apiKey = _settings.XaiKey ?? Environment.GetEnvironmentVariable("XAI_API_KEY") ??
-            throw new InvalidOperationException("xAI Key not configured");
+        string apiKey = _settings.XaiKey ?? Environment.GetEnvironmentVariable(LLMApiRegistry.Xai.ApiKeyEnvName) ??
+            throw new APIKeyNotConfiguredException(LLMApiRegistry.Xai.ApiName);
 
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
         var requestBody = new

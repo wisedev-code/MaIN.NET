@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using MaIN.Domain.Exceptions.Chats;
 using MaIN.Infrastructure.Models;
 using MaIN.Infrastructure.Repositories.Abstract;
 
@@ -17,7 +18,7 @@ public class DefaultChatRepository : IChatRepository
     public async Task AddChat(ChatDocument chat)
     {
         if (!_chats.TryAdd(chat.Id, chat))
-            throw new InvalidOperationException($"Chat with ID {chat.Id} already exists.");
+            throw new ChatAlreadyExistsException(chat.Id);
             
         await Task.CompletedTask;
     }

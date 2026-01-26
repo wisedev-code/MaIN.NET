@@ -1,15 +1,17 @@
 using System.IO.Compression;
 using System.Text.Json;
+using MaIN.Core.Hub.Contexts.Interfaces.FlowContext;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
 using MaIN.Domain.Entities.Agents.AgentSource;
+using MaIN.Domain.Exceptions.Flows;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
 
 namespace MaIN.Core.Hub.Contexts;
 
-public sealed class FlowContext
+public sealed class FlowContext : IFlowContext
 {
     private readonly IAgentFlowService _flowService;
     private readonly IAgentService _agentService;
@@ -35,25 +37,25 @@ public sealed class FlowContext
         _flow = existingFlow;
     }
 
-    public FlowContext WithId(string id)
+    public IFlowContext WithId(string id)
     {
         _flow.Id = id;
         return this;
     }
 
-    public FlowContext WithName(string name)
+    public IFlowContext WithName(string name)
     {
         _flow.Name = name;
         return this;
     }
     
-    public FlowContext WithDescription(string description)
+    public IFlowContext WithDescription(string description)
     {
         _flow.Description = description;
         return this;
     }
     
-    public FlowContext Save(string path)
+    public IFlowContext Save(string path)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
 
@@ -83,7 +85,7 @@ public sealed class FlowContext
         return this;
     }
 
-    public FlowContext Load(string path)
+    public IFlowContext Load(string path)
     {
         var fileName = Path.GetFileNameWithoutExtension(path);
         string description = "";
@@ -132,7 +134,7 @@ public sealed class FlowContext
         return this;
     }
 
-    public FlowContext AddAgent(Agent agent)
+    public IFlowContext AddAgent(Agent agent)
     {
         _flow.Agents.Add(agent);
         return this;
@@ -189,7 +191,7 @@ public sealed class FlowContext
         };
     }
     
-    public FlowContext AddAgents(IEnumerable<Agent> agents)
+    public IFlowContext AddAgents(IEnumerable<Agent> agents)
     {
         foreach (var agent in agents)
         {
@@ -208,7 +210,7 @@ public sealed class FlowContext
     public async Task Delete()
     {
         if (_flow.Id == null)
-            throw new InvalidOperationException("Flow has not been created yet.");
+            throw new FlowNotInitializedException();
             
         await _flowService.DeleteFlow(_flow.Id);
     }
@@ -217,7 +219,7 @@ public sealed class FlowContext
     public async Task<AgentFlow> GetCurrentFlow()
     {
         if (_flow.Id == null)
-            throw new InvalidOperationException("Flow has not been created yet.");
+            throw new FlowNotInitializedException();
             
         return await _flowService.GetFlowById(_flow.Id);
     }
@@ -228,12 +230,11 @@ public sealed class FlowContext
     }
 
     // Static factory methods
-    public async Task<FlowContext> FromExisting(string flowId)
+    public async Task<IFlowContext> FromExisting(string flowId)
     {
         var existingFlow = await _flowService.GetFlowById(flowId);
-        if (existingFlow == null)
-            throw new ArgumentException("Flow not found", nameof(flowId));
-
-        return this;
+        return existingFlow == null
+            ? throw new FlowNotFoundException(flowId)
+            : this;
     }
 }

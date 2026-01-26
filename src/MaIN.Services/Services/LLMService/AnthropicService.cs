@@ -11,8 +11,8 @@ using System.Text;
 using LLama.Common;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities.Tools;
+using MaIN.Domain.Exceptions;
 using MaIN.Services.Services.LLMService.Utils;
-using MaIN.Services.Services.LLMService;
 
 namespace MaIN.Services.Services.LLMService;
 
@@ -42,15 +42,16 @@ public sealed class AnthropicService(
 
     private string GetApiKey()
     {
-        return _settings.AnthropicKey ?? Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY") ??
-            throw new InvalidOperationException("Anthropic Key not configured");
+        return _settings.AnthropicKey ?? Environment.GetEnvironmentVariable(LLMApiRegistry.Anthropic.ApiKeyEnvName) ??
+            throw new APIKeyNotConfiguredException(LLMApiRegistry.Anthropic.ApiName);
     }
 
     private void ValidateApiKey()
     {
-        if (string.IsNullOrEmpty(_settings.AnthropicKey) && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY")))
+        if (string.IsNullOrEmpty(_settings.AnthropicKey) &&
+            string.IsNullOrEmpty(Environment.GetEnvironmentVariable(LLMApiRegistry.Anthropic.ApiKeyEnvName)))
         {
-            throw new InvalidOperationException("Anthropic Key not configured");
+            throw new APIKeyNotConfiguredException(LLMApiRegistry.Anthropic.ApiName);
         }
     }
 
@@ -83,6 +84,7 @@ public sealed class AnthropicService(
                     Type = TokenType.FullAnswer
                 });
             }
+
             return CreateChatResult(chat, resultBuilder.ToString(), tokens);
         }
 
@@ -154,7 +156,7 @@ public sealed class AnthropicService(
             {
                 var spaceToken = new LLMTokenValue { Text = " ", Type = TokenType.Message };
                 tokens.Add(spaceToken);
-                
+
                 if (options.TokenCallback != null)
                     await options.TokenCallback(spaceToken);
 
@@ -193,6 +195,7 @@ public sealed class AnthropicService(
                 {
                     fullResponseBuilder.Append(" ");
                 }
+
                 fullResponseBuilder.Append(resultBuilder);
             }
 
@@ -206,6 +209,7 @@ public sealed class AnthropicService(
             {
                 assistantContent.Add(new { type = "text", text = resultBuilder.ToString() });
             }
+
             assistantContent.AddRange(currentToolUses.Select(tu => new
             {
                 type = "tool_use",
@@ -227,7 +231,7 @@ public sealed class AnthropicService(
                             toolUse.Name),
                         ServiceConstants.Notifications.ReceiveAgentUpdate);
                 }
-                
+
                 var executor = chat.ToolsConfiguration?.GetExecutor(toolUse.Name);
 
                 if (executor == null)
@@ -327,7 +331,10 @@ public sealed class AnthropicService(
             HttpCompletionOption.ResponseHeadersRead,
             cancellationToken);
 
-        response.EnsureSuccessStatusCode();
+        if (!response.IsSuccessStatusCode)
+        {
+            await HandleApiError(response, cancellationToken);
+        }
 
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
         using var reader = new StreamReader(stream);
@@ -389,7 +396,7 @@ public sealed class AnthropicService(
                         }
                         else if (chunk.Delta?.Type == "input_json_delta")
                         {
-                            if (toolUseBuilders.ContainsKey(chunk.Index) && 
+                            if (toolUseBuilders.ContainsKey(chunk.Index) &&
                                 !string.IsNullOrEmpty(chunk.Delta.PartialJson))
                             {
                                 toolUseBuilders[chunk.Index].InputJson.Append(chunk.Delta.PartialJson);
@@ -415,6 +422,34 @@ public sealed class AnthropicService(
 
         return null;
     }
+    
+    private async Task HandleApiError(HttpResponseMessage response, CancellationToken cancellationToken = default)
+    {
+        var errorResponseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+        var errorMessage = ExtractApiErrorMessage(errorResponseBody);
+                
+        throw new LLMApiException(LLMApiRegistry.Anthropic.ApiName, response.StatusCode, errorMessage ?? errorResponseBody);
+    }
+
+    private static string? ExtractApiErrorMessage(string json)
+    {
+        try
+        {
+            using var jasonDocument = JsonDocument.Parse(json);
+            if (jasonDocument.RootElement.TryGetProperty("error", out var error) &&
+                error.TryGetProperty("message", out var message))
+            {
+                return message.GetString();
+            }
+        }
+        catch (JsonException)
+        {
+            // If the response is not a valid JSON or doesn't match the expected schema,
+            // we fall back to the raw response body in the calling method.
+        }
+
+        return null;
+    }
 
     private async Task<List<AnthropicToolUse>?> ProcessNonStreamingChatWithToolsAsync(
         Chat chat,
@@ -430,7 +465,11 @@ public sealed class AnthropicService(
         var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
 
         using var response = await httpClient.PostAsync(CompletionsUrl, content, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        
+        if (!response.IsSuccessStatusCode)
+        {
+            await HandleApiError(response, cancellationToken);
+        }
 
         var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
         var chatResponse = JsonSerializer.Deserialize<AnthropicMessageResponse>(responseJson,
@@ -470,10 +509,10 @@ public sealed class AnthropicService(
             ["stream"] = stream,
             ["messages"] = BuildAnthropicMessages(conversation)
         };
-        
-        var systemMessage = conversation.FirstOrDefault(m => 
+
+        var systemMessage = conversation.FirstOrDefault(m =>
             m.Role.Equals("system", StringComparison.OrdinalIgnoreCase));
-    
+
         if (systemMessage != null && systemMessage.Content is string systemContent)
         {
             requestBody["system"] = systemContent;
@@ -481,7 +520,8 @@ public sealed class AnthropicService(
 
         if (chat.InterferenceParams.Grammar is not null)
         {
-            requestBody["system"] = $"Respond only using the following grammar format: \n{chat.InterferenceParams.Grammar.Value}\n. Do not add explanations, code tags, or any extra content.";
+            requestBody["system"] =
+                $"Respond only using the following grammar format: \n{chat.InterferenceParams.Grammar.Value}\n. Do not add explanations, code tags, or any extra content.";
         }
 
         if (chat.ToolsConfiguration?.Tools != null && chat.ToolsConfiguration.Tools.Any())
@@ -505,7 +545,7 @@ public sealed class AnthropicService(
         {
             if (msg.Role.Equals("system", StringComparison.OrdinalIgnoreCase))
                 continue;
-            
+
             object content;
 
             if (msg.Content is string textContent)
@@ -531,7 +571,8 @@ public sealed class AnthropicService(
         return messages;
     }
 
-    public async Task<ChatResult?> AskMemory(Chat chat, ChatMemoryOptions memoryOptions, ChatRequestOptions requestOptions, CancellationToken cancellationToken = default)
+    public async Task<ChatResult?> AskMemory(Chat chat, ChatMemoryOptions memoryOptions, ChatRequestOptions requestOptions,
+        CancellationToken cancellationToken = default)
     {
         throw new NotSupportedException("Embeddings are not supported by the Anthropic. Document reading requires embedding support.");
     }
@@ -542,10 +583,15 @@ public sealed class AnthropicService(
         var httpClient = CreateAnthropicHttpClient();
 
         using var response = await httpClient.GetAsync(ModelsUrl);
-        response.EnsureSuccessStatusCode();
+        
+        if (!response.IsSuccessStatusCode)
+        {
+            await HandleApiError(response);
+        }
 
         var json = await response.Content.ReadAsStringAsync();
-        var modelResponse = JsonSerializer.Deserialize<AnthropicModelListResponse>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        var modelResponse =
+            JsonSerializer.Deserialize<AnthropicModelListResponse>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
         return modelResponse?.Data?.Select(m => m.Id).ToArray() ?? [];
     }
@@ -602,7 +648,9 @@ public sealed class AnthropicService(
             model = chat.Model,
             max_tokens = chat.InterferenceParams.MaxTokens < 0 ? 4096 : chat.InterferenceParams.MaxTokens,
             stream = true,
-            system = chat.InterferenceParams.Grammar is not null ? $"Respond only using the following grammar format: \n{chat.InterferenceParams.Grammar.Value}\n. Do not add explanations, code tags, or any extra content." : "",
+            system = chat.InterferenceParams.Grammar is not null
+                ? $"Respond only using the following grammar format: \n{chat.InterferenceParams.Grammar.Value}\n. Do not add explanations, code tags, or any extra content."
+                : "",
             messages = await OpenAiCompatibleService.BuildMessagesArray(conversation, chat, ImageType.AsBase64)
         };
 
@@ -619,7 +667,10 @@ public sealed class AnthropicService(
             HttpCompletionOption.ResponseHeadersRead,
             cancellationToken);
 
-        response.EnsureSuccessStatusCode();
+        if (!response.IsSuccessStatusCode)
+        {
+            await HandleApiError(response, cancellationToken);
+        }
 
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
         using var reader = new StreamReader(stream);
@@ -636,9 +687,9 @@ public sealed class AnthropicService(
 
                 try
                 {
-                    var chunk = JsonSerializer.Deserialize<AnthropicStreamChunk>(data, 
+                    var chunk = JsonSerializer.Deserialize<AnthropicStreamChunk>(data,
                         new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                    
+
                     if (chunk?.Delta?.Type == "text_delta" && !string.IsNullOrEmpty(chunk.Delta.Text))
                     {
                         var token = new LLMTokenValue
@@ -646,7 +697,7 @@ public sealed class AnthropicService(
                             Text = chunk.Delta.Text,
                             Type = TokenType.Message
                         };
-                        
+
                         tokens.Add(token);
 
                         if (tokenCallback != null)
@@ -685,7 +736,9 @@ public sealed class AnthropicService(
             model = chat.Model,
             max_tokens = chat.InterferenceParams.MaxTokens < 0 ? 4096 : chat.InterferenceParams.MaxTokens,
             stream = false,
-            system = chat.InterferenceParams.Grammar is not null ? $"Respond only using the following grammar format: \n{chat.InterferenceParams.Grammar.Value}\n. Do not add explanations, code tags, or any extra content." : "",
+            system = chat.InterferenceParams.Grammar is not null
+                ? $"Respond only using the following grammar format: \n{chat.InterferenceParams.Grammar.Value}\n. Do not add explanations, code tags, or any extra content."
+                : "",
             messages = await OpenAiCompatibleService.BuildMessagesArray(conversation, chat, ImageType.AsBase64)
         };
 
@@ -693,10 +746,16 @@ public sealed class AnthropicService(
         var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
 
         using var response = await httpClient.PostAsync(CompletionsUrl, content, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        
+        if (!response.IsSuccessStatusCode)
+        {
+            await HandleApiError(response, cancellationToken);
+        }
 
         var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
-        var chatResponse = JsonSerializer.Deserialize<AnthropicMessageResponse>(responseJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        var chatResponse =
+            JsonSerializer.Deserialize<AnthropicMessageResponse>(responseJson,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
         var message = chatResponse?.Content?.FirstOrDefault()?.Text;
         if (!string.IsNullOrWhiteSpace(message))
@@ -740,7 +799,7 @@ internal class AnthropicToolUseBuilder
     {
         object input;
         var jsonString = InputJson.ToString().Trim();
-        
+
         if (string.IsNullOrWhiteSpace(jsonString))
         {
             input = new { };
@@ -756,7 +815,7 @@ internal class AnthropicToolUseBuilder
                 input = new { };
             }
         }
-        
+
         return new AnthropicToolUse
         {
             Id = Id,
@@ -784,13 +843,13 @@ file class AnthropicStreamChunk
 {
     [System.Text.Json.Serialization.JsonPropertyName("type")]
     public string? Type { get; set; }
-    
+
     [System.Text.Json.Serialization.JsonPropertyName("index")]
     public int Index { get; set; }
-    
+
     [System.Text.Json.Serialization.JsonPropertyName("delta")]
     public AnthropicDelta? Delta { get; set; }
-    
+
     [System.Text.Json.Serialization.JsonPropertyName("content_block")]
     public AnthropicContentBlock? ContentBlock { get; set; }
 }
@@ -799,13 +858,13 @@ file class AnthropicContentBlock
 {
     [System.Text.Json.Serialization.JsonPropertyName("type")]
     public string? Type { get; set; }
-    
+
     [System.Text.Json.Serialization.JsonPropertyName("id")]
     public string? Id { get; set; }
-    
+
     [System.Text.Json.Serialization.JsonPropertyName("name")]
     public string? Name { get; set; }
-    
+
     [System.Text.Json.Serialization.JsonPropertyName("input")]
     public object? Input { get; set; }
 }
@@ -814,10 +873,10 @@ file class AnthropicDelta
 {
     [System.Text.Json.Serialization.JsonPropertyName("type")]
     public string? Type { get; set; }
-    
+
     [System.Text.Json.Serialization.JsonPropertyName("text")]
     public string? Text { get; set; }
-    
+
     [System.Text.Json.Serialization.JsonPropertyName("partial_json")]
     public string? PartialJson { get; set; }
 }

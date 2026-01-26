@@ -1,7 +1,5 @@
 ﻿using MaIN.Core;
 using MaIN.Core.Hub;
-using MaIN.Domain.Entities;
-using OpenAI.Models;
 
 MaINBootstrapper.Initialize();
 

@@ -1,5 +1,6 @@
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
+using MaIN.Domain.Exceptions.Chats;
 using MaIN.Domain.Models;
 using MaIN.Infrastructure.Repositories.Abstract;
 using MaIN.Services.Mappers;
@@ -99,7 +100,11 @@ public class ChatService(
     public async Task<Chat> GetById(string id)
     {
         var chatDocument = await chatProvider.GetChatById(id);
-        if(chatDocument == null) throw new Exception("Chat not found"); //TODO good candidate for custom exception
+        if (chatDocument == null)
+        {
+            throw new ChatNotFoundException(id);
+        }
+        
         return chatDocument.ToDomain();
     }
 

@@ -1,4 +1,4 @@
-namespace MaIN.Models.Rag;
+namespace MaIN.Infrastructure.Models;
 
 public enum AgentSourceTypeDocument
 {

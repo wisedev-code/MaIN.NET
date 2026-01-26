@@ -5,6 +5,7 @@ using MaIN.Domain.Entities.Agents;
 using MaIN.Domain.Entities.Agents.Knowledge;
 using MaIN.Domain.Entities.Tools;
 using MaIN.Domain.Models;
+using MaIN.Domain.Exceptions.Agents;
 using MaIN.Infrastructure.Repositories.Abstract;
 using MaIN.Services.Constants;
 using MaIN.Services.Mappers;
@@ -12,7 +13,7 @@ using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.ImageGenServices;
 using MaIN.Services.Services.LLMService.Factory;
 using MaIN.Services.Services.Models.Commands;
-using MaIN.Services.Services.Steps.Commands;
+using MaIN.Services.Services.Steps.Commands.Abstract;
 using MaIN.Services.Utils;
 using Microsoft.Extensions.Logging;
 using static System.Text.RegularExpressions.Regex;
@@ -39,10 +40,15 @@ public class AgentService(
         Func<ToolInvocation, Task>? callbackTool = null)
     {
         var agent = await agentRepository.GetAgentById(agentId);
-        if (agent == null) 
-            throw new ArgumentException("Agent not found."); //TODO candidate for NotFound domain exception
-        if (agent.Context == null) 
-            throw new ArgumentException("Agent context not found.");
+        if (agent == null)
+        {
+            throw new AgentNotFoundException(agentId);
+        } 
+        
+        if (agent.Context == null)
+        {
+            throw new AgentContextNotFoundException(agentId);
+        } 
 
         await notificationService.DispatchNotification(
             NotificationMessageBuilder.ProcessingStarted(agentId, agent.CurrentBehaviour, "STARTED"), "ReceiveAgentUpdate");
@@ -138,7 +144,9 @@ public class AgentService(
     {
         var agent = await agentRepository.GetAgentById(agentId);
         if (agent == null)
-            throw new Exception("Agent not found."); //TODO good candidate for custom exception
+        {
+            throw new AgentNotFoundException(agentId);
+        }
         
         var chat = await chatRepository.GetChatById(agent.ChatId);
         return chat!.ToDomain();
@@ -148,7 +156,9 @@ public class AgentService(
     {
         var agent = await agentRepository.GetAgentById(agentId);
         if (agent == null)
-            throw new Exception("Agent not found."); //TODO good candidate for custom exception
+        {
+            throw new AgentNotFoundException(agentId);
+        }
         
         var chat = (await chatRepository.GetChatById(agent.ChatId))!.ToDomain();
         var llmService = llmServiceFactory.CreateService(agent.Backend ?? maInSettings.BackendType);

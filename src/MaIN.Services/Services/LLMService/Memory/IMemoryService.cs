@@ -1,4 +1,3 @@
-using LLamaSharp.KernelMemory;
 using Microsoft.KernelMemory;
 using Microsoft.KernelMemory.AI;
 
