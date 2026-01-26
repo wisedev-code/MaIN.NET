@@ -8,11 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Costura.Fody" Version="6.0.0">
-            <PrivateAssets>all</PrivateAssets>
-        </PackageReference>
         <PackageReference Include="Markdig" Version="0.44.0" />
-        <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.13.2" />
         <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.13.2" />
     </ItemGroup>
 
