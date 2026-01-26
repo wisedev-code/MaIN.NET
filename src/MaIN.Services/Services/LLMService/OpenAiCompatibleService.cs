@@ -1001,41 +1001,6 @@ public abstract class OpenAiCompatibleService(
     }
 }
 
-
-public class ToolDefinition
-{
-    public string Type { get; set; } = "function";
-    public FunctionDefinition Function { get; set; } = null!;
-    
-    [System.Text.Json.Serialization.JsonIgnore]
-    public Func<string, Task<string>>? Execute { get; set; }
-}
-
-public class FunctionDefinition
-{
-    public string Name { get; set; } = null!;
-    public string? Description { get; set; }
-    public object Parameters { get; set; } = null!;
-}
-
-public class ToolCall
-{
-    [JsonPropertyName("id")]
-    public string Id { get; set; } = null!;
-    [JsonPropertyName("type")]
-    public string Type { get; set; } = "function";
-    [JsonPropertyName("function")]
-    public FunctionCall Function { get; set; } = null!;
-}
-
-public class FunctionCall
-{
-    [JsonPropertyName("name")]
-    public string Name { get; set; } = null!;
-    [JsonPropertyName("arguments")]
-    public string Arguments { get; set; } = null!;
-}
-
 internal class ChatMessage
 {
     public string Role { get; set; }

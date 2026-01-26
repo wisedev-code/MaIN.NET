@@ -1,7 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using LLama;
 using LLama.Batched;
 using LLama.Common;
@@ -36,11 +35,6 @@ public class LLMService : ILLMService
     private readonly IMemoryService memoryService;
     private readonly IMemoryFactory memoryFactory;
     private readonly string modelsPath;
-
-    private readonly JsonSerializerOptions _jsonToolOptions = new()
-    {
-        PropertyNameCaseInsensitive = true,
-    };
 
     public LLMService(
         MaINSettings options,
@@ -391,105 +385,6 @@ public class LLMService : ILLMService
              """;
     }
 
-    private ToolParseResult ParseToolCalls(string response)
-    {
-        if (string.IsNullOrWhiteSpace(response))
-            return ToolParseResult.Failure("Response is empty.");
-
-        var jsonContent = ExtractJsonContent(response);
-
-        if (string.IsNullOrEmpty(jsonContent))
-            return ToolParseResult.ToolNotFound();
-
-        try
-        {
-            var wrapper = JsonSerializer.Deserialize<ToolResponseWrapper>(jsonContent, _jsonToolOptions);
-
-            if (wrapper?.ToolCalls != null && wrapper.ToolCalls.Any())
-                return ToolParseResult.Success(NormalizeToolCalls(wrapper.ToolCalls));
-
-            return ToolParseResult.Failure("JSON parsed correctly but 'tool_calls' property is missing or empty.");
-        }
-        catch (JsonException ex)
-        {
-            return ToolParseResult.Failure($"Invalid JSON format: {ex.Message}");
-        }
-    }
-
-    private static string? ExtractJsonContent(string text)
-    {
-        text = text.Trim();
-
-        var firstBrace = text.IndexOf('{');
-        var firstBracket = text.IndexOf('[');
-        var startIndex = (firstBrace >= 0 && firstBracket >= 0) ? Math.Min(firstBrace, firstBracket) : Math.Max(firstBrace, firstBracket);
-
-        var lastBrace = text.LastIndexOf('}');
-        var lastBracket = text.LastIndexOf(']');
-        var endIndex = Math.Max(lastBrace, lastBracket);
-
-        if (startIndex >= 0 && endIndex > startIndex)
-            return text.Substring(startIndex, endIndex - startIndex + 1);
-
-        return null;
-    }
-
-    private static List<ToolCall> NormalizeToolCalls(List<ToolCall>? calls)
-    {
-        if (calls == null)
-            return [];
-
-        foreach (var call in calls)
-        {
-            if (string.IsNullOrEmpty(call.Id))
-                call.Id = Guid.NewGuid().ToString()[..8];
-
-            if (string.IsNullOrEmpty(call.Type))
-                call.Type = "function";
-
-            call.Function ??= new FunctionCall();
-        }
-        return calls;
-    }
-
-    public class ToolCall
-    {
-        [JsonPropertyName("id")]
-        public string Id { get; set; } = Guid.NewGuid().ToString();
-
-        [JsonPropertyName("type")]
-        public string Type { get; set; } = "function";
-
-        [JsonPropertyName("function")]
-        public FunctionCall Function { get; set; } = new();
-    }
-
-    public class FunctionCall
-    {
-        [JsonPropertyName("name")]
-        public string Name { get; set; } = string.Empty;
-
-        [JsonPropertyName("arguments")]
-        public string Arguments { get; set; } = "{}";
-    }
-
-    private class ToolResponseWrapper
-    {
-        [JsonPropertyName("tool_calls")]
-        public List<ToolCall>? ToolCalls { get; set; }
-    }
-
-    private record ToolParseResult
-    {
-        public bool IsSuccess { get; init; }
-        public List<ToolCall>? ToolCalls { get; init; }
-        public string? ErrorMessage { get; init; }
-
-        public static ToolParseResult Success(List<ToolCall> calls) => new() { IsSuccess = true, ToolCalls = calls };
-        public static ToolParseResult Failure(string error) => new() { IsSuccess = false, ErrorMessage = error };
-        public static ToolParseResult ToolNotFound() => new() { IsSuccess = false };
-    }
-
     private async Task<(List<LLMTokenValue> Tokens, bool IsComplete, bool HasFailed)> ProcessTokens(
         Chat chat,
         Conversation conversation,
@@ -665,7 +560,7 @@ public class LLMService : ILLMService
             };
             chat.Messages.Add(responseMessage.MarkProcessed());
 
-            var parseResult = ParseToolCalls(lastResponse);
+            var parseResult = ToolCallParser.ParseToolCalls(lastResponse);
 
             // Tool not found or invalid JSON
             if (!parseResult.IsSuccess)
