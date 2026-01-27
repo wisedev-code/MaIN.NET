@@ -10,8 +10,6 @@ public class ChatExampleToolsSimpleLocalLLM : IExample
     {
         Console.WriteLine("Local LLM ChatExample with tools is running!");
 
-        var model = AIHub.Model();
-
         await AIHub.Chat()
             .WithModel("gemma3:4b")
             .WithMessage("What time is it right now?")

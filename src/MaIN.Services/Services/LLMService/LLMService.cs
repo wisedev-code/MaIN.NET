@@ -55,7 +55,9 @@ public class LLMService : ILLMService
         CancellationToken cancellationToken = default)
     {
         if (chat.Messages.Count == 0)
+        {
             return null;
+        }
 
         var lastMsg = chat.Messages.Last();
 
@@ -90,7 +92,9 @@ public class LLMService : ILLMService
     public Task CleanSessionCache(string? id)
     {
         if (string.IsNullOrEmpty(id) || !_sessionCache.TryRemove(id, out var session))
+        {
             return Task.CompletedTask;
+        }
 
         session.Executor.Context.Dispose();
         return Task.CompletedTask;
@@ -310,7 +314,9 @@ public class LLMService : ILLMService
         conversation.Prompt(imageEmbeddings!);
 
         while (executor.BatchedTokenCount > 0)
+        {
             await executor.Infer(cancellationToken);
+        }
 
         var prompt = llmModel.Tokenize($"USER: {lastMsg.Content}\nASSISTANT:", true, false, Encoding.UTF8);
         conversation.Prompt(prompt);
@@ -364,7 +370,9 @@ public class LLMService : ILLMService
         foreach (var tool in toolsConfig.Tools)
         {
             if (tool.Function == null)
+            {
                 continue;
+            }
 
             toolsList.AppendLine($"- {tool.Function.Name}: {tool.Function.Description}");
             toolsList.AppendLine($"  Parameters: {JsonSerializer.Serialize(tool.Function.Parameters)}");
@@ -671,7 +679,7 @@ public class LLMService : ILLMService
 
         if (iterations >= MaxToolIterations)
         {
-            var errorMessage = "Maximum tool invocation iterations reached. Ending the conversation.";
+            var errorMessage = "Maximum tool invocation iterations reached. Ending the tool-loop prematurely.";
             var iterationMessage = new Message
             {
                 Content = errorMessage,
