@@ -51,6 +51,7 @@ static void RegisterExamples(IServiceCollection services)
     services.AddTransient<ChatFromExistingExample>();
     services.AddTransient<ChatWithReasoningExample>();
     services.AddTransient<ChatExampleToolsSimple>();
+    services.AddTransient<ChatExampleToolsSimpleLocalLLM>();
     services.AddTransient<AgentExampleTools>();
     services.AddTransient<AgentExample>();
     services.AddTransient<AgentConversationExample>();
@@ -161,6 +162,7 @@ namespace Examples
                 ("\u25a0 Chat with Files from stream", serviceProvider.GetRequiredService<ChatWithFilesFromStreamExample>()),
                 ("\u25a0 Chat with Vision", serviceProvider.GetRequiredService<ChatWithVisionExample>()),
                 ("\u25a0 Chat with Tools (simple)", serviceProvider.GetRequiredService<ChatExampleToolsSimple>()),
+                ("\u25a0 Chat with Tools (simple Local LLM)", serviceProvider.GetRequiredService<ChatExampleToolsSimpleLocalLLM>()),
                 ("\u25a0 Chat with Image Generation", serviceProvider.GetRequiredService<ChatWithImageGenExample>()),
                 ("\u25a0 Chat from Existing", serviceProvider.GetRequiredService<ChatFromExistingExample>()),
                 ("\u25a0 Chat with reasoning", serviceProvider.GetRequiredService<ChatWithReasoningExample>()),
