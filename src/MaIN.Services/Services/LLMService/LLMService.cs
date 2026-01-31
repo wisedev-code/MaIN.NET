@@ -536,13 +536,6 @@ public class LLMService : ILLMService
         ChatRequestOptions requestOptions,
         CancellationToken cancellationToken)
     {
-        NativeLogConfig.llama_log_set((level, message) => {
-            if (level == LLamaLogLevel.Error)
-            {
-                Console.Error.Write(message);
-            }
-        }); // Remove llama native logging
-
         var model = KnownModels.GetModel(chat.Model);
         var iterations = 0;
         var lastResponseTokens = new List<LLMTokenValue>();
@@ -551,12 +544,9 @@ public class LLMService : ILLMService
         while (iterations < MaxToolIterations)
         {
             var lastMsg = chat.Messages.Last();
-            await SendNotification(chat.Id, new LLMTokenValue
-            {
-                Type = TokenType.FullAnswer,
-                Text = $"Processing with tools... iteration {iterations + 1}\n\n"
-            }, false);
+            var tokenCallbackOrg = requestOptions.TokenCallback;
             requestOptions.InteractiveUpdates = false;
+            requestOptions.TokenCallback = null;
             lastResponseTokens = await ProcessChatRequest(chat, model, lastMsg, requestOptions, cancellationToken);
             lastMsg.MarkProcessed();
             lastResponse = string.Concat(lastResponseTokens.Select(x => x.Text));
@@ -590,6 +580,7 @@ public class LLMService : ILLMService
                 else // Final response
                 {
                     requestOptions.InteractiveUpdates = true;
+                    requestOptions.TokenCallback = tokenCallbackOrg;
                     await SendNotification(chat.Id, new LLMTokenValue
                     {
                         Type = TokenType.FullAnswer,
