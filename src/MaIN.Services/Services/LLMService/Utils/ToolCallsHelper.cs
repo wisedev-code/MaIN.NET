@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using MaIN.Domain.Entities.Tools;
 
 namespace MaIN.Services.Services.LLMService.Utils;
@@ -36,25 +37,129 @@ public static class ToolCallParser
         }
     }
 
-    private static string? ExtractJsonContent(string text)
-    {
-        text = text.Trim();
-
-        var firstBrace = text.IndexOf('{');
-        var firstBracket = text.IndexOf('[');
-        var startIndex = (firstBrace >= 0 && firstBracket >= 0) 
-            ? Math.Min(firstBrace, firstBracket) 
-            : Math.Max(firstBrace, firstBracket);
-
-        var lastBrace = text.LastIndexOf('}');
-        var lastBracket = text.LastIndexOf(']');
-        var endIndex = Math.Max(lastBrace, lastBracket);
-
-        if (startIndex >= 0 && endIndex > startIndex)
-            return text.Substring(startIndex, endIndex - startIndex + 1);
-
+private static string? ExtractJsonContent(string text)
+{
+    if (string.IsNullOrWhiteSpace(text))
         return null;
+
+    text = text.Trim();
+
+    var jsonFromCodeBlock = ExtractFromCodeBlock(text);
+    if (jsonFromCodeBlock != null)
+        return jsonFromCodeBlock;
+
+    return FindBalancedJson(text);
+}
+
+private static string? ExtractFromCodeBlock(string text)
+{
+    var patterns = new[]
+    {
+        @"```json\s*([\s\S]*?)\s*```",
+        @"```\s*([\s\S]*?)\s*```"
+    };
+
+    foreach (var pattern in patterns)
+    {
+        var match = Regex.Match(text, pattern);
+        if (match.Success)
+        {
+            var content = match.Groups[1].Value.Trim();
+            
+            content = Regex.Replace(content, @"^<[^>]+>\s*", "");
+            content = Regex.Replace(content, @"\s*<[^>]+>$", "");
+            content = content.Trim();
+            
+            if (content.StartsWith("{") || content.StartsWith("["))
+            {
+                var balanced = FindBalancedJson(content);
+                if (balanced != null)
+                    return balanced;
+            }
+        }
     }
+
+    return null;
+}
+
+private static string? FindBalancedJson(string text)
+{
+    // Try to find a balanced JSON object or array
+    for (int i = 0; i < text.Length; i++)
+    {
+        if (text[i] == '{')
+        {
+            var json = ExtractBalanced(text, i, '{', '}');
+            if (json != null && IsValidJsonStart(json))
+                return json;
+        }
+        else if (text[i] == '[')
+        {
+            var json = ExtractBalanced(text, i, '[', ']');
+            if (json != null && IsValidJsonStart(json))
+                return json;
+        }
+    }
+
+    return null;
+}
+
+private static string? ExtractBalanced(string text, int startIndex, char openChar, char closeChar)
+{
+    int depth = 0;
+    bool inString = false;
+    bool escaped = false;
+
+    for (int i = startIndex; i < text.Length; i++)
+    {
+        char c = text[i];
+
+        if (escaped)
+        {
+            escaped = false;
+            continue;
+        }
+
+        if (c == '\\')
+        {
+            escaped = true;
+            continue;
+        }
+
+        if (c == '"' && !inString)
+        {
+            inString = true;
+        }
+        else if (c == '"' && inString)
+        {
+            inString = false;
+        }
+        else if (!inString)
+        {
+            if (c == openChar)
+            {
+                depth++;
+            }
+            else if (c == closeChar)
+            {
+                depth--;
+                if (depth == 0)
+                {
+                    return text.Substring(startIndex, i - startIndex + 1);
+                }
+            }
+        }
+    }
+
+    return null;
+}
+
+private static bool IsValidJsonStart(string json)
+{
+    json = json.Trim();
+    return (json.StartsWith("{") && json.EndsWith("}")) ||
+           (json.StartsWith("[") && json.EndsWith("]"));
+}
 
     private static List<ToolCall> NormalizeToolCalls(List<ToolCall>? calls)
     {
