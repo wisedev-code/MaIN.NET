@@ -10,7 +10,7 @@ public class GeminiExample
         MaINBootstrapper.Initialize(configureSettings: (options) =>
         {
             options.BackendType = BackendType.Gemini;
-            options.GeminiKey = "<Gemini API Key>";
+            options.GeminiKey = "<YOUR_GEMINI_KEY>";
         });
     }
 }

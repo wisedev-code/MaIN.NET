@@ -36,7 +36,7 @@ public class ChatService(
         {
             chat.Visual = true; // TODO: add IImageGenModel interface and check for that instead
         }
-        chat.Backend ??= settings.BackendType; // can be romved as we set backend on chat creation
+        chat.Backend ??= settings.BackendType;
 
         chat.Messages.Where(x => x.Type == MessageType.NotSet).ToList()
             .ForEach(x => x.Type = chat.Backend != BackendType.Self ? MessageType.CloudLLM : MessageType.LocalLLM);

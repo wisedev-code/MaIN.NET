@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace MaIN.Services.Dtos;
 
-public class ChatDto // TODO: make it record and not nullable for Id, Name, Model as they are required
+public record ChatDto
 {
     [JsonPropertyName("id")] 
     public string? Id { get; set; }

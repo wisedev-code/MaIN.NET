@@ -197,7 +197,7 @@ public sealed class ModelContext : IModelContext
         }
     }
 
-    private async Task DownloadWithProgressAsync(HttpResponseMessage response, string filePath, string fileName, CancellationToken cancellationToken)
+    private static async Task DownloadWithProgressAsync(HttpResponseMessage response, string filePath, string fileName, CancellationToken cancellationToken)
     {
         var totalBytes = response.Content.Headers.ContentLength;
         var totalBytesRead = 0L;
@@ -215,10 +215,13 @@ public sealed class ModelContext : IModelContext
 
         while (true)
         {
-            var bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken);
-            if (bytesRead == 0) break;
+            var bytesRead = await contentStream.ReadAsync(buffer, cancellationToken);
+            if (bytesRead == 0)
+            {
+                break;
+            }
 
-            await fileStream.WriteAsync(buffer, 0, bytesRead, cancellationToken);
+            await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
             totalBytesRead += bytesRead;
 
             if (ShouldUpdateProgress(progressStopwatch))
@@ -317,7 +320,7 @@ public sealed class ModelContext : IModelContext
                          $"Speed: {FormatBytes((long)speed)}/s ETA: {eta:hh\\:mm\\:ss}");
 
             var (leftAfter, topAfter) = Console.GetCursorPosition();
-            int lengthDifference = leftBefore - leftAfter + (topBefore - topAfter) * Console.WindowWidth;
+            int lengthDifference = leftBefore - leftAfter + ((topBefore - topAfter) * Console.WindowWidth);
             while (lengthDifference > 0)
             {
                 Console.Write(' ');
@@ -345,7 +348,10 @@ public sealed class ModelContext : IModelContext
 
     private static string FormatBytes(long bytes)
     {
-        if (bytes == 0) return "0 Bytes";
+        if (bytes == 0)
+        {
+            return "0 Bytes";
+        }
 
         const int scale = 1024;
         string[] orders = ["GB", "MB", "KB", "Bytes"];
@@ -354,14 +360,17 @@ public sealed class ModelContext : IModelContext
         foreach (var order in orders)
         {
             if (bytes >= max)
+            {
                 return $"{decimal.Divide(bytes, max):##.##} {order}";
+            }
+
             max /= scale;
         }
 
         return "0 Bytes";
     }
 
-    private string ResolvePath(string? settingsModelsPath) =>
+    private static string ResolvePath(string? settingsModelsPath) =>
         settingsModelsPath
         ?? Environment.GetEnvironmentVariable("MaIN_ModelsPath")
         ?? throw new ModelsPathNotFoundException();

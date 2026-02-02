@@ -79,7 +79,7 @@ public class LLMService : ILLMService
         return await CreateChatResult(chat, tokens, requestOptions);
     }
 
-    public Task<string[]> GetCurrentModels() // TODO: return AIModel[]
+    public Task<string[]> GetCurrentModels()
     {
         var models = Directory.GetFiles(modelsPath, "*.gguf", SearchOption.AllDirectories)
             .Select(Path.GetFileName)
@@ -554,7 +554,12 @@ public class LLMService : ILLMService
         ChatRequestOptions requestOptions,
         CancellationToken cancellationToken)
     {
-        var model = KnownModels.GetModel(chat.Model);
+        var model = chat.ModelInstance ?? throw new MissingModelInstanceException();
+        if (model is not LocalModel localModel)
+        {
+            throw new InvalidModelTypeException(nameof(LocalModel));
+        }
+
         var iterations = 0;
         var lastResponseTokens = new List<LLMTokenValue>();
         var lastResponse = string.Empty;
@@ -565,7 +570,7 @@ public class LLMService : ILLMService
             var tokenCallbackOrg = requestOptions.TokenCallback;
             requestOptions.InteractiveUpdates = false;
             requestOptions.TokenCallback = null;
-            lastResponseTokens = await ProcessChatRequest(chat, model, lastMsg, requestOptions, cancellationToken);
+            lastResponseTokens = await ProcessChatRequest(chat, localModel, lastMsg, requestOptions, cancellationToken);
             lastMsg.MarkProcessed();
             lastResponse = string.Concat(lastResponseTokens.Select(x => x.Text));
             var responseMessage = new Message

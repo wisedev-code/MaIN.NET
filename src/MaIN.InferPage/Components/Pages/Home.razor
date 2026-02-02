@@ -192,7 +192,7 @@
     private string? _incomingMessage = null;
     private string? _incomingReasoning = null;
     private readonly string? _displayName = Utils.Model;
-    private IChatMessageBuilder? ctx;
+    private IChatMessageBuilder? ctxBuilder;
     private Chat Chat { get; } = new() { Name = "MaIN Infer", ModelId = Utils.Model! };
     private List<MessageExt> Messages { get; set; } = new();
     private ElementReference? _bottomElement;

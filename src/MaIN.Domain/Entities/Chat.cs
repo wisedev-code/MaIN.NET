@@ -9,11 +9,12 @@ public class Chat
 {
     public string Id { get; init; } = string.Empty;
     public required string Name { get; init; }
-    public required string ModelId { get; set; } // TODO: make set private and settable by the ModelInstance setter
+    public required string ModelId { get; set; }
+    private AIModel? _modelInstance;
     public AIModel? ModelInstance
     {
-        get => _modelInstance ?? ModelRegistry.GetById(ModelId);
-        set => _modelInstance = value;
+        get => _modelInstance ??= ModelRegistry.GetById(ModelId);
+        set => (_modelInstance, ModelId) = (value, value?.Id ?? ModelId);
     }
     public List<Message> Messages { get; set; } = [];
     public ChatType Type { get; set; } = ChatType.Conversation;
@@ -29,6 +30,4 @@ public class Chat
 
     public bool Interactive = false;
     public bool Translate = false;
-
-    private AIModel? _modelInstance;
 }

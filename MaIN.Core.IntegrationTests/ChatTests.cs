@@ -66,6 +66,7 @@ public class ChatTests : IntegrationTestBase
         
         var result = await AIHub.Chat()
             .WithModel<Llama3_2_3b>()
+            .WithMessage("What is the title of game?")
             .WithMemoryParams(new MemoryParams
             {
                 AnswerTokens = 1000
