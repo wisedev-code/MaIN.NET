@@ -10,7 +10,11 @@ public class Chat
     public string Id { get; init; } = string.Empty;
     public required string Name { get; init; }
     public required string ModelId { get; set; } // TODO: make set private and settable by the ModelInstance setter
-    public AIModel? ModelInstance { get; set; }
+    public AIModel? ModelInstance
+    {
+        get => _modelInstance ?? ModelRegistry.GetById(ModelId);
+        set => _modelInstance = value;
+    }
     public List<Message> Messages { get; set; } = [];
     public ChatType Type { get; set; } = ChatType.Conversation;
     public bool Visual { get; set; }
@@ -25,5 +29,6 @@ public class Chat
 
     public bool Interactive = false;
     public bool Translate = false;
-    
+
+    private AIModel? _modelInstance;
 }

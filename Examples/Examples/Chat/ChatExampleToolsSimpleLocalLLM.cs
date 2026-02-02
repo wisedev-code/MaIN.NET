@@ -1,6 +1,7 @@
 using Examples.Utils;
 using MaIN.Core.Hub;
 using MaIN.Core.Hub.Utils;
+using MaIN.Domain.Models.Concrete;
 
 namespace Examples.Chat;
 
@@ -11,7 +12,7 @@ public class ChatExampleToolsSimpleLocalLLM : IExample
         Console.WriteLine("Local LLM ChatExample with tools is running!");
 
         await AIHub.Chat()
-            .WithModel("gemma3:4b")
+            .WithModel<Gemma3_4b>()
             .WithMessage("What time is it right now?")
             .WithTools(new ToolsConfigurationBuilder()
                 .AddTool(

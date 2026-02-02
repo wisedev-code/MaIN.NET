@@ -40,9 +40,7 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
 
     public IChatMessageBuilder WithModel(AIModel model)
     {
-        _chat.ModelInstance = model;
-        _chat.ModelId = model.Id;
-        _chat.Backend = model.Backend;
+        SetModel(model);
         return this;
     }
 
@@ -53,10 +51,18 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
     }
 
     [Obsolete("Use WithModel(AIModel model) or WithModel<TModel>() instead.")]
-    public ChatContext WithModel(string modelId)
+    public IChatMessageBuilder WithModel(string modelId)
     {
         var model = ModelRegistry.GetById(modelId);
         SetModel(model);
+        return this;
+    }
+
+    [Obsolete("Use WithModel<TModel>() instead.")]
+    public IChatMessageBuilder WithCustomModel(string model, string path, string? mmProject = null)
+    {
+        KnownModels.AddModel(model, path, mmProject);
+        _chat.ModelId = model;
         return this;
     }
 
@@ -65,13 +71,6 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
         _chat.ModelId = model.Id;
         _chat.ModelInstance = model;
         _chat.Backend = model.Backend;
-    }
-
-    public IChatMessageBuilder WithInferenceParams(InferenceParams inferenceParams)
-    {
-        KnownModels.AddModel(model, path, mmProject);
-        _chat.Model = model;
-        return this;
     }
 
     public IChatMessageBuilder EnableVisual()
@@ -86,11 +85,9 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
         return this;
     }
 
-    [Obsolete("Use WithModel<TModel>() instead.")]
-    public ChatContext WithCustomModel(string model, string path, string? mmProject = null)
+    public IChatConfigurationBuilder WithTools(ToolsConfiguration toolsConfiguration)
     {
-        KnownModels.AddModel(model, path, mmProject);
-        _chat.ModelId = model;
+        _chat.ToolsConfiguration = toolsConfiguration;
         return this;
     }
 
@@ -156,8 +153,7 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
 
     public IChatConfigurationBuilder WithFiles(List<FileStream> file, bool preProcess = false)
     {
-        _files = file.Select(f => new FileInfo { Name = Path.GetFileName(f.Name), StreamContent = f, Extension = Path.GetExtension(f.Name) })
-            .ToList();
+        _files = [.. file.Select(f => new FileInfo { Name = Path.GetFileName(f.Name), StreamContent = f, Extension = Path.GetExtension(f.Name) })];
         _preProcess = preProcess;
         return this;
     }
@@ -171,15 +167,14 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
 
     public IChatConfigurationBuilder WithFiles(List<string> file, bool preProcess = false)
     {
-        _files = file
+        _files = [.. file
             .Select(path =>
                 new FileInfo
                 {
                     Name = Path.GetFileName(path),
                     Path = path,
                     Extension = Path.GetExtension(path)
-                })
-            .ToList();
+                })];
         _preProcess = preProcess;
         return this;
     }
@@ -197,7 +192,7 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
     {
         if (_chat.ModelInstance is null)
         {
-            throw new ChatConfigurationException("Model is required. Use .WithModel() before calling CompleteAsync().");
+            throw new ChatNotInitializedException();
         }
         if (_chat.Messages.Count == 0)
         {
@@ -255,11 +250,8 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
         return await _chatService.GetById(_chat.Id);
     }
 
-    public async Task<List<Chat>> GetAllChats()
-    {
-        return await _chatService.GetAll();
-    }
-    
+    public async Task<List<Chat>> GetAllChats() => await _chatService.GetAll();
+
     public async Task DeleteChat()
     {
         if (_chat.Id == null)
@@ -272,11 +264,11 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
     
     public List<MessageShort> GetChatHistory()
     {
-        return _chat.Messages.Select(x => new MessageShort()
+        return [.. _chat.Messages.Select(x => new MessageShort()
         {
             Content = x.Content,
             Role = x.Role,
             Time = x.Time
-        }).ToList();
+        })];
     }
 }

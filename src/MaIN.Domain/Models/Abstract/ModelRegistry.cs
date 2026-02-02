@@ -17,12 +17,18 @@ public static class ModelRegistry
 
     private static void Initialize()
     {
-        if (_initialized) return;
-        
+        if (_initialized)
+        {
+            return;
+        }
+
         lock (_lock)
         {
-            if (_initialized) return;
-            
+            if (_initialized)
+            {
+                return;
+            }
+
             // Reflection but only at startup to register all available models
             // Skip abstract, generic types, and Generic* classes (they're for runtime registration)
             var modelTypes = Assembly.GetExecutingAssembly()
@@ -173,5 +179,5 @@ public static class ModelRegistry
         return _models.TryRemove(NormalizeId(id), out _);
     }
 
-    private static string NormalizeId(string id) => id.Trim().Replace(':', '-');
+    private static string NormalizeId(string id) => id.Trim();
 }

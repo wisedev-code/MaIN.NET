@@ -68,7 +68,7 @@ public class LLMService : ILLMService
             return await AskMemory(chat, memoryOptions, requestOptions, cancellationToken);
         }
 
-        if (chat.ToolsConfiguration?.Tools != null && chat.ToolsConfiguration.Tools.Any())
+        if (chat.ToolsConfiguration?.Tools != null && chat.ToolsConfiguration.Tools.Count != 0)
         {
             return await ProcessWithToolsAsync(chat, requestOptions, cancellationToken);
         }
@@ -119,13 +119,13 @@ public class LLMService : ILLMService
             ? await LLamaWeights.LoadFromFileAsync(parameters, cancellationToken)
             : await ModelLoader.GetOrLoadModelAsync(modelsPath, model.FileName);
 
-        var memory = memoryFactory.CreateMemoryWithModel(
+        var (km, generator, textGenerator) = memoryFactory.CreateMemoryWithModel(
             modelsPath,
             llmModel,
             model.FileName,
             chat.MemoryParams);
 
-        await memoryService.ImportDataToMemory((memory.km, memory.generator), memoryOptions, cancellationToken);
+        await memoryService.ImportDataToMemory((km, generator), memoryOptions, cancellationToken);
         var userMessage = chat.Messages.Last();
         
         MemoryAnswer result;
@@ -139,7 +139,7 @@ public class LLMService : ILLMService
                 Stream = true
             };
 
-            await foreach (var chunk in memory.km.AskStreamingAsync(
+            await foreach (var chunk in km.AskStreamingAsync(
                                userMessage.Content,
                                options: searchOptions,
                                cancellationToken: cancellationToken))
@@ -179,23 +179,23 @@ public class LLMService : ILLMService
                 Stream = false
             };
 
-            result = await memory.km.AskAsync(
+            result = await km.AskAsync(
                 userMessage.Content,
                 options: searchOptions,
                 cancellationToken: cancellationToken);
         }
         
-        await memory.km.DeleteIndexAsync(cancellationToken: cancellationToken);
+        await km.DeleteIndexAsync(cancellationToken: cancellationToken);
         
         if (disableCache)
         {
             llmModel.Dispose();
             ModelLoader.RemoveModel(model.FileName);
-            memory.textGenerator.Dispose();
+            textGenerator.Dispose();
         }
-        memory.generator._embedder.Dispose();
-        memory.generator._embedder._weights.Dispose();
-        memory.generator.Dispose();
+        generator._embedder.Dispose();
+        generator._embedder._weights.Dispose();
+        generator.Dispose();
 
         return new ChatResult
         {
@@ -229,13 +229,13 @@ public class LLMService : ILLMService
             : await ModelLoader.GetOrLoadModelAsync(modelsPath, modelKey);
 
         var visionModel = model as IVisionModel;
-        var llavaWeights = visionModel?.MMProjectPath != null
-            ? await LLavaWeights.LoadFromFileAsync(visionModel.MMProjectPath, cancellationToken)
+        var llavaWeights = visionModel?.MMProjectPath is not null
+            ? await LLavaWeights.LoadFromFileAsync(Path.Combine(modelsPath, visionModel.MMProjectPath), cancellationToken)
             : null;
         
         using var executor = new BatchedExecutor(llmModel, parameters);
 
-        var (conversation, isComplete, hasFailed) = await InitializeConversation(
+        var (conversation, isComplete, hasFailed) = await LLMService.InitializeConversation(
             chat, lastMsg, model, llmModel, llavaWeights, executor, cancellationToken);
 
         if (!isComplete)
@@ -280,7 +280,7 @@ public class LLMService : ILLMService
     }
 
 
-    private async Task<(Conversation Conversation, bool IsComplete, bool HasFailed)> InitializeConversation(Chat chat,
+    private static async Task<(Conversation Conversation, bool IsComplete, bool HasFailed)> InitializeConversation(Chat chat,
         Message lastMsg,
         LocalModel model,
         LLamaWeights llmModel,
@@ -335,7 +335,7 @@ public class LLMService : ILLMService
         var template = new LLamaTemplate(llmModel);
         var finalPrompt = ChatHelper.GetFinalPrompt(lastMsg, model, isNewConversation);
 
-        var hasTools = chat.ToolsConfiguration?.Tools != null && chat.ToolsConfiguration.Tools.Any();
+        var hasTools = chat.ToolsConfiguration?.Tools != null && chat.ToolsConfiguration.Tools.Count != 0;
 
         if (isNewConversation)
         {
@@ -409,7 +409,7 @@ public class LLMService : ILLMService
         var isComplete = false;
         var hasFailed = false;
 
-        using var sampler = CreateSampler(chat.InterferenceParams);
+        using var sampler = LLMService.CreateSampler(chat.InterferenceParams);
         var decoder = new StreamingTokenDecoder(executor.Context);
 
         var inferenceParams = ChatHelper.CreateInferenceParams(chat, llmModel);
@@ -429,10 +429,14 @@ public class LLMService : ILLMService
             }
 
             if (decodeResult == DecodeResult.DecodeFailed)
+            {
                 throw new Exception("Unknown error occurred while inferring.");
+            }
 
             if (!conversation.RequiresSampling)
+            {
                 continue;
+            }
 
             var token = conversation.Sample(sampler);
             var vocab = executor.Context.NativeHandle.ModelHandle.Vocab;
@@ -471,7 +475,7 @@ public class LLMService : ILLMService
         return (tokens, isComplete, hasFailed);
     }
 
-    private BaseSamplingPipeline CreateSampler(InferenceParams interferenceParams)
+    private static BaseSamplingPipeline CreateSampler(InferenceParams interferenceParams)
     {
         if (interferenceParams.Temperature == 0)
         {
@@ -704,7 +708,7 @@ public class LLMService : ILLMService
         {
             Done = true,
             CreatedAt = DateTime.Now,
-            Model = chat.Model,
+            Model = chat.ModelId,
             Message = chat.Messages.Last()
         };
     }

@@ -1,14 +1,13 @@
 using MaIN.Domain.Models.Abstract;
-using MaIN.Domain.Models;
 
 namespace MaIN.Domain.Models.Concrete;
 
 // ===== Gemma Family =====
 
-public sealed record Gemma_2b() : LocalModel(
-    "gemma-2b",
-    "Gemma-2b.gguf",
-    new Uri("https://huggingface.co/Inza124/Gemma-2b/resolve/main/gemma-2b-maIN.gguf?download=true"),
+public sealed record Gemma2_2b() : LocalModel(
+    "gemma2-2b",
+    "Gemma2-2b.gguf",
+    new Uri("https://huggingface.co/Inza124/gemma2_2b/resolve/main/gemma2-2b-maIN.gguf?download=true"),
     "Gemma 2B",
     8192,
     "Lightweight 2B model for general-purpose text generation and understanding")
@@ -72,6 +71,17 @@ public sealed record Llava_7b() : LocalModel(
     "Llava.gguf",
     new Uri("https://huggingface.co/Inza124/Llava/resolve/main/Llava-maIN.gguf?download=true"),
     "LLaVA 7B",
+    4096,
+    "Vision-language model for image analysis, OCR, and visual Q&A"), IVisionModel
+{
+    public string MMProjectPath => "mmproj-model-f16.gguf";
+}
+
+public sealed record Llava16Mistral_7b() : LocalModel(
+    "llava-1.6-mistral-7b",
+    "llava-1.6-mistral-7b.gguf",
+    new Uri("https://huggingface.co/cjpais/llava-1.6-mistral-7b-gguf/resolve/main/llava-v1.6-mistral-7b.Q3_K_XS.gguf?download=true"),
+    "LLaVA 1.6 Mistral 7B",
     4096,
     "Vision-language model for image analysis, OCR, and visual Q&A"), IVisionModel
 {

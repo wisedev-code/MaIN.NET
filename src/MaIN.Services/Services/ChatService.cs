@@ -44,19 +44,19 @@ public class ChatService(
         translate = translate || chat.Translate;
         interactiveUpdates = interactiveUpdates || chat.Interactive;
         var newMsg = chat.Messages.Last();
-        newMsg.Time = DateTime.Now; // TODO: introduce IDateTimeProvider (better for tests)
+        newMsg.Time = DateTime.Now;
 
         var lng = translate ? await translatorService.DetectLanguage(newMsg.Content) : null;
         var originalMessages = chat.Messages;
     
         if (translate)
         {
-            chat.Messages = (await Task.WhenAll(chat.Messages.Select(async m => new Message()
+            chat.Messages = [.. await Task.WhenAll(chat.Messages.Select(async m => new Message()
             {
                 Role = m.Role,
                 Content = await translatorService.Translate(m.Content, "en"),
                 Type = m.Type
-            }))).ToList();
+            }))];
         }
 
         var result = chat.Visual 
@@ -100,15 +100,9 @@ public class ChatService(
     public async Task<Chat> GetById(string id)
     {
         var chatDocument = await chatProvider.GetChatById(id);
-        if (chatDocument == null)
-        {
-            throw new ChatNotFoundException(id);
-        }
-        
-        return chatDocument.ToDomain();
+        return chatDocument is null ? throw new ChatNotFoundException(id) : chatDocument.ToDomain();
     }
 
     public async Task<List<Chat>> GetAll()
-        => (await chatProvider.GetAllChats())
-            .Select(x => x.ToDomain()).ToList();
+        => [.. (await chatProvider.GetAllChats()).Select(x => x.ToDomain())];
 }

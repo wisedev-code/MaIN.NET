@@ -13,7 +13,7 @@ public class ChatTests : IntegrationTestBase
     [Fact]
     public async Task Should_AnswerQuestion_BasicChat()
     {
-        var context = AIHub.Chat().WithModel<Gemma_2b>();
+        var context = AIHub.Chat().WithModel<Gemma2_2b>();
         
         var result = await context
             .WithMessage("Where the hedgehog goes at night?")
@@ -30,7 +30,7 @@ public class ChatTests : IntegrationTestBase
         List<string> files = ["./Files/Nicolaus_Copernicus.pdf", "./Files/Galileo_Galilei.pdf"];
         
         var result = await AIHub.Chat()
-            .WithModel<Gemma_2b>()
+            .WithModel<Gemma2_2b>()
             .WithMessage("You have 2 documents in memory. Whats the difference of work between Galileo and Copernicus?. Give answer based on the documents.")
             .WithFiles(files)
             .CompleteAsync();
@@ -120,7 +120,7 @@ public class ChatTests : IntegrationTestBase
         }
         
         var result = await AIHub.Chat()
-            .WithModel<Gemma_2b>()
+            .WithModel<Gemma2_2b>()
             .WithMessage("You have 2 documents in memory. Whats the difference of work between Galileo and Copernicus?. Give answer based on the documents.")
             .WithFiles(fileStreams)
             .CompleteAsync();

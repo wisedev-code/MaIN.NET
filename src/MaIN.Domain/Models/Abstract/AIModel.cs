@@ -93,7 +93,7 @@ public record GenericCloudReasoningModel(
 ) : CloudModel(Id, Backend, Name, MaxContextWindowSize, Description, SystemMessage), IReasoningModel
 {   
     // IReasoningModel - null for cloud (handled by provider API)
-    public Func<string, Models.ThinkingState, Models.LLMTokenValue>? ReasonFunction => null;
+    public Func<string, ThinkingState, LLMTokenValue>? ReasonFunction => null;
     public string? AdditionalPrompt { get; } = AdditionalPrompt;
 }
 
@@ -126,7 +126,7 @@ public record GenericCloudVisionReasoningModel(
     public string? MMProjectPath => null;
     
     // IReasoningModel - null for cloud (handled by provider API)
-    public Func<string, Models.ThinkingState, Models.LLMTokenValue>? ReasonFunction => null;
+    public Func<string, ThinkingState, LLMTokenValue>? ReasonFunction => null;
     public string? AdditionalPrompt { get; } = AdditionalPrompt;
 }
 
@@ -155,7 +155,7 @@ public record GenericLocalModel(
 /// <summary> Generic class for runtime defined local models with reasoning capability. </summary>
 public record GenericReasoningModel(
     string FileName,
-    Func<string, Models.ThinkingState, Models.LLMTokenValue> ReasonFunction,
+    Func<string, ThinkingState, LLMTokenValue> ReasonFunction,
     string? Name = null,
     string? Id = null,
     Uri? DownloadUrl = null,
@@ -169,7 +169,7 @@ public record GenericReasoningModel(
     public string? CustomPath { get; set; } = CustomPath;
     
     // IReasoningModel implementation
-    public Func<string, Models.ThinkingState, Models.LLMTokenValue> ReasonFunction { get; } = ReasonFunction;
+    public Func<string, ThinkingState, LLMTokenValue> ReasonFunction { get; } = ReasonFunction;
     public string? AdditionalPrompt { get; } = AdditionalPrompt;
     
     public override bool IsDownloaded(string basePath)
@@ -208,7 +208,7 @@ public record GenericVisionModel(
 public record GenericVisionReasoningModel(
     string FileName,
     string MMProjectPath,
-    Func<string, Models.ThinkingState, Models.LLMTokenValue> ReasonFunction,
+    Func<string, ThinkingState, LLMTokenValue> ReasonFunction,
     string? Name = null,
     string? Id = null,
     Uri? DownloadUrl = null,

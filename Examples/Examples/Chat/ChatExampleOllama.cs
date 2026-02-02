@@ -1,5 +1,6 @@
 using Examples.Utils;
 using MaIN.Core.Hub;
+using MaIN.Domain.Models.Concrete;
 
 namespace Examples.Chat;
 
@@ -11,7 +12,7 @@ public class ChatExampleOllama : IExample
         Console.WriteLine("(Ollama) ChatExample is running!");
 
         await AIHub.Chat()
-            .WithModel("gemma3:4b")
+            .WithModel<OllamaGemma3_4b>()
             .WithMessage("Write a short poem about the color green.")
             .CompleteAsync(interactive: true);
     }

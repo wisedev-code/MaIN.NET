@@ -3,7 +3,7 @@ using System.Net;
 using MaIN.Core.Hub.Contexts.Interfaces.ModelContext;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Exceptions.Models;
-using MaIN.Domain.Models;
+using MaIN.Domain.Exceptions.Models.LocalModels;
 using MaIN.Domain.Models.Abstract;
 using MaIN.Domain.Models.Concrete;
 using MaIN.Services.Constants;
@@ -27,34 +27,19 @@ public sealed class ModelContext : IModelContext
         _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
     }
 
-    /// <summary>
-    /// Gets all registered models.
-    /// </summary>
     public IEnumerable<AIModel> GetAll() => ModelRegistry.GetAll();
 
-    /// <summary>
-    /// Gets all local models.
-    /// </summary>
     public IEnumerable<LocalModel> GetAllLocal() => ModelRegistry.GetAllLocal();
 
-    /// <summary>
-    /// Gets a model by its ID.
-    /// </summary>
     public AIModel GetModel(string modelId) => ModelRegistry.GetById(modelId);
 
-    /// <summary>
-    /// Gets the embedding model.
-    /// </summary>
-    public LocalModel GetEmbeddingModel() => new Nomic_Embedding();
+    public AIModel GetEmbeddingModel() => new Nomic_Embedding();
 
-    /// <summary>
-    /// Checks if a local model file exists on disk.
-    /// </summary>
     public bool Exists(string modelId)
     {
         if (string.IsNullOrWhiteSpace(modelId))
         {
-            throw new ArgumentException(nameof(modelId));
+            throw new MissingModelIdException(nameof(modelId));
         }
 
         var model = ModelRegistry.GetById(modelId);
@@ -67,48 +52,43 @@ public sealed class ModelContext : IModelContext
         return File.Exists(modelPath);
     }
 
-    /// <summary>
-    /// Downloads a model by its ID.
-    /// </summary>
     public async Task<IModelContext> DownloadAsync(string modelId, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(modelId))
         {
-            throw new MissingModelNameException(nameof(modelName));
+            throw new MissingModelIdException(nameof(modelId));
         }
 
-        var model = ModelRegistry.GetById(modelId);
+        var model = ModelRegistry.GetById(modelId) ?? throw new ModelNotSupportedException(modelId);
+        
         if (model is not LocalModel localModel)
         {
-            throw new InvalidOperationException($"Model '{modelId}' is not a local model and cannot be downloaded.");
+            throw new InvalidModelTypeException(nameof(LocalModel));
         }
         
-        if (localModel.DownloadUrl == null)
+        if (localModel.DownloadUrl is null)
         {
-            throw new InvalidOperationException($"Model '{modelId}' does not have a download URL.");
+            throw new DownloadUrlNullOrEmptyException();
         }
         
         await DownloadModelAsync(localModel.DownloadUrl.ToString(), localModel.FileName, cancellationToken);
         return this;
     }
 
-    /// <summary>
-    /// Downloads a custom model from a URL and registers it.
-    /// </summary>
-    public async Task<IModelContext> DownloadAsync(string modelId, string url)
+    public async Task<IModelContext> DownloadAsync(string modelId, string url, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(modelId))
         {
-            throw new MissingModelNameException(nameof(model));
+            throw new MissingModelIdException(nameof(modelId));
         }
 
         if (string.IsNullOrWhiteSpace(url))
         {
-            throw new ArgumentException("URL cannot be null or empty", nameof(url));
+            throw new DownloadUrlNullOrEmptyException();
         }
 
         var fileName = $"{modelId}.gguf";
-        await DownloadModelAsync(url, fileName, CancellationToken.None);
+        await DownloadModelAsync(url, fileName, cancellationToken);
         
         // Register the newly downloaded model
         var newModel = new GenericLocalModel(
@@ -127,15 +107,20 @@ public sealed class ModelContext : IModelContext
     {
         if (string.IsNullOrWhiteSpace(modelId))
         {
-            throw new ArgumentException(MissingModelName, nameof(modelId));
+            throw new MissingModelIdException(nameof(modelId));
         }
 
-        var model = ModelRegistry.GetById(modelId);
-        if (model is not LocalModel localModel || localModel.DownloadUrl == null)
+        var model = ModelRegistry.GetById(modelId) ?? throw new ModelNotSupportedException(modelId);
+        if (model is not LocalModel localModel)
         {
-            throw new MissingModelNameException(nameof(modelName));
+            throw new MissingModelIdException(nameof(LocalModel));
         }
-        
+
+        if (localModel.DownloadUrl is null)
+        {
+            throw new DownloadUrlNullOrEmptyException();
+        }
+
         DownloadModelSync(localModel.DownloadUrl.ToString(), localModel.FileName);
         return this;
     }
@@ -145,17 +130,18 @@ public sealed class ModelContext : IModelContext
     {
         if (string.IsNullOrWhiteSpace(modelId))
         {
-            throw new MissingModelNameException(nameof(model));
+            throw new MissingModelIdException(nameof(modelId));
         }
 
         if (string.IsNullOrWhiteSpace(url))
         {
-            throw new ArgumentException("URL cannot be null or empty", nameof(url));
+            throw new DownloadUrlNullOrEmptyException();
         }
 
         var fileName = $"{modelId}.gguf";
         DownloadModelSync(url, fileName);
-        
+
+        // Register the newly downloaded model
         var newModel = new GenericLocalModel(
             FileName: fileName,
             Name: modelId,
@@ -163,13 +149,10 @@ public sealed class ModelContext : IModelContext
             DownloadUrl: new Uri(url)
         );
         ModelRegistry.RegisterOrReplace(newModel);
-        
+
         return this;
     }
 
-    /// <summary>
-    /// Loads a local model into cache for faster subsequent access.
-    /// </summary>
     public IModelContext LoadToCache(LocalModel model)
     {
         ArgumentNullException.ThrowIfNull(model);
@@ -179,9 +162,6 @@ public sealed class ModelContext : IModelContext
         return this;
     }
 
-    /// <summary>
-    /// Loads a local model into cache asynchronously.
-    /// </summary>
     public async Task<IModelContext> LoadToCacheAsync(LocalModel model)
     {
         ArgumentNullException.ThrowIfNull(model);

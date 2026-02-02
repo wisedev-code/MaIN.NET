@@ -14,7 +14,7 @@ internal class Program
 
         ChatContext chat = AIHub.Chat();
         chat.WithModel("gemma2:2b"); // Using string (deprecated)
-        chat.WithModel<Gemma_2b>(); // Using strongly-typed model
+        chat.WithModel<Gemma2_2b>(); // Using strongly-typed model
         chat.WithMessage("Where do hedgehogs goes at night?");
         await chat.CompleteAsync(interactive: true);
 

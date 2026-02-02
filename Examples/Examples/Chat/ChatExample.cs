@@ -11,7 +11,7 @@ public class ChatExample : IExample
 
         // Using strongly-typed model
         await AIHub.Chat()
-            .WithModel<Gemma_2b>()
+            .WithModel<Gemma2_2b>()
             .WithMessage("Where do hedgehogs goes at night?")
             .CompleteAsync(interactive: true);
     }
