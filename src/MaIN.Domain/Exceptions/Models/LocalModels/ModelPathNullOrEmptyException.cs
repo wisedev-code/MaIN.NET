@@ -1,9 +1,9 @@
 ﻿using System.Net;
 
-namespace MaIN.Domain.Exceptions.Models;
+namespace MaIN.Domain.Exceptions.Models.LocalModels;
 
-public class MissingModelInstanceException() 
-    : MaINCustomException("Model instance cannot be null.")
+public class ModelPathNullOrEmptyException()
+    : MaINCustomException("Model path is null or empty.")
 {
     public override string PublicErrorMessage => Message;
     public override HttpStatusCode HttpStatusCode => HttpStatusCode.BadRequest;

@@ -22,7 +22,7 @@ public class ChatWithTextToSpeechExample : IExample
         await AIHub.Chat()
             .WithModel<Gemma2_2b>()
             .WithMessage("Generate a 4 sentence poem.")
-            .Speak(new TextToSpeechParams("kokoro:82m", voice, true))
+            .Speak(new TextToSpeechParams(new Kokoro_82m(), voice, true))
             .CompleteAsync(interactive: true);
 
         Console.WriteLine("Done!");

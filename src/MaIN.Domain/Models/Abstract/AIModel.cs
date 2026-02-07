@@ -1,4 +1,5 @@
 ﻿using MaIN.Domain.Configuration;
+using MaIN.Domain.Exceptions.Models.LocalModels;
 
 namespace MaIN.Domain.Models.Abstract;
 
@@ -6,27 +7,27 @@ public abstract record AIModel(
     string Id,
     BackendType Backend,
     string? Name = null,
-    uint MaxContextWindowSize = 128000,
+    uint MaxContextWindowSize = ModelDefaults.DefaultMaxContextWindow,
     string? Description = null,
     string? SystemMessage = null)
 {
     /// <summary> Internal Id. For cloud models it is the cloud Id. </summary>
-    public virtual string Id { get; } = Id;
+    public string Id { get; } = Id;
 
     /// <summary> Name displayed to users. </summary>
-    public virtual string Name { get; } = Name ?? Id;
+    public string Name { get; } = Name ?? Id;
 
     /// <summary> Gets the type of backend used by the model eg OpenAI or Self (Local). </summary>
-    public virtual BackendType Backend { get; } = Backend;
+    public BackendType Backend { get; } = Backend;
 
     /// <summary> System Message added before first prompt. </summary>
-    public virtual string? SystemMessage { get; } = SystemMessage;
+    public string? SystemMessage { get; } = SystemMessage;
 
     /// <summary> Model description eg. capabilities or purpose. </summary>
-    public virtual string? Description { get; } = Description;
+    public string? Description { get; } = Description;
 
     /// <summary> Max context window size supported by the model. </summary>
-    public virtual uint MaxContextWindowSize { get; } = MaxContextWindowSize;
+    public uint MaxContextWindowSize { get; } = MaxContextWindowSize;
 
     /// <summary> Checks if model supports reasoning/thinking mode. </summary>
     public bool HasReasoning => this is IReasoningModel;
@@ -41,21 +42,41 @@ public abstract record LocalModel(
     string FileName,
     Uri? DownloadUrl = null,
     string? Name = null,
-    uint MaxContextWindowSize = 128000,
+    uint MaxContextWindowSize = ModelDefaults.DefaultMaxContextWindow,
     string? Description = null,
-    string? SystemMessage = null) : AIModel(Id, BackendType.Self, Name, MaxContextWindowSize, Description, SystemMessage)
+    string? SystemMessage = null,
+        string? CustomPath = null) : AIModel(Id, BackendType.Self, Name, MaxContextWindowSize, Description, SystemMessage)
 {
     /// <summary> Name of the model file on the hard drive eg. Gemma2-2b.gguf </summary>
-    public virtual string FileName { get; } = FileName;
+    public string FileName { get; } = FileName;
 
     /// <summary> Uri to download model eg. https://huggingface.co/Inza124/gemma2_2b/resolve/main/gemma2-2b-maIN.gguf?download=true </summary>
-    public virtual Uri? DownloadUrl { get; } = DownloadUrl;
+    public Uri? DownloadUrl { get; } = DownloadUrl;
 
-    public virtual bool IsDownloaded(string basePath)
-        => File.Exists(Path.Combine(basePath, FileName));
+    /// <summary> Gets or sets the custom file system path (excluding file name eg. your\path\). If not null will be prioritized over the default base path. </summary>
+    public string? CustomPath { get; } = CustomPath;
+
+    public bool IsDownloaded(string? basePath)
+    {
+        try
+        {
+            return File.Exists(GetFullPath(basePath));
+        }
+        catch (ModelPathNullOrEmptyException)
+        {
+            return false;
+        }
+    }
         
-    public virtual string GetFullPath(string basePath)
-        => Path.Combine(basePath, FileName);
+    public string GetFullPath(string? basePath = null)
+    {
+        if (string.IsNullOrEmpty(CustomPath) && string.IsNullOrEmpty(basePath))
+        {
+            throw new ModelPathNullOrEmptyException();
+        }
+
+        return Path.Combine((CustomPath ?? basePath)!, FileName);
+    }
 }
 
 /// <summary> Base class for cloud models. </summary>
@@ -63,30 +84,26 @@ public abstract record CloudModel(
     string Id,
     BackendType Backend,
     string? Name = null,
-    uint MaxContextWindowSize = 128000,
+    uint MaxContextWindowSize = ModelDefaults.DefaultMaxContextWindow,
     string? Description = null,
-    string? SystemMessage = null) : AIModel(Id, Backend, Name, MaxContextWindowSize, Description, SystemMessage)
-{
-}
+    string? SystemMessage = null) : AIModel(Id, Backend, Name, MaxContextWindowSize, Description, SystemMessage);
 
 /// <summary> Generic class for runtime defined cloud models. </summary>
 public record GenericCloudModel(
     string Id,
     BackendType Backend,
     string? Name = null,
-    uint MaxContextWindowSize = 128000,
+    uint MaxContextWindowSize = ModelDefaults.DefaultMaxContextWindow,
     string? Description = null,
     string? SystemMessage = null
-) : CloudModel(Id, Backend, Name, MaxContextWindowSize, Description, SystemMessage)
-{
-}
+) : CloudModel(Id, Backend, Name, MaxContextWindowSize, Description, SystemMessage);
 
 /// <summary> Generic class for runtime defined cloud models with reasoning capability. </summary>
 public record GenericCloudReasoningModel(
     string Id,
     BackendType Backend,
     string? Name = null,
-    uint MaxContextWindowSize = 128000,
+    uint MaxContextWindowSize = ModelDefaults.DefaultMaxContextWindow,
     string? Description = null,
     string? SystemMessage = null,
     string? AdditionalPrompt = null
@@ -102,13 +119,13 @@ public record GenericCloudVisionModel(
     string Id,
     BackendType Backend,
     string? Name = null,
-    uint MaxContextWindowSize = 128000,
+    uint MaxContextWindowSize = ModelDefaults.DefaultMaxContextWindow,
     string? Description = null,
     string? SystemMessage = null
 ) : CloudModel(Id, Backend, Name, MaxContextWindowSize, Description, SystemMessage), IVisionModel
 {   
     // IVisionModel - cloud models don't need MMProjectPath
-    public string? MMProjectPath => null;
+    public string? MMProjectName => null;
 }
 
 /// <summary> Generic class for runtime defined cloud models with both vision and reasoning capabilities. </summary>
@@ -116,14 +133,14 @@ public record GenericCloudVisionReasoningModel(
     string Id,
     BackendType Backend,
     string? Name = null,
-    uint MaxContextWindowSize = 128000,
+    uint MaxContextWindowSize = ModelDefaults.DefaultMaxContextWindow,
     string? Description = null,
     string? SystemMessage = null,
     string? AdditionalPrompt = null
 ) : CloudModel(Id, Backend, Name, MaxContextWindowSize, Description, SystemMessage), IVisionModel, IReasoningModel
 {   
     // IVisionModel - null for cloud (handled by provider API)
-    public string? MMProjectPath => null;
+    public string? MMProjectName => null;
     
     // IReasoningModel - null for cloud (handled by provider API)
     public Func<string, ThinkingState, LLMTokenValue>? ReasonFunction => null;
@@ -140,20 +157,10 @@ public record GenericLocalModel(
     string? CustomPath = null,
     string? Description = null,
     string? SystemMessage = null
-) : LocalModel(Id ?? FileName, FileName, DownloadUrl, Name ?? FileName, MaxContextWindowSize, Description, SystemMessage)
-{   
-    /// <summary> Custom path override for the model file (only for dynamically loaded models). </summary>
-    public string? CustomPath { get; set; } = CustomPath;
-    
-    public override bool IsDownloaded(string basePath)
-        => File.Exists(Path.Combine(CustomPath ?? basePath, FileName));
-        
-    public override string GetFullPath(string basePath)
-        => Path.Combine(CustomPath ?? basePath, FileName);
-}
+) : LocalModel(Id ?? FileName, FileName, DownloadUrl, Name ?? FileName, MaxContextWindowSize, Description, SystemMessage, CustomPath);
 
 /// <summary> Generic class for runtime defined local models with reasoning capability. </summary>
-public record GenericReasoningModel(
+public record GenericLocalReasoningModel(
     string FileName,
     Func<string, ThinkingState, LLMTokenValue> ReasonFunction,
     string? Name = null,
@@ -164,23 +171,15 @@ public record GenericReasoningModel(
     string? AdditionalPrompt = null,
     string? Description = null,
     string? SystemMessage = null
-) : LocalModel(Id ?? FileName, FileName, DownloadUrl, Name ?? FileName, MaxContextWindowSize, Description, SystemMessage), IReasoningModel
-{
-    public string? CustomPath { get; set; } = CustomPath;
-    
+) : LocalModel(Id ?? FileName, FileName, DownloadUrl, Name ?? FileName, MaxContextWindowSize, Description, SystemMessage, CustomPath), IReasoningModel
+{    
     // IReasoningModel implementation
     public Func<string, ThinkingState, LLMTokenValue> ReasonFunction { get; } = ReasonFunction;
     public string? AdditionalPrompt { get; } = AdditionalPrompt;
-    
-    public override bool IsDownloaded(string basePath)
-        => File.Exists(Path.Combine(CustomPath ?? basePath, FileName));
-        
-    public override string GetFullPath(string basePath)
-        => Path.Combine(CustomPath ?? basePath, FileName);
 }
 
 /// <summary> Generic class for runtime defined local models with vision capability. </summary>
-public record GenericVisionModel(
+public record GenericLocalVisionModel(
     string FileName,
     string MMProjectPath,
     string? Name = null,
@@ -190,22 +189,14 @@ public record GenericVisionModel(
     string? CustomPath = null,
     string? Description = null,
     string? SystemMessage = null
-) : LocalModel(Id ?? FileName, FileName, DownloadUrl, Name ?? FileName, MaxContextWindowSize, Description, SystemMessage), IVisionModel
-{
-    public string? CustomPath { get; set; } = CustomPath;
-    
+) : LocalModel(Id ?? FileName, FileName, DownloadUrl, Name ?? FileName, MaxContextWindowSize, Description, SystemMessage, CustomPath), IVisionModel
+{    
     // IVisionModel implementation
-    public string MMProjectPath { get; } = MMProjectPath;
-    
-    public override bool IsDownloaded(string basePath)
-        => File.Exists(Path.Combine(CustomPath ?? basePath, FileName));
-        
-    public override string GetFullPath(string basePath)
-        => Path.Combine(CustomPath ?? basePath, FileName);
+    public string MMProjectName { get; } = MMProjectPath;
 }
 
 /// <summary> Generic class for runtime defined local models with both vision and reasoning capabilities. </summary>
-public record GenericVisionReasoningModel(
+public record GenericLocalVisionReasoningModel(
     string FileName,
     string MMProjectPath,
     Func<string, ThinkingState, LLMTokenValue> ReasonFunction,
@@ -217,20 +208,17 @@ public record GenericVisionReasoningModel(
     string? AdditionalPrompt = null,
     string? Description = null,
     string? SystemMessage = null
-) : LocalModel(Id ?? FileName, FileName, DownloadUrl, Name ?? FileName, MaxContextWindowSize, Description, SystemMessage), IVisionModel, IReasoningModel
+) : LocalModel(Id ?? FileName, FileName, DownloadUrl, Name ?? FileName, MaxContextWindowSize, Description, SystemMessage, CustomPath), IVisionModel, IReasoningModel
 {
-    public string? CustomPath { get; set; } = CustomPath;
-    
     // IVisionModel implementation
-    public string MMProjectPath { get; } = MMProjectPath;
+    public string MMProjectName { get; } = MMProjectPath;
     
     // IReasoningModel implementation
     public Func<string, ThinkingState, LLMTokenValue> ReasonFunction { get; } = ReasonFunction;
     public string? AdditionalPrompt { get; } = AdditionalPrompt;
-    
-    public override bool IsDownloaded(string basePath)
-        => File.Exists(Path.Combine(CustomPath ?? basePath, FileName));
-        
-    public override string GetFullPath(string basePath)
-        => Path.Combine(CustomPath ?? basePath, FileName);
+}
+
+public static class ModelDefaults
+{
+    public const uint DefaultMaxContextWindow = 128000;
 }

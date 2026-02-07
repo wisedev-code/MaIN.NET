@@ -3,6 +3,7 @@ using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Tools;
 using MaIN.Domain.Exceptions.Chats;
+using MaIN.Domain.Exceptions.Models;
 using MaIN.Domain.Models;
 using MaIN.Domain.Models.Abstract;
 using MaIN.Services;
@@ -53,7 +54,16 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
     [Obsolete("Use WithModel(AIModel model) or WithModel<TModel>() instead.")]
     public IChatMessageBuilder WithModel(string modelId)
     {
-        var model = ModelRegistry.GetById(modelId);
+        AIModel model;
+        try
+        {
+            model = ModelRegistry.GetById(modelId);
+        }
+        catch (Exception ex)
+        {
+
+            throw new Exception($"Model with ID '{modelId}' not found in registry. Use WithModel(AIModel model) or WithModel<TModel>() instead.", ex);
+        }
         SetModel(model);
         return this;
     }
@@ -192,7 +202,7 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
     {
         if (_chat.ModelInstance is null)
         {
-            throw new ChatNotInitializedException();
+            throw new MissingModelInstanceException();
         }
         if (_chat.Messages.Count == 0)
         {

@@ -222,15 +222,15 @@ public class LLMService : ILLMService
         var thinkingState = new ThinkingState();
         var tokens = new List<LLMTokenValue>();
 
-        var parameters = CreateModelParameters(chat, modelKey, null);
+        var parameters = CreateModelParameters(chat, modelKey, model.CustomPath);
         var disableCache = chat.Properties.CheckProperty(ServiceConstants.Properties.DisableCacheProperty);
         var llmModel = disableCache
             ? await LLamaWeights.LoadFromFileAsync(parameters, cancellationToken)
             : await ModelLoader.GetOrLoadModelAsync(modelsPath, modelKey);
 
         var visionModel = model as IVisionModel;
-        var llavaWeights = visionModel?.MMProjectPath is not null
-            ? await LLavaWeights.LoadFromFileAsync(Path.Combine(modelsPath, visionModel.MMProjectPath), cancellationToken)
+        var llavaWeights = visionModel?.MMProjectName is not null
+            ? await LLavaWeights.LoadFromFileAsync(Path.Combine(modelsPath, visionModel.MMProjectName), cancellationToken)
             : null;
         
         using var executor = new BatchedExecutor(llmModel, parameters);
@@ -497,12 +497,12 @@ public class LLMService : ILLMService
     private static LocalModel GetLocalModel(string modelId)
     {
         var model = ModelRegistry.GetById(modelId);
-        if (model is LocalModel localModel)
+        if (model is not LocalModel localModel)
         {
-            return localModel;
+            throw new InvalidModelTypeException(nameof(LocalModel));
         }
         
-        throw new InvalidOperationException($"Model '{modelId}' is not a local model. LLMService only supports local models.");
+        return localModel;
     }
 
     private string GetModelsPath()

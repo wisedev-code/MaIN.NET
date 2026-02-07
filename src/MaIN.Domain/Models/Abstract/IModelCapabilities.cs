@@ -1,5 +1,3 @@
-using MaIN.Domain.Models;
-
 namespace MaIN.Domain.Models.Abstract;
 
 /// <summary>
@@ -8,10 +6,10 @@ namespace MaIN.Domain.Models.Abstract;
 public interface IVisionModel
 {
     /// <summary>
-    /// Path to multimodal projector file required for vision processing.
+    /// Name of the multimodal projector file. (must be in the same location as the model)
     /// Null for cloud models (handled by provider API).
     /// </summary>
-    string? MMProjectPath { get; }
+    string? MMProjectName { get; }
 }
 
 /// <summary>
@@ -24,7 +22,7 @@ public interface IReasoningModel
     /// Null for cloud models (reasoning handled by provider API).
     /// </summary>
     Func<string, ThinkingState, LLMTokenValue>? ReasonFunction { get; }
-    
+
     /// <summary>
     /// Additional prompt added to enable reasoning mode.
     /// </summary>
@@ -43,14 +41,7 @@ public interface IEmbeddingModel
     int EmbeddingDimension { get; }
 }
 
-// TODO: use it with existing TTS model
 /// <summary>
 /// Interface for models that support text-to-speech.
 /// </summary>
-public interface ITTSModel
-{
-    /// <summary>
-    /// Available voices for the TTS model.
-    /// </summary>
-    IReadOnlyList<string> AvailableVoices { get; }
-}
+public interface ITTSModel;

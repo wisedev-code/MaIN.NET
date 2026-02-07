@@ -1,5 +1,6 @@
 using MaIN.Core.Hub.Contexts;
 using MaIN.Domain.Entities;
+using MaIN.Domain.Models.Abstract;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
 using Moq;
@@ -88,6 +89,7 @@ public class ChatContextTests
             .ReturnsAsync(chatResult);
         
         _chatContext.WithMessage("User message");
+        _chatContext.WithModel(new GenericLocalModel("test-model"));
 
         // Act
         var result = await _chatContext.CompleteAsync();
@@ -109,5 +111,20 @@ public class ChatContextTests
         
         // Assert
         Assert.Equal(chat, result);
+    }
+
+    [Fact]
+    public async Task WithModel_ShouldSetModelIdAndInstance()
+    {
+        // Arrange
+        var model = new GenericLocalModel("default");
+
+        // Act
+        await _chatContext.WithModel(model)
+            .WithMessage("User message")
+            .CompleteAsync();
+        
+        // Assert
+        _mockChatService.Verify(s => s.Completions(It.Is<Chat>(c => c.ModelId == "default" && c.ModelInstance == model), It.IsAny<bool>(), It.IsAny<bool>(), null), Times.Once);
     }
 }

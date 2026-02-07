@@ -9,12 +9,25 @@ public class Chat
 {
     public string Id { get; init; } = string.Empty;
     public required string Name { get; init; }
-    public required string ModelId { get; set; }
+    public required string ModelId
+    {
+        get => _modelInstance?.Id ?? string.Empty;
+        set
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                _modelInstance = null;
+                return;
+            }
+
+            _modelInstance = ModelRegistry.GetById(value);
+        }
+    }
     private AIModel? _modelInstance;
     public AIModel? ModelInstance
     {
-        get => _modelInstance ??= ModelRegistry.GetById(ModelId);
-        set => (_modelInstance, ModelId) = (value, value?.Id ?? ModelId);
+        get => _modelInstance;
+        set => (_modelInstance, ModelId) = (value, value?.Id ?? string.Empty);
     }
     public List<Message> Messages { get; set; } = [];
     public ChatType Type { get; set; } = ChatType.Conversation;

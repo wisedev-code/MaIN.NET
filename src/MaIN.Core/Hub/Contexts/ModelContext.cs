@@ -113,7 +113,7 @@ public sealed class ModelContext : IModelContext
         var model = ModelRegistry.GetById(modelId) ?? throw new ModelNotSupportedException(modelId);
         if (model is not LocalModel localModel)
         {
-            throw new MissingModelIdException(nameof(LocalModel));
+            throw new InvalidModelTypeException(nameof(LocalModel));
         }
 
         if (localModel.DownloadUrl is null)

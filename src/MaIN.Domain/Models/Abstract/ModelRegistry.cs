@@ -1,4 +1,6 @@
-﻿using MaIN.Domain.Exceptions;
+﻿using MaIN.Domain.Exceptions.Models;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System.Collections.Concurrent;
 using System.Reflection;
 
@@ -33,26 +35,19 @@ public static class ModelRegistry
             // Skip abstract, generic types, and Generic* classes (they're for runtime registration)
             var modelTypes = Assembly.GetExecutingAssembly()
                 .GetTypes()
-                .Where(t => t.IsSubclassOf(typeof(AIModel)) 
-                            && !t.IsAbstract 
+                .Where(t => t.IsSubclassOf(typeof(AIModel))
+                            && !t.IsAbstract
                             && !t.IsGenericType
                             && !t.Name.StartsWith("Generic"));
 
             foreach (var type in modelTypes)
             {
-                try
+                if (Activator.CreateInstance(type) is AIModel instance)
                 {
-                    if (Activator.CreateInstance(type) is AIModel instance)
-                    {
-                        Register(instance);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Warning: Could not register model type {type.Name}: {ex.Message}");
+                    Register(instance);
                 }
             }
-            
+
             _initialized = true;
         }
     }
@@ -63,17 +58,17 @@ public static class ModelRegistry
     public static void Register(AIModel model)
     {
         ArgumentNullException.ThrowIfNull(model);
-        
+
         if (string.IsNullOrWhiteSpace(model.Id))
         {
-            throw new ArgumentException("Model ID cannot be null or empty.", nameof(model));
+            throw new MissingModelIdException(nameof(model.Id));
         }
 
         var normalizedId = NormalizeId(model.Id);
 
         if (!_models.TryAdd(normalizedId, model))
         {
-            throw new InvalidOperationException($"Model with ID '{model.Id}' is already registered.");
+            throw new ModelAlreadyRegisteredException(model.Id);
         }
     }
 
@@ -83,10 +78,10 @@ public static class ModelRegistry
     public static void RegisterOrReplace(AIModel model)
     {
         ArgumentNullException.ThrowIfNull(model);
-        
+
         if (string.IsNullOrWhiteSpace(model.Id))
         {
-            throw new ArgumentException("Model ID cannot be null or empty.", nameof(model));
+            throw new MissingModelIdException(nameof(model.Id));
         }
 
         var normalizedId = NormalizeId(model.Id);
@@ -100,7 +95,7 @@ public static class ModelRegistry
     {
         if (string.IsNullOrWhiteSpace(id))
         {
-            throw new ArgumentException("Model ID cannot be null or empty.", nameof(id));
+            throw new MissingModelIdException(nameof(id));
         }
 
         var normalizedId = NormalizeId(id);
@@ -110,8 +105,7 @@ public static class ModelRegistry
             return model;
         }
 
-        var availableIds = string.Join(", ", _models.Keys.Take(10));
-        throw new KeyNotFoundException($"Model with ID '{id}' not found. Available models (first 10): {availableIds}");
+        throw new ModelNotRegisteredException(id);
     }
 
     /// <summary>
@@ -120,7 +114,7 @@ public static class ModelRegistry
     public static bool TryGetById(string id, out AIModel? model)
     {
         model = null;
-        
+
         if (string.IsNullOrWhiteSpace(id))
         {
             return false;
@@ -179,5 +173,5 @@ public static class ModelRegistry
         return _models.TryRemove(NormalizeId(id), out _);
     }
 
-    private static string NormalizeId(string id) => id.Trim();
+    private static string NormalizeId(string id) => id.Trim().ToLowerInvariant();
 }

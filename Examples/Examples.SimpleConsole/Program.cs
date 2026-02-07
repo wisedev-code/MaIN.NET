@@ -1,6 +1,5 @@
 ﻿using MaIN.Core;
 using MaIN.Core.Hub;
-using MaIN.Domain.Models.Abstract;
 using MaIN.Domain.Models.Concrete;
 
 MaINBootstrapper.Initialize();

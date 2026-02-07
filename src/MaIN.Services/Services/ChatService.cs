@@ -73,7 +73,7 @@ public class ChatService(
             result.Message.Time = DateTime.Now;
         }
     
-        if (!chat.Visual && chat.TextToSpeechParams != null)
+        if (!chat.Visual && chat.TextToSpeechParams is not null)
         {
             var speechBytes = await ttsServiceFactory
                 .CreateService(chat.Backend.Value).Send(result!.Message, chat.TextToSpeechParams.Model,
