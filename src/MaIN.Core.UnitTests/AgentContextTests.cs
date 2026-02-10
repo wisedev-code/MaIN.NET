@@ -3,6 +3,7 @@ using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
 using MaIN.Domain.Entities.Agents.Knowledge;
 using MaIN.Domain.Exceptions.Agents;
+using MaIN.Domain.Models.Abstract;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
 using Moq;
@@ -13,11 +14,14 @@ public class AgentContextTests
 {
     private readonly Mock<IAgentService> _mockAgentService;
     private readonly AgentContext _agentContext;
+    private readonly string _testModelId = "test-model";
 
     public AgentContextTests()
     {
         _mockAgentService = new Mock<IAgentService>();
         _agentContext = new AgentContext(_mockAgentService.Object);
+        var testModel = new GenericLocalModel(_testModelId);
+        ModelRegistry.RegisterOrReplace(testModel);
     }
 
     [Fact]
@@ -159,7 +163,7 @@ public class AgentContextTests
     {
         // Arrange
         var message = "Hello, agent!";
-        var chat = new Chat { Id = _agentContext.GetAgentId(), Messages = new List<Message>(), Name = "test", ModelId = "default"};
+        var chat = new Chat { Id = _agentContext.GetAgentId(), Messages = new List<Message>(), Name = "test", ModelId = _testModelId};
         var chatResult = new ChatResult { Done = true, Model = "test-model", Message = new Message
             {
                 Role = "Assistant",
