@@ -1,17 +1,80 @@
-.input-container {
-    width: 100%;
+body {
+    height: 100vh;
     display: flex;
-    padding: 5px;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.xd {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.messages-container>div {
+    font-size: 72px;
+}
+
+.navbar {
+}
+
+.content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 .messages-container {
     flex-grow: 1;
     overflow-y: auto;
     padding: 10px;
-    max-height: 80vh;
-    min-height: 80vh;
     display: flex;
     flex-direction: column;
+}
+
+.input-container {
+    display: flex;
+    padding: 8px 12px 8px 16px;
+    align-items: flex-end;
+    gap: 8px;
+    background-color: var(--neutral-fill-input-rest);
+    border-radius: 26px;
+    border: 1px solid var(--neutral-stroke-rest);
+    margin: 10px 15px 20px 15px;
+    position: relative;
+}
+
+.chat-input {
+    flex-grow: 1;
+    min-height: 24px;
+    max-height: 40vh;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    outline: none;
+    color: var(--neutral-foreground-rest);
+    font-size: 1rem;
+    line-height: 1.5;
+    padding: 4px 0;
+}
+
+.chat-input[contenteditable]:empty::before {
+    content: attr(data-placeholder);
+    color: var(--neutral-foreground-hint);
+    pointer-events: none;
+    display: block; /* For some browsers */
+}
+
+.chat-input[contenteditable][disabled="true"] {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.send-button {
+    flex-shrink: 0;
+    margin-bottom: 2px;
 }
 
 .message-role-bot {
@@ -58,3 +121,4 @@
 .message-card p {
     margin: 0;
 }
+
