@@ -13,6 +13,7 @@ public class IntegrationTestBase : IDisposable
     public IntegrationTestBase()
     {
         _host = CreateHost();
+        _host.Services.UseMaIN();
         _host.Start();
         
         _services = _host.Services;
@@ -24,13 +25,14 @@ public class IntegrationTestBase : IDisposable
             .ConfigureWebHostDefaults(webBuilder =>
             {
                 webBuilder
-                    .UseUrls("http://localhost:0") // Random available port
+                    .UseUrls("http://127.0.0.1:0") // Random available port
                     .ConfigureServices((context, services) =>
                     {
                         services.AddMaIN(context.Configuration);
-                        
-                        var provider = services.BuildServiceProvider();
-                        provider.UseMaIN();
+                    })
+                    .Configure(app =>
+                    {
+
                     });
             });
 
