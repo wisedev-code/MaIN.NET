@@ -39,7 +39,7 @@ public interface IModelContext
     /// </summary>
     /// <param name="modelId">The id of the model to check for existence.</param>
     /// <returns>A boolean value indicating whether the model file exists locally.</returns>
-    bool IsDownloaded(string modelId);
+    bool Exists(string modelId);
 
     /// <summary>
     /// Asynchronously downloads a known model from its configured download URL. This method handles the complete download process

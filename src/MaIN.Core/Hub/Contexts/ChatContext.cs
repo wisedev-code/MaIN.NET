@@ -1,5 +1,4 @@
 using MaIN.Core.Hub.Contexts.Interfaces.ChatContext;
-using MaIN.Core.Hub.Contexts.Interfaces.ModelContext;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Tools;
@@ -11,7 +10,6 @@ using MaIN.Services;
 using MaIN.Services.Constants;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
-using MaIN.Core.Hub;
 using FileInfo = MaIN.Domain.Entities.FileInfo;
 
 namespace MaIN.Core.Hub.Contexts;
@@ -203,7 +201,7 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
         _chat.Properties.AddProperty(ServiceConstants.Properties.DisableCacheProperty);
         return this;
     }
-    
+
     public async Task<ChatResult> CompleteAsync(
         bool translate = false, // Move to WithTranslate
         bool interactive = false, // Move to WithInteractive
@@ -224,11 +222,11 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
         }
 
         _chat.Messages.Last().Files = _files;
-        if(_preProcess)
+        if (_preProcess)
         {
             _chat.Messages.Last().Properties.AddProperty(ServiceConstants.Properties.PreProcessProperty);
         }
-        
+
         if (!await ChatExists(_chat.Id))
         {
             await _chatService.Create(_chat);
@@ -241,8 +239,8 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
     public async Task<IChatConfigurationBuilder> FromExisting(string chatId)
     {
         var existing = await _chatService.GetById(chatId);
-        return existing == null 
-            ? throw new ChatNotFoundException(chatId) 
+        return existing == null
+            ? throw new ChatNotFoundException(chatId)
             : new ChatContext(_chatService, existing);
     }
 
@@ -258,9 +256,9 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
             return false;
         }
     }
-     
+
     public string GetChatId() => _chat.Id;
-    
+
     public async Task<Chat> GetCurrentChat()
     {
         if (_chat.Id == null)
@@ -282,7 +280,7 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
 
         await _chatService.Delete(_chat.Id);
     }
-    
+
     public List<MessageShort> GetChatHistory()
     {
         return [.. _chat.Messages.Select(x => new MessageShort()
