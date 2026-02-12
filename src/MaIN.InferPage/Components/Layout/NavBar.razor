@@ -1,4 +1,5 @@
 @using Microsoft.FluentUI.AspNetCore.Components.Icons.Regular
+@using MaIN.Domain.Configuration
 @inject NavigationManager _navigationManager
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 
@@ -6,22 +7,28 @@
                    StorageName="theme" />
 
 <header class="navbar">
-    <span class="fancy-text" style="align-self: flex-start;">M.A.I.N</span>
-    <FluentBadge 
+<span class="fancy-text" style="align-self: flex-start;">M.A.I.N</span>
+    <FluentBadge
         Appearance="Appearance.Neutral"
-        Fill="highlight" 
+        Fill="highlight"
+        BackgroundColor="@GetBackendColor()"
+        Color="#fff"
+        Style="margin-left: 10px">@GetBackendDisplayName()</FluentBadge>
+<FluentBadge 
+    Appearance="Appearance.Neutral"
+    Fill="highlight" 
+    BackgroundColor="#ffd800;"
+    Color="#000"
+    Style="margin-left: 10px">@Utils.Model</FluentBadge>
+@if (Utils.Reason)
+{
+    <FluentBadge
+        Appearance="Appearance.Accent"
         BackgroundColor="#ffd800;"
         Color="#000"
-        Style="margin-left: 10px">@Utils.Model</FluentBadge>
-    @if (Utils.Reason)
-    {
-        <FluentBadge
-            Appearance="Appearance.Accent"
-            BackgroundColor="#ffd800;"
-            Color="#000"
-            Style="margin-left: 10px">Reasoning ✨</FluentBadge>
-    }
-    <div  style="margin-left: auto; align-self: flex-end;">
+        Style="margin-left: 10px">Reasoning ✨</FluentBadge>
+}
+<div  style="margin-left: auto; align-self: flex-end;">
     <FluentButton Style="padding: 10px"
                   Appearance="Appearance.Stealth"
                   OnClick="@Reload" IconStart="@(new Icons.Filled.Size20.ArrowClockwise())">
@@ -46,4 +53,18 @@
         _navigationManager.Refresh(true);
     }
 
+    private string GetBackendColor()
+    {
+        return Utils.IsLocal ? "#6b7280" : "#10a37f";
+    }
+
+    private string GetBackendDisplayName()
+    {
+        return Utils.BackendType switch
+        {
+            BackendType.Self => "Local",
+            BackendType.Ollama when !Utils.HasApiKey => "Local Ollama",
+            _ => Utils.BackendType.ToString()
+        };
+    }
 }
