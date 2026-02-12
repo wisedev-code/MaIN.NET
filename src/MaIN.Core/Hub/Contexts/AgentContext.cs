@@ -4,12 +4,14 @@ using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
 using MaIN.Domain.Entities.Agents.AgentSource;
 using MaIN.Domain.Models;
+using MaIN.Domain.Models.Abstract;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
 using MaIN.Core.Hub.Utils;
 using MaIN.Domain.Entities.Agents.Knowledge;
 using MaIN.Domain.Entities.Tools;
 using MaIN.Domain.Exceptions.Agents;
+using MaIN.Domain.Exceptions.Models;
 using MaIN.Services.Constants;
 
 namespace MaIN.Core.Hub.Contexts;
@@ -20,6 +22,7 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
     private InferenceParams? _inferenceParams;
     private MemoryParams? _memoryParams;
     private bool _disableCache;
+    private bool _ensureModelDownloaded;
     private readonly Agent _agent;
     internal Knowledge? _knowledge;
 
@@ -112,6 +115,12 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
         return this;
     }
 
+    public IAgentConfigurationBuilder EnsureModelDownloaded()
+    {
+        _ensureModelDownloaded = true;
+        return this;
+    }
+
     public IAgentConfigurationBuilder WithSource(IAgentSource source, AgentSourceType type)
     {
         _agent.Context.Source = new AgentSource()
@@ -200,11 +209,20 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
 
     public async Task<IAgentContextExecutor> CreateAsync(bool flow = false, bool interactiveResponse = false)
     {
+        if (_ensureModelDownloaded && !string.IsNullOrWhiteSpace(_agent.Model))
+        {
+            var model = ModelRegistry.GetById(_agent.Model);
+            if (model is LocalModel)
+            {
+                await AIHub.Model().EnsureDownloadedAsync(_agent.Model);
+            }
+        }
+
         await _agentService.CreateAgent(_agent, flow, interactiveResponse, _inferenceParams, _memoryParams, _disableCache);
         return this;
     }
-    
-    public IAgentContextExecutor Create(bool flow = false, bool interactiveResponse = false)
+
+    public IAgentContextExecutor Create(bool flow = false, bool interactiveResponse = false) // I think it should be removed as there is a deadlock risk.
     {
         _ = _agentService.CreateAgent(_agent, flow, interactiveResponse, _inferenceParams, _memoryParams, _disableCache).Result;
         return this;

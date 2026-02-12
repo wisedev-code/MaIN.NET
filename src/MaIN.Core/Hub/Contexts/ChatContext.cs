@@ -1,4 +1,5 @@
 using MaIN.Core.Hub.Contexts.Interfaces.ChatContext;
+using MaIN.Core.Hub.Contexts.Interfaces.ModelContext;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Tools;
@@ -10,6 +11,7 @@ using MaIN.Services;
 using MaIN.Services.Constants;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
+using MaIN.Core.Hub;
 using FileInfo = MaIN.Domain.Entities.FileInfo;
 
 namespace MaIN.Core.Hub.Contexts;
@@ -18,6 +20,7 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
 {
     private readonly IChatService _chatService;
     private bool _preProcess;
+    private bool _ensureModelDownloaded;
     private readonly Chat _chat;
     private List<FileInfo> _files = [];
 
@@ -88,7 +91,13 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
         _chat.Visual = true;
         return this;
     }
-    
+
+    public IChatMessageBuilder EnsureModelDownloaded()
+    {
+        _ensureModelDownloaded = true;
+        return this;
+    }
+
     public IChatConfigurationBuilder WithInferenceParams(InferenceParams inferenceParams)
     {
         _chat.InterferenceParams = inferenceParams;
@@ -208,7 +217,12 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
         {
             throw new EmptyChatException(_chat.Id);
         }
-        
+
+        if (_ensureModelDownloaded && _chat.ModelInstance is LocalModel)
+        {
+            await AIHub.Model().EnsureDownloadedAsync(_chat.ModelId);
+        }
+
         _chat.Messages.Last().Files = _files;
         if(_preProcess)
         {
@@ -244,10 +258,7 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
             return false;
         }
     }
-    
-    IChatMessageBuilder IChatMessageBuilder.EnableVisual() => EnableVisual();
-
- 
+     
     public string GetChatId() => _chat.Id;
     
     public async Task<Chat> GetCurrentChat()
