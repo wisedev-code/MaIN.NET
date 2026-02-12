@@ -34,22 +34,103 @@ body {
     flex-direction: column;
 }
 
+.chat-input-section {
+    display: flex;
+    flex-direction: column;
+    margin: 10px 15px 20px 15px;
+}
+
 .input-container {
     display: flex;
-    padding: 8px 12px 8px 16px;
+    padding: 8px 12px;
     align-items: flex-end;
     gap: 8px;
     background-color: var(--neutral-fill-input-rest);
     border-radius: 26px;
     border: 1px solid var(--neutral-stroke-rest);
-    margin: 10px 15px 20px 15px;
     position: relative;
+    z-index: 2;
+}
+
+.attachment-wrapper {
+    position: relative;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.file-input-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 10;
+}
+
+.attachment-button {
+    flex-shrink: 0;
+    margin-bottom: 2px;
+}
+
+.input-content-wrapper {
+    flex-grow: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.selected-files-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 4px 12px;
+    margin-bottom: 2px;
+    width: 100%;
+}
+
+.file-badge {
+    max-width: 200px;
+    height: 26px;
+    border-radius: 5px;
+    background-color: var(--neutral-layer-1);
+    border: 1px solid var(--neutral-stroke-rest);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 8px;
+    font-size: 12px;
+    color: var(--neutral-foreground-rest);
+    user-select: none;
+}
+
+.file-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-right: 4px;
+}
+
+.dismiss-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0.6;
+    flex-shrink: 0;
+}
+
+.dismiss-button:hover {
+    opacity: 1;
+    color: var(--error-foreground-rest); /* Optional: explicit error color on hover */
 }
 
 .chat-input {
-    flex-grow: 1;
+    width: 100%;
     min-height: 24px;
-    max-height: 40vh;
+    max-height: 50vh;
     overflow-y: auto;
     white-space: pre-wrap;
     word-break: break-word;
@@ -121,4 +202,26 @@ body {
 .message-card p {
     margin: 0;
 }
+
+.attached-files-display {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--neutral-stroke-rest);
+}
+
+.attached-file-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background-color: var(--neutral-fill-secondary-rest);
+    border: 1px solid var(--neutral-stroke-rest);
+    border-radius: 4px;
+    font-size: 11px;
+    color: var(--neutral-foreground-rest);
+}
+
 

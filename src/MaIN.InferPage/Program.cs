@@ -181,5 +181,4 @@ app.Services.UseMaIN();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
-
 app.Run();

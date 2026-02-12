@@ -6,7 +6,6 @@
 @using MaIN.Domain.Entities
 @using MaIN.Domain.Models
 @using Markdig
-@using Microsoft.FluentUI.AspNetCore.Components.Icons.Regular
 @using Message = MaIN.Domain.Entities.Message
 @using MessageType = MaIN.Domain.Entities.MessageType
 <link rel="stylesheet" href="home.css">
@@ -40,7 +39,7 @@
                                    style="cursor: -webkit-zoom-in; cursor: zoom-in;" target="_blank">
                                     <img src="data:image/png;base64,@Convert.ToBase64String(conversation.Message.Image!)"
                                          style="object-fit: fill; width:100%; height:100%;"
-                                         alt="imageResponse"/>
+                                         alt="imageResponse" />
                                 </a>
                             </div>
                         </FluentCard>
@@ -48,8 +47,20 @@
                 }
                 else
                 {
-                   
+
                     <FluentCard class="@(conversation.Message.Role == "User" ? "message-card user-message" : "message-card bot-message")">
+                        @if (conversation.Message.Role == "User" && conversation.AttachedFiles.Any())
+                        {
+                            <div class="attached-files-display">
+                                @foreach (var fileName in conversation.AttachedFiles)
+                                {
+                                    <span class="attached-file-tag">
+                                        <FluentIcon Value="@(new Icons.Regular.Size16.Document())" />
+                                        @fileName
+                                    </span>
+                                }
+                            </div>
+                        }
                         @if (conversation.Message.Role == "User")
                         {
                             <div>
@@ -63,11 +74,11 @@
                                 {
                                     <div class="thinker"
                                          style="border-radius: 10px; padding: 10px; border-width: 2px; background-color: var(--neutral-fill-hover)">
-                                        @((MarkupString)Markdown.ToHtml(string.Concat(conversation.Message.Tokens.Where(x => x.Type == TokenType.Reason).Select(x => x.Text)), _markdownPipeline))
+                                        @((MarkupString)Markdown.ToHtml(GetReasoningContent(conversation.Message), _markdownPipeline))
                                     </div>
-                                    <hr/>
+                                    <hr />
                                 }
-                                @((MarkupString)Markdown.ToHtml(string.Concat(conversation.Message.Tokens.Where(x => x.Type == TokenType.Message).Select(x => x.Text)), _markdownPipeline))
+                                @((MarkupString)Markdown.ToHtml(GetMessageContent(conversation.Message), _markdownPipeline))
                             </div>
                         }
 
@@ -111,22 +122,49 @@
         }
         <div id="bottom" @ref="_bottomElement"></div>
     </div>
-    <div class="input-container">
-        <div @ref="_editorRef"
-             class="chat-input"
-             contenteditable="@(!_isLoading ? "true" : "false")"
-             data-placeholder="Enter your prompt here..."
-             @onkeydown="HandleKeyDown"
-             @oninput="HandleInput"></div>
+    <div class="chat-input-section">
+        @if (_selectedFiles.Any())
+        {
+            <div class="selected-files-container">
+                @foreach (var file in _selectedFiles)
+                {
+                    <div class="file-badge" title="@file.Name">
+                        <span class="file-name">@file.Name</span>
+                        <span class="dismiss-button" @onclick="@(() => RemoveFile(file))">
+                            <FluentIcon Value="@(new Icons.Regular.Size12.Dismiss())" />
+                        </span>
+                    </div>
+                }
+            </div>
+        }
+        <div class="input-container">
+            <div class="attachment-wrapper">
+                <InputFile @key="@_inputKey" OnChange="@HandleFileSelected" class="file-input-overlay" multiple />
+                <FluentButton Class="attachment-button"
+                              IconStart="@(new Icons.Regular.Size28.Attach())"
+                              BackgroundColor="rgba(0, 0, 0, 0)"
+                              Style="background-color: transparent; width: 100%; height: 100%; pointer-events: none;"
+                              Appearance="Appearance.Lightweight" />
+            </div>
 
-        <FluentButton class="send-button"
-                      IconStart="@(new Size28.Send())" 
-                      BackgroundColor="rgba(0, 0, 0, 0)"
-                      Style="background-color: transparent"
-                      Appearance="Appearance.Lightweight"
-                      Loading="@_isLoading"
-                      OnClick="@HandleSend">
-        </FluentButton>
+            <div class="input-content-wrapper">
+                <div @ref="_editorRef"
+                     class="chat-input"
+                     contenteditable="@(!_isLoading ? "true" : "false")"
+                     data-placeholder="Enter your prompt here..."
+                     @onkeydown="HandleKeyDown"
+                     @oninput="HandleInput"></div>
+            </div>
+
+            <FluentButton class="send-button"
+                          IconStart="@(new Icons.Regular.Size28.Send())"
+                          BackgroundColor="rgba(0, 0, 0, 0)"
+                          Style="background-color: transparent; margin-bottom: 2px;"
+                          Appearance="Appearance.Lightweight"
+                          Loading="@_isLoading"
+                          OnClick="@HandleSend">
+            </FluentButton>
+        </div>
     </div>
 </div>
 
@@ -148,6 +186,8 @@
     private List<MessageExt> Messages { get; set; } = new();
     private ElementReference? _bottomElement;
     private ElementReference _editorRef;
+    private InputFile? _inputFile;
+    private List<IBrowserFile> _selectedFiles = new();
     private int _inputKey = 0;
 
     private readonly MarkdownPipeline _markdownPipeline = new MarkdownPipelineBuilder()
@@ -178,7 +218,14 @@
         }
         else if (!Utils.OpenAi)
         {
-            _reasoning = !Utils.Visual && KnownModels.GetModel(Utils.Model!).HasReasoning();
+            try
+            {
+                _reasoning = !Utils.Visual && KnownModels.GetModel(Utils.Model!).HasReasoning();
+            }
+            catch
+            {
+                _reasoning = false;
+            }
             Utils.Reason = _reasoning;
         }
 
@@ -198,62 +245,138 @@
         if (_isLoading) return;
 
         var msg = await JS.InvokeAsync<string>("editorManager.getInnerText", _editorRef);
-        if (!string.IsNullOrWhiteSpace(msg))
+        if (!string.IsNullOrWhiteSpace(msg) || _selectedFiles.Any())
         {
             await JS.InvokeVoidAsync("editorManager.clearContent", _editorRef);
-            await SendAsync(msg.Trim());
+            await SendAsync(msg?.Trim() ?? string.Empty);
         }
+    }
+
+    private void HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        foreach (var file in e.GetMultipleFiles(10))
+        {
+            _selectedFiles.Add(file);
+        }
+        StateHasChanged();
+    }
+
+    private void RemoveFile(IBrowserFile file)
+    {
+        _selectedFiles.Remove(file);
     }
 
     private async Task SendAsync(string msg)
     {
-        if (!string.IsNullOrWhiteSpace(msg))
+        if (string.IsNullOrWhiteSpace(msg) && !_selectedFiles.Any())
         {
+            return;
+        }
+
+
+
+        _isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            var attachments = new List<MaIN.Domain.Entities.FileInfo>();
+            // Buffer files to memory streams
+            foreach (var file in _selectedFiles)
+            {
+                try
+                {
+                    var ms = new MemoryStream();
+                    await file.OpenReadStream(20 * 1024 * 1024).CopyToAsync(ms); // 20MB limit
+                    ms.Position = 0;
+                    attachments.Add(new MaIN.Domain.Entities.FileInfo
+                    {
+                        Name = file.Name,
+                        Extension = System.IO.Path.GetExtension(file.Name),
+                        StreamContent = ms
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed to read file {file.Name}: {ex.Message}");
+                    // Optionally notify user
+                }
+            }
+
+            // Clear input after reading
+            _selectedFiles.Clear();
+            _inputKey++;
             StateHasChanged();
+
             var newMsg = new Message { Role = "User", Content = msg, Type = Utils.OpenAi || Utils.Gemini ? MessageType.CloudLLM : MessageType.LocalLLM };
             Chat.Messages.Add(newMsg);
+            
+            var attachedFileNames = attachments.Select(f => f.Name).ToList();
             Messages.Add(new MessageExt()
             {
-                Message = newMsg
+                Message = newMsg,
+                AttachedFiles = attachedFileNames
             });
+
             Chat.Model = Utils.Model!;
-            _isLoading = true;
             Chat.Visual = Utils.Visual;
-            _inputKey++;
             _prompt = string.Empty;
+
             StateHasChanged();
+
             bool wasAtBottom = await JS.InvokeAsync<bool>("scrollManager.isAtBottom", "messages-container");
-            await ctx!.WithMessage(msg)
-                .CompleteAsync(changeOfValue: async message =>
+
+            var request = ctx!.WithMessage(msg);
+            if (attachments.Count != 0)
+            {
+                request.WithFiles(attachments);
+            }
+
+            var response = await request.CompleteAsync(changeOfValue: async message =>
+            {
+                if (message?.Type == TokenType.Reason)
                 {
-                    if (message?.Type == TokenType.Reason)
-                    {
-                        _isThinking = true;
-                        _incomingReasoning += message.Text;
-                    }
-                    else if (message?.Type == TokenType.Message)
-                    {
-                        _isThinking = false;
-                        _incomingMessage += message.Text;
-                    }
+                    _isThinking = true;
+                    _incomingReasoning += message.Text;
+                }
+                else if (message?.Type == TokenType.Message)
+                {
+                    _isThinking = false;
+                    _incomingMessage += message.Text;
+                }
 
-                    StateHasChanged();
-                    if (wasAtBottom)
-                    {
-                        await JS.InvokeVoidAsync("scrollManager.scrollToBottomSmooth", _bottomElement);
-                    }
-                });
+                StateHasChanged();
+                if (wasAtBottom)
+                {
+                    await JS.InvokeVoidAsync("scrollManager.scrollToBottomSmooth", _bottomElement);
+                }
+            });
 
-            _isLoading = false;
             var currentChat = (await ctx.GetCurrentChat());
             Chat.Messages.Add(currentChat.Messages.Last());
-            Messages = Chat.Messages.Select(x => new MessageExt()
+            
+            // Preserve attached files information when rebuilding the list
+            var existingFilesMap = Messages
+                .Where(m => m.AttachedFiles.Any())
+                .ToDictionary(m => m.Message, m => m.AttachedFiles);
+            
+            Messages = Chat.Messages.Select(x => new MessageExt
             {
-                Message = x
+                Message = x,
+                AttachedFiles = existingFilesMap.TryGetValue(x, out var files) ? files : new List<string>()
             }).ToList();
             _incomingReasoning = null;
             _incomingMessage = null;
             await JS.InvokeVoidAsync("scrollManager.scrollToBottomSmooth", _bottomElement);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error sending message: {ex}");
+            // In a production app, show a toast or error message here
+        }
+        finally
+        {
+            _isLoading = false;
             StateHasChanged();
         }
     }
@@ -261,6 +384,17 @@
     private void HandleInput(ChangeEventArgs obj)
     {
         // Handled by JS on send to ensure accuracy
+    }
+
+    private string GetMessageContent(Message message)
+    {
+        var tokensContent = string.Concat(message.Tokens.Where(x => x.Type == TokenType.Message).Select(x => x.Text));
+        return !string.IsNullOrEmpty(tokensContent) ? tokensContent : message.Content ?? string.Empty;
+    }
+
+    private string GetReasoningContent(Message message)
+    {
+        return string.Concat(message.Tokens.Where(x => x.Type == TokenType.Reason).Select(x => x.Text));
     }
 
 }

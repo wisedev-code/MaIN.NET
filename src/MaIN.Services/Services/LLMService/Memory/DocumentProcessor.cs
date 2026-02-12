@@ -41,7 +41,7 @@ public static class DocumentProcessor
 
         foreach (var sData in options.StreamData)
         {
-            var path = Path.GetTempPath() + $".{sData.Key}";
+            var path = Path.Combine(Path.GetTempPath(), sData.Key);
             await using var fileStream = new FileStream(path, FileMode.Create, FileAccess.Write);
             await sData.Value.CopyToAsync(fileStream);
             files.Add(path);
@@ -49,7 +49,7 @@ public static class DocumentProcessor
 
         foreach (var txt in options.TextData)
         {
-            var path = Path.GetTempPath() + $".{txt.Key}.txt";
+            var path = Path.Combine(Path.GetTempPath(), $"{txt.Key}.txt");
             await File.WriteAllTextAsync(path, txt.Value);
             files.Add(path);
         }
