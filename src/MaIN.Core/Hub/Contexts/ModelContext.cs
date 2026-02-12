@@ -1,5 +1,3 @@
-using System.Collections.Concurrent;
-using System.Diagnostics;
 using AsyncKeyedLock;
 using MaIN.Core.Hub.Contexts.Interfaces.ModelContext;
 using MaIN.Domain.Configuration;
@@ -9,6 +7,7 @@ using MaIN.Domain.Models.Abstract;
 using MaIN.Domain.Models.Concrete;
 using MaIN.Services.Constants;
 using MaIN.Services.Services.LLMService.Utils;
+using System.Diagnostics;
 
 namespace MaIN.Core.Hub.Contexts;
 
@@ -50,7 +49,7 @@ public sealed class ModelContext : IModelContext
         {
             return false; // Cloud models don't have local files
         }
-        
+
         return localModel.IsDownloaded(_defaultModelsPath);
     }
 
@@ -94,7 +93,7 @@ public sealed class ModelContext : IModelContext
         }
 
         var model = ModelRegistry.GetById(modelId);
-        
+
         if (model is not LocalModel localModel)
         {
             throw new InvalidModelTypeException(nameof(LocalModel));
@@ -136,7 +135,7 @@ public sealed class ModelContext : IModelContext
         {
             throw new DownloadUrlNullOrEmptyException();
         }
-        
+
         Console.WriteLine($"Starting download of {localModel.FileName}...");
 
         try
@@ -205,7 +204,7 @@ public sealed class ModelContext : IModelContext
     private string GetModelFilePath(LocalModel localModel) =>
         localModel.GetFullPath(_defaultModelsPath);
 
-    private static bool ShouldUpdateProgress(Stopwatch progressStopwatch) => 
+    private static bool ShouldUpdateProgress(Stopwatch progressStopwatch) =>
         progressStopwatch.ElapsedMilliseconds >= ProgressUpdateIntervalMilliseconds;
 
     private static void ShowProgress(long totalBytesRead, long? totalBytes, Stopwatch totalStopwatch)

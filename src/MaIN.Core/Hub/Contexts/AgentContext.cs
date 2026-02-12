@@ -1,18 +1,17 @@
 using MaIN.Core.Hub.Contexts.Interfaces.AgentContext;
+using MaIN.Core.Hub.Utils;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
 using MaIN.Domain.Entities.Agents.AgentSource;
-using MaIN.Domain.Models;
-using MaIN.Domain.Models.Abstract;
-using MaIN.Services.Services.Abstract;
-using MaIN.Services.Services.Models;
-using MaIN.Core.Hub.Utils;
 using MaIN.Domain.Entities.Agents.Knowledge;
 using MaIN.Domain.Entities.Tools;
 using MaIN.Domain.Exceptions.Agents;
-using MaIN.Domain.Exceptions.Models;
+using MaIN.Domain.Models;
+using MaIN.Domain.Models.Abstract;
 using MaIN.Services.Constants;
+using MaIN.Services.Services.Abstract;
+using MaIN.Services.Services.Models;
 
 namespace MaIN.Core.Hub.Contexts;
 
@@ -63,8 +62,8 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
     public async Task<Agent?> GetAgentById(string id) => await _agentService.GetAgentById(id);
     public async Task Delete() => await _agentService.DeleteAgent(_agent.Id);
     public async Task<bool> Exists() => await _agentService.AgentExists(_agent.Id);
-    
-    
+
+
     public IAgentConfigurationBuilder WithModel(string model)
     {
         _agent.Model = model;
@@ -85,18 +84,18 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
         {
             throw new AgentNotFoundException(agentId);
         }
-            
+
         var context = new AgentContext(_agentService, existingAgent);
         context.LoadExistingKnowledgeIfExists();
         return context;
     }
-    
+
     public IAgentConfigurationBuilder WithInitialPrompt(string prompt)
     {
         _agent.Context.Instruction = prompt;
         return this;
     }
-    
+
     public IAgentConfigurationBuilder WithId(string id)
     {
         _agent.Id = id;
@@ -130,7 +129,7 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
         };
         return this;
     }
-    
+
     public IAgentConfigurationBuilder WithName(string name)
     {
         _agent.Name = name;
@@ -152,7 +151,7 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
         _agent.Context.McpConfig = mcpConfig;
         return this;
     }
-    
+
     public IAgentConfigurationBuilder WithInferenceParams(InferenceParams inferenceParams)
     {
         _inferenceParams = inferenceParams;
@@ -183,7 +182,7 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
         _knowledge = knowledge.ForAgent(_agent).Build();
         return this;
     }
-    
+
     public IAgentConfigurationBuilder WithKnowledge(Knowledge knowledge)
     {
         _knowledge = knowledge;
@@ -198,7 +197,7 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
         _knowledge = knowledgeConfig(builder).Build();
         return this;
     }
-    
+
     public IAgentConfigurationBuilder WithBehaviour(string name, string instruction)
     {
         _agent.Behaviours ??= new Dictionary<string, string>();
@@ -222,7 +221,7 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
         return this;
     }
 
-    public IAgentContextExecutor Create(bool flow = false, bool interactiveResponse = false) // I think it should be removed as there is a deadlock risk.
+    public IAgentContextExecutor Create(bool flow = false, bool interactiveResponse = false)
     {
         _ = _agentService.CreateAgent(_agent, flow, interactiveResponse, _inferenceParams, _memoryParams, _disableCache).Result;
         return this;
@@ -233,7 +232,7 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
         _agent.ToolsConfiguration = toolsConfiguration;
         return this;
     }
-    
+
     internal void LoadExistingKnowledgeIfExists()
     {
         _knowledge ??= new Knowledge(_agent);
@@ -247,7 +246,7 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
             Console.WriteLine("Knowledge cannot be loaded - new one will be created");
         }
     }
-    
+
     public async Task<ChatResult> ProcessAsync(Chat chat, bool translate = false)
     {
         if (_knowledge == null)
@@ -265,7 +264,7 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
             CreatedAt = DateTime.Now
         };
     }
-    
+
     public async Task<ChatResult> ProcessAsync(
         string message,
         bool translate = false,
@@ -294,8 +293,8 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
             CreatedAt = DateTime.Now
         };
     }
-    
-    public async Task<ChatResult> ProcessAsync(Message message, 
+
+    public async Task<ChatResult> ProcessAsync(Message message,
         bool translate = false,
         Func<LLMTokenValue, Task>? tokenCallback = null,
         Func<ToolInvocation, Task>? toolCallback = null)
@@ -306,7 +305,7 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
         }
         var chat = await _agentService.GetChatByAgent(_agent.Id);
         chat.Messages.Add(message);
-        var result = await _agentService.Process(chat, _agent.Id, _knowledge, translate, tokenCallback, toolCallback);;
+        var result = await _agentService.Process(chat, _agent.Id, _knowledge, translate, tokenCallback, toolCallback);
         var messageResult = result.Messages.LastOrDefault()!;
         return new ChatResult()
         {
@@ -316,7 +315,7 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
             CreatedAt = DateTime.Now
         };
     }
-    
+
     public async Task<ChatResult> ProcessAsync(
         IEnumerable<Message> messages,
         bool translate = false,
@@ -335,7 +334,7 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
             chat.Messages.Add(systemMsg);
         }
         chat.Messages.AddRange(messages);
-        var result = await _agentService.Process(chat, _agent.Id, _knowledge, translate, tokenCallback, toolCallback);;
+        var result = await _agentService.Process(chat, _agent.Id, _knowledge, translate, tokenCallback, toolCallback);
         var messageResult = result.Messages.LastOrDefault()!;
         return new ChatResult()
         {
@@ -353,7 +352,7 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
         {
             throw new AgentNotFoundException(agentId);
         }
-            
+
         var context = new AgentContext(agentService, existingAgent);
         context.LoadExistingKnowledgeIfExists();
         return context;
@@ -363,8 +362,8 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
 public static class AgentExtensions
 {
     public static async Task<ChatResult> ProcessAsync(
-        this Task<AgentContext> agentTask, 
-        string message, 
+        this Task<AgentContext> agentTask,
+        string message,
         bool translate = false)
     {
         var agent = await agentTask;
