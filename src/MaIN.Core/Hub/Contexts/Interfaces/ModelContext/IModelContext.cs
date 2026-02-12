@@ -39,7 +39,7 @@ public interface IModelContext
     /// </summary>
     /// <param name="modelId">The id of the model to check for existence.</param>
     /// <returns>A boolean value indicating whether the model file exists locally.</returns>
-    bool Exists(string modelId);
+    bool IsDownloaded(string modelId);
 
     /// <summary>
     /// Asynchronously downloads a known model from its configured download URL. This method handles the complete download process
@@ -52,33 +52,27 @@ public interface IModelContext
     Task<IModelContext> DownloadAsync(string modelId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Asynchronously downloads a custom model from a specified URL. This method allows downloading models that are not part
-    /// of the known models collection, adding them to the system after download.
+    /// Ensures a known local model is downloaded before use. If the model is already present on disk the call
+    /// returns immediately; if not, the model is downloaded. Cloud models are silently skipped.
+    /// Thread-safe: concurrent calls for the same model will not trigger duplicate downloads.
     /// </summary>
-    /// <param name="model">The name to assign to the downloaded model.</param>
-    /// <param name="url">The URL from which to download the model.</param>
-    /// <returns>A task that represents the asynchronous download operation that completes when the download finishes,
-    /// returning the context instance implementing <see cref="IModelContext"/> for method chaining.</returns>
-    Task<IModelContext> DownloadAsync(string model, string url, CancellationToken cancellationToken = default);
+    /// <param name="modelId">The id of the model to ensure is downloaded.</param>
+    /// <param name="cancellationToken">Optional cancellation token to abort the download operation.</param>
+    /// <returns>A task that represents the asynchronous operation, returning the context instance implementing
+    /// <see cref="IModelContext"/> for method chaining.</returns>
+    Task<IModelContext> EnsureDownloadedAsync(string modelId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Synchronously downloads a known model from its configured download URL. This is the blocking version of the download operation
-    /// with progress tracking.
+    /// Ensures a known local model is downloaded before use using a strongly-typed model reference.
+    /// If the model is already present on disk the call returns immediately; if not, the model is downloaded.
+    /// Cloud models are silently skipped.
+    /// Thread-safe: concurrent calls for the same model will not trigger duplicate downloads.
     /// </summary>
-    /// <param name="modelName">The name of the model to download.</param>
-    /// <returns>The context instance implementing <see cref="IModelContext"/> for method chaining.</returns>
-    [Obsolete("Use DownloadAsync instead")]
-    IModelContext Download(string modelName);
-
-    /// <summary>
-    /// Synchronously downloads a custom model from a specified URL. This method provides blocking download functionality
-    /// for custom models not in the known models collection.
-    /// </summary>
-    /// <param name="model">The name to assign to the downloaded model.</param>
-    /// <param name="url">The URL from which to download the model.</param>
-    /// <returns>The context instance implementing <see cref="IModelContext"/> for method chaining.</returns>
-    [Obsolete("Use DownloadAsync instead")]
-    IModelContext Download(string model, string url);
+    /// <typeparam name="TModel">A <see cref="LocalModel"/> type with a parameterless constructor.</typeparam>
+    /// <param name="cancellationToken">Optional cancellation token to abort the download operation.</param>
+    /// <returns>A task that represents the asynchronous operation, returning the context instance implementing
+    /// <see cref="IModelContext"/> for method chaining.</returns>
+    Task<IModelContext> EnsureDownloadedAsync<TModel>(CancellationToken cancellationToken = default) where TModel : LocalModel, new();
 
     /// <summary>
     /// Loads a model into the memory cache for faster access during inference operations. This method preloads the model to avoid loading
