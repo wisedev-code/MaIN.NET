@@ -1,6 +1,7 @@
 ﻿@page "/"
 @rendermode @(new InteractiveServerRenderMode(prerender: true))
 @inject IJSRuntime JS
+@implements IDisposable
 @using MaIN.Core.Hub
 @using MaIN.Core.Hub.Contexts
 @using MaIN.Domain.Entities
@@ -12,7 +13,10 @@
 
 <PageTitle>MaIN Infer</PageTitle>
 
-<div class="xd">
+<div class="chat-container">
+
+    <FluentProgress Visible="@(_isLoading)" Style="width: 100%; margin: 0;"/>
+
     <div class="messages-container" id="messages-container">
         @foreach (var conversation in Messages)
         {
@@ -39,7 +43,7 @@
                                    style="cursor: -webkit-zoom-in; cursor: zoom-in;" target="_blank">
                                     <img src="data:image/png;base64,@Convert.ToBase64String(conversation.Message.Image!)"
                                          style="object-fit: fill; width:100%; height:100%;"
-                                         alt="imageResponse" />
+                                         alt="imageResponse"/>
                                 </a>
                             </div>
                         </FluentCard>
@@ -55,7 +59,7 @@
                                 @foreach (var fileName in conversation.AttachedFiles)
                                 {
                                     <span class="attached-file-tag">
-                                        <FluentIcon Value="@(new Icons.Regular.Size16.Document())" />
+                                        <FluentIcon Value="@(new Icons.Regular.Size16.Document())"/>
                                         @fileName
                                     </span>
                                 }
@@ -76,7 +80,7 @@
                                          style="border-radius: 10px; padding: 10px; border-width: 2px; background-color: var(--neutral-fill-hover)">
                                         @((MarkupString)Markdown.ToHtml(GetReasoningContent(conversation.Message), _markdownPipeline))
                                     </div>
-                                    <hr />
+                                    <hr/>
                                 }
                                 @((MarkupString)Markdown.ToHtml(GetMessageContent(conversation.Message), _markdownPipeline))
                             </div>
@@ -131,7 +135,7 @@
                     <div class="file-badge" title="@file.Name">
                         <span class="file-name">@file.Name</span>
                         <span class="dismiss-button" @onclick="@(() => RemoveFile(file))">
-                            <FluentIcon Value="@(new Icons.Regular.Size12.Dismiss())" />
+                            <FluentIcon Value="@(new Icons.Regular.Size12.Dismiss())"/>
                         </span>
                     </div>
                 }
@@ -139,12 +143,12 @@
         }
         <div class="input-container">
             <div class="attachment-wrapper">
-                <InputFile @key="@_inputKey" OnChange="@HandleFileSelected" class="file-input-overlay" multiple />
+                <InputFile @key="@_inputKey" OnChange="@HandleFileSelected" class="file-input-overlay" multiple/>
                 <FluentButton Class="attachment-button"
                               IconStart="@(new Icons.Regular.Size28.Attach())"
                               BackgroundColor="rgba(0, 0, 0, 0)"
                               Style="background-color: transparent; width: 100%; height: 100%; pointer-events: none;"
-                              Appearance="Appearance.Lightweight" />
+                              Appearance="Appearance.Lightweight"/>
             </div>
 
             <div class="input-content-wrapper">
@@ -159,36 +163,36 @@
             <FluentButton class="send-button"
                           IconStart="@(new Icons.Regular.Size28.Send())"
                           BackgroundColor="rgba(0, 0, 0, 0)"
-                          Style="background-color: transparent; margin-bottom: 2px;"
+                          Style="@(_isLoading ? "display: none;" : "background-color: transparent; margin-bottom: 2px;")"
                           Appearance="Appearance.Lightweight"
-                          Loading="@_isLoading"
                           OnClick="@HandleSend">
+            </FluentButton>
+
+            <FluentButton class="stop-button"
+                          IconStart="@(new Icons.Filled.Size28.RecordStop())"
+                          BackgroundColor="rgba(0, 0, 0, 0)"
+                          Style="@(_isLoading ? "background-color: transparent; margin-bottom: 2px;" : "display: none;")"
+                          Appearance="Appearance.Lightweight"
+                          OnClick="@HandleStop">
             </FluentButton>
         </div>
     </div>
 </div>
 
-<FluentProgress Visible="@(_isLoading)"
-                style="width: 100%; !important; position: absolute; margin-bottom: auto"></FluentProgress>
-
-@* ReSharper disable once UnassignedField.Compiler *@
-
 @code {
-    private string _prompt = string.Empty;
     private bool _isLoading;
     private bool _isThinking;
     private bool _reasoning;
-    private string? _incomingMessage = null;
-    private string? _incomingReasoning = null;
-    private readonly string? _displayName = Utils.Model;
+    private string? _incomingMessage;
+    private string? _incomingReasoning;
     private ChatContext? ctx;
+    private CancellationTokenSource? _cancellationTokenSource;
     private Chat Chat { get; } = new() { Name = "MaIN Infer", Model = Utils.Model! };
     private List<MessageExt> Messages { get; set; } = new();
     private ElementReference? _bottomElement;
     private ElementReference _editorRef;
-    private InputFile? _inputFile;
     private List<IBrowserFile> _selectedFiles = new();
-    private int _inputKey = 0;
+    private int _inputKey;
 
     private readonly MarkdownPipeline _markdownPipeline = new MarkdownPipelineBuilder()
         .UseAdvancedExtensions()
@@ -266,6 +270,11 @@
         _selectedFiles.Remove(file);
     }
 
+    private void HandleStop()
+    {
+        _cancellationTokenSource?.Cancel();
+    }
+
     private async Task SendAsync(string msg)
     {
         if (string.IsNullOrWhiteSpace(msg) && !_selectedFiles.Any())
@@ -273,7 +282,10 @@
             return;
         }
 
-
+        // Create new cancellation token source for this request
+        _cancellationTokenSource?.Dispose();
+        _cancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = _cancellationTokenSource.Token;
 
         _isLoading = true;
         StateHasChanged();
@@ -287,7 +299,7 @@
                 try
                 {
                     var ms = new MemoryStream();
-                    await file.OpenReadStream(20 * 1024 * 1024).CopyToAsync(ms); // 20MB limit
+                    await file.OpenReadStream(20 * 1024 * 1024).CopyToAsync(ms, cancellationToken); // 20MB limit
                     ms.Position = 0;
                     attachments.Add(new MaIN.Domain.Entities.FileInfo
                     {
@@ -308,11 +320,16 @@
             _inputKey++;
             StateHasChanged();
 
-            var newMsg = new Message { Role = "User", Content = msg, Type = Utils.OpenAi || Utils.Gemini ? MessageType.CloudLLM : MessageType.LocalLLM };
+            var newMsg = new Message 
+            { 
+                Role = "User", 
+                Content = msg, 
+                Type = GetMessageType() 
+            };
             Chat.Messages.Add(newMsg);
             
             var attachedFileNames = attachments.Select(f => f.Name).ToList();
-            Messages.Add(new MessageExt()
+            Messages.Add(new MessageExt
             {
                 Message = newMsg,
                 AttachedFiles = attachedFileNames
@@ -320,7 +337,6 @@
 
             Chat.Model = Utils.Model!;
             Chat.Visual = Utils.Visual;
-            _prompt = string.Empty;
 
             StateHasChanged();
 
@@ -332,8 +348,16 @@
                 request.WithFiles(attachments);
             }
 
-            var response = await request.CompleteAsync(changeOfValue: async message =>
+            // Check for cancellation before starting the request
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var completionTask = request.CompleteAsync(changeOfValue: async message =>
             {
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    return;
+                }
+
                 if (message?.Type == TokenType.Reason)
                 {
                     _isThinking = true;
@@ -352,22 +376,76 @@
                 }
             });
 
+            // Wait for completion or cancellation
+            var response = await completionTask.WaitAsync(cancellationToken);
+
             var currentChat = (await ctx.GetCurrentChat());
             Chat.Messages.Add(currentChat.Messages.Last());
             
-            // Preserve attached files information when rebuilding the list
-            var existingFilesMap = Messages
-                .Where(m => m.AttachedFiles.Any())
-                .ToDictionary(m => m.Message, m => m.AttachedFiles);
-            
-            Messages = Chat.Messages.Select(x => new MessageExt
-            {
-                Message = x,
-                AttachedFiles = existingFilesMap.TryGetValue(x, out var files) ? files : new List<string>()
-            }).ToList();
+            RebuildMessagesWithFiles();
             _incomingReasoning = null;
             _incomingMessage = null;
             await JS.InvokeVoidAsync("scrollManager.scrollToBottomSmooth", _bottomElement);
+        }
+        catch (OperationCanceledException)
+        {
+            Console.WriteLine("Request was cancelled by user");
+            
+            // Check if any partial response was generated
+            bool hasPartialResponse = !string.IsNullOrWhiteSpace(_incomingMessage) || !string.IsNullOrWhiteSpace(_incomingReasoning);
+            
+            if (hasPartialResponse)
+            {
+                // Create a message with the partial response
+                var partialMsg = new Message 
+                { 
+                    Role = "Assistant", 
+                    Content = _incomingMessage ?? string.Empty,
+                    Type = GetMessageType(),
+                    Time = DateTime.Now
+                };
+
+                // Add reasoning tokens if they exist
+                if (!string.IsNullOrWhiteSpace(_incomingReasoning))
+                {
+                    partialMsg.Tokens.Add(new LLMTokenValue 
+                    { 
+                        Text = _incomingReasoning, 
+                        Type = TokenType.Reason 
+                    });
+                }
+
+                // Add message tokens
+                if (!string.IsNullOrWhiteSpace(_incomingMessage))
+                {
+                    partialMsg.Tokens.Add(new LLMTokenValue 
+                    { 
+                        Text = _incomingMessage, 
+                        Type = TokenType.Message 
+                    });
+                }
+
+                Chat.Messages.Add(partialMsg);
+                RebuildMessagesWithFiles();
+            }
+            else
+            {
+                // No response generated, remove the user message and file info
+                if (Chat.Messages.Count > 0 && Chat.Messages.Last().Role == "User")
+                {
+                    Chat.Messages.RemoveAt(Chat.Messages.Count - 1);
+                }
+                
+                if (Messages.Count > 0 && Messages.Last().Message.Role == "User")
+                {
+                    Messages.RemoveAt(Messages.Count - 1);
+                }
+            }
+            
+            // Clean up incoming message buffers
+            _incomingReasoning = null;
+            _incomingMessage = null;
+            StateHasChanged();
         }
         catch (Exception ex)
         {
@@ -395,6 +473,29 @@
     private string GetReasoningContent(Message message)
     {
         return string.Concat(message.Tokens.Where(x => x.Type == TokenType.Reason).Select(x => x.Text));
+    }
+
+    private MessageType GetMessageType()
+    {
+        return Utils.OpenAi || Utils.Gemini ? MessageType.CloudLLM : MessageType.LocalLLM;
+    }
+
+    private void RebuildMessagesWithFiles()
+    {
+        var existingFilesMap = Messages
+            .Where(m => m.AttachedFiles.Any())
+            .ToDictionary(m => m.Message, m => m.AttachedFiles);
+        
+        Messages = Chat.Messages.Select(x => new MessageExt
+        {
+            Message = x,
+            AttachedFiles = existingFilesMap.TryGetValue(x, out var files) ? files : new List<string>()
+        }).ToList();
+    }
+
+    public void Dispose()
+    {
+        _cancellationTokenSource?.Dispose();
     }
 
 }

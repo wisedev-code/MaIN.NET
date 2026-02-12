@@ -5,11 +5,14 @@ body {
     overflow: hidden;
 }
 
-.xd {
+/* Main chat container */
+.chat-container {
     height: 100%;
     display: flex;
     flex-direction: column;
     flex-grow: 1;
+    gap: 4px;
+    padding-top: 4px;
 }
 
 .messages-container>div {
@@ -156,6 +159,16 @@ body {
 .send-button {
     flex-shrink: 0;
     margin-bottom: 2px;
+}
+
+.stop-button {
+    flex-shrink: 0;
+    margin-bottom: 2px;
+    color: var(--error-foreground-rest);
+}
+
+.stop-button:hover {
+    color: var(--error-fill-hover);
 }
 
 .message-role-bot {
