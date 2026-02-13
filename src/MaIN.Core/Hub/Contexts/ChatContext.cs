@@ -18,6 +18,7 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
 {
     private readonly IChatService _chatService;
     private bool _preProcess;
+    private bool _ensureModelDownloaded;
     private readonly Chat _chat;
     private List<FileInfo> _files = [];
 
@@ -88,7 +89,13 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
         _chat.Visual = true;
         return this;
     }
-    
+
+    public IChatMessageBuilder EnsureModelDownloaded()
+    {
+        _ensureModelDownloaded = true;
+        return this;
+    }
+
     public IChatConfigurationBuilder WithInferenceParams(InferenceParams inferenceParams)
     {
         _chat.InterferenceParams = inferenceParams;
@@ -194,7 +201,7 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
         _chat.Properties.AddProperty(ServiceConstants.Properties.DisableCacheProperty);
         return this;
     }
-    
+
     public async Task<ChatResult> CompleteAsync(
         bool translate = false, // Move to WithTranslate
         bool interactive = false, // Move to WithInteractive
@@ -208,13 +215,18 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
         {
             throw new EmptyChatException(_chat.Id);
         }
-        
+
+        if (_ensureModelDownloaded && _chat.ModelInstance is LocalModel)
+        {
+            await AIHub.Model().EnsureDownloadedAsync(_chat.ModelId);
+        }
+
         _chat.Messages.Last().Files = _files;
-        if(_preProcess)
+        if (_preProcess)
         {
             _chat.Messages.Last().Properties.AddProperty(ServiceConstants.Properties.PreProcessProperty);
         }
-        
+
         if (!await ChatExists(_chat.Id))
         {
             await _chatService.Create(_chat);
@@ -227,8 +239,8 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
     public async Task<IChatConfigurationBuilder> FromExisting(string chatId)
     {
         var existing = await _chatService.GetById(chatId);
-        return existing == null 
-            ? throw new ChatNotFoundException(chatId) 
+        return existing == null
+            ? throw new ChatNotFoundException(chatId)
             : new ChatContext(_chatService, existing);
     }
 
@@ -244,12 +256,9 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
             return false;
         }
     }
-    
-    IChatMessageBuilder IChatMessageBuilder.EnableVisual() => EnableVisual();
 
- 
     public string GetChatId() => _chat.Id;
-    
+
     public async Task<Chat> GetCurrentChat()
     {
         if (_chat.Id == null)
@@ -271,7 +280,7 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
 
         await _chatService.Delete(_chat.Id);
     }
-    
+
     public List<MessageShort> GetChatHistory()
     {
         return [.. _chat.Messages.Select(x => new MessageShort()

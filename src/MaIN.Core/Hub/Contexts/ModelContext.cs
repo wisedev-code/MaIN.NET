@@ -1,5 +1,4 @@
-using System.Diagnostics;
-using System.Net;
+using AsyncKeyedLock;
 using MaIN.Core.Hub.Contexts.Interfaces.ModelContext;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Exceptions.Models;
@@ -8,13 +7,16 @@ using MaIN.Domain.Models.Abstract;
 using MaIN.Domain.Models.Concrete;
 using MaIN.Services.Constants;
 using MaIN.Services.Services.LLMService.Utils;
+using System.Diagnostics;
 
 namespace MaIN.Core.Hub.Contexts;
 
 public sealed class ModelContext : IModelContext
 {
-    private readonly MaINSettings _settings;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly string? _defaultModelsPath;
+
+    private readonly AsyncKeyedLocker<string> _downloadLocks = new();
 
     private const int DefaultBufferSize = 8192;
     private const int FileStreamBufferSize = 65536;
@@ -23,8 +25,8 @@ public sealed class ModelContext : IModelContext
 
     internal ModelContext(MaINSettings settings, IHttpClientFactory httpClientFactory)
     {
-        _settings = settings ?? throw new ArgumentNullException(nameof(settings));
         _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
+        _defaultModelsPath = Environment.GetEnvironmentVariable("MaIN_ModelsPath") ?? settings.ModelsPath;
     }
 
     public IEnumerable<AIModel> GetAll() => ModelRegistry.GetAll();
@@ -35,7 +37,7 @@ public sealed class ModelContext : IModelContext
 
     public AIModel GetEmbeddingModel() => new Nomic_Embedding();
 
-    public bool Exists(string modelId)
+    public bool IsDownloaded(string modelId)
     {
         if (string.IsNullOrWhiteSpace(modelId))
         {
@@ -47,9 +49,40 @@ public sealed class ModelContext : IModelContext
         {
             return false; // Cloud models don't have local files
         }
-        
-        var modelPath = GetModelFilePath(localModel.FileName);
-        return File.Exists(modelPath);
+
+        return localModel.IsDownloaded(_defaultModelsPath);
+    }
+
+    public async Task<IModelContext> EnsureDownloadedAsync(string modelId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(modelId))
+        {
+            throw new MissingModelIdException(nameof(modelId));
+        }
+
+        var model = ModelRegistry.GetById(modelId);
+
+        if (model is not LocalModel localModel || localModel.IsDownloaded(_defaultModelsPath))
+        {
+            return this;
+        }
+
+        using (await _downloadLocks.LockAsync(modelId, cancellationToken))
+        {
+            // Double-check
+            if (!localModel.IsDownloaded(_defaultModelsPath))
+            {
+                await DownloadModelAsync(localModel, cancellationToken);
+            }
+        }
+
+        return this;
+    }
+
+    public async Task<IModelContext> EnsureDownloadedAsync<TModel>(CancellationToken cancellationToken = default) where TModel : LocalModel, new()
+    {
+        var model = new TModel();
+        return await EnsureDownloadedAsync(model.Id, cancellationToken);
     }
 
     public async Task<IModelContext> DownloadAsync(string modelId, CancellationToken cancellationToken = default)
@@ -59,131 +92,58 @@ public sealed class ModelContext : IModelContext
             throw new MissingModelIdException(nameof(modelId));
         }
 
-        var model = ModelRegistry.GetById(modelId) ?? throw new ModelNotSupportedException(modelId);
-        
-        if (model is not LocalModel localModel)
-        {
-            throw new InvalidModelTypeException(nameof(LocalModel));
-        }
-        
-        if (localModel.DownloadUrl is null)
-        {
-            throw new DownloadUrlNullOrEmptyException();
-        }
-        
-        await DownloadModelAsync(localModel.DownloadUrl.ToString(), localModel.FileName, cancellationToken);
-        return this;
-    }
+        var model = ModelRegistry.GetById(modelId);
 
-    public async Task<IModelContext> DownloadAsync(string modelId, string url, CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrWhiteSpace(modelId))
-        {
-            throw new MissingModelIdException(nameof(modelId));
-        }
-
-        if (string.IsNullOrWhiteSpace(url))
-        {
-            throw new DownloadUrlNullOrEmptyException();
-        }
-
-        var fileName = $"{modelId}.gguf";
-        await DownloadModelAsync(url, fileName, cancellationToken);
-        
-        // Register the newly downloaded model
-        var newModel = new GenericLocalModel(
-            FileName: fileName,
-            Name: modelId,
-            Id: modelId,
-            DownloadUrl: new Uri(url)
-        );
-        ModelRegistry.RegisterOrReplace(newModel);
-        
-        return this;
-    }
-
-    [Obsolete("Use async method instead")]
-    public IModelContext Download(string modelId)
-    {
-        if (string.IsNullOrWhiteSpace(modelId))
-        {
-            throw new MissingModelIdException(nameof(modelId));
-        }
-
-        var model = ModelRegistry.GetById(modelId) ?? throw new ModelNotSupportedException(modelId);
         if (model is not LocalModel localModel)
         {
             throw new InvalidModelTypeException(nameof(LocalModel));
         }
 
-        if (localModel.DownloadUrl is null)
+        using (await _downloadLocks.LockAsync(modelId, cancellationToken))
         {
-            throw new DownloadUrlNullOrEmptyException();
+            await DownloadModelAsync(localModel, cancellationToken);
         }
-
-        DownloadModelSync(localModel.DownloadUrl.ToString(), localModel.FileName);
-        return this;
-    }
-
-    [Obsolete("Use async method instead")]
-    public IModelContext Download(string modelId, string url)
-    {
-        if (string.IsNullOrWhiteSpace(modelId))
-        {
-            throw new MissingModelIdException(nameof(modelId));
-        }
-
-        if (string.IsNullOrWhiteSpace(url))
-        {
-            throw new DownloadUrlNullOrEmptyException();
-        }
-
-        var fileName = $"{modelId}.gguf";
-        DownloadModelSync(url, fileName);
-
-        // Register the newly downloaded model
-        var newModel = new GenericLocalModel(
-            FileName: fileName,
-            Name: modelId,
-            Id: modelId,
-            DownloadUrl: new Uri(url)
-        );
-        ModelRegistry.RegisterOrReplace(newModel);
 
         return this;
     }
 
     public IModelContext LoadToCache(LocalModel model)
     {
-        ArgumentNullException.ThrowIfNull(model);
+        var path = model.CustomPath ?? _defaultModelsPath;
+        if (string.IsNullOrEmpty(path))
+        {
+            throw new ModelPathNullOrEmptyException();
+        }
 
-        var modelsPath = ResolvePath(_settings.ModelsPath);
-        ModelLoader.GetOrLoadModel(modelsPath, model.FileName);
+        ModelLoader.GetOrLoadModel(path, model.FileName);
         return this;
     }
 
     public async Task<IModelContext> LoadToCacheAsync(LocalModel model)
     {
         ArgumentNullException.ThrowIfNull(model);
-
-        var modelsPath = ResolvePath(_settings.ModelsPath);
-        await ModelLoader.GetOrLoadModelAsync(modelsPath, model.FileName);
+        await ModelLoader.GetOrLoadModelAsync(GetModelFilePath(model), model.FileName);
         return this;
     }
 
-    private async Task DownloadModelAsync(string url, string fileName, CancellationToken cancellationToken)
+    private async Task DownloadModelAsync(LocalModel localModel, CancellationToken cancellationToken)
     {
         using var httpClient = CreateConfiguredHttpClient();
-        var filePath = GetModelFilePath(fileName);
-        
-        Console.WriteLine($"Starting download of {fileName}...");
+        var filePath = GetModelFilePath(localModel);
+
+        if (localModel.DownloadUrl is null)
+        {
+            throw new DownloadUrlNullOrEmptyException();
+        }
+
+        Console.WriteLine($"Starting download of {localModel.FileName}...");
 
         try
         {
-            using var response = await httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            using var response = await httpClient.GetAsync(localModel.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             response.EnsureSuccessStatusCode();
 
-            await DownloadWithProgressAsync(response, filePath, fileName, cancellationToken);
+            await DownloadWithProgressAsync(response, filePath, localModel.FileName, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -234,57 +194,6 @@ public sealed class ModelContext : IModelContext
         ShowFinalProgress(totalBytesRead, totalStopwatch, fileName);
     }
 
-    [Obsolete("Use async method instead")]
-    private void DownloadModelSync(string url, string fileName)
-    {
-        var filePath = GetModelFilePath(fileName);
-        
-        Console.WriteLine($"Starting download of {fileName}...");
-
-        using var webClient = CreateConfiguredWebClient();
-        var totalStopwatch = Stopwatch.StartNew();
-        var progressStopwatch = Stopwatch.StartNew();
-        
-        webClient.DownloadProgressChanged += (sender, e) =>
-        {
-            if (ShouldUpdateProgress(progressStopwatch))
-            {
-                ShowProgress(e.BytesReceived, e.TotalBytesToReceive > 0 ? e.TotalBytesToReceive : null, totalStopwatch);
-                progressStopwatch.Restart();
-            }
-        };
-        
-        webClient.DownloadFileCompleted += (sender, e) =>
-        {
-            totalStopwatch.Stop();
-            if (e.Error != null)
-            {
-                Console.WriteLine($"\nDownload failed: {e.Error.Message}");
-            }
-            else
-            {
-                var totalTime = totalStopwatch.Elapsed;
-                Console.WriteLine($"\nDownload completed: {fileName}. Time: {totalTime:hh\\:mm\\:ss}");
-            }
-        };
-
-        try
-        {
-            webClient.DownloadFile(url, filePath);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Download failed: {ex.Message}");
-
-            if (File.Exists(filePath))
-            {
-                File.Delete(filePath);
-            }
-
-            throw;
-        }
-    }
-
     private HttpClient CreateConfiguredHttpClient()
     {
         var httpClient = _httpClientFactory.CreateClient(ServiceConstants.HttpClients.ModelContextDownloadClient);
@@ -292,17 +201,10 @@ public sealed class ModelContext : IModelContext
         return httpClient;
     }
 
-    [Obsolete("Obsolete")]
-    private static WebClient CreateConfiguredWebClient()
-    {
-        var webClient = new WebClient();
-        webClient.Headers.Add("User-Agent", "YourApp/1.0");
-        return webClient;
-    }
+    private string GetModelFilePath(LocalModel localModel) =>
+        localModel.GetFullPath(_defaultModelsPath);
 
-    private string GetModelFilePath(string fileName) => Path.Combine(ResolvePath(_settings.ModelsPath), fileName);
-
-    private static bool ShouldUpdateProgress(Stopwatch progressStopwatch) => 
+    private static bool ShouldUpdateProgress(Stopwatch progressStopwatch) =>
         progressStopwatch.ElapsedMilliseconds >= ProgressUpdateIntervalMilliseconds;
 
     private static void ShowProgress(long totalBytesRead, long? totalBytes, Stopwatch totalStopwatch)
@@ -369,9 +271,4 @@ public sealed class ModelContext : IModelContext
 
         return "0 Bytes";
     }
-
-    private static string ResolvePath(string? settingsModelsPath) =>
-        settingsModelsPath
-        ?? Environment.GetEnvironmentVariable("MaIN_ModelsPath")
-        ?? throw new ModelsPathNotFoundException();
 }
