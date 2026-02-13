@@ -1,11 +1,12 @@
 using MaIN.Core.Hub.Contexts;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
-using MaIN.Services.Services.Abstract;
-using Moq;
 using MaIN.Domain.Entities.Agents.AgentSource;
 using MaIN.Domain.Entities.Agents.Knowledge;
 using MaIN.Domain.Exceptions.Flows;
+using MaIN.Domain.Models.Abstract;
+using MaIN.Services.Services.Abstract;
+using Moq;
 
 namespace MaIN.Core.UnitTests;
 
@@ -14,12 +15,15 @@ public class FlowContextTests
     private readonly Mock<IAgentFlowService> _mockFlowService;
     private readonly Mock<IAgentService> _mockAgentService;
     private FlowContext _flowContext;
+    private readonly string _testModelId = "test-model";
 
     public FlowContextTests()
     {
         _mockFlowService = new Mock<IAgentFlowService>();
         _mockAgentService = new Mock<IAgentService>();
         _flowContext = new FlowContext(_mockFlowService.Object, _mockAgentService.Object);
+        var testModel = new GenericLocalModel(_testModelId);
+        ModelRegistry.RegisterOrReplace(testModel);
     }
     
     [Fact]
@@ -92,7 +96,7 @@ public class FlowContextTests
         _flowContext.AddAgent(firstAgent);
 
         var message = "Hello, flow!";
-        var chat = new Chat { Id = firstAgent.Id, Messages = new List<Message>(), Model = "default", Name = "test"};
+        var chat = new Chat { Id = firstAgent.Id, Messages = new List<Message>(), ModelId = _testModelId, Name = "test"};
 
         _mockAgentService
             .Setup(s => s.GetChatByAgent(firstAgent.Id))
@@ -101,7 +105,7 @@ public class FlowContextTests
         _mockAgentService
             .Setup(s => s.Process(It.IsAny<Chat>(), firstAgent.Id, It.IsAny<Knowledge>(), It.IsAny<bool>(), null, null))
             .ReturnsAsync(new Chat { 
-                Model = "test-model", 
+                ModelId = _testModelId, 
                 Name = "test",
                 Messages = new List<Message> { 
                     new() { Content = "Response", Role = "Assistant", Type = MessageType.LocalLLM} 
@@ -113,7 +117,7 @@ public class FlowContextTests
 
         // Assert
         Assert.True(result.Done);
-        Assert.Equal("test-model", result.Model);
+        Assert.Equal(_testModelId, result.Model);
         Assert.NotNull(result.Message);
     }
 

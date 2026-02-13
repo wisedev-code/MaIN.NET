@@ -22,14 +22,14 @@ internal class GeminiImageGenService(IHttpClientFactory httpClientFactory, MaINS
         string apiKey = _settings.GeminiKey ?? Environment.GetEnvironmentVariable(LLMApiRegistry.Gemini.ApiKeyEnvName)
             ?? throw new APIKeyNotConfiguredException(LLMApiRegistry.Gemini.ApiName);
 
-        if (string.IsNullOrEmpty(chat.Model))
+        if (string.IsNullOrEmpty(chat.ModelId))
         {
-            chat.Model = Models.IMAGEN_GENERATE;
+            chat.ModelId = Models.IMAGEN_GENERATE;
         }
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
         var requestBody = new
         {
-            model = chat.Model,
+            model = chat.ModelId,
             prompt = BuildPromptFromChat(chat),
             response_format = "b64_json", // necessary for gemini api
             size = ServiceConstants.Defaults.ImageSize,

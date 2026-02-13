@@ -5,6 +5,7 @@ using Microsoft.FluentUI.AspNetCore.Components;
 using MaIN.InferPage.Components;
 using MaIN.Services.Services.LLMService.Utils;
 using Utils = MaIN.InferPage.Utils;
+using MaIN.Domain.Models.Abstract;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
@@ -157,7 +158,7 @@ else if (Utils.Ollama)
 }
 else
 {
-    if (Utils.Path == null && !KnownModels.IsModelSupported(Utils.Model!))
+    if (Utils.Path is null && !ModelRegistry.Exists(Utils.Model!))
     {
         Console.WriteLine($"Model: {Utils.Model} is not supported");
         Environment.Exit(0);

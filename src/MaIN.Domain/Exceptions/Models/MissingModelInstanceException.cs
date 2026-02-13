@@ -2,8 +2,8 @@
 
 namespace MaIN.Domain.Exceptions.Models;
 
-public class ModelNotSupportedException(string? modelName) 
-    : MaINCustomException($"Given model {modelName ?? string.Empty} is not supported.")
+public class MissingModelInstanceException() 
+    : MaINCustomException("Model instance cannot be null.")
 {
     public override string PublicErrorMessage => Message;
     public override HttpStatusCode HttpStatusCode => HttpStatusCode.BadRequest;

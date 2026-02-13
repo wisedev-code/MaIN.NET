@@ -2,6 +2,7 @@ using LLama;
 using LLama.Sampling;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Models;
+using MaIN.Domain.Models.Abstract;
 using MaIN.Services.Constants;
 using InferenceParams = LLama.Common.InferenceParams;
 
@@ -15,10 +16,11 @@ public static class ChatHelper
     /// <summary>
     /// Generates final prompt including additional prompt if needed
     /// </summary>
-    public static string GetFinalPrompt(Message message, Model model, bool startSession)
+    public static string GetFinalPrompt(Message message, AIModel model, bool startSession)
     {
-        return startSession && model.AdditionalPrompt != null 
-            ? $"{message.Content}{model.AdditionalPrompt}" 
+        var additionalPrompt = (model as IReasoningModel)?.AdditionalPrompt;
+        return startSession && additionalPrompt != null 
+            ? $"{message.Content}{additionalPrompt}" 
             : message.Content;
     }
 

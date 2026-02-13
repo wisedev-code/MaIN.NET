@@ -11,6 +11,7 @@ using MaIN.Domain.Entities;
 using MaIN.Domain.Exceptions.Models;
 using MaIN.Domain.Entities.Tools;
 using MaIN.Domain.Models;
+using MaIN.Domain.Models.Abstract;
 using MaIN.Services.Constants;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.LLMService.Memory;
@@ -67,12 +68,12 @@ public class LLMService : ILLMService
             return await AskMemory(chat, memoryOptions, requestOptions, cancellationToken);
         }
 
-        if (chat.ToolsConfiguration?.Tools != null && chat.ToolsConfiguration.Tools.Any())
+        if (chat.ToolsConfiguration?.Tools != null && chat.ToolsConfiguration.Tools.Count != 0)
         {
             return await ProcessWithToolsAsync(chat, requestOptions, cancellationToken);
         }
 
-        var model = KnownModels.GetModel(chat.Model);
+        var model = GetLocalModel(chat.ModelId);
         var tokens = await ProcessChatRequest(chat, model, lastMsg, requestOptions, cancellationToken);
         lastMsg.MarkProcessed();
         return await CreateChatResult(chat, tokens, requestOptions);
@@ -82,8 +83,8 @@ public class LLMService : ILLMService
     {
         var models = Directory.GetFiles(modelsPath, "*.gguf", SearchOption.AllDirectories)
             .Select(Path.GetFileName)
-            .Where(fileName => KnownModels.GetModelByFileName(modelsPath, fileName!) != null)
-            .Select(fileName => KnownModels.GetModelByFileName(modelsPath, fileName!)!.Name)
+            .Where(fileName => ModelRegistry.GetByFileName(fileName!) != null)
+            .Select(fileName => ModelRegistry.GetByFileName(fileName!)!.Name)
             .ToArray();
 
         return Task.FromResult(models);
@@ -100,15 +101,15 @@ public class LLMService : ILLMService
         return Task.CompletedTask;
     }
 
+
     public async Task<ChatResult?> AskMemory(
         Chat chat,
         ChatMemoryOptions memoryOptions,
         ChatRequestOptions requestOptions,
         CancellationToken cancellationToken = default)
     {
-        var model = KnownModels.GetModel(chat.Model);
-        var finalModelPath = model.Path ?? modelsPath;
-        var parameters = new ModelParams(Path.Combine(finalModelPath, model.FileName))
+        var model = GetLocalModel(chat.ModelId);
+        var parameters = new ModelParams(Path.Combine(modelsPath, model.FileName))
         {
             GpuLayerCount = chat.MemoryParams.GpuLayerCount,
             ContextSize = (uint)chat.MemoryParams.ContextSize,
@@ -116,15 +117,15 @@ public class LLMService : ILLMService
         var disableCache = chat.Properties.CheckProperty(ServiceConstants.Properties.DisableCacheProperty);
         var llmModel = disableCache
             ? await LLamaWeights.LoadFromFileAsync(parameters, cancellationToken)
-            : await ModelLoader.GetOrLoadModelAsync(finalModelPath, model.FileName);
+            : await ModelLoader.GetOrLoadModelAsync(modelsPath, model.FileName);
 
-        var memory = memoryFactory.CreateMemoryWithModel(
-            finalModelPath,
+        var (km, generator, textGenerator) = memoryFactory.CreateMemoryWithModel(
+            modelsPath,
             llmModel,
             model.FileName,
             chat.MemoryParams);
 
-        await memoryService.ImportDataToMemory((memory.km, memory.generator), memoryOptions, cancellationToken);
+        await memoryService.ImportDataToMemory((km, generator), memoryOptions, cancellationToken);
         var userMessage = chat.Messages.Last();
         
         MemoryAnswer result;
@@ -138,7 +139,7 @@ public class LLMService : ILLMService
                 Stream = true
             };
 
-            await foreach (var chunk in memory.km.AskStreamingAsync(
+            await foreach (var chunk in km.AskStreamingAsync(
                                userMessage.Content,
                                options: searchOptions,
                                cancellationToken: cancellationToken))
@@ -178,29 +179,29 @@ public class LLMService : ILLMService
                 Stream = false
             };
 
-            result = await memory.km.AskAsync(
+            result = await km.AskAsync(
                 userMessage.Content,
                 options: searchOptions,
                 cancellationToken: cancellationToken);
         }
         
-        await memory.km.DeleteIndexAsync(cancellationToken: cancellationToken);
+        await km.DeleteIndexAsync(cancellationToken: cancellationToken);
         
         if (disableCache)
         {
             llmModel.Dispose();
             ModelLoader.RemoveModel(model.FileName);
-            memory.textGenerator.Dispose();
+            textGenerator.Dispose();
         }
-        memory.generator._embedder.Dispose();
-        memory.generator._embedder._weights.Dispose();
-        memory.generator.Dispose();
+        generator._embedder.Dispose();
+        generator._embedder._weights.Dispose();
+        generator.Dispose();
 
         return new ChatResult
         {
             Done = true,
             CreatedAt = DateTime.Now,
-            Model = chat.Model,
+            Model = chat.ModelId,
             Message = new Message
             {
                 Content = memoryService.CleanResponseText(result.Result),
@@ -212,7 +213,7 @@ public class LLMService : ILLMService
 
     private async Task<List<LLMTokenValue>> ProcessChatRequest(
         Chat chat,
-        Model model,
+        LocalModel model,
         Message lastMsg,
         ChatRequestOptions requestOptions,
         CancellationToken cancellationToken)
@@ -221,20 +222,20 @@ public class LLMService : ILLMService
         var thinkingState = new ThinkingState();
         var tokens = new List<LLMTokenValue>();
 
-        var parameters = CreateModelParameters(chat, modelKey, model.Path);
+        var parameters = CreateModelParameters(chat, modelKey, model.CustomPath);
         var disableCache = chat.Properties.CheckProperty(ServiceConstants.Properties.DisableCacheProperty);
         var llmModel = disableCache
             ? await LLamaWeights.LoadFromFileAsync(parameters, cancellationToken)
-            : await ModelLoader.GetOrLoadModelAsync(
-                model.Path ?? modelsPath, modelKey);
+            : await ModelLoader.GetOrLoadModelAsync(modelsPath, modelKey);
 
-        var llavaWeights = model.MMProject != null
-            ? await LLavaWeights.LoadFromFileAsync(model.MMProject, cancellationToken)
+        var visionModel = model as IVisionModel;
+        var llavaWeights = visionModel?.MMProjectName is not null
+            ? await LLavaWeights.LoadFromFileAsync(Path.Combine(modelsPath, visionModel.MMProjectName), cancellationToken)
             : null;
         
         using var executor = new BatchedExecutor(llmModel, parameters);
 
-        var (conversation, isComplete, hasFailed) = await InitializeConversation(
+        var (conversation, isComplete, hasFailed) = await LLMService.InitializeConversation(
             chat, lastMsg, model, llmModel, llavaWeights, executor, cancellationToken);
 
         if (!isComplete)
@@ -278,9 +279,10 @@ public class LLMService : ILLMService
         };
     }
 
-    private async Task<(Conversation Conversation, bool IsComplete, bool HasFailed)> InitializeConversation(Chat chat,
+
+    private static async Task<(Conversation Conversation, bool IsComplete, bool HasFailed)> InitializeConversation(Chat chat,
         Message lastMsg,
-        Model model,
+        LocalModel model,
         LLamaWeights llmModel,
         LLavaWeights? llavaWeights,
         BatchedExecutor executor,
@@ -325,7 +327,7 @@ public class LLMService : ILLMService
     private static void ProcessTextMessage(Conversation conversation,
         Chat chat,
         Message lastMsg,
-        Model model,
+        LocalModel model,
         LLamaWeights llmModel,
         BatchedExecutor executor,
         bool isNewConversation)
@@ -333,7 +335,7 @@ public class LLMService : ILLMService
         var template = new LLamaTemplate(llmModel);
         var finalPrompt = ChatHelper.GetFinalPrompt(lastMsg, model, isNewConversation);
 
-        var hasTools = chat.ToolsConfiguration?.Tools != null && chat.ToolsConfiguration.Tools.Any();
+        var hasTools = chat.ToolsConfiguration?.Tools != null && chat.ToolsConfiguration.Tools.Count != 0;
 
         if (isNewConversation)
         {
@@ -396,7 +398,7 @@ public class LLMService : ILLMService
     private async Task<(List<LLMTokenValue> Tokens, bool IsComplete, bool HasFailed)> ProcessTokens(
         Chat chat,
         Conversation conversation,
-        Model model,
+        LocalModel model,
         LLamaWeights llmModel,
         BatchedExecutor executor,
         ThinkingState thinkingState,
@@ -407,11 +409,12 @@ public class LLMService : ILLMService
         var isComplete = false;
         var hasFailed = false;
 
-        using var sampler = CreateSampler(chat.InterferenceParams);
+        using var sampler = LLMService.CreateSampler(chat.InterferenceParams);
         var decoder = new StreamingTokenDecoder(executor.Context);
 
         var inferenceParams = ChatHelper.CreateInferenceParams(chat, llmModel);
         var maxTokens = inferenceParams.MaxTokens == -1 ? int.MaxValue : inferenceParams.MaxTokens;
+        var reasoningModel = model as IReasoningModel;
 
         for (var i = 0; i < maxTokens && !isComplete; i++)
         {
@@ -426,10 +429,14 @@ public class LLMService : ILLMService
             }
 
             if (decodeResult == DecodeResult.DecodeFailed)
+            {
                 throw new Exception("Unknown error occurred while inferring.");
+            }
 
             if (!conversation.RequiresSampling)
+            {
                 continue;
+            }
 
             var token = conversation.Sample(sampler);
             var vocab = executor.Context.NativeHandle.ModelHandle.Vocab;
@@ -444,8 +451,8 @@ public class LLMService : ILLMService
                 var tokenTxt = decoder.Read();
 
                 conversation.Prompt(token);
-                var tokenValue = model.ReasonFunction != null
-                    ? model.ReasonFunction(tokenTxt, thinkingState)
+                var tokenValue = reasoningModel?.ReasonFunction != null
+                    ? reasoningModel.ReasonFunction(tokenTxt, thinkingState)
                     : new LLMTokenValue()
                     {
                         Text = tokenTxt,
@@ -463,11 +470,12 @@ public class LLMService : ILLMService
             }
         }
         
+        
 
         return (tokens, isComplete, hasFailed);
     }
 
-    private BaseSamplingPipeline CreateSampler(InferenceParams interferenceParams)
+    private static BaseSamplingPipeline CreateSampler(InferenceParams interferenceParams)
     {
         if (interferenceParams.Temperature == 0)
         {
@@ -486,6 +494,16 @@ public class LLMService : ILLMService
         };
     }
 
+    private static LocalModel GetLocalModel(string modelId)
+    {
+        var model = ModelRegistry.GetById(modelId);
+        if (model is not LocalModel localModel)
+        {
+            throw new InvalidModelTypeException(nameof(LocalModel));
+        }
+        
+        return localModel;
+    }
 
     private string GetModelsPath()
     {
@@ -513,7 +531,7 @@ public class LLMService : ILLMService
         {
             Done = true,
             CreatedAt = DateTime.Now,
-            Model = chat.Model,
+            Model = chat.ModelId,
             Message = new Message
             {
                 Content = responseText,
@@ -536,7 +554,12 @@ public class LLMService : ILLMService
         ChatRequestOptions requestOptions,
         CancellationToken cancellationToken)
     {
-        var model = KnownModels.GetModel(chat.Model);
+        var model = chat.ModelInstance ?? throw new MissingModelInstanceException();
+        if (model is not LocalModel localModel)
+        {
+            throw new InvalidModelTypeException(nameof(LocalModel));
+        }
+
         var iterations = 0;
         var lastResponseTokens = new List<LLMTokenValue>();
         var lastResponse = string.Empty;
@@ -547,7 +570,7 @@ public class LLMService : ILLMService
             var tokenCallbackOrg = requestOptions.TokenCallback;
             requestOptions.InteractiveUpdates = false;
             requestOptions.TokenCallback = null;
-            lastResponseTokens = await ProcessChatRequest(chat, model, lastMsg, requestOptions, cancellationToken);
+            lastResponseTokens = await ProcessChatRequest(chat, localModel, lastMsg, requestOptions, cancellationToken);
             lastMsg.MarkProcessed();
             lastResponse = string.Concat(lastResponseTokens.Select(x => x.Text));
             var responseMessage = new Message
@@ -690,7 +713,7 @@ public class LLMService : ILLMService
         {
             Done = true,
             CreatedAt = DateTime.Now,
-            Model = chat.Model,
+            Model = chat.ModelId,
             Message = chat.Messages.Last()
         };
     }

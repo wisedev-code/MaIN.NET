@@ -2,6 +2,7 @@ using Examples.Utils;
 using MaIN.Core.Hub;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Models;
+using MaIN.Domain.Models.Concrete;
 
 namespace Examples.Chat;
 
@@ -38,7 +39,7 @@ public class ChatGrammarExampleGemini : IExample
                            """;
 
         await AIHub.Chat()
-          .WithModel("gemini-2.5-flash")
+          .WithModel<Gemini2_5Flash>()
           .WithMessage("Generate random person")
           .WithInferenceParams(new InferenceParams
           {

@@ -26,68 +26,68 @@ public class ChatService(
         await chatProvider.AddChat(chat.ToDocument());
     }
 
-  public async Task<ChatResult> Completions(
-    Chat chat,
-    bool translate = false,
-    bool interactiveUpdates = false,
-    Func<LLMTokenValue?, Task>? changeOfValue = null)
-{
-    if (chat.Model == ImageGenService.LocalImageModels.FLUX) 
+    public async Task<ChatResult> Completions(
+        Chat chat,
+        bool translate = false,
+        bool interactiveUpdates = false,
+        Func<LLMTokenValue?, Task>? changeOfValue = null)
     {
-        chat.Visual = true;
-    }
-    chat.Backend ??= settings.BackendType;
-    
-    chat.Messages.Where(x => x.Type == MessageType.NotSet).ToList()
-        .ForEach(x => x.Type = chat.Backend != BackendType.Self ? MessageType.CloudLLM : MessageType.LocalLLM);
-    
-    translate = translate || chat.Translate;
-    interactiveUpdates = interactiveUpdates || chat.Interactive;
-    var newMsg = chat.Messages.Last();
-    newMsg.Time = DateTime.Now;
-    
-    var lng = translate ? await translatorService.DetectLanguage(newMsg.Content) : null;
-    var originalMessages = chat.Messages;
-    
-    if (translate)
-    {
-        chat.Messages = (await Task.WhenAll(chat.Messages.Select(async m => new Message()
+        if (chat.ModelId == ImageGenService.LocalImageModels.FLUX) 
         {
-            Role = m.Role,
-            Content = await translatorService.Translate(m.Content, "en"),
-            Type = m.Type
-        }))).ToList();
-    }
+            chat.Visual = true; // TODO: add IImageGenModel interface and check for that instead
+        }
+        chat.Backend ??= settings.BackendType;
 
-    var result = chat.Visual 
-        ? await imageGenServiceFactory.CreateService(chat.Backend.Value)!.Send(chat) 
-        : await llmServiceFactory.CreateService(chat.Backend.Value).Send(chat, new ChatRequestOptions()
-        {
-            InteractiveUpdates = interactiveUpdates,
-            TokenCallback = changeOfValue
-        });
-
-    if (translate)
-    {
-        result!.Message.Content = await translatorService.Translate(result.Message.Content, lng!);
-        result.Message.Time = DateTime.Now;
-    }
+        chat.Messages.Where(x => x.Type == MessageType.NotSet).ToList()
+            .ForEach(x => x.Type = chat.Backend != BackendType.Self ? MessageType.CloudLLM : MessageType.LocalLLM);
     
-    if (!chat.Visual && chat.TextToSpeechParams != null)
-    {
-        var speechBytes = await ttsServiceFactory
-            .CreateService(chat.Backend.Value).Send(result!.Message, chat.TextToSpeechParams.Model,
-                chat.TextToSpeechParams.Voice, chat.TextToSpeechParams.Playback);
+        translate = translate || chat.Translate;
+        interactiveUpdates = interactiveUpdates || chat.Interactive;
+        var newMsg = chat.Messages.Last();
+        newMsg.Time = DateTime.Now;
+
+        var lng = translate ? await translatorService.DetectLanguage(newMsg.Content) : null;
+        var originalMessages = chat.Messages;
+    
+        if (translate)
+        {
+            chat.Messages = [.. await Task.WhenAll(chat.Messages.Select(async m => new Message()
+            {
+                Role = m.Role,
+                Content = await translatorService.Translate(m.Content, "en"),
+                Type = m.Type
+            }))];
+        }
+
+        var result = chat.Visual 
+            ? await imageGenServiceFactory.CreateService(chat.Backend.Value)!.Send(chat) 
+            : await llmServiceFactory.CreateService(chat.Backend.Value).Send(chat, new ChatRequestOptions()
+            {
+                InteractiveUpdates = interactiveUpdates,
+                TokenCallback = changeOfValue
+            });
+
+        if (translate)
+        {
+            result!.Message.Content = await translatorService.Translate(result.Message.Content, lng!);
+            result.Message.Time = DateTime.Now;
+        }
+    
+        if (!chat.Visual && chat.TextToSpeechParams is not null)
+        {
+            var speechBytes = await ttsServiceFactory
+                .CreateService(chat.Backend.Value).Send(result!.Message, chat.TextToSpeechParams.Model,
+                    chat.TextToSpeechParams.Voice, chat.TextToSpeechParams.Playback);
         
-        result.Message.Speech = speechBytes;
+            result.Message.Speech = speechBytes;
+        }
+    
+        originalMessages.Add(result!.Message);
+        chat.Messages = originalMessages;
+    
+        await chatProvider.UpdateChat(chat.Id!, chat.ToDocument());
+        return result;
     }
-    
-    originalMessages.Add(result!.Message);
-    chat.Messages = originalMessages;
-    
-    await chatProvider.UpdateChat(chat.Id!, chat.ToDocument());
-    return result;
-}
 
     public async Task Delete(string id)
     {
@@ -100,15 +100,9 @@ public class ChatService(
     public async Task<Chat> GetById(string id)
     {
         var chatDocument = await chatProvider.GetChatById(id);
-        if (chatDocument == null)
-        {
-            throw new ChatNotFoundException(id);
-        }
-        
-        return chatDocument.ToDomain();
+        return chatDocument is null ? throw new ChatNotFoundException(id) : chatDocument.ToDomain();
     }
 
     public async Task<List<Chat>> GetAll()
-        => (await chatProvider.GetAllChats())
-            .Select(x => x.ToDomain()).ToList();
+        => [.. (await chatProvider.GetAllChats()).Select(x => x.ToDomain())];
 }

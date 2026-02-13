@@ -2,8 +2,8 @@
 
 namespace MaIN.Domain.Exceptions.Models;
 
-public class ModelNotSupportedException(string? modelName) 
-    : MaINCustomException($"Given model {modelName ?? string.Empty} is not supported.")
+public class ModelAlreadyRegisteredException(string? modelId)
+    : MaINCustomException($"Model {modelId ?? string.Empty} is already registered.")
 {
     public override string PublicErrorMessage => Message;
     public override HttpStatusCode HttpStatusCode => HttpStatusCode.BadRequest;

@@ -1,6 +1,7 @@
 using Examples.Utils;
 using MaIN.Core.Hub;
 using MaIN.Core.Hub.Utils;
+using MaIN.Domain.Models.Concrete;
 
 namespace Examples.Chat;
 
@@ -13,7 +14,7 @@ public class ChatExampleToolsSimple : IExample
         Console.WriteLine("(OpenAi) ChatExample with tools is running!");
 
         await AIHub.Chat()
-            .WithModel("gpt-5-nano")
+            .WithModel<Gpt5Nano>()
             .WithMessage("What time is it right now?")
             .WithTools(new ToolsConfigurationBuilder()
                 .AddTool(

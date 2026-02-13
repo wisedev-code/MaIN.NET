@@ -1,6 +1,7 @@
 using System.Text.Json;
 using MaIN.Core.Hub;
 using MaIN.Domain.Exceptions.Chats;
+using MaIN.Domain.Models.Concrete;
 
 namespace Examples.Chat;
 
@@ -11,7 +12,7 @@ public class ChatFromExistingExample : IExample
         Console.WriteLine("ChatExample with files is running!");
 
         var result = AIHub.Chat()
-            .WithModel("qwen2.5:0.5b");
+            .WithModel<Qwen2_5_0_5b>();
         
         await result.WithMessage("What do you think about math theories?")
             .CompleteAsync();

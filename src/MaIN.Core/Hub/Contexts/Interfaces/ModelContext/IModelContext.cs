@@ -1,48 +1,55 @@
-﻿using MaIN.Domain.Models;
+﻿using MaIN.Domain.Models.Abstract;
 
 namespace MaIN.Core.Hub.Contexts.Interfaces.ModelContext;
 
 public interface IModelContext
 {
     /// <summary>
-    /// Retrieves a complete list of all available models in the system. This method returns all known models that
+    /// Retrieves an enumerable collection of all available models in the system. This method returns all known models that
     /// can be used within the MaIN framework.
     /// </summary>
-    /// <returns>A list of <see cref="Model"/> containing all available models in the system</returns>
-    List<Model> GetAll();
+    /// <returns>A list of <see cref="AIModel"/> containing all available models in the system</returns>
+    IEnumerable<AIModel> GetAll();
 
     /// <summary>
-    /// Retrieves information about a specific model by its name. This method allows you to get detailed information about a particular model,
+    /// Retrieves all local models available in the data store.
+    /// </summary>
+    /// <returns>An enumerable collection of <see cref="LocalModel"/> instances representing all local models. The collection is
+    /// empty if no local models are found.</returns>
+    IEnumerable<LocalModel> GetAllLocal();
+
+    /// <summary>
+    /// Retrieves information about a specific model by its id. This method allows you to get detailed information about a particular model,
     /// including its configuration and metadata.
     /// </summary>
-    /// <param name="model">The name of the model to retrieve.</param>
-    /// <returns>A <see cref="Model"/> object containing the model's information and configuration.</returns>
-    Model GetModel(string model);
+    /// <param name="modelId">The id of the model to retrieve.</param>
+    /// <returns>A <see cref="AIModel"/> object containing the model's information and configuration.</returns>
+    AIModel GetModel(string modelId);
 
     /// <summary>
     /// Retrieves the designated embedding model used for generating vector representations of text. This is typically used
     /// for semantic search, similarity calculations, and other NLP tasks that require text embeddings.
     /// </summary>
-    /// <returns>A <see cref="Model"/> object representing the embedding model.</returns>
-    Model GetEmbeddingModel();
+    /// <returns>A <see cref="AIModel"/> object representing the embedding model.</returns>
+    AIModel GetEmbeddingModel();
 
     /// <summary>
     /// Checks whether a specific model exists locally on the filesystem. This method verifies if the model file is present
     /// and accessible before attempting to use it.
     /// </summary>
-    /// <param name="modelName">The name of the model to check for existence.</param>
+    /// <param name="modelId">The id of the model to check for existence.</param>
     /// <returns>A boolean value indicating whether the model file exists locally.</returns>
-    bool Exists(string modelName);
+    bool Exists(string modelId);
 
     /// <summary>
     /// Asynchronously downloads a known model from its configured download URL. This method handles the complete download process
     /// with progress tracking and error handling.
     /// </summary>
-    /// <param name="modelName">The name of the model to download.</param>
+    /// <param name="modelId">The id of the model to download.</param>
     /// <param name="cancellationToken">Optional cancellation token to abort the download operation.</param>
     /// <returns>A task that represents the asynchronous download operation that completes when the download finishes,
     /// returning the context instance implementing <see cref="IModelContext"/> for method chaining.</returns>
-    Task<IModelContext> DownloadAsync(string modelName, CancellationToken cancellationToken = default);
+    Task<IModelContext> DownloadAsync(string modelId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Asynchronously downloads a custom model from a specified URL. This method allows downloading models that are not part
@@ -52,7 +59,7 @@ public interface IModelContext
     /// <param name="url">The URL from which to download the model.</param>
     /// <returns>A task that represents the asynchronous download operation that completes when the download finishes,
     /// returning the context instance implementing <see cref="IModelContext"/> for method chaining.</returns>
-    Task<IModelContext> DownloadAsync(string model, string url);
+    Task<IModelContext> DownloadAsync(string model, string url, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Synchronously downloads a known model from its configured download URL. This is the blocking version of the download operation
@@ -79,14 +86,14 @@ public interface IModelContext
     /// </summary>
     /// <param name="model">The Model object to load into a cache.</param>
     /// <returns>The context instance implementing <see cref="IModelContext"/> for method chaining.</returns>
-    IModelContext LoadToCache(Model model);
+    IModelContext LoadToCache(LocalModel model);
 
     /// <summary>
     /// Asynchronously loads a model into the memory cache for faster access during inference operations. This is the non-blocking
     /// version of cache loading that allows other operations to continue while the model loads.
     /// </summary>
-    /// <param name="model">The <see cref="Model"/> object to load into a cache.</param>
+    /// <param name="model">The <see cref="AIModel"/> object to load into a cache.</param>
     /// <returns>A task that represents the asynchronous operation that completes when the model is loaded into cache,
     /// returning the context instance implementing <see cref="IModelContext"/> for method chaining.</returns>
-    Task<IModelContext> LoadToCacheAsync(Model model);
+    Task<IModelContext> LoadToCacheAsync(LocalModel model);
 }

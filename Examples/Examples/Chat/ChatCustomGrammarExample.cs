@@ -1,6 +1,7 @@
 using MaIN.Core.Hub;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Models;
+using MaIN.Domain.Models.Concrete;
 using Grammar = MaIN.Domain.Models.Grammar;
 
 namespace Examples.Chat;
@@ -21,7 +22,7 @@ public class ChatCustomGrammarExample : IExample
                                         """, GrammarFormat.GBNF);
 
         await AIHub.Chat()
-            .WithModel("gemma2:2b")
+            .WithModel<Gemma2_2b>()
             .WithMessage("Generate random person")
             .WithInferenceParams(new InferenceParams
             {

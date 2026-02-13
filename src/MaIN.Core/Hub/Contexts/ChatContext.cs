@@ -3,7 +3,9 @@ using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Tools;
 using MaIN.Domain.Exceptions.Chats;
+using MaIN.Domain.Exceptions.Models;
 using MaIN.Domain.Models;
+using MaIN.Domain.Models.Abstract;
 using MaIN.Services;
 using MaIN.Services.Constants;
 using MaIN.Services.Services.Abstract;
@@ -16,8 +18,8 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
 {
     private readonly IChatService _chatService;
     private bool _preProcess;
-    private Chat _chat { get; set; }
-    private List<FileInfo> _files { get; set; } = [];
+    private readonly Chat _chat;
+    private List<FileInfo> _files = [];
 
     internal ChatContext(IChatService chatService)
     {
@@ -26,10 +28,9 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
         {
             Name = "New Chat",
             Id = Guid.NewGuid().ToString(),
-            Messages = new List<Message>(),
-            Model = string.Empty
+            Messages = [],
+            ModelId = string.Empty
         };
-        _files = [];
     }
 
     internal ChatContext(IChatService chatService, Chat existingChat)
@@ -38,18 +39,48 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
         _chat = existingChat;
     }
 
-
-    public IChatMessageBuilder WithModel(string model)
+    public IChatMessageBuilder WithModel(AIModel model)
     {
-        _chat.Model = model;
+        SetModel(model);
         return this;
     }
 
+    public IChatMessageBuilder WithModel<TModel>() where TModel : AIModel, new()
+    {
+        var model = new TModel();
+        return WithModel(model);
+    }
+
+    [Obsolete("Use WithModel(AIModel model) or WithModel<TModel>() instead.")]
+    public IChatMessageBuilder WithModel(string modelId)
+    {
+        AIModel model;
+        try
+        {
+            model = ModelRegistry.GetById(modelId);
+        }
+        catch (Exception ex)
+        {
+
+            throw new Exception($"Model with ID '{modelId}' not found in registry. Use WithModel(AIModel model) or WithModel<TModel>() instead.", ex);
+        }
+        SetModel(model);
+        return this;
+    }
+
+    [Obsolete("Use WithModel<TModel>() instead.")]
     public IChatMessageBuilder WithCustomModel(string model, string path, string? mmProject = null)
     {
         KnownModels.AddModel(model, path, mmProject);
-        _chat.Model = model;
+        _chat.ModelId = model;
         return this;
+    }
+
+    private void SetModel(AIModel model)
+    {
+        _chat.ModelId = model.Id;
+        _chat.ModelInstance = model;
+        _chat.Backend = model.Backend;
     }
 
     public IChatMessageBuilder EnableVisual()
@@ -132,8 +163,7 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
 
     public IChatConfigurationBuilder WithFiles(List<FileStream> file, bool preProcess = false)
     {
-        _files = file.Select(f => new FileInfo { Name = Path.GetFileName(f.Name), StreamContent = f, Extension = Path.GetExtension(f.Name) })
-            .ToList();
+        _files = [.. file.Select(f => new FileInfo { Name = Path.GetFileName(f.Name), StreamContent = f, Extension = Path.GetExtension(f.Name) })];
         _preProcess = preProcess;
         return this;
     }
@@ -147,15 +177,14 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
 
     public IChatConfigurationBuilder WithFiles(List<string> file, bool preProcess = false)
     {
-        _files = file
+        _files = [.. file
             .Select(path =>
                 new FileInfo
                 {
                     Name = Path.GetFileName(path),
                     Path = path,
                     Extension = Path.GetExtension(path)
-                })
-            .ToList();
+                })];
         _preProcess = preProcess;
         return this;
     }
@@ -167,10 +196,14 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
     }
     
     public async Task<ChatResult> CompleteAsync(
-        bool translate = false,
-        bool interactive = false,
+        bool translate = false, // Move to WithTranslate
+        bool interactive = false, // Move to WithInteractive
         Func<LLMTokenValue?, Task>? changeOfValue = null)
     {
+        if (_chat.ModelInstance is null)
+        {
+            throw new MissingModelInstanceException();
+        }
         if (_chat.Messages.Count == 0)
         {
             throw new EmptyChatException(_chat.Id);
@@ -227,11 +260,8 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
         return await _chatService.GetById(_chat.Id);
     }
 
-    public async Task<List<Chat>> GetAllChats()
-    {
-        return await _chatService.GetAll();
-    }
-    
+    public async Task<List<Chat>> GetAllChats() => await _chatService.GetAll();
+
     public async Task DeleteChat()
     {
         if (_chat.Id == null)
@@ -244,11 +274,11 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
     
     public List<MessageShort> GetChatHistory()
     {
-        return _chat.Messages.Select(x => new MessageShort()
+        return [.. _chat.Messages.Select(x => new MessageShort()
         {
             Content = x.Content,
             Role = x.Role,
             Time = x.Time
-        }).ToList();
+        })];
     }
 }

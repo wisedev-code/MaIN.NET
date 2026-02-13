@@ -1,15 +1,5 @@
-﻿namespace MaIN.Domain.Entities;
+﻿using MaIN.Domain.Models.Abstract;
 
-public class TextToSpeechParams
-{
-    public string Model { get; set; }
-    public Voice Voice { get;  set; }
-    public bool Playback { get; set; }
+namespace MaIN.Domain.Entities;
 
-    public TextToSpeechParams(string model, Voice voice, bool playback = false)
-    {
-        Model = model;  
-        Voice = voice;
-        Playback = playback;
-    }
-}
+public sealed record TextToSpeechParams(AIModel Model, Voice Voice, bool Playback = false);

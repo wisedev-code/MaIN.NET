@@ -1,4 +1,5 @@
 ﻿using MaIN.Core.Hub;
+using MaIN.Domain.Models.Concrete;
 
 namespace Examples.Chat;
 
@@ -37,7 +38,7 @@ public class ChatWithFilesFromStreamExample : IExample
         }
         
         var result = await AIHub.Chat()
-            .WithModel("qwen2.5:0.5b")
+            .WithModel<Qwen2_5_0_5b>()
             .WithMessage("You have 2 documents in memory. Whats the difference of work between Galileo and Copernicus?. Give answer based on the documents.")
             .WithFiles(fileStreams)
             .CompleteAsync();
