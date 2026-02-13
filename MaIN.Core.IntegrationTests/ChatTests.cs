@@ -1,5 +1,6 @@
 ﻿using MaIN.Core.Hub;
 using MaIN.Domain.Entities;
+using MaIN.Domain.Models.Concrete;
 
 namespace MaIN.Core.IntegrationTests;
 
@@ -12,7 +13,7 @@ public class ChatTests : IntegrationTestBase
     [Fact]
     public async Task Should_AnswerQuestion_BasicChat()
     {
-        var context = AIHub.Chat().WithModel("gemma2:2b");
+        var context = AIHub.Chat().WithModel<Gemma2_2b>();
         
         var result = await context
             .WithMessage("Where the hedgehog goes at night?")
@@ -29,7 +30,7 @@ public class ChatTests : IntegrationTestBase
         List<string> files = ["./Files/Nicolaus_Copernicus.pdf", "./Files/Galileo_Galilei.pdf"];
         
         var result = await AIHub.Chat()
-            .WithModel("gemma2:2b")
+            .WithModel<Gemma2_2b>()
             .WithMessage("You have 2 documents in memory. Whats the difference of work between Galileo and Copernicus?. Give answer based on the documents.")
             .WithFiles(files)
             .CompleteAsync();
@@ -43,10 +44,11 @@ public class ChatTests : IntegrationTestBase
     public async Task Should_AnswerQuestion_FromExistingChat()
     {
         var result = AIHub.Chat()
-            .WithModel("qwen2.5:0.5b");
+            .WithModel<Qwen2_5_0_5b>();
         
         await result.WithMessage("What do you think about math theories?")
             .CompleteAsync();
+        
         
         await result.WithMessage("And about physics?")
             .CompleteAsync();
@@ -63,9 +65,8 @@ public class ChatTests : IntegrationTestBase
         List<string> images = ["./Files/gamex.jpg"];
         
         var result = await AIHub.Chat()
-            .WithModel("llama3.2:3b")
+            .WithModel<Llama3_2_3b>()
             .WithMessage("What is the title of game?")
-
             .WithMemoryParams(new MemoryParams
             {
                 AnswerTokens = 1000
@@ -120,7 +121,7 @@ public class ChatTests : IntegrationTestBase
         }
         
         var result = await AIHub.Chat()
-            .WithModel("gemma2:2b")
+            .WithModel<Gemma2_2b>()
             .WithMessage("You have 2 documents in memory. Whats the difference of work between Galileo and Copernicus?. Give answer based on the documents.")
             .WithFiles(fileStreams)
             .CompleteAsync();

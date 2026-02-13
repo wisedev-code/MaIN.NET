@@ -65,7 +65,7 @@ public class FetchDataStepHandler(
                     Role = "User"
                 }
             },
-            Model = context.Chat.Model,
+            ModelId = context.Chat.ModelId,
             Properties = context.Chat.Properties,
             MemoryParams = context.Chat.MemoryParams,
             InterferenceParams = context.Chat.InterferenceParams,

@@ -27,7 +27,7 @@ public class OpenAiImageGenService(
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
         var requestBody = new
         {
-            model = chat.Model,
+            model = chat.ModelId,
             prompt = BuildPromptFromChat(chat),
             size = ServiceConstants.Defaults.ImageSize
         };

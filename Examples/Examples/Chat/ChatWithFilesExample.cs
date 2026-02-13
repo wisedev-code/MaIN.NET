@@ -1,4 +1,5 @@
 using MaIN.Core.Hub;
+using MaIN.Domain.Models.Concrete;
 
 namespace Examples.Chat;
 
@@ -14,7 +15,7 @@ public class ChatWithFilesExample : IExample
         ];
         
         var result = await AIHub.Chat()
-            .WithModel("gemma3:4b")
+            .WithModel<Gemma3_4b>()
             .WithMessage("You have 2 documents in memory. Whats the difference of work between Galileo and Copernicus?. Give answer based on the documents.")
             .WithFiles(files)
             .DisableCache()

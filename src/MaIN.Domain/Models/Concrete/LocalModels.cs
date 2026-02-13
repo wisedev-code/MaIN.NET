@@ -1,0 +1,305 @@
+using MaIN.Domain.Models.Abstract;
+
+namespace MaIN.Domain.Models.Concrete;
+
+// ===== Gemma Family =====
+
+public sealed record Gemma2_2b() : LocalModel(
+    "gemma2-2b",
+    "Gemma2-2b.gguf",
+    new Uri("https://huggingface.co/Inza124/gemma2_2b/resolve/main/gemma2-2b-maIN.gguf?download=true"),
+    "Gemma 2B",
+    8192,
+    "Lightweight 2B model for general-purpose text generation and understanding");
+
+public sealed record Gemma3_4b() : LocalModel(
+    "gemma3-4b",
+    "Gemma3-4b.gguf",
+    new Uri("https://huggingface.co/Inza124/Gemma3-4b/resolve/main/gemma3-4b.gguf?download=true"),
+    "Gemma3 4B",
+    8192,
+    "Balanced 4B model for writing, analysis, and mathematical reasoning");
+
+public sealed record Gemma3_12b() : LocalModel(
+    "gemma3-12b",
+    "Gemma3-12b.gguf",
+    new Uri("https://huggingface.co/Inza124/Gemma3-12b/resolve/main/gemma3-12b.gguf?download=true"),
+    "Gemma3 12B",
+    8192,
+    "Large 12B model for complex analysis, research, and creative writing");
+
+public sealed record Gemma3n_e4b() : LocalModel(
+    "gemma3n-e4b",
+    "Gemma3n-e4b.gguf",
+    new Uri("https://huggingface.co/Inza124/Gemma-3n-e4b/resolve/main/gemma-3n-e4b.gguf?download=true"),
+    "Gemma3n E4B",
+    8192,
+    "Compact 4B model optimized for efficient reasoning and general-purpose tasks");
+
+// ===== Llama Family =====
+
+public sealed record Llama3_2_3b() : LocalModel(
+    "llama3.2-3b",
+    "Llama3.2-3b.gguf",
+    new Uri("https://huggingface.co/Inza124/Llama3.2_3b/resolve/main/Llama3.2-maIN.gguf?download=true"),
+    "Llama 3.2 3B",
+    8192,
+    "Lightweight 3B model for chatbots, content creation, and basic coding");
+
+public sealed record Llama3_1_8b() : LocalModel(
+    "llama3.1-8b",
+    "Llama3.1-8b.gguf",
+    new Uri("https://huggingface.co/Inza124/Llama3.1_8b/resolve/main/Llama3.1-maIN.gguf?download=true"),
+    "Llama 3.1 8B",
+    8192,
+    "Versatile 8B model for writing, coding, math, and general assistance");
+
+public sealed record Llava_7b() : LocalModel(
+    "llava-7b",
+    "Llava.gguf",
+    new Uri("https://huggingface.co/Inza124/Llava/resolve/main/Llava-maIN.gguf?download=true"),
+    "LLaVA 7B",
+    4096,
+    "Vision-language model for image analysis, OCR, and visual Q&A"), IVisionModel
+{
+    public string MMProjectName => "mmproj-model-llava-7b.gguf";
+}
+
+public sealed record Llava16Mistral_7b() : LocalModel(
+    "llava-1.6-mistral-7b",
+    "llava-1.6-mistral-7b.gguf",
+    new Uri("https://huggingface.co/cjpais/llava-1.6-mistral-7b-gguf/resolve/main/llava-v1.6-mistral-7b.Q3_K_XS.gguf?download=true"),
+    "LLaVA 1.6 Mistral 7B",
+    4096,
+    "Vision-language model for image analysis, OCR, and visual Q&A"), IVisionModel
+{
+    public string MMProjectName => "mmproj-model-llava16Mistral-7b.gguf";
+}
+
+// ===== Hermes Family =====
+
+public sealed record Hermes3_3b() : LocalModel(
+    "hermes3-3b",
+    "Hermes3-3b.gguf",
+    new Uri("https://huggingface.co/Inza124/Hermes3-3b/resolve/main/hermes3-3b.gguf?download=true"),
+    "Hermes 3 3B",
+    8192,
+    "Efficient 3B model for dialogue, roleplay, and conversational AI");
+
+public sealed record Hermes3_8b() : LocalModel(
+    "hermes3-8b",
+    "Hermes3-8b.gguf",
+    new Uri("https://huggingface.co/Inza124/Hermes3_8b/resolve/main/hermes3-8b.gguf?download=true"),
+    "Hermes 3 8B",
+    8192,
+    "Enhanced 8B model for complex dialogue, storytelling, and advice");
+
+// ===== Qwen Family =====
+
+public sealed record Qwen2_5_0_5b() : LocalModel(
+    "qwen2.5-0.5b",
+    "Qwen2.5-0.5b.gguf",
+    new Uri("https://huggingface.co/Inza124/Qwen2.5/resolve/main/Qwen2.5-maIN.gguf?download=true"),
+    "Qwen 2.5 0.5B",
+    4096,
+    "Ultra-lightweight 0.5B model for simple text completion and basic tasks");
+
+public sealed record Qwen2_5_Coder_3b() : LocalModel(
+    "qwen2.5-coder-3b",
+    "Qwen2.5-coder-3b.gguf",
+    new Uri("https://huggingface.co/Inza124/Qwen2.5-Coder-3b/resolve/main/Qwen2.5-coder-3b.gguf?download=true"),
+    "Qwen 2.5 Coder 3B",
+    8192,
+    "Compact 3B model for Python, JavaScript, bug fixing, and code review");
+
+public sealed record Qwen2_5_Coder_7b() : LocalModel(
+    "qwen2.5-coder-7b",
+    "Qwen2.5-coder-7b.gguf",
+    new Uri("https://huggingface.co/Inza124/Qwen2.5-Coder-7b/resolve/main/Qwen2.5-coder-7b.gguf?download=true"),
+    "Qwen 2.5 Coder 7B",
+    8192,
+    "Advanced 7B model for full-stack development, API design, and testing");
+
+public sealed record Qwen2_5_Coder_14b() : LocalModel(
+    "qwen2.5-coder-14b",
+    "Qwen2.5-coder-14b.gguf",
+    new Uri("https://huggingface.co/Inza124/Qwen2.5-Coder-14b/resolve/main/Qwen2.5-coder-14b.gguf?download=true"),
+    "Qwen 2.5 Coder 14B",
+    8192,
+    "Professional 14B model for system design, architecture, and code refactoring");
+
+public sealed record Qwen3_8b() : LocalModel(
+    "qwen3-8b",
+    "Qwen3-8b.gguf",
+    new Uri("https://huggingface.co/Inza124/Qwen3-8b/resolve/main/Qwen3-8b.gguf?download=true"),
+    "Qwen 3 8B",
+    8192,
+    "Fast 8B model for multilingual tasks, translation, and logical reasoning"
+    ), IReasoningModel
+{   
+    // IReasoningModel implementation
+    public Func<string, ThinkingState, LLMTokenValue>? ReasonFunction => ReasoningFunctions.ProcessDeepSeekToken;
+    public string? AdditionalPrompt => null;
+}
+
+public sealed record Qwen3_14b() : LocalModel(
+    "qwen3-14b",
+    "Qwen3-14b.gguf",
+    new Uri("https://huggingface.co/Inza124/Qwen3-14b/resolve/main/Qwen3-14b.gguf?download=true"),
+    "Qwen 3 14B",
+    8192,
+    "Advanced 14B model for complex reasoning, research, and document analysis"), IReasoningModel
+{
+    public Func<string, ThinkingState, LLMTokenValue>? ReasonFunction => ReasoningFunctions.ProcessDeepSeekToken;
+    public string? AdditionalPrompt => null;
+}
+
+public sealed record QwQ_7b() : LocalModel(
+    "qwq-7b",
+    "QwQ-7b.gguf",
+    new Uri("https://huggingface.co/Inza124/QwQ-7b/resolve/main/qwq-7b.gguf?download=true"),
+    "QwQ 7B",
+    8192,
+    "Reasoning-focused 7B model for step-by-step problem solving and analysis"), IReasoningModel
+{
+    public Func<string, ThinkingState, LLMTokenValue>? ReasonFunction => ReasoningFunctions.ProcessQwQ_QwenModToken;
+    public string? AdditionalPrompt => "- Output nothing before <think>, enclose all step-by-step reasoning (excluding the final answer) within <think>...</think>, and place the final answer immediately after the closing </think>";
+}
+
+// ===== DeepSeek Family =====
+
+public sealed record DeepSeek_R1_8b() : LocalModel(
+    "deepseekr1-8b",
+    "DeepSeekR1-8b.gguf",
+    new Uri("https://huggingface.co/Inza124/DeepseekR1-8b/resolve/main/DeepSeekR1-8b-maIN.gguf?download=true"),
+    "DeepSeek R1 8B",
+    8192,
+    "Advanced 8B model for math proofs, scientific reasoning, and logical puzzles"), IReasoningModel
+{
+    public Func<string, ThinkingState, LLMTokenValue>? ReasonFunction => ReasoningFunctions.ProcessDeepSeekToken;
+    public string? AdditionalPrompt => null;
+}
+
+public sealed record DeepSeek_R1_1_5b() : LocalModel(
+    "deepseekr1-1.5b",
+    "DeepSeekR1-1.5b.gguf",
+    new Uri("https://huggingface.co/Inza124/DeepseekR1-1.5b/resolve/main/DeepSeekR1-1.5b.gguf?download=true"),
+    "DeepSeek R1 1.5B",
+    4096,
+    "Compact 1.5B model for basic logic, simple math, and chain-of-thought tasks"), IReasoningModel
+{
+    public Func<string, ThinkingState, LLMTokenValue>? ReasonFunction => ReasoningFunctions.ProcessDeepSeekToken;
+    public string? AdditionalPrompt => null;
+}
+
+// ===== Phi Family =====
+
+public sealed record Phi3_5_3b() : LocalModel(
+    "phi3.5-3b",
+    "phi3.5-3b.gguf",
+    new Uri("https://huggingface.co/Inza124/phi3.5-3b/resolve/main/phi3.5-3b.gguf?download=true"),
+    "Phi 3.5 3B",
+    4096,
+    "Efficient 3B model for mobile apps, IoT devices, and edge computing");
+
+public sealed record Phi4_4b() : LocalModel(
+    "phi4-4b",
+    "phi4-4b.gguf",
+    new Uri("https://huggingface.co/Inza124/Phi4-4b/resolve/main/phi4-4b.gguf?download=true"),
+    "Phi 4 4B",
+    4096,
+    "Latest 4B model for factual Q&A, safety-focused applications, and education");
+
+// ===== Other Models =====
+
+public sealed record LFM2_1_2b() : LocalModel(
+    "lfm2-1.2b",
+    "lfm2-1.2b.gguf",
+    new Uri("https://huggingface.co/Inza124/Lfm2-1.2b/resolve/main/lfm2-1.2b.gguf?download=true"),
+    "LFM2 1.2B",
+    4096,
+    "Lightweight modern 1.2B model for fast inference and resource-constrained environments");
+
+public sealed record Minicpm4_8b() : LocalModel(
+    "minicpm4-8b",
+    "Minicpm4-8b.gguf",
+    new Uri("https://huggingface.co/Inza124/Minicpm4-8b/resolve/main/MiniCPM4-8b.gguf?download=true"),
+    "MiniCPM4 8B",
+    8192,
+    "Mid-size 8B model balancing performance and efficiency for diverse applications");
+
+public sealed record Mistral_3_2_24b() : LocalModel(
+    "mistral-3.2-24b",
+    "Mistral3.2-24b.gguf",
+    new Uri("https://huggingface.co/Inza124/Mistral3.2-24b/resolve/main/Mistral3.2-24b.gguf?download=true"),
+    "Mistral 3.2 24B",
+    8192,
+    "Large 24B model offering advanced reasoning and comprehensive knowledge for complex tasks");
+
+public sealed record Webgen_4b() : LocalModel(
+    "webgen-4b",
+    "webgen-4b.gguf",
+    new Uri("https://huggingface.co/Inza124/webgen-4b/resolve/main/Webgen-4b.gguf?download=true"),
+    "Webgen 4B",
+    8192,
+    "Specialized 4B model optimized for web development and code generation tasks");
+
+public sealed record Bielik_2_5_11b() : LocalModel(
+    "bielik-2.5-11b",
+    "Bielik2.5-11b.gguf",
+    new Uri("https://huggingface.co/Inza124/Bielik2.5-11b/resolve/main/Bielik2.5-11b.gguf?download=true"),
+    "Bielik 2.5 11B",
+    8192,
+    "Large 11B Polish language model with strong multilingual capabilities and reasoning");
+
+public sealed record OlympicCoder_7b() : LocalModel(
+    "olympiccoder-7b",
+    "Olympiccoder-7b.gguf",
+    new Uri("https://huggingface.co/Inza124/OlympicCoder-7b/resolve/main/OlympicCoder-7b.gguf?download=true"),
+    "OlympicCoder 7B",
+    8192,
+    "Specialized 7B model for algorithms, data structures, and contest programming");
+
+public sealed record Yi_6b() : LocalModel(
+    "yi-6b",
+    "Yi-6b.gguf",
+    new Uri("https://huggingface.co/Inza124/yi-6b/resolve/main/yi-6b.gguf?download=true"),
+    "Yi 6B",
+    4096,
+    "Bilingual 6B model for Chinese-English translation and cultural content");
+
+public sealed record Smollm2_0_1b() : LocalModel(
+    "smollm2-0.1b",
+    "Smollm2-0.1b.gguf",
+    new Uri("https://huggingface.co/Inza124/Smollm2-0.1b/resolve/main/smollm2-0.1b.gguf?download=true"),
+    "SmolLM2 0.1B",
+    2048,
+    "Tiny 0.1B model for keyword extraction, simple classification, and demos");
+
+public sealed record Olmo2_7b() : LocalModel(
+    "olmo2-7b",
+    "Olmo2-7b.gguf",
+    new Uri("https://huggingface.co/Inza124/Olmo2-7b/resolve/main/olmo2-7b.gguf?download=true"),
+    "OLMo2 7B",
+    8192,
+    "Open-source 7B model for research, benchmarking, and academic studies");
+
+// ===== Embedding Model =====
+
+public sealed record Nomic_Embedding() : LocalModel(
+    "nomic-embedding",
+    "nomicv2.gguf",
+    new Uri("https://huggingface.co/Inza124/Nomic/resolve/main/nomicv2.gguf?download=true"),
+    "Nomic Embedding",
+    8192,
+    "Model used to generate embeddings");
+
+// ===== TTS Model =====
+
+public sealed record Kokoro_82m() : LocalModel(
+    "kokoro-82m",
+    "kokoro.onnx",
+    new Uri("https://github.com/taylorchu/kokoro-onnx/releases/download/v0.2.0/kokoro.onnx"),
+    "Kokoro 82M",
+    4096,
+    "Frontier TTS model for its size of 82 million parameters (text in/audio out)"), ITTSModel;

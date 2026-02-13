@@ -1,5 +1,6 @@
 using MaIN.Core.Hub.Contexts;
 using MaIN.Domain.Entities;
+using MaIN.Domain.Models.Abstract;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
 using Moq;
@@ -11,11 +12,14 @@ public class ChatContextTests
 {
     private readonly Mock<IChatService> _mockChatService;
     private readonly ChatContext _chatContext;
+    private readonly string _testModelId = "test-model";
 
     public ChatContextTests()
     {
         _mockChatService = new Mock<IChatService>();
         _chatContext = new ChatContext(_mockChatService.Object);
+        var testModel = new GenericLocalModel(_testModelId);
+        ModelRegistry.RegisterOrReplace(testModel);
     }
 
     [Fact]
@@ -88,6 +92,7 @@ public class ChatContextTests
             .ReturnsAsync(chatResult);
         
         _chatContext.WithMessage("User message");
+        _chatContext.WithModel(new GenericLocalModel("test-model"));
 
         // Act
         var result = await _chatContext.CompleteAsync();
@@ -101,7 +106,7 @@ public class ChatContextTests
     public async Task GetCurrentChat_ShouldCallChatService()
     {
         // Arrange
-        var chat = new Chat { Id = _chatContext.GetChatId(), Model = "default", Name = "test"};
+        var chat = new Chat { Id = _chatContext.GetChatId(), ModelId = _testModelId , Name = "test"};
         _mockChatService.Setup(s => s.GetById(chat.Id)).ReturnsAsync(chat);
         
         // Act
@@ -109,5 +114,20 @@ public class ChatContextTests
         
         // Assert
         Assert.Equal(chat, result);
+    }
+
+    [Fact]
+    public async Task WithModel_ShouldSetModelIdAndInstance()
+    {
+        // Arrange
+        var model = new GenericLocalModel(_testModelId);
+
+        // Act
+        await _chatContext.WithModel(model)
+            .WithMessage("User message")
+            .CompleteAsync();
+        
+        // Assert
+        _mockChatService.Verify(s => s.Completions(It.Is<Chat>(c => c.ModelId == _testModelId && c.ModelInstance == model), It.IsAny<bool>(), It.IsAny<bool>(), null), Times.Once);
     }
 }

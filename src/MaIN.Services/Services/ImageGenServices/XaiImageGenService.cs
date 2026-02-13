@@ -28,7 +28,7 @@ public class XaiImageGenService(
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
         var requestBody = new
         {
-            model = string.IsNullOrWhiteSpace(chat.Model) ? Models.GROK_IMAGE : chat.Model,
+            model = string.IsNullOrWhiteSpace(chat.ModelId) ? Models.GROK_IMAGE : chat.ModelId,
             prompt = BuildPromptFromChat(chat),
             n = 1,
             response_format = "b64_json" //or "url"
