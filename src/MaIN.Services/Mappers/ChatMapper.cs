@@ -1,4 +1,3 @@
-using System.Text.Json;
 using LLama.Batched;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Models;
@@ -16,7 +15,7 @@ public static class ChatMapper
         {
             Id = chat.Id,
             Name = chat.Name,
-            Model = chat.Model,
+            Model = chat.ModelId,
             Messages = chat.Messages.Select(m => m.ToDto()).ToList(),
             Visual = chat.Visual,
             Type = Enum.Parse<ChatTypeDto>(chat.Type.ToString()),
@@ -45,7 +44,7 @@ public static class ChatMapper
         {
             Id = chat.Id!,
             Name = chat.Name!,
-            Model = chat.Model!,
+            ModelId = chat.Model!,
             Messages = chat.Messages?.Select(m => m.ToDomain()).ToList()!,
             Visual = chat.Model == ImageGenService.LocalImageModels.FLUX,
             Type = Enum.Parse<ChatType>(chat.Type.ToString()),
@@ -88,7 +87,7 @@ public static class ChatMapper
         {
             Id = chat.Id,
             Name = chat.Name,
-            Model = chat.Model,
+            Model = chat.ModelId,
             Messages = chat.Messages.Select(m => m.ToDocument()).ToList(),
             Visual = chat.Visual,
             Backend = chat.Backend,
@@ -107,7 +106,7 @@ public static class ChatMapper
         {
             Id = chat.Id,
             Name = chat.Name,
-            Model = chat.Model,
+            ModelId = chat.Model,
             Messages = chat.Messages.Select(m => m.ToDomain()).ToList(),
             Visual = chat.Visual,
             Backend = chat.Backend,

@@ -6,6 +6,7 @@
 @using MaIN.Core.Hub.Contexts
 @using MaIN.Domain.Configuration
 @using MaIN.Domain.Entities
+@using MaIN.Domain.Exceptions
 @using MaIN.Domain.Models
 @using Markdig
 @using Message = MaIN.Domain.Entities.Message
@@ -13,6 +14,8 @@
 <link rel="stylesheet" href="home.css">
 
 <PageTitle>MaIN Infer</PageTitle>
+
+<ErrorNotification @bind-ErrorMessage="_errorMessage" />
 
 <div class="chat-container">
 
@@ -52,7 +55,6 @@
                 }
                 else
                 {
-
                     <FluentCard class="@(conversation.Message.Role == "User" ? "message-card user-message" : "message-card bot-message")">
                         @if (conversation.Message.Role == "User" && conversation.AttachedFiles.Any())
                         {
@@ -83,11 +85,14 @@
                                     </div>
                                     <hr/>
                                 }
+                                @if (_reasoning && conversation.Message.Role == "Assistant")
+                                {
+                                    <FluentSwitch Label="Show reasoning"
+                                                  @bind-Value="@conversation.ShowReason"></FluentSwitch>
+                                }
                                 @((MarkupString)Markdown.ToHtml(GetMessageContent(conversation.Message), _markdownPipeline))
                             </div>
                         }
-
-
                     </FluentCard>
                 }
             }
@@ -96,11 +101,15 @@
         {
             @if (Chat.Visual)
             {
+                <FluentBadge Appearance="Appearance.Accent" Class="message-role-bot">@_displayName</FluentBadge>
                 <span class="message-role-bot" style="font-style: italic; font-size: small">This might take a while...</span>
+                <FluentProgressRing Visible="_isLoading" Color="#afffab"></FluentProgressRing>
             }
             else
             {
                 <FluentStack>
+                    <FluentBadge Appearance="Appearance.Accent" Class="message-role-bot">@_displayName</FluentBadge>
+                    <FluentProgressRing Width="20px" Visible="_isLoading"></FluentProgressRing>
                     @if (_isThinking)
                     {
                         <span class="message-role-bot"
@@ -120,7 +129,6 @@
                         {
                             @((MarkupString)Markdown.ToHtml(_incomingMessage ?? string.Empty, _markdownPipeline))
                         }
-
                     </FluentCard>
                 }
             }
@@ -148,7 +156,6 @@
                 <FluentButton Class="attachment-button"
                               IconStart="@(new Icons.Regular.Size28.Attach().WithColor(_accentColor))"
                               BackgroundColor="rgba(0, 0, 0, 0)"
-
                               Style="background-color: transparent; width: 100%; height: 100%; pointer-events: none;"
                               Appearance="Appearance.Lightweight"/>
             </div>
@@ -186,8 +193,10 @@
     private bool _isThinking;
     private bool _reasoning;
     private string _accentColor = "#00cca3";
+    private string? _errorMessage;
     private string? _incomingMessage;
     private string? _incomingReasoning;
+    private readonly string? _displayName = Utils.Model;
     private ChatContext? ctx;
     private CancellationTokenSource? _cancellationTokenSource;
     private Chat Chat { get; } = new() { Name = "MaIN Infer", Model = Utils.Model! };
@@ -222,7 +231,7 @@
             ? AIHub.Chat().EnableVisual()
             : Utils.Path != null
                 ? AIHub.Chat().WithCustomModel(model: Utils.Model!, path: Utils.Path)
-                : AIHub.Chat().WithModel(Utils.Model!); //If that grows with different chat types we can consider switch ex
+                : AIHub.Chat().WithModel(Utils.Model!);
 
         if (Utils.BackendType == BackendType.DeepSeek)
         {
@@ -291,7 +300,6 @@
             return;
         }
 
-        // Create new cancellation token source for this request
         _cancellationTokenSource?.Dispose();
         _cancellationTokenSource = new CancellationTokenSource();
         var cancellationToken = _cancellationTokenSource.Token;
@@ -302,13 +310,12 @@
         try
         {
             var attachments = new List<MaIN.Domain.Entities.FileInfo>();
-            // Buffer files to memory streams
             foreach (var file in _selectedFiles)
             {
                 try
                 {
                     var ms = new MemoryStream();
-                    await file.OpenReadStream(20 * 1024 * 1024).CopyToAsync(ms, cancellationToken); // 20MB limit
+                    await file.OpenReadStream(20 * 1024 * 1024).CopyToAsync(ms, cancellationToken);
                     ms.Position = 0;
                     attachments.Add(new MaIN.Domain.Entities.FileInfo
                     {
@@ -319,24 +326,22 @@
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Failed to read file {file.Name}: {ex.Message}");
-                    // Optionally notify user
+                    _errorMessage = $"Failed to read file {file.Name}: {ex.Message}";
                 }
             }
 
-            // Clear input after reading
             _selectedFiles.Clear();
             _inputKey++;
             StateHasChanged();
 
-            var newMsg = new Message 
-            { 
-                Role = "User", 
-                Content = msg, 
-                Type = GetMessageType() 
+            var newMsg = new Message
+            {
+                Role = "User",
+                Content = msg,
+                Type = GetMessageType()
             };
             Chat.Messages.Add(newMsg);
-            
+
             var attachedFileNames = attachments.Select(f => f.Name).ToList();
             Messages.Add(new MessageExt
             {
@@ -357,7 +362,6 @@
                 request.WithFiles(attachments);
             }
 
-            // Check for cancellation before starting the request
             cancellationToken.ThrowIfCancellationRequested();
 
             var completionTask = request.CompleteAsync(changeOfValue: async message =>
@@ -381,16 +385,16 @@
                 await InvokeAsync(StateHasChanged);
                 if (wasAtBottom)
                 {
-                    await InvokeAsync(async () => await JS.InvokeVoidAsync("scrollManager.scrollToBottomSmooth", _bottomElement));
+                    await InvokeAsync(async () =>
+                        await JS.InvokeVoidAsync("scrollManager.scrollToBottomSmooth", _bottomElement));
                 }
             });
 
-            // Wait for completion or cancellation
-            var response = await completionTask.WaitAsync(cancellationToken);
+            await completionTask.WaitAsync(cancellationToken);
 
-            var currentChat = (await ctx.GetCurrentChat());
+            var currentChat = await ctx.GetCurrentChat();
             Chat.Messages.Add(currentChat.Messages.Last());
-            
+
             RebuildMessagesWithFiles();
             _incomingReasoning = null;
             _incomingMessage = null;
@@ -398,72 +402,55 @@
         }
         catch (OperationCanceledException)
         {
-            Console.WriteLine("Request was cancelled by user");
-            
-            // Check if any partial response was generated
             bool hasPartialResponse = !string.IsNullOrWhiteSpace(_incomingMessage) || !string.IsNullOrWhiteSpace(_incomingReasoning);
-            
+
             if (hasPartialResponse)
             {
-                // Create a message with the partial response
-                var partialMsg = new Message 
-                { 
-                    Role = "Assistant", 
+                var partialMsg = new Message
+                {
+                    Role = "Assistant",
                     Content = _incomingMessage ?? string.Empty,
                     Type = GetMessageType(),
                     Time = DateTime.Now
                 };
 
-                // Add reasoning tokens if they exist
                 if (!string.IsNullOrWhiteSpace(_incomingReasoning))
-                {
-                    partialMsg.Tokens.Add(new LLMTokenValue 
-                    { 
-                        Text = _incomingReasoning, 
-                        Type = TokenType.Reason 
-                    });
-                }
+                    partialMsg.Tokens.Add(new LLMTokenValue { Text = _incomingReasoning, Type = TokenType.Reason });
 
-                // Add message tokens
                 if (!string.IsNullOrWhiteSpace(_incomingMessage))
-                {
-                    partialMsg.Tokens.Add(new LLMTokenValue 
-                    { 
-                        Text = _incomingMessage, 
-                        Type = TokenType.Message 
-                    });
-                }
+                    partialMsg.Tokens.Add(new LLMTokenValue { Text = _incomingMessage, Type = TokenType.Message });
 
                 Chat.Messages.Add(partialMsg);
                 RebuildMessagesWithFiles();
             }
             else
             {
-                // No response generated, remove the user message and file info
                 if (Chat.Messages.Count > 0 && Chat.Messages.Last().Role == "User")
-                {
                     Chat.Messages.RemoveAt(Chat.Messages.Count - 1);
-                }
-                
+
                 if (Messages.Count > 0 && Messages.Last().Message.Role == "User")
-                {
                     Messages.RemoveAt(Messages.Count - 1);
-                }
             }
-            
-            // Clean up incoming message buffers
+
             _incomingReasoning = null;
             _incomingMessage = null;
             StateHasChanged();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error sending message: {ex}");
-            // In a production app, show a toast or error message here
+            _errorMessage = null;
+            StateHasChanged();
+
+            _errorMessage = ex is MaINCustomException maInException
+                ? maInException.PublicErrorMessage
+                : ex.Message;
+
+            StateHasChanged();
         }
         finally
         {
             _isLoading = false;
+            _isThinking = false;
             StateHasChanged();
         }
     }
@@ -487,7 +474,7 @@
     private MessageType GetMessageType()
     {
         return Utils.IsLocal
-            ? MessageType.LocalLLM 
+            ? MessageType.LocalLLM
             : MessageType.CloudLLM;
     }
 
@@ -496,7 +483,7 @@
         var existingFilesMap = Messages
             .Where(m => m.AttachedFiles.Any())
             .ToDictionary(m => m.Message, m => m.AttachedFiles);
-        
+
         Messages = Chat.Messages.Select(x => new MessageExt
         {
             Message = x,
@@ -509,5 +496,4 @@
     {
         _cancellationTokenSource?.Dispose();
     }
-
 }

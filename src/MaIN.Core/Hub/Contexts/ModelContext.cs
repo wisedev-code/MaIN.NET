@@ -1,13 +1,17 @@
 using System.Diagnostics;
 using System.Net;
+using MaIN.Core.Hub.Contexts.Interfaces.ModelContext;
 using MaIN.Domain.Configuration;
-using MaIN.Domain.Models;
+using MaIN.Domain.Exceptions.Models;
+using MaIN.Domain.Exceptions.Models.LocalModels;
+using MaIN.Domain.Models.Abstract;
+using MaIN.Domain.Models.Concrete;
 using MaIN.Services.Constants;
 using MaIN.Services.Services.LLMService.Utils;
 
 namespace MaIN.Core.Hub.Contexts;
 
-public sealed class ModelContext
+public sealed class ModelContext : IModelContext
 {
     private readonly MaINSettings _settings;
     private readonly IHttpClientFactory _httpClientFactory;
@@ -15,7 +19,6 @@ public sealed class ModelContext
     private const int DefaultBufferSize = 8192;
     private const int FileStreamBufferSize = 65536;
     private const int ProgressUpdateIntervalMilliseconds = 1000;
-    private const string MissingModelName = "Model name cannot be null or empty";
     private static readonly TimeSpan DefaultHttpTimeout = TimeSpan.FromMinutes(30);
 
     internal ModelContext(MaINSettings settings, IHttpClientFactory httpClientFactory)
@@ -24,91 +27,133 @@ public sealed class ModelContext
         _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
     }
 
-    public List<Model> GetAll() => KnownModels.All();
+    public IEnumerable<AIModel> GetAll() => ModelRegistry.GetAll();
 
-    public Model GetModel(string model) => KnownModels.GetModel(model);
+    public IEnumerable<LocalModel> GetAllLocal() => ModelRegistry.GetAllLocal();
 
-    public Model GetEmbeddingModel() => KnownModels.GetEmbeddingModel();
+    public AIModel GetModel(string modelId) => ModelRegistry.GetById(modelId);
 
-    public bool Exists(string modelName)
+    public AIModel GetEmbeddingModel() => new Nomic_Embedding();
+
+    public bool Exists(string modelId)
     {
-        if (string.IsNullOrWhiteSpace(modelName))
+        if (string.IsNullOrWhiteSpace(modelId))
         {
-            throw new ArgumentException(nameof(modelName));
+            throw new MissingModelIdException(nameof(modelId));
         }
 
-        var model = KnownModels.GetModel(modelName);
-        var modelPath = GetModelFilePath(model.FileName);
+        var model = ModelRegistry.GetById(modelId);
+        if (model is not LocalModel localModel)
+        {
+            return false; // Cloud models don't have local files
+        }
+        
+        var modelPath = GetModelFilePath(localModel.FileName);
         return File.Exists(modelPath);
     }
 
-    public async Task<ModelContext> DownloadAsync(string modelName, CancellationToken cancellationToken = default)
+    public async Task<IModelContext> DownloadAsync(string modelId, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(modelName))
+        if (string.IsNullOrWhiteSpace(modelId))
         {
-            throw new ArgumentException(MissingModelName, nameof(modelName));
+            throw new MissingModelIdException(nameof(modelId));
         }
 
-        var model = KnownModels.GetModel(modelName);
-        await DownloadModelAsync(model.DownloadUrl!, model.FileName, cancellationToken);
+        var model = ModelRegistry.GetById(modelId) ?? throw new ModelNotSupportedException(modelId);
+        
+        if (model is not LocalModel localModel)
+        {
+            throw new InvalidModelTypeException(nameof(LocalModel));
+        }
+        
+        if (localModel.DownloadUrl is null)
+        {
+            throw new DownloadUrlNullOrEmptyException();
+        }
+        
+        await DownloadModelAsync(localModel.DownloadUrl.ToString(), localModel.FileName, cancellationToken);
         return this;
     }
 
-    public async Task<ModelContext> DownloadAsync(string model, string url)
+    public async Task<IModelContext> DownloadAsync(string modelId, string url, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(model))
+        if (string.IsNullOrWhiteSpace(modelId))
         {
-            throw new ArgumentException(MissingModelName, nameof(model));
+            throw new MissingModelIdException(nameof(modelId));
         }
 
         if (string.IsNullOrWhiteSpace(url))
         {
-            throw new ArgumentException("URL cannot be null or empty", nameof(url));
+            throw new DownloadUrlNullOrEmptyException();
         }
 
-        var fileName = $"{model}.gguf";
-        await DownloadModelAsync(url, fileName, CancellationToken.None);
+        var fileName = $"{modelId}.gguf";
+        await DownloadModelAsync(url, fileName, cancellationToken);
         
-        var filePath = GetModelFilePath(fileName);
-        KnownModels.AddModel(model, filePath);
+        // Register the newly downloaded model
+        var newModel = new GenericLocalModel(
+            FileName: fileName,
+            Name: modelId,
+            Id: modelId,
+            DownloadUrl: new Uri(url)
+        );
+        ModelRegistry.RegisterOrReplace(newModel);
+        
         return this;
     }
 
     [Obsolete("Use async method instead")]
-    public ModelContext Download(string modelName)
+    public IModelContext Download(string modelId)
     {
-        if (string.IsNullOrWhiteSpace(modelName))
+        if (string.IsNullOrWhiteSpace(modelId))
         {
-            throw new ArgumentException(MissingModelName, nameof(modelName));
+            throw new MissingModelIdException(nameof(modelId));
         }
 
-        var model = KnownModels.GetModel(modelName);
-        DownloadModelSync(model.DownloadUrl!, model.FileName);
+        var model = ModelRegistry.GetById(modelId) ?? throw new ModelNotSupportedException(modelId);
+        if (model is not LocalModel localModel)
+        {
+            throw new InvalidModelTypeException(nameof(LocalModel));
+        }
+
+        if (localModel.DownloadUrl is null)
+        {
+            throw new DownloadUrlNullOrEmptyException();
+        }
+
+        DownloadModelSync(localModel.DownloadUrl.ToString(), localModel.FileName);
         return this;
     }
 
-    [Obsolete("Obsolete async method instead")]
-    public ModelContext Download(string model, string url)
+    [Obsolete("Use async method instead")]
+    public IModelContext Download(string modelId, string url)
     {
-        if (string.IsNullOrWhiteSpace(model))
+        if (string.IsNullOrWhiteSpace(modelId))
         {
-            throw new ArgumentException(MissingModelName, nameof(model));
+            throw new MissingModelIdException(nameof(modelId));
         }
 
         if (string.IsNullOrWhiteSpace(url))
         {
-            throw new ArgumentException("URL cannot be null or empty", nameof(url));
+            throw new DownloadUrlNullOrEmptyException();
         }
 
-        var fileName = $"{model}.gguf";
+        var fileName = $"{modelId}.gguf";
         DownloadModelSync(url, fileName);
-        
-        var filePath = GetModelFilePath(fileName);
-        KnownModels.AddModel(model, filePath);
+
+        // Register the newly downloaded model
+        var newModel = new GenericLocalModel(
+            FileName: fileName,
+            Name: modelId,
+            Id: modelId,
+            DownloadUrl: new Uri(url)
+        );
+        ModelRegistry.RegisterOrReplace(newModel);
+
         return this;
     }
 
-    public ModelContext LoadToCache(Model model)
+    public IModelContext LoadToCache(LocalModel model)
     {
         ArgumentNullException.ThrowIfNull(model);
 
@@ -117,7 +162,7 @@ public sealed class ModelContext
         return this;
     }
 
-    public async Task<ModelContext> LoadToCacheAsync(Model model)
+    public async Task<IModelContext> LoadToCacheAsync(LocalModel model)
     {
         ArgumentNullException.ThrowIfNull(model);
 
@@ -152,7 +197,7 @@ public sealed class ModelContext
         }
     }
 
-    private async Task DownloadWithProgressAsync(HttpResponseMessage response, string filePath, string fileName, CancellationToken cancellationToken)
+    private static async Task DownloadWithProgressAsync(HttpResponseMessage response, string filePath, string fileName, CancellationToken cancellationToken)
     {
         var totalBytes = response.Content.Headers.ContentLength;
         var totalBytesRead = 0L;
@@ -170,10 +215,13 @@ public sealed class ModelContext
 
         while (true)
         {
-            var bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken);
-            if (bytesRead == 0) break;
+            var bytesRead = await contentStream.ReadAsync(buffer, cancellationToken);
+            if (bytesRead == 0)
+            {
+                break;
+            }
 
-            await fileStream.WriteAsync(buffer, 0, bytesRead, cancellationToken);
+            await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
             totalBytesRead += bytesRead;
 
             if (ShouldUpdateProgress(progressStopwatch))
@@ -272,7 +320,7 @@ public sealed class ModelContext
                          $"Speed: {FormatBytes((long)speed)}/s ETA: {eta:hh\\:mm\\:ss}");
 
             var (leftAfter, topAfter) = Console.GetCursorPosition();
-            int lengthDifference = leftBefore - leftAfter + (topBefore - topAfter) * Console.WindowWidth;
+            int lengthDifference = leftBefore - leftAfter + ((topBefore - topAfter) * Console.WindowWidth);
             while (lengthDifference > 0)
             {
                 Console.Write(' ');
@@ -300,7 +348,10 @@ public sealed class ModelContext
 
     private static string FormatBytes(long bytes)
     {
-        if (bytes == 0) return "0 Bytes";
+        if (bytes == 0)
+        {
+            return "0 Bytes";
+        }
 
         const int scale = 1024;
         string[] orders = ["GB", "MB", "KB", "Bytes"];
@@ -309,15 +360,18 @@ public sealed class ModelContext
         foreach (var order in orders)
         {
             if (bytes >= max)
+            {
                 return $"{decimal.Divide(bytes, max):##.##} {order}";
+            }
+
             max /= scale;
         }
 
         return "0 Bytes";
     }
 
-    private string ResolvePath(string? settingsModelsPath) =>
+    private static string ResolvePath(string? settingsModelsPath) =>
         settingsModelsPath
         ?? Environment.GetEnvironmentVariable("MaIN_ModelsPath")
-        ?? throw new InvalidOperationException("Models path not found in settings or environment variables");
+        ?? throw new ModelsPathNotFoundException();
 }

@@ -6,6 +6,8 @@ using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.LLMService.Memory;
 using Microsoft.Extensions.Logging;
 using System.Text;
+using MaIN.Domain.Exceptions;
+using MaIN.Services.Services.LLMService.Utils;
 
 namespace MaIN.Services.Services.LLMService;
 
@@ -26,15 +28,17 @@ public sealed class XaiService(
 
     protected override string GetApiKey()
     {
-        return _settings.XaiKey ?? Environment.GetEnvironmentVariable("XAI_API_KEY") ??
-            throw new InvalidOperationException("xAI Key not configured");
+        return _settings.XaiKey ?? Environment.GetEnvironmentVariable(LLMApiRegistry.Xai.ApiKeyEnvName) ??
+            throw new APIKeyNotConfiguredException(LLMApiRegistry.Xai.ApiName);
     }
+    
+    protected override string GetApiName() => LLMApiRegistry.Xai.ApiName;
 
     protected override void ValidateApiKey()
     {
-        if (string.IsNullOrEmpty(_settings.XaiKey) && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("XAI_API_KEY")))
+        if (string.IsNullOrEmpty(_settings.XaiKey) && string.IsNullOrEmpty(Environment.GetEnvironmentVariable(LLMApiRegistry.Xai.ApiKeyEnvName)))
         {
-            throw new InvalidOperationException("xAI Key not configured");
+            throw new APIKeyNotConfiguredException(LLMApiRegistry.Xai.ApiName);
         }
     }
 

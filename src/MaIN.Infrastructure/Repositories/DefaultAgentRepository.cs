@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using MaIN.Domain.Exceptions.Agents;
 using MaIN.Infrastructure.Models;
 using MaIN.Infrastructure.Repositories.Abstract;
 
@@ -20,7 +21,7 @@ public class DefaultAgentRepository : IAgentRepository
             throw new ArgumentNullException(nameof(agent));
             
         if (!_agents.TryAdd(agent.Id, agent))
-            throw new InvalidOperationException($"Agent with ID {agent.Id} already exists.");
+            throw new AgentAlreadyExistsException(agent.Id);
             
         await Task.CompletedTask;
     }
@@ -28,7 +29,7 @@ public class DefaultAgentRepository : IAgentRepository
     public async Task UpdateAgent(string id, AgentDocument agent)
     {
         if (!_agents.TryUpdate(id, agent, _agents.GetValueOrDefault(id)!))
-            throw new KeyNotFoundException($"Agent with ID {id} not found.");
+            throw new AgentNotFoundException(id);
             
         await Task.CompletedTask;
     }
@@ -36,7 +37,7 @@ public class DefaultAgentRepository : IAgentRepository
     public async Task DeleteAgent(string id)
     {
         if (!_agents.TryRemove(id, out _))
-            throw new KeyNotFoundException($"Agent with ID {id} not found.");
+            throw new AgentNotFoundException(id);
             
         await Task.CompletedTask;
     }

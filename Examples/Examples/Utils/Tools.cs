@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace Examples.Utils;
 
 public static class Tools

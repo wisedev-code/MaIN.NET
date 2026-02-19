@@ -1,7 +1,12 @@
-﻿namespace MaIN.Domain.Entities.Tools;
+using System.Text.Json.Serialization;
 
-public class FunctionCall
+namespace MaIN.Domain.Entities.Tools;
+
+public sealed record FunctionCall
 {
-    public string Name { get; set; } = null!;
-    public string Arguments { get; set; } = null!;
+    [JsonPropertyName("name")]
+    public string Name { get; init; } = string.Empty;
+
+    [JsonPropertyName("arguments")]
+    public string Arguments { get; init; } = "{}";
 }

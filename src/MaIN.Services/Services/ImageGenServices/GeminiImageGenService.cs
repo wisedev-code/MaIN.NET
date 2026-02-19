@@ -6,6 +6,8 @@ using MaIN.Services.Services.Models;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using MaIN.Domain.Exceptions;
+using MaIN.Services.Services.LLMService.Utils;
 
 namespace MaIN.Services.Services.ImageGenServices;
 
@@ -17,17 +19,17 @@ internal class GeminiImageGenService(IHttpClientFactory httpClientFactory, MaINS
     public async Task<ChatResult?> Send(Chat chat)
     {
         var client = _httpClientFactory.CreateClient(ServiceConstants.HttpClients.GeminiClient);
-        string apiKey = _settings.GeminiKey ?? Environment.GetEnvironmentVariable("GEMINI_API_KEY")
-            ?? throw new InvalidOperationException("Gemini API key is not configured");
+        string apiKey = _settings.GeminiKey ?? Environment.GetEnvironmentVariable(LLMApiRegistry.Gemini.ApiKeyEnvName)
+            ?? throw new APIKeyNotConfiguredException(LLMApiRegistry.Gemini.ApiName);
 
-        if (string.IsNullOrEmpty(chat.Model))
+        if (string.IsNullOrEmpty(chat.ModelId))
         {
-            chat.Model = Models.IMAGEN_GENERATE;
+            chat.ModelId = Models.IMAGEN_GENERATE;
         }
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
         var requestBody = new
         {
-            model = chat.Model,
+            model = chat.ModelId,
             prompt = BuildPromptFromChat(chat),
             response_format = "b64_json", // necessary for gemini api
             size = ServiceConstants.Defaults.ImageSize,

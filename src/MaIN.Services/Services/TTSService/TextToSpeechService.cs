@@ -1,13 +1,15 @@
 ﻿using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
+using MaIN.Domain.Exceptions.Models;
 using MaIN.Domain.Models;
+using MaIN.Domain.Models.Abstract;
 using NAudio.Wave;
 
 namespace MaIN.Services.Services.TTSService;
 
 public interface ITextToSpeechService
 {
-    Task<byte[]> Send(Message message, string modelName, Voice voice, bool playback);
+    Task<byte[]> Send(Message message, AIModel model, Voice voice, bool playback);
 }
 
 public class TextToSpeechService : ITextToSpeechService
@@ -22,10 +24,14 @@ public class TextToSpeechService : ITextToSpeechService
 #pragma warning restore CS0618 // Type or member is obsolete
     }
 
-    public async Task<byte[]> Send(Message message, string modelName, Voice voice, bool playback)
+    public async Task<byte[]> Send(Message message, AIModel model, Voice voice, bool playback)
     {
-        var model = KnownModels.GetModel(modelName);
-        var audioData = GenerateTtsAudio(Path.Combine(GetModelsPath(), model.FileName), voice, message.Content);
+        if (model is not LocalModel localModel)
+        {
+            throw new InvalidModelTypeException(nameof(LocalModel));
+        }
+
+        var audioData = GenerateTtsAudio(localModel.GetFullPath(), voice, message.Content);
 
         if (playback)
         {
@@ -93,16 +99,5 @@ public class TextToSpeechService : ITextToSpeechService
         {
             await Task.Delay(100);
         }
-    }
-
-    private string GetModelsPath()
-    {
-        var path = options.ModelsPath ?? Environment.GetEnvironmentVariable("MaIN_ModelsPath");
-        if (string.IsNullOrEmpty(path))
-        {
-            throw new InvalidOperationException("Models path not found in configuration or environment variables");
-        }
-
-        return path;
     }
 }

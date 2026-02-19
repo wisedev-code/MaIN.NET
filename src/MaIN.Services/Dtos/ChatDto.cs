@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace MaIN.Services.Dtos;
 
-public class ChatDto
+public record ChatDto
 {
     [JsonPropertyName("id")] 
     public string? Id { get; set; }

@@ -16,6 +16,7 @@ using MaIN.Domain.Entities;
 using MaIN.Services.Services.LLMService.Memory;
 using LLama.Common;
 using MaIN.Domain.Entities.Tools;
+using MaIN.Domain.Exceptions;
 
 namespace MaIN.Services.Services.LLMService;
 
@@ -43,6 +44,7 @@ public abstract class OpenAiCompatibleService(
     private const string ToolNameProperty = "ToolName";
 
     protected abstract string GetApiKey();
+    protected abstract string GetApiName();
     protected abstract void ValidateApiKey();
     protected virtual string HttpClientName => ServiceConstants.HttpClients.OpenAiClient;
     protected virtual string ChatCompletionsUrl => ServiceConstants.ApiUrls.OpenAiChatCompletions;
@@ -301,7 +303,10 @@ public abstract class OpenAiCompatibleService(
             HttpCompletionOption.ResponseHeadersRead,
             cancellationToken);
 
-        response.EnsureSuccessStatusCode();
+        if (!response.IsSuccessStatusCode)
+        {
+            await HandleApiError(response, cancellationToken);
+        }
 
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
         using var reader = new StreamReader(stream);
@@ -411,7 +416,11 @@ public abstract class OpenAiCompatibleService(
         var content = new StringContent(requestJson, Encoding.UTF8, MediaTypeNames.Application.Json);
 
         using var response = await client.PostAsync(ChatCompletionsUrl, content, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        
+        if (!response.IsSuccessStatusCode)
+        {
+            await HandleApiError(response, cancellationToken);
+        }
 
         var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
         var chatResponse = JsonSerializer.Deserialize<ChatCompletionResponse>(
@@ -520,7 +529,11 @@ public abstract class OpenAiCompatibleService(
         SetAuthorizationIfNeeded(client, GetApiKey());
 
         using var response = await client.GetAsync(ModelsUrl);
-        response.EnsureSuccessStatusCode();
+        
+        if (!response.IsSuccessStatusCode)
+        {
+            await HandleApiError(response);
+        }
 
         var responseJson = await response.Content.ReadAsStringAsync();
         var modelsResponse = JsonSerializer.Deserialize<OpenAiModelsResponse>(responseJson, 
@@ -603,7 +616,10 @@ public abstract class OpenAiCompatibleService(
             HttpCompletionOption.ResponseHeadersRead,
             cancellationToken);
 
-        response.EnsureSuccessStatusCode();
+        if (!response.IsSuccessStatusCode)
+        {
+            await HandleApiError(response, cancellationToken);
+        }
 
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
         using var reader = new StreamReader(stream);
@@ -650,6 +666,45 @@ public abstract class OpenAiCompatibleService(
         }
     }
 
+    private async Task HandleApiError(HttpResponseMessage response, CancellationToken cancellationToken = default)
+    {
+        var errorResponseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+        var errorMessage = ExtractApiErrorMessage(errorResponseBody);
+        
+        throw new LLMApiException(GetApiName(), response.StatusCode, errorMessage ?? errorResponseBody);
+    }
+
+    private static string? ExtractApiErrorMessage(string json)
+    {
+        try
+        {
+            using var jasonDocument = JsonDocument.Parse(json);
+            
+            if (jasonDocument.RootElement.ValueKind == JsonValueKind.Array)
+            {
+                var firstElement = jasonDocument.RootElement[0];
+                if (firstElement.TryGetProperty("error", out var arrayError) &&
+                    arrayError.TryGetProperty("message", out var arrayMessage))
+                {
+                    return arrayMessage.GetString();
+                }
+            }
+            else if (jasonDocument.RootElement.TryGetProperty("error", out var error) &&
+                     error.TryGetProperty("message", out var message))
+            {
+                return message.GetString();
+            }
+        }
+        catch (JsonException)
+        {
+            // If the response is not a valid JSON or doesn't match the expected schema,
+            // we fall back to the raw response body in the calling method.
+            return null;
+        }
+        
+        return null;
+    }
+
     protected virtual LLMTokenValue? ProcessChatCompletionChunk(string data)
     {
         var chunk = JsonSerializer.Deserialize<ChatCompletionChunk>(data,
@@ -679,7 +734,11 @@ public abstract class OpenAiCompatibleService(
         var content = new StringContent(requestJson, Encoding.UTF8, MediaTypeNames.Application.Json);
 
         using var response = await client.PostAsync(ChatCompletionsUrl, content, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        
+        if (!response.IsSuccessStatusCode)
+        {
+            await HandleApiError(response, cancellationToken);
+        }
 
         var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
         var chatResponse =
@@ -696,7 +755,7 @@ public abstract class OpenAiCompatibleService(
     {
         var requestBody = new Dictionary<string, object>
         {
-            ["model"] = chat.Model,
+            ["model"] = chat.ModelId,
             ["messages"] = BuildMessagesArray(conversation, chat, ImageType.AsUrl).Result,
             ["stream"] = stream
         };
@@ -777,7 +836,7 @@ public abstract class OpenAiCompatibleService(
         {
             Done = true,
             CreatedAt = DateTime.UtcNow,
-            Model = chat.Model,
+            Model = chat.ModelId,
             Message = new Message
             {
                 Content = content,
@@ -935,41 +994,6 @@ public abstract class OpenAiCompatibleService(
 
         return "image/jpeg";
     }
-}
-
-
-public class ToolDefinition
-{
-    public string Type { get; set; } = "function";
-    public FunctionDefinition Function { get; set; } = null!;
-    
-    [System.Text.Json.Serialization.JsonIgnore]
-    public Func<string, Task<string>>? Execute { get; set; }
-}
-
-public class FunctionDefinition
-{
-    public string Name { get; set; } = null!;
-    public string? Description { get; set; }
-    public object Parameters { get; set; } = null!;
-}
-
-public class ToolCall
-{
-    [JsonPropertyName("id")]
-    public string Id { get; set; } = null!;
-    [JsonPropertyName("type")]
-    public string Type { get; set; } = "function";
-    [JsonPropertyName("function")]
-    public FunctionCall Function { get; set; } = null!;
-}
-
-public class FunctionCall
-{
-    [JsonPropertyName("name")]
-    public string Name { get; set; } = null!;
-    [JsonPropertyName("arguments")]
-    public string Arguments { get; set; } = null!;
 }
 
 internal class ChatMessage

@@ -1,7 +1,7 @@
 using Examples.Utils;
 using MaIN.Core.Hub;
 using MaIN.Core.Hub.Utils;
-using MaIN.Domain.Configuration;
+using MaIN.Domain.Models.Concrete;
 
 namespace Examples.Chat;
 
@@ -10,11 +10,11 @@ public class ChatExampleToolsSimple : IExample
     public async Task Start()
     {
         OpenAiExample.Setup(); //We need to provide OpenAi API key
-        
-        Console.WriteLine("(OpenAi) ChatExample with tools is running!"); 
-        
+
+        Console.WriteLine("(OpenAi) ChatExample with tools is running!");
+
         await AIHub.Chat()
-            .WithModel("gpt-5-nano")
+            .WithModel<Gpt5Nano>()
             .WithMessage("What time is it right now?")
             .WithTools(new ToolsConfigurationBuilder()
                 .AddTool(

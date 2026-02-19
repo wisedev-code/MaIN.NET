@@ -4,6 +4,7 @@ using MaIN.Domain.Entities;
 using MaIN.Services.Constants;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.LLMService.Memory;
+using MaIN.Services.Services.LLMService.Utils;
 using MaIN.Services.Services.Models;
 using Microsoft.Extensions.Logging;
 
@@ -20,7 +21,7 @@ public sealed class OllamaService(
 {
     private readonly MaINSettings _settings = settings ?? throw new ArgumentNullException(nameof(settings));
 
-    private bool HasApiKey => !string.IsNullOrEmpty(_settings.OllamaKey) || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OLLAMA_API_KEY"));
+    private bool HasApiKey => !string.IsNullOrEmpty(_settings.OllamaKey) || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(LLMApiRegistry.Ollama.ApiKeyEnvName));
 
     protected override string HttpClientName => HasApiKey ? ServiceConstants.HttpClients.OllamaClient : ServiceConstants.HttpClients.OllamaLocalClient;
     protected override string ChatCompletionsUrl => HasApiKey ? ServiceConstants.ApiUrls.OllamaOpenAiChatCompletions : ServiceConstants.ApiUrls.OllamaLocalOpenAiChatCompletions;
@@ -28,8 +29,10 @@ public sealed class OllamaService(
 
     protected override string GetApiKey()
     {
-        return _settings.OllamaKey ?? Environment.GetEnvironmentVariable("OLLAMA_API_KEY") ?? string.Empty;
+        return _settings.OllamaKey ?? Environment.GetEnvironmentVariable(LLMApiRegistry.Ollama.ApiKeyEnvName) ?? string.Empty;
     }
+
+    protected override string GetApiName() => LLMApiRegistry.Ollama.ApiName;
 
     protected override void ValidateApiKey()
     {

@@ -1,4 +1,4 @@
-namespace MaIN.Services.Configuration;
+namespace MaIN.Domain.Configuration;
 
 public class MongoDbSettings
 {

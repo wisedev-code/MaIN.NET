@@ -94,7 +94,7 @@ else
         Console.WriteLine($"Model: {Utils.Model} is not supported");
         Environment.Exit(0);
     }
-    
+
     builder.Services.AddMaIN(builder.Configuration);
 }
 

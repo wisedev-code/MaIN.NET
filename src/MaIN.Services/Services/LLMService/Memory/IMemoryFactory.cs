@@ -1,7 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using LLama;
-using LLamaSharp.KernelMemory;
 using MaIN.Domain.Entities;
+using MaIN.Services.Services.LLMService.Memory.Embeddings;
 using Microsoft.KernelMemory;
 
 namespace MaIN.Services.Services.LLMService.Memory;

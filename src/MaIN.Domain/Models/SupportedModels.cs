@@ -1,5 +1,8 @@
+using MaIN.Domain.Exceptions.Models;
+
 namespace MaIN.Domain.Models;
 
+[Obsolete("Use AIModel and ModelRegistry instead. This class will be removed in future versions.")]
 public class Model
 {
     public required string Name { get; init; }
@@ -13,6 +16,7 @@ public class Model
     public bool HasReasoning() => ReasonFunction is not null;
 }
 
+[Obsolete("Use ModelRegistry instead. This class will be removed in future versions.")]
 public static class KnownModels
 {
     private static List<Model> Models { get; } =
@@ -263,8 +267,7 @@ public static class KnownModels
                                                    StringComparison.InvariantCultureIgnoreCase));
         if (model is null)
         {
-            //todo support domain specific exceptions
-            throw new Exception($"Model {name} is not supported");
+            throw new ModelNotSupportedException(name);
         }
 
         if (File.Exists(Path.Combine(path, model.FileName)))
@@ -272,7 +275,7 @@ public static class KnownModels
             return model;
         }
 
-        throw new Exception($"Model {name} is not downloaded");
+        throw new ModelNotDownloadedException(name);
     }
 
     public static Model? GetModelByFileName(string path, string fileName)
@@ -280,8 +283,7 @@ public static class KnownModels
         var isPresent = Models.Exists(x => x.FileName == fileName);
         if (!isPresent)
         {
-            //todo support domain specific exceptions
-            Console.WriteLine($"Model {fileName} is not supported");
+            Console.WriteLine($"{new ModelNotSupportedException(fileName).PublicErrorMessage}");
             return null;
         }
 
@@ -290,7 +292,7 @@ public static class KnownModels
             return Models.First(x => x.FileName == fileName);
         }
 
-        throw new Exception($"Model {fileName} is not downloaded");
+        throw new ModelNotDownloadedException(fileName);
     }
 
     public static void AddModel(string model, string path, string? mmProject = null)
@@ -313,8 +315,7 @@ public static class KnownModels
                                                    StringComparison.InvariantCultureIgnoreCase));
         if (model is null)
         {
-            //todo support domain specific exceptions
-            throw new NotSupportedException($"Model {modelName} is not supported");
+            throw new ModelNotSupportedException(modelName);
         }
 
         return model;
