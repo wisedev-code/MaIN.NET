@@ -72,15 +72,7 @@ public abstract class OpenAiCompatibleService(
             resultBuilder.Append(memoryResult!.Message.Content);
             lastMessage.MarkProcessed();
             UpdateSessionCache(chat.Id, resultBuilder.ToString(), options.CreateSession);
-            if (options.TokenCallback != null)
-            {
-                await InvokeTokenCallbackAsync(options.TokenCallback, new LLMTokenValue()
-                {
-                    Text = resultBuilder.ToString(),
-                    Type = TokenType.FullAnswer
-                });
-            }
-            return CreateChatResult(chat, resultBuilder.ToString(), tokens);
+            return CreateChatResult(chat, resultBuilder.ToString(), memoryResult.Message.Tokens);
         }
 
         if (chat.ToolsConfiguration?.Tools != null && chat.ToolsConfiguration.Tools.Any())
@@ -457,11 +449,12 @@ public abstract class OpenAiCompatibleService(
         }
         
         MemoryAnswer retrievedContext;
+        var tokens = new List<LLMTokenValue>();
 
         if (requestOptions.InteractiveUpdates || requestOptions.TokenCallback != null)
         {
             var responseBuilder = new StringBuilder();
-        
+
             var searchOptions = new SearchOptions
             {
                 Stream = true
@@ -475,12 +468,14 @@ public abstract class OpenAiCompatibleService(
                 if (!string.IsNullOrEmpty(chunk.Result))
                 {
                     responseBuilder.Append(chunk.Result);
-                    
+
                     var tokenValue = new LLMTokenValue
                     {
                         Text = chunk.Result,
                         Type = TokenType.Message
                     };
+
+                    tokens.Add(tokenValue);
 
                     if (requestOptions.InteractiveUpdates)
                     {
@@ -489,10 +484,10 @@ public abstract class OpenAiCompatibleService(
                             ServiceConstants.Notifications.ReceiveMessageUpdate);
                     }
 
-                    requestOptions.TokenCallback?.Invoke(tokenValue);
+                    await InvokeTokenCallbackAsync(requestOptions.TokenCallback, tokenValue);
                 }
             }
-            
+
             retrievedContext = new MemoryAnswer
             {
                 Question = userQuery,
@@ -512,9 +507,9 @@ public abstract class OpenAiCompatibleService(
                 options: searchOptions,
                 cancellationToken: cancellationToken);
         }
-        
+
         await kernel.DeleteIndexAsync(cancellationToken: cancellationToken);
-        return CreateChatResult(chat, retrievedContext.Result, []);
+        return CreateChatResult(chat, retrievedContext.Result, tokens);
     }
 
     public virtual async Task<string[]> GetCurrentModels()

@@ -55,7 +55,7 @@ public sealed class GroqCloudService(
 
         chat.Messages.Last().Content = message.Content;
         chat.Messages.Last().Files = [];
-        var result = await Send(chat, new ChatRequestOptions(), cancellationToken);
+        var result = await Send(chat, requestOptions, cancellationToken);
         chat.Messages.Last().Content = lastMsg.Content;
         return result;
     }
