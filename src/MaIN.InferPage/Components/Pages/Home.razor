@@ -78,18 +78,23 @@
                         else
                         {
                             <div>
-                                @if (conversation.ShowReason)
-                                {
-                                    <div class="thinker"
-                                         style="border-radius: 10px; padding: 10px; border-width: 2px; background-color: var(--neutral-fill-hover)">
-                                        @((MarkupString)Markdown.ToHtml(GetReasoningContent(conversation.Message), _markdownPipeline))
-                                    </div>
-                                    <hr/>
-                                }
                                 @if (_reasoning && conversation.Message.Role == "Assistant")
                                 {
-                                    <FluentSwitch Label="Show reasoning"
-                                                  @bind-Value="@conversation.ShowReason"></FluentSwitch>
+                                    <div class="reasoning-row">
+                                        <span class="brain-toggle" title="@(conversation.ShowReason ? "Hide reasoning" : "Show reasoning")"
+                                              @onclick="@(() => { _preserveScroll = true; conversation.ShowReason = !conversation.ShowReason; })">
+                                            <FluentIcon Value="@(new Icons.Regular.Size24.Brain())"
+                                                        Style="@($"fill: {(conversation.ShowReason ? "var(--accent-base-color)" : "var(--neutral-foreground-hint)")};")"/>
+                                        </span>
+                                        @if (conversation.ShowReason)
+                                        {
+                                            <div class="thinker reasoning-text"
+                                                 style="border-radius: 10px; padding: 10px; border-width: 2px; background-color: var(--neutral-fill-hover)">
+                                                @((MarkupString)Markdown.ToHtml(GetReasoningContent(conversation.Message), _markdownPipeline))
+                                            </div>
+                                        }
+                                    </div>
+                                    <hr class="reasoning-hr"/>
                                 }
                                 @((MarkupString)Markdown.ToHtml(GetMessageContent(conversation.Message), _markdownPipeline))
                             </div>
@@ -102,21 +107,10 @@
         {
             @if (Chat.Visual)
             {
-                <FluentBadge Appearance="Appearance.Accent" Class="message-role-bot">@_displayName</FluentBadge>
                 <span class="message-role-bot" style="font-style: italic; font-size: small">This might take a while...</span>
-                <FluentProgressRing Visible="_isLoading" Color="#afffab"></FluentProgressRing>
             }
             else
             {
-                <FluentStack>
-                    <FluentBadge Appearance="Appearance.Accent" Class="message-role-bot">@_displayName</FluentBadge>
-                    <FluentProgressRing Width="20px" Visible="_isLoading"></FluentProgressRing>
-                    @if (_isThinking)
-                    {
-                        <span class="message-role-bot"
-                              style="font-style: italic; font-size: small">Thinking...</span>
-                    }
-                </FluentStack>
                 @if (_incomingMessage != null || _incomingReasoning != null)
                 {
                     <FluentCard class="message-card bot-message">
@@ -193,6 +187,7 @@
     private bool _isLoading;
     private bool _isThinking;
     private bool _reasoning;
+    private bool _preserveScroll;
     private string _accentColor = "#00cca3";
     private string? _errorMessage;
     private string? _incomingMessage;
@@ -220,9 +215,13 @@
             _accentColor = (theme == "dark" || theme == "system-dark") ? "#00ffcc" : "#00cca3";
             StateHasChanged();
         }
-        else
+        else if (!_preserveScroll)
         {
             await JS.InvokeVoidAsync("scrollManager.restoreScrollPosition", "messages-container");
+        }
+        else
+        {
+            _preserveScroll = false;
         }
     }
 

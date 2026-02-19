@@ -205,6 +205,37 @@ body {
     font-size: smaller !important;
 }
 
+.reasoning-row {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.brain-toggle {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    margin-top: 10px;
+    cursor: pointer;
+    opacity: 0.85;
+    transition: opacity 0.15s;
+}
+
+.brain-toggle:hover {
+    opacity: 1;
+}
+
+.reasoning-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.reasoning-hr {
+    margin: 6px 0;
+}
+
 .message-card-img {
     margin-bottom: 15px;
     width: 80%;
