@@ -190,7 +190,7 @@ public class LLMService : ILLMService
                 cancellationToken: cancellationToken);
         }
 
-        await memory.km.DeleteIndexAsync(cancellationToken: cancellationToken);
+        await km.DeleteIndexAsync(cancellationToken: cancellationToken);
 
         if (disableCache)
         {

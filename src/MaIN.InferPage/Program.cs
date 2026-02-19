@@ -1,7 +1,7 @@
 using MaIN.Core;
 using MaIN.Domain;
 using MaIN.Domain.Configuration;
-using MaIN.Domain.Models;
+using MaIN.Domain.Models.Abstract;
 using Microsoft.FluentUI.AspNetCore.Components;
 using MaIN.InferPage.Components;
 using Utils = MaIN.InferPage.Utils;
@@ -17,29 +17,6 @@ try
     var modelPathArg = builder.Configuration["path"];
     var backendArg = builder.Configuration["backend"];
 
-    if (!string.IsNullOrEmpty(modelArg))
-    {
-        Utils.Model = modelArg;
-
-        if (string.IsNullOrEmpty(modelPathArg))
-        {
-            Console.WriteLine("Error: A model path must be provided using --path when a model is specified.");
-            return;
-        }
-        Utils.Path = modelPathArg;
-
-        var envModelsPath = Environment.GetEnvironmentVariable("MaIN_ModelsPath");
-        if (string.IsNullOrEmpty(envModelsPath))
-        {
-            Console.Write("Please enter the MaIN_ModelsPath: ");
-            envModelsPath = Console.ReadLine();
-            Environment.SetEnvironmentVariable("MaIN_ModelsPath", envModelsPath);
-        }
-    }
-    else
-    {
-        Console.WriteLine("No model argument provided. Continuing without model configuration.");
-    }
 
     if (backendArg != null)
     {
@@ -73,6 +50,33 @@ try
             }
         }
     }
+
+    if (!string.IsNullOrEmpty(modelArg))
+    {
+        Utils.Model = modelArg;
+        Utils.Path = modelPathArg;
+
+        if (Utils.BackendType == BackendType.Self)
+        {
+            if (string.IsNullOrEmpty(modelPathArg))
+            {
+                Console.WriteLine("Error: A model path must be provided using --path when a local model is specified.");
+                return;
+            }
+
+            var envModelsPath = Environment.GetEnvironmentVariable("MaIN_ModelsPath");
+            if (string.IsNullOrEmpty(envModelsPath))
+            {
+                Console.Write("Please enter the MaIN_ModelsPath: ");
+                envModelsPath = Console.ReadLine();
+                Environment.SetEnvironmentVariable("MaIN_ModelsPath", envModelsPath);
+            }
+        }
+    }
+    else
+    {
+        Console.WriteLine("No model argument provided. Continuing without model configuration.");
+    }
 }
 catch (Exception ex)
 {
@@ -89,7 +93,7 @@ if (Utils.BackendType != BackendType.Self)
 }
 else
 {
-    if (Utils.Path == null && !KnownModels.IsModelSupported(Utils.Model!))
+    if (Utils.Path == null && !ModelRegistry.Exists(Utils.Model!))
     {
         Console.WriteLine($"Model: {Utils.Model} is not supported");
         Environment.Exit(0);

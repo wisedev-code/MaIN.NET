@@ -3,11 +3,12 @@
 @inject IJSRuntime JS
 @implements IDisposable
 @using MaIN.Core.Hub
-@using MaIN.Core.Hub.Contexts
+@using MaIN.Core.Hub.Contexts.Interfaces.ChatContext
 @using MaIN.Domain.Configuration
 @using MaIN.Domain.Entities
 @using MaIN.Domain.Exceptions
 @using MaIN.Domain.Models
+@using MaIN.Domain.Models.Abstract
 @using Markdig
 @using Message = MaIN.Domain.Entities.Message
 @using MessageType = MaIN.Domain.Entities.MessageType
@@ -163,7 +164,7 @@
             <div class="input-content-wrapper">
                 <div @ref="_editorRef"
                      class="chat-input"
-                     contenteditable="@(!_isLoading ? "true" : "false")"
+                     contenteditable="@(!_isLoading)"
                      data-placeholder="Enter your prompt here..."
                      @onkeydown="HandleKeyDown"
                      @oninput="HandleInput"></div>
@@ -197,9 +198,9 @@
     private string? _incomingMessage;
     private string? _incomingReasoning;
     private readonly string? _displayName = Utils.Model;
-    private ChatContext? ctx;
+    private IChatMessageBuilder? ctx;
     private CancellationTokenSource? _cancellationTokenSource;
-    private Chat Chat { get; } = new() { Name = "MaIN Infer", Model = Utils.Model! };
+    private Chat Chat { get; } = new() { Name = "MaIN Infer", ModelId = Utils.Model! };
     private List<MessageExt> Messages { get; set; } = new();
     private ElementReference? _bottomElement;
     private ElementReference _editorRef;
@@ -227,29 +228,26 @@
 
     protected override Task OnInitializedAsync()
     {
-        ctx = Utils.Visual
-            ? AIHub.Chat().EnableVisual()
-            : Utils.Path != null
-                ? AIHub.Chat().WithCustomModel(model: Utils.Model!, path: Utils.Path)
-                : AIHub.Chat().WithModel(Utils.Model!);
+        try
+        {
+            ctx = Utils.Visual
+                ? AIHub.Chat().EnableVisual()
+                : Utils.BackendType == BackendType.Self && Utils.Path != null
+                    ? AIHub.Chat().WithModel(new GenericLocalModel(FileName: Utils.Model!, CustomPath: Utils.Path))
+                    : AIHub.Chat().WithModel(ModelRegistry.GetById(Utils.Model!));
+        }
+        catch (MaINCustomException ex)
+        {
+            _errorMessage = ex.PublicErrorMessage;
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
 
-        if (Utils.BackendType == BackendType.DeepSeek)
-        {
-            _reasoning = Utils.Model!.ToLower().Contains("reasoner");
-            Utils.Reason = _reasoning;
-        }
-        else if (Utils.BackendType == BackendType.OpenAi)
-        {
-            try
-            {
-                _reasoning = !Utils.Visual && KnownModels.GetModel(Utils.Model!).HasReasoning();
-            }
-            catch
-            {
-                _reasoning = false;
-            }
-            Utils.Reason = _reasoning;
-        }
+        var model = ModelRegistry.TryGetById(Utils.Model!, out var foundModel) ? foundModel : null;
+        _reasoning = !Utils.Visual && model?.HasReasoning == true;
+        Utils.Reason = _reasoning;
 
         return base.OnInitializedAsync();
     }
@@ -309,7 +307,7 @@
 
         try
         {
-            var attachments = new List<MaIN.Domain.Entities.FileInfo>();
+            var attachments = new List<FileInfo>();
             foreach (var file in _selectedFiles)
             {
                 try
@@ -317,10 +315,10 @@
                     var ms = new MemoryStream();
                     await file.OpenReadStream(20 * 1024 * 1024).CopyToAsync(ms, cancellationToken);
                     ms.Position = 0;
-                    attachments.Add(new MaIN.Domain.Entities.FileInfo
+                    attachments.Add(new FileInfo
                     {
                         Name = file.Name,
-                        Extension = System.IO.Path.GetExtension(file.Name),
+                        Extension = Path.GetExtension(file.Name),
                         StreamContent = ms
                     });
                 }
@@ -349,7 +347,7 @@
                 AttachedFiles = attachedFileNames
             });
 
-            Chat.Model = Utils.Model!;
+            Chat.ModelId = Utils.Model!;
             Chat.Visual = Utils.Visual;
 
             StateHasChanged();
@@ -385,8 +383,7 @@
                 await InvokeAsync(StateHasChanged);
                 if (wasAtBottom)
                 {
-                    await InvokeAsync(async () =>
-                        await JS.InvokeVoidAsync("scrollManager.scrollToBottomSmooth", _bottomElement));
+                    await InvokeAsync(async () => await JS.InvokeVoidAsync("scrollManager.scrollToBottomSmooth", cancellationToken, _bottomElement));
                 }
             });
 
