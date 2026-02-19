@@ -16,7 +16,7 @@
 
 <div class="chat-container">
 
-    <FluentProgress Visible="@(_isLoading)" Style="width: 100%; margin: 0;"/>
+    <FluentProgress Visible="@(_isLoading)" Style="width: 100%; margin: 0; color: var(--accent-base-color)"/>
 
     <div class="messages-container" id="messages-container">
         @foreach (var conversation in Messages)
@@ -136,7 +136,7 @@
                     <div class="file-badge" title="@file.Name">
                         <span class="file-name">@file.Name</span>
                         <span class="dismiss-button" @onclick="@(() => RemoveFile(file))">
-                            <FluentIcon Value="@(new Icons.Regular.Size12.Dismiss())"/>
+                            <FluentIcon Value="@(new Icons.Regular.Size12.Dismiss())" Style="fill: var(--accent-base-color)" />
                         </span>
                     </div>
                 }
@@ -146,8 +146,9 @@
             <div class="attachment-wrapper">
                 <InputFile @key="@_inputKey" OnChange="@HandleFileSelected" class="file-input-overlay" multiple/>
                 <FluentButton Class="attachment-button"
-                              IconStart="@(new Icons.Regular.Size28.Attach())"
+                              IconStart="@(new Icons.Regular.Size28.Attach().WithColor(_accentColor))"
                               BackgroundColor="rgba(0, 0, 0, 0)"
+
                               Style="background-color: transparent; width: 100%; height: 100%; pointer-events: none;"
                               Appearance="Appearance.Lightweight"/>
             </div>
@@ -162,7 +163,7 @@
             </div>
 
             <FluentButton class="send-button"
-                          IconStart="@(new Icons.Regular.Size28.Send())"
+                          IconStart="@(new Icons.Regular.Size28.Send().WithColor(_accentColor))"
                           BackgroundColor="rgba(0, 0, 0, 0)"
                           Style="@(_isLoading ? "display: none;" : "background-color: transparent; margin-bottom: 2px;")"
                           Appearance="Appearance.Lightweight"
@@ -170,7 +171,7 @@
             </FluentButton>
 
             <FluentButton class="stop-button"
-                          IconStart="@(new Icons.Filled.Size28.RecordStop())"
+                          IconStart="@(new Icons.Filled.Size28.RecordStop().WithColor(_accentColor))"
                           BackgroundColor="rgba(0, 0, 0, 0)"
                           Style="@(_isLoading ? "background-color: transparent; margin-bottom: 2px;" : "display: none;")"
                           Appearance="Appearance.Lightweight"
@@ -184,6 +185,7 @@
     private bool _isLoading;
     private bool _isThinking;
     private bool _reasoning;
+    private string _accentColor = "#00cca3";
     private string? _incomingMessage;
     private string? _incomingReasoning;
     private ChatContext? ctx;
@@ -202,7 +204,13 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender)
+        if (firstRender)
+        {
+            var theme = await JS.InvokeAsync<string>("eval", "document.body.dataset.theme ?? ''");
+            _accentColor = (theme == "dark" || theme == "system-dark") ? "#00ffcc" : "#00cca3";
+            StateHasChanged();
+        }
+        else
         {
             await JS.InvokeVoidAsync("scrollManager.restoreScrollPosition", "messages-container");
         }
@@ -492,7 +500,8 @@
         Messages = Chat.Messages.Select(x => new MessageExt
         {
             Message = x,
-            AttachedFiles = existingFilesMap.TryGetValue(x, out var files) ? files : new List<string>()
+            AttachedFiles = existingFilesMap.TryGetValue(x, out var files) ? files : new List<string>(),
+            ShowReason = x.Tokens.Any(t => t.Type == TokenType.Reason)
         }).ToList();
     }
 

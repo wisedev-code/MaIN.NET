@@ -14,34 +14,37 @@
         BackgroundColor="@GetBackendColor()"
         Color="#fff"
         Style="margin-left: 10px">@GetBackendDisplayName()</FluentBadge>
-<FluentBadge 
-    Appearance="Appearance.Neutral"
-    Fill="highlight" 
-    BackgroundColor="#ffd800;"
-    Color="#000"
-    Style="margin-left: 10px">@Utils.Model</FluentBadge>
-@if (Utils.Reason)
-{
     <FluentBadge
-        Appearance="Appearance.Accent"
+        Appearance="Appearance.Neutral"
+        Fill="highlight"
         BackgroundColor="#ffd800;"
         Color="#000"
-        Style="margin-left: 10px">Reasoning ✨</FluentBadge>
-}
-<div  style="margin-left: auto; align-self: flex-end;">
-    <FluentButton Style="padding: 10px"
-                  Appearance="Appearance.Stealth"
-                  OnClick="@Reload" IconStart="@(new Icons.Filled.Size20.ArrowClockwise())">
-    </FluentButton>
-    <FluentButton
-                  Appearance="Appearance.Stealth"
-                  OnClick="@SetTheme" IconStart="@(new Size24.WeatherMoon())">
-    </FluentButton>
+        Style="margin-left: 10px">@Utils.Model</FluentBadge>
+    @if (Utils.Reason)
+    {
+        <FluentBadge
+            Appearance="Appearance.Accent"
+            BackgroundColor="#ffd800;"
+            Color="#000"
+            Style="margin-left: 10px">Reasoning ✨</FluentBadge>
+    }
+    <div  style="margin-left: auto; align-self: flex-end;">
+        <FluentButton Style="padding: 10px; background-color: transparent;"
+                      BackgroundColor="rgba(0, 0, 0, 0)"
+                      Appearance="Appearance.Lightweight"
+                      OnClick="@Reload" IconStart="@(new Icons.Filled.Size24.ArrowClockwise().WithColor(AccentColor))">
+        </FluentButton>
+        <FluentButton Style="background-color: transparent;"
+                      BackgroundColor="rgba(0, 0, 0, 0)"
+                      Appearance="Appearance.Lightweight"
+                      OnClick="@SetTheme" IconStart="@(new Size24.WeatherMoon().WithColor(AccentColor))">
+        </FluentButton>
     </div>
 </header>
 
 @code {
     private DesignThemeModes Mode { get; set; }
+    private string AccentColor => Mode == DesignThemeModes.Dark ? "#00ffcc" : "#00cca3";
 
     private void SetTheme()
     {
