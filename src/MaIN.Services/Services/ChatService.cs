@@ -30,13 +30,14 @@ public class ChatService(
         Chat chat,
         bool translate = false,
         bool interactiveUpdates = false,
-        Func<LLMTokenValue?, Task>? changeOfValue = null)
+        Func<LLMTokenValue?, Task>? changeOfValue = null,
+        CancellationToken cancellationToken = default)
     {
         if (chat.ModelId == ImageGenService.LocalImageModels.FLUX) 
         {
             chat.Visual = true; // TODO: add IImageGenModel interface and check for that instead
         }
-        chat.Backend ??= chat.ModelInstance?.Backend ?? settings.BackendType;
+        chat.Backend = settings.BackendType;
 
         chat.Messages.Where(x => x.Type == MessageType.NotSet).ToList()
             .ForEach(x => x.Type = chat.Backend != BackendType.Self ? MessageType.CloudLLM : MessageType.LocalLLM);
@@ -59,13 +60,13 @@ public class ChatService(
             }))];
         }
 
-        var result = chat.Visual 
-            ? await imageGenServiceFactory.CreateService(chat.Backend.Value)!.Send(chat) 
+        var result = chat.Visual
+            ? await imageGenServiceFactory.CreateService(chat.Backend.Value)!.Send(chat)
             : await llmServiceFactory.CreateService(chat.Backend.Value).Send(chat, new ChatRequestOptions()
             {
                 InteractiveUpdates = interactiveUpdates,
                 TokenCallback = changeOfValue
-            });
+            }, cancellationToken);
 
         if (translate)
         {

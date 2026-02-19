@@ -626,6 +626,8 @@ public abstract class OpenAiCompatibleService(
 
         while (!reader.EndOfStream)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             var line = await reader.ReadLineAsync(cancellationToken);
             if (string.IsNullOrWhiteSpace(line))
                 continue;

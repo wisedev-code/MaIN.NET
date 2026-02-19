@@ -384,7 +384,7 @@
                 {
                     await InvokeAsync(async () => await JS.InvokeVoidAsync("scrollManager.scrollToBottomSmooth", cancellationToken, _bottomElement));
                 }
-            });
+            }, cancellationToken: cancellationToken);
 
             await completionTask.WaitAsync(cancellationToken);
 

@@ -198,7 +198,8 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
     public async Task<ChatResult> CompleteAsync(
         bool translate = false, // Move to WithTranslate
         bool interactive = false, // Move to WithInteractive
-        Func<LLMTokenValue?, Task>? changeOfValue = null)
+        Func<LLMTokenValue?, Task>? changeOfValue = null,
+        CancellationToken cancellationToken = default)
     {
         if (_chat.ModelInstance is null)
         {
@@ -219,7 +220,7 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
         {
             await _chatService.Create(_chat);
         }
-        var result = await _chatService.Completions(_chat, translate, interactive, changeOfValue);
+        var result = await _chatService.Completions(_chat, translate, interactive, changeOfValue, cancellationToken);
         _files = [];
         return result;
     }

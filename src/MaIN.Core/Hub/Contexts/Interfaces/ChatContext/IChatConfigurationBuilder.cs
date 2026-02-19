@@ -104,5 +104,5 @@ public interface IChatConfigurationBuilder : IChatActions
     /// <param name="interactive">A flag indicating whether the chat session should be interactive. Default is false.</param>
     /// <param name="changeOfValue">An optional callback invoked whenever a new token or update is received during streaming.</param>
     /// <returns>A <see cref="ChatResult"/> object containing the result of the completed chat session.</returns>
-    Task<ChatResult> CompleteAsync(bool translate = false, bool interactive = false, Func<LLMTokenValue?, Task>? changeOfValue = null);
+    Task<ChatResult> CompleteAsync(bool translate = false, bool interactive = false, Func<LLMTokenValue?, Task>? changeOfValue = null, CancellationToken cancellationToken = default);
 }
