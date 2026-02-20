@@ -12,6 +12,7 @@ using LLama.Common;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities.Tools;
 using MaIN.Domain.Exceptions;
+using MaIN.Domain.Models.Concrete;
 using MaIN.Services.Services.LLMService.Utils;
 
 namespace MaIN.Services.Services.LLMService;

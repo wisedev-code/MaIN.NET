@@ -2,6 +2,7 @@ using System.Text;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Exceptions;
+using MaIN.Domain.Models.Concrete;
 using MaIN.Services.Services.Abstract;
 using Microsoft.Extensions.Logging;
 using MaIN.Services.Services.LLMService.Memory;

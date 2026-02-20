@@ -1,6 +1,6 @@
 using MaIN.Core;
-using MaIN.Domain;
 using MaIN.Domain.Configuration;
+using MaIN.Domain.Models.Concrete;
 using MaIN.Domain.Models.Abstract;
 using Microsoft.FluentUI.AspNetCore.Components;
 using MaIN.InferPage.Components;
@@ -34,7 +34,7 @@ try
 
         if (Utils.BackendType != BackendType.Self)
         {
-            var apiKeyVariable = Utils.BackendType.GetApiKeyVariable();
+            var apiKeyVariable = LLMApiRegistry.GetEntry(Utils.BackendType)?.ApiKeyEnvName ?? string.Empty;
             var key = Environment.GetEnvironmentVariable(apiKeyVariable);
 
             if (string.IsNullOrEmpty(key) && !string.IsNullOrEmpty(apiKeyVariable))

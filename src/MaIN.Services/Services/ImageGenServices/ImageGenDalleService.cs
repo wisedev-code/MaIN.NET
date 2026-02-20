@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Exceptions;
+using MaIN.Domain.Models.Concrete;
 using MaIN.Services.Constants;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.LLMService.Utils;
