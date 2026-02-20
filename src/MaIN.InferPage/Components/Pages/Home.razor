@@ -211,7 +211,7 @@
     {
         if (firstRender)
         {
-            var theme = await JS.InvokeAsync<string>("eval", "document.body.dataset.theme ?? ''");
+            var theme = await JS.InvokeAsync<string>("themeManager.load");
             _accentColor = (theme == "dark" || theme == "system-dark") ? "#00ffcc" : "#00cca3";
             StateHasChanged();
         }

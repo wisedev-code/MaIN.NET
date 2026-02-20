@@ -52,7 +52,7 @@
     {
         if (firstRender)
         {
-            var stored = await JS.InvokeAsync<string>("eval", "localStorage.getItem('theme') ?? ''");
+            var stored = await JS.InvokeAsync<string>("themeManager.load");
             Mode = stored == "dark" ? DesignThemeModes.Dark : DesignThemeModes.Light;
             StateHasChanged();
         }
