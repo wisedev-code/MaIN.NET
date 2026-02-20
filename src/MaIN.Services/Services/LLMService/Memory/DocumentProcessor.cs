@@ -31,7 +31,7 @@ public static class DocumentProcessor
         };
     }
 
-    public static async Task<string[]> ConvertToFilesContent(ChatMemoryOptions options)
+    public static async Task<string[]> ConvertToFilesContent(ChatMemoryOptions options, CancellationToken cancellationToken = default)
     {
         var files = new List<string>();
         foreach (var fData in options.FilesData)
@@ -43,14 +43,14 @@ public static class DocumentProcessor
         {
             var path = Path.Combine(Path.GetTempPath(), sData.Key);
             await using var fileStream = new FileStream(path, FileMode.Create, FileAccess.Write);
-            await sData.Value.CopyToAsync(fileStream);
+            await sData.Value.CopyToAsync(fileStream, cancellationToken);
             files.Add(path);
         }
 
         foreach (var txt in options.TextData)
         {
             var path = Path.Combine(Path.GetTempPath(), $"{txt.Key}.txt");
-            await File.WriteAllTextAsync(path, txt.Value);
+            await File.WriteAllTextAsync(path, txt.Value, cancellationToken);
             files.Add(path);
         }
 
@@ -60,8 +60,8 @@ public static class DocumentProcessor
             foreach (var web in options.WebUrls)
             {
                 var path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.html");
-                var html = await client.GetStringAsync(web);
-                await File.WriteAllTextAsync(path, html);
+                var html = await client.GetStringAsync(web, cancellationToken);
+                await File.WriteAllTextAsync(path, html, cancellationToken);
                 files.Add(path);
             }
         }

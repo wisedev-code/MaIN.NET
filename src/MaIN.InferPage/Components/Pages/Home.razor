@@ -199,7 +199,7 @@
     private List<MessageExt> Messages { get; set; } = new();
     private ElementReference? _bottomElement;
     private ElementReference _editorRef;
-    private List<IBrowserFile> _selectedFiles = new();
+    private List<FileInfo> _selectedFiles = new();
     private int _inputKey;
 
     private readonly MarkdownPipeline _markdownPipeline = new MarkdownPipelineBuilder()
@@ -271,17 +271,34 @@
         }
     }
 
-    private void HandleFileSelected(InputFileChangeEventArgs e)
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
     {
         foreach (var file in e.GetMultipleFiles(10))
         {
-            _selectedFiles.Add(file);
+            var ms = new MemoryStream();
+            try
+            {
+                await file.OpenReadStream(20 * 1024 * 1024).CopyToAsync(ms);
+                ms.Position = 0;
+                _selectedFiles.Add(new FileInfo
+                {
+                    Name = file.Name,
+                    Extension = Path.GetExtension(file.Name),
+                    StreamContent = ms
+                });
+            }
+            catch (Exception ex)
+            {
+                await ms.DisposeAsync();
+                _errorMessage = $"Failed to read file {file.Name}: {ex.Message}";
+            }
         }
         StateHasChanged();
     }
 
-    private void RemoveFile(IBrowserFile file)
+    private void RemoveFile(FileInfo file)
     {
+        file.StreamContent?.Dispose();
         _selectedFiles.Remove(file);
     }
 
@@ -304,29 +321,9 @@
         _isLoading = true;
         StateHasChanged();
 
+        var attachments = new List<FileInfo>(_selectedFiles);
         try
         {
-            var attachments = new List<FileInfo>();
-            foreach (var file in _selectedFiles)
-            {
-                try
-                {
-                    var ms = new MemoryStream();
-                    await file.OpenReadStream(20 * 1024 * 1024).CopyToAsync(ms, cancellationToken);
-                    ms.Position = 0;
-                    attachments.Add(new FileInfo
-                    {
-                        Name = file.Name,
-                        Extension = Path.GetExtension(file.Name),
-                        StreamContent = ms
-                    });
-                }
-                catch (Exception ex)
-                {
-                    _errorMessage = $"Failed to read file {file.Name}: {ex.Message}";
-                }
-            }
-
             _selectedFiles.Clear();
             _inputKey++;
             StateHasChanged();
@@ -445,6 +442,10 @@
         }
         finally
         {
+            foreach (var attachment in attachments)
+                attachment.StreamContent?.Dispose();
+            attachments.Clear();
+
             _isLoading = false;
             _isThinking = false;
             StateHasChanged();

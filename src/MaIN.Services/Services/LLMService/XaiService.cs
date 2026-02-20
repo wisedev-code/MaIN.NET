@@ -50,7 +50,7 @@ public sealed class XaiService(
         CancellationToken cancellationToken = default)
     {
         var lastMsg = chat.Messages.Last();
-        var filePaths = await DocumentProcessor.ConvertToFilesContent(memoryOptions);
+        var filePaths = await DocumentProcessor.ConvertToFilesContent(memoryOptions, cancellationToken);
         var message = new Message()
         {
             Role = ServiceConstants.Roles.User,
