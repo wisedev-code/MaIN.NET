@@ -82,7 +82,7 @@
                                 {
                                     <div class="reasoning-row">
                                         <span class="brain-toggle" title="@(conversation.ShowReason ? "Hide reasoning" : "Show reasoning")"
-                                              @onclick="@(() => { _preserveScroll = true; conversation.ShowReason = !conversation.ShowReason; })">
+                                              @onclick="@(() => ToggleReasoning(conversation))">
                                             <FluentIcon Value="@(new Icons.Regular.Size24.Brain())"
                                                         Style="@($"fill: {(conversation.ShowReason ? "var(--accent-base-color)" : "var(--neutral-foreground-hint)")};")"/>
                                         </span>
@@ -213,15 +213,14 @@
         {
             var theme = await JS.InvokeAsync<string>("themeManager.load");
             _accentColor = (theme == "dark" || theme == "system-dark") ? "#00ffcc" : "#00cca3";
+            await JS.InvokeVoidAsync("scrollManager.attachScrollListener", "messages-container");
+            await JS.InvokeVoidAsync("scrollManager.restoreScrollPosition", "messages-container");
             StateHasChanged();
         }
-        else if (!_preserveScroll)
-        {
-            await JS.InvokeVoidAsync("scrollManager.restoreScrollPosition", "messages-container");
-        }
-        else
+        else if (_preserveScroll)
         {
             _preserveScroll = false;
+            await JS.InvokeVoidAsync("scrollManager.restoreScrollPosition", "messages-container");
         }
     }
 
@@ -346,9 +345,12 @@
             Chat.ModelId = Utils.Model!;
             Chat.Visual = Utils.Visual;
 
+            bool wasAtBottom = await JS.InvokeAsync<bool>("scrollManager.isAtBottom", "messages-container");
+
             StateHasChanged();
 
-            bool wasAtBottom = await JS.InvokeAsync<bool>("scrollManager.isAtBottom", "messages-container");
+            if (wasAtBottom)
+                await JS.InvokeVoidAsync("scrollManager.scrollToBottomSmooth", "messages-container");
 
             var request = ctx!.WithMessage(msg);
             if (attachments.Count != 0)
@@ -379,7 +381,7 @@
                 await InvokeAsync(StateHasChanged);
                 if (wasAtBottom)
                 {
-                    await InvokeAsync(async () => await JS.InvokeVoidAsync("scrollManager.scrollToBottomSmooth", cancellationToken, _bottomElement));
+                    await InvokeAsync(async () => await JS.InvokeVoidAsync("scrollManager.scrollToBottomSmooth", "messages-container"));
                 }
             }, cancellationToken: cancellationToken);
 
@@ -388,10 +390,11 @@
             var currentChat = await ctx.GetCurrentChat();
             Chat.Messages.Add(currentChat.Messages.Last());
 
+            await JS.InvokeVoidAsync("scrollManager.saveScrollPosition", "messages-container");
+            _preserveScroll = true;
             RebuildMessagesWithFiles();
             _incomingReasoning = null;
             _incomingMessage = null;
-            await JS.InvokeVoidAsync("scrollManager.scrollToBottomSmooth", _bottomElement);
         }
         catch (OperationCanceledException)
         {
@@ -475,6 +478,13 @@
             : MessageType.CloudLLM;
     }
 
+    private async Task ToggleReasoning(MessageExt conversation)
+    {
+        await JS.InvokeVoidAsync("scrollManager.saveScrollPosition", "messages-container");
+        _preserveScroll = true;
+        conversation.ShowReason = !conversation.ShowReason;
+    }
+
     private void RebuildMessagesWithFiles()
     {
         var existingFilesMap = Messages
@@ -485,7 +495,7 @@
         {
             Message = x,
             AttachedFiles = existingFilesMap.TryGetValue(x, out var files) ? files : new List<string>(),
-            ShowReason = x.Tokens.Any(t => t.Type == TokenType.Reason)
+            ShowReason = false
         }).ToList();
     }
 
