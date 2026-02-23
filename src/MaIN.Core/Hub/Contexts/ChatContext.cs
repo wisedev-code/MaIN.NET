@@ -216,7 +216,7 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
             throw new EmptyChatException(_chat.Id);
         }
 
-        if (_ensureModelDownloaded && _chat.ModelInstance is LocalModel)
+        if (_ensureModelDownloaded)
         {
             await AIHub.Model().EnsureDownloadedAsync(_chat.ModelId);
         }

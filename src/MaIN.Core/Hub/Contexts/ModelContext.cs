@@ -62,7 +62,12 @@ public sealed class ModelContext : IModelContext
 
         var model = ModelRegistry.GetById(modelId);
 
-        if (model is not LocalModel localModel || localModel.IsDownloaded(_defaultModelsPath))
+        if (model is not LocalModel localModel)
+        {
+            throw new InvalidModelTypeException(nameof(LocalModel));
+        }
+
+        if (localModel.IsDownloaded(_defaultModelsPath))
         {
             return this;
         }

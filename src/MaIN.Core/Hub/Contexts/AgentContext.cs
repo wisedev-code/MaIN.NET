@@ -210,11 +210,7 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
     {
         if (_ensureModelDownloaded && !string.IsNullOrWhiteSpace(_agent.Model))
         {
-            var model = ModelRegistry.GetById(_agent.Model);
-            if (model is LocalModel)
-            {
-                await AIHub.Model().EnsureDownloadedAsync(_agent.Model);
-            }
+            await AIHub.Model().EnsureDownloadedAsync(_agent.Model);
         }
 
         await _agentService.CreateAgent(_agent, flow, interactiveResponse, _inferenceParams, _memoryParams, _disableCache);
