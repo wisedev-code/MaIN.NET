@@ -1,5 +1,6 @@
 ﻿using FuzzySharp;
 using MaIN.Core.Hub;
+using MaIN.Core.IntegrationTests.Helpers;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Models.Concrete;
 
@@ -91,7 +92,7 @@ public class ChatTests : IntegrationTestBase
     [Fact(Skip = "Require powerful GPU")]
     public async Task Should_GenerateImage_BasedOnPrompt()
     {
-        Assert.True(PingHost("127.0.0.1", 5003, 5), "Please make sure ImageGen service is running on port 5003");
+        Assert.True(NetworkHelper.PingHost("127.0.0.1", 5003, 5), "Please make sure ImageGen service is running on port 5003");
         
         const string extension = "png";
         

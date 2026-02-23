@@ -10,62 +10,30 @@ public class IntegrationTestBase : IDisposable
     protected readonly IHost _host;
     protected readonly IServiceProvider _services;
 
-    public IntegrationTestBase()
+    protected IntegrationTestBase()
     {
-        _host = CreateHost();
+        _host = Host.CreateDefaultBuilder()
+            .ConfigureServices((context, services) =>
+            {
+                services.AddMaIN(context.Configuration);
+                ConfigureServices(services);
+            })
+            .Build();
+
         _host.Services.UseMaIN();
         _host.Start();
-        
+
         _services = _host.Services;
     }
 
-    private IHost CreateHost()
+    // Allow derived classes to add additional services or override existing ones
+    protected virtual void ConfigureServices(IServiceCollection services)
     {
-        var hostBuilder = Host.CreateDefaultBuilder()
-            .ConfigureWebHostDefaults(webBuilder =>
-            {
-                webBuilder
-                    .UseUrls("http://127.0.0.1:0") // Random available port
-                    .ConfigureServices((context, services) =>
-                    {
-                        services.AddMaIN(context.Configuration);
-                    })
-                    .Configure(app =>
-                    {
-
-                    });
-            });
-
-        return hostBuilder.Build();
     }
 
     protected T GetService<T>() where T : notnull
     {
         return _services.GetRequiredService<T>();
-    }
-
-    protected static bool PingHost(string host, int port, int timeout)
-    {
-        try
-        {
-            using (var client = new TcpClient())
-            {
-                var result = client.BeginConnect(host, port, null, null);
-                var success = result.AsyncWaitHandle.WaitOne(TimeSpan.FromMilliseconds(timeout));
-            
-                if (!success)
-                {
-                    return false;
-                }
-            
-                client.EndConnect(result);
-                return true;
-            }
-        }
-        catch
-        {
-            return false;
-        }
     }
 
     public void Dispose()
