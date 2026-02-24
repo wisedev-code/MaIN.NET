@@ -18,7 +18,16 @@
 
 <ErrorNotification @bind-ErrorMessage="_errorMessage" />
 
-<div class="chat-container">
+<div class="chat-container" id="chat-container">
+    @if (_isDragging)
+    {
+        <div class="drop-overlay">
+            <div class="drop-overlay-content">
+                <FluentIcon Value="@(new Icons.Regular.Size48.ArrowDownload())" Style="fill: var(--accent-base-color);" />
+                <span>Drop files here</span>
+            </div>
+        </div>
+    }
 
     <FluentProgress Visible="@(_isLoading)" Style="width: 100%; margin: 0; color: var(--accent-base-color)"/>
 
@@ -186,6 +195,7 @@
 @code {
     private bool _isLoading;
     private bool _isThinking;
+    private bool _isDragging;
     private bool _reasoning;
     private bool _preserveScroll;
     private string _accentColor = "#00cca3";
@@ -199,6 +209,7 @@
     private List<MessageExt> Messages { get; set; } = new();
     private ElementReference? _bottomElement;
     private ElementReference _editorRef;
+    private DotNetObjectReference<Home>? _dotNetRef;
     private List<FileInfo> _selectedFiles = new();
     private int _inputKey;
 
@@ -215,6 +226,11 @@
             _accentColor = (theme == "dark" || theme == "system-dark") ? "#00ffcc" : "#00cca3";
             await JS.InvokeVoidAsync("scrollManager.attachScrollListener", "messages-container");
             await JS.InvokeVoidAsync("scrollManager.restoreScrollPosition", "messages-container");
+
+            _dotNetRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("editorManager.attachPasteHandler", _editorRef, _dotNetRef);
+            await JS.InvokeVoidAsync("editorManager.attachDropZone", "chat-container", _dotNetRef);
+
             StateHasChanged();
         }
         else if (_preserveScroll)
@@ -311,6 +327,35 @@
     {
         file.StreamContent?.Dispose();
         _selectedFiles.Remove(file);
+    }
+
+    [JSInvokable]
+    public async Task OnFilePasted(string fileName, string extension, string base64Data)
+    {
+        var bytes = Convert.FromBase64String(base64Data);
+        var ms = new MemoryStream(bytes);
+        _selectedFiles.Add(new FileInfo
+        {
+            Name = fileName,
+            Extension = extension,
+            StreamContent = ms
+        });
+        _isDragging = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public async Task OnDragEnter()
+    {
+        _isDragging = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public async Task OnDragLeave()
+    {
+        _isDragging = false;
+        await InvokeAsync(StateHasChanged);
     }
 
     private void HandleStop()
@@ -514,5 +559,6 @@
     public void Dispose()
     {
         _cancellationTokenSource?.Dispose();
+        _dotNetRef?.Dispose();
     }
 }
