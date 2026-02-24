@@ -28,16 +28,13 @@ public abstract class OpenAiCompatibleService(
     ILogger<OpenAiCompatibleService>? logger = null)
     : ILLMService
 {
-    private readonly INotificationService _notificationService =
-        notificationService ?? throw new ArgumentNullException(nameof(notificationService));
-
-    private readonly IHttpClientFactory _httpClientFactory =
-        httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
+    private readonly INotificationService _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
+    private readonly IHttpClientFactory _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
 
     private static readonly ConcurrentDictionary<string, List<ChatMessage>> SessionCache = new();
+    private static readonly HashSet<string> ImageExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".tiff", ".tif", ".heic", ".heif", ".avif"];
 
-    private static readonly JsonSerializerOptions DefaultJsonSerializerOptions =
-        new() { PropertyNameCaseInsensitive = true };
+    private static readonly JsonSerializerOptions DefaultJsonSerializerOptions = new() { PropertyNameCaseInsensitive = true };
 
     private const string ToolCallsProperty = "ToolCalls";
     private const string ToolCallIdProperty = "ToolCallId";
@@ -63,10 +60,11 @@ public abstract class OpenAiCompatibleService(
         List<LLMTokenValue> tokens = new();
         string apiKey = GetApiKey();
 
+        var lastMessage = chat.Messages.Last();
+        await ExtractImageFromFiles(lastMessage);
+
         List<ChatMessage> conversation = GetOrCreateConversation(chat, options.CreateSession);
         StringBuilder resultBuilder = new();
-
-        var lastMessage = chat.Messages.Last();
         if (HasFiles(lastMessage))
         {
             var result = ChatHelper.ExtractMemoryOptions(lastMessage);
@@ -576,6 +574,42 @@ public abstract class OpenAiCompatibleService(
         }
     }
 
+    private static async Task ExtractImageFromFiles(Message message)
+    {
+        if (message.Files == null || message.Files.Count == 0)
+            return;
+
+        var imageFiles = message.Files
+            .Where(f => ImageExtensions.Contains(f.Extension.ToLowerInvariant()))
+            .ToList();
+
+        if (imageFiles.Count == 0)
+            return;
+
+        var imageBytesList = new List<byte[]>();
+        foreach (var imageFile in imageFiles)
+        {
+            if (imageFile.StreamContent != null)
+            {
+                using var ms = new MemoryStream();
+                imageFile.StreamContent.Position = 0;
+                await imageFile.StreamContent.CopyToAsync(ms);
+                imageBytesList.Add(ms.ToArray());
+            }
+            else if (imageFile.Path != null)
+            {
+                imageBytesList.Add(await File.ReadAllBytesAsync(imageFile.Path));
+            }
+
+            message.Files.Remove(imageFile);
+        }
+
+        message.Images = imageBytesList;
+
+        if (message.Files.Count == 0)
+            message.Files = null;
+    }
+
     private static bool HasFiles(Message message)
     {
         return message.Files != null && message.Files.Count > 0;
@@ -912,7 +946,7 @@ public abstract class OpenAiCompatibleService(
     
     private static bool HasImages(Message message)
     {
-        return message.Image != null && message.Image.Length > 0;
+        return message.Images?.Count > 0;
     }
 
     private static object BuildMessageContent(Message message, ImageType imageType)
@@ -933,10 +967,10 @@ public abstract class OpenAiCompatibleService(
             });
         }
 
-        if (message.Image != null && message.Image.Length > 0)
+        foreach (var imageBytes in message.Images!)
         {
-            var base64Data = Convert.ToBase64String(message.Image);
-            var mimeType = DetectImageMimeType(message.Image);
+            var base64Data = Convert.ToBase64String(imageBytes);
+            var mimeType = DetectImageMimeType(imageBytes);
 
             switch (imageType)
             {
@@ -976,23 +1010,42 @@ public abstract class OpenAiCompatibleService(
 
         if (imageBytes[0] == 0xFF && imageBytes[1] == 0xD8)
             return "image/jpeg";
-    
+
         if (imageBytes.Length >= 8 && 
             imageBytes[0] == 0x89 && imageBytes[1] == 0x50 && 
             imageBytes[2] == 0x4E && imageBytes[3] == 0x47)
             return "image/png";
-        
+
         if (imageBytes.Length >= 6 && 
             imageBytes[0] == 0x47 && imageBytes[1] == 0x49 && 
             imageBytes[2] == 0x46 && imageBytes[3] == 0x38)
             return "image/gif";
-        
+
         if (imageBytes.Length >= 12 && 
             imageBytes[0] == 0x52 && imageBytes[1] == 0x49 && 
             imageBytes[2] == 0x46 && imageBytes[3] == 0x46 &&
             imageBytes[8] == 0x57 && imageBytes[9] == 0x45 && 
             imageBytes[10] == 0x42 && imageBytes[11] == 0x50)
             return "image/webp";
+
+        // HEIC/HEIF format (iPhone photos)
+        if (imageBytes.Length >= 12 &&
+            imageBytes[4] == 0x66 && imageBytes[5] == 0x74 && 
+            imageBytes[6] == 0x79 && imageBytes[7] == 0x70)
+        {
+            // Check for heic/heif brands
+            if ((imageBytes[8] == 0x68 && imageBytes[9] == 0x65 && imageBytes[10] == 0x69 && imageBytes[11] == 0x63) ||
+                (imageBytes[8] == 0x68 && imageBytes[9] == 0x65 && imageBytes[10] == 0x69 && imageBytes[11] == 0x66))
+                return "image/heic";
+        }
+
+        // AVIF format
+        if (imageBytes.Length >= 12 &&
+            imageBytes[4] == 0x66 && imageBytes[5] == 0x74 && 
+            imageBytes[6] == 0x79 && imageBytes[7] == 0x70 &&
+            imageBytes[8] == 0x61 && imageBytes[9] == 0x76 && 
+            imageBytes[10] == 0x69 && imageBytes[11] == 0x66)
+            return "image/avif";
 
         return "image/jpeg";
     }

@@ -226,13 +226,26 @@
 
     protected override Task OnInitializedAsync()
     {
+        AIModel? model = null;
+
         try
         {
+            if (Utils.BackendType == BackendType.Self && Utils.Path != null)
+            {
+                model = ModelRegistry.TryGetById(Utils.Model!, out var foundModel1)
+                    ? foundModel1!
+                    : new GenericLocalModel($"{Utils.Model}.gguf");
+            }
+            else
+            {
+                model = ModelRegistry.TryGetById(Utils.Model!, out var foundModel1)
+                    ? foundModel1!
+                    : new GenericCloudModel(Id: Utils.Model!, Backend: Utils.BackendType);
+            }
+
             ctx = Utils.Visual
                 ? AIHub.Chat().EnableVisual()
-                : Utils.BackendType == BackendType.Self && Utils.Path != null
-                    ? AIHub.Chat().WithModel(new GenericLocalModel(FileName: Utils.Model!, CustomPath: Utils.Path))
-                    : AIHub.Chat().WithModel(ModelRegistry.GetById(Utils.Model!));
+                : AIHub.Chat().WithModel(model);
         }
         catch (MaINCustomException ex)
         {
@@ -243,7 +256,6 @@
             _errorMessage = ex.Message;
         }
 
-        var model = ModelRegistry.TryGetById(Utils.Model!, out var foundModel) ? foundModel : null;
         _reasoning = !Utils.Visual && model?.HasReasoning == true;
         Utils.Reason = _reasoning;
 
