@@ -20,4 +20,5 @@ public class MessageExt
     public required Message Message { get; set; }
     public bool ShowReason { get; set; }
     public List<string> AttachedFiles { get; set; } = new();
+    public List<(string Name, string Base64)> AttachedImages { get; set; } = new();
 }

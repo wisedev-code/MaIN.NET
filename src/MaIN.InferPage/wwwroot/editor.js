@@ -81,19 +81,19 @@ window.editorManager = {
             for (const file of files) {
                 await editorManager._processFile(file, dotNetHelper);
             }
+
+            // Ensure overlay is always dismissed after drop
+            try { await dotNetHelper.invokeMethodAsync('OnDragLeave'); } catch {}
         });
     },
     _processFile: async (file, dotNetHelper) => {
         try {
-            const arrayBuffer = await file.arrayBuffer();
-            const uint8Array = new Uint8Array(arrayBuffer);
-
-            // Convert to base64 - much smaller than int array
-            let binary = '';
-            for (let i = 0; i < uint8Array.length; i++) {
-                binary += String.fromCharCode(uint8Array[i]);
-            }
-            const base64 = btoa(binary);
+            const base64 = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = () => reject(reader.error);
+                reader.readAsDataURL(file);
+            });
 
             let extension = '';
             const lastDot = file.name.lastIndexOf('.');
@@ -105,9 +105,9 @@ window.editorManager = {
 
             const fileName = file.name || `file-${Date.now()}${extension}`;
 
-            await dotNetHelper.invokeMethodAsync('OnFilePasted', fileName, extension, base64);
-        } catch {
-            // Silent fail
+            await dotNetHelper.invokeMethodAsync('OnFileReceived', fileName, extension, base64);
+        } catch (err) {
+            try { await dotNetHelper.invokeMethodAsync('OnDragLeave'); } catch {}
         }
     }
 };

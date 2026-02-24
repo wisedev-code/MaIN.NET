@@ -66,9 +66,15 @@
                 else
                 {
                     <FluentCard class="@(conversation.Message.Role == "User" ? "message-card user-message" : "message-card bot-message")">
-                        @if (conversation.Message.Role == "User" && conversation.AttachedFiles.Any())
+                        @if (conversation.Message.Role == "User" && (conversation.AttachedFiles.Any() || conversation.AttachedImages.Any()))
                         {
                             <div class="attached-files-display">
+                                @foreach (var image in conversation.AttachedImages)
+                                {
+                                    <div class="history-image-preview" title="@image.Name">
+                                        <img src="data:image/png;base64,@image.Base64" alt="@image.Name" />
+                                    </div>
+                                }
                                 @foreach (var fileName in conversation.AttachedFiles)
                                 {
                                     <span class="attached-file-tag">
@@ -140,9 +146,18 @@
         <div id="bottom" @ref="_bottomElement"></div>
     </div>
     <div class="chat-input-section">
-        @if (_selectedFiles.Any())
+        @if (_selectedImages.Any() || _selectedFiles.Any())
         {
-            <div class="selected-files-container">
+            <div class="selected-attachments-container">
+                @foreach (var image in _selectedImages)
+                {
+                    <div class="image-preview" title="@image.File.Name">
+                        <img src="data:image/@image.File.Extension.TrimStart('.');base64,@image.Base64Preview" alt="@image.File.Name" />
+                        <span class="image-dismiss-button" @onclick="@(() => RemoveImage(image))">
+                            <FluentIcon Value="@(new Icons.Regular.Size12.Dismiss())" Style="fill: var(--accent-base-color);" />
+                        </span>
+                    </div>
+                }
                 @foreach (var file in _selectedFiles)
                 {
                     <div class="file-badge" title="@file.Name">
@@ -202,7 +217,6 @@
     private string? _errorMessage;
     private string? _incomingMessage;
     private string? _incomingReasoning;
-    private readonly string? _displayName = Utils.Model;
     private IChatMessageBuilder? ctx;
     private CancellationTokenSource? _cancellationTokenSource;
     private Chat Chat { get; } = new() { Name = "MaIN Infer", ModelId = Utils.Model! };
@@ -211,7 +225,10 @@
     private ElementReference _editorRef;
     private DotNetObjectReference<Home>? _dotNetRef;
     private List<FileInfo> _selectedFiles = new();
+    private List<(FileInfo File, string Base64Preview)> _selectedImages = new();
     private int _inputKey;
+
+    private static readonly HashSet<string> ImageExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"];
 
     private readonly MarkdownPipeline _markdownPipeline = new MarkdownPipelineBuilder()
         .UseAdvancedExtensions()
@@ -291,7 +308,7 @@
         if (_isLoading) return;
 
         var msg = await JS.InvokeAsync<string>("editorManager.getInnerText", _editorRef);
-        if (!string.IsNullOrWhiteSpace(msg) || _selectedFiles.Any())
+        if (!string.IsNullOrWhiteSpace(msg) || _selectedFiles.Any() || _selectedImages.Any())
         {
             await JS.InvokeVoidAsync("editorManager.clearContent", _editorRef);
             await SendAsync(msg?.Trim() ?? string.Empty);
@@ -307,12 +324,25 @@
             {
                 await file.OpenReadStream(20 * 1024 * 1024).CopyToAsync(ms);
                 ms.Position = 0;
-                _selectedFiles.Add(new FileInfo
+
+                var extension = Path.GetExtension(file.Name).ToLowerInvariant();
+                var fileInfo = new FileInfo
                 {
                     Name = file.Name,
-                    Extension = Path.GetExtension(file.Name),
+                    Extension = extension,
                     StreamContent = ms
-                });
+                };
+
+                if (ImageExtensions.Contains(extension))
+                {
+                    var base64 = Convert.ToBase64String(ms.ToArray());
+                    ms.Position = 0;
+                    _selectedImages.Add((fileInfo, base64));
+                }
+                else
+                {
+                    _selectedFiles.Add(fileInfo);
+                }
             }
             catch (Exception ex)
             {
@@ -329,17 +359,40 @@
         _selectedFiles.Remove(file);
     }
 
-    [JSInvokable]
-    public async Task OnFilePasted(string fileName, string extension, string base64Data)
+    private void RemoveImage((FileInfo File, string Base64Preview) image)
     {
-        var bytes = Convert.FromBase64String(base64Data);
-        var ms = new MemoryStream(bytes);
-        _selectedFiles.Add(new FileInfo
+        image.File.StreamContent?.Dispose();
+        _selectedImages.Remove(image);
+    }
+
+    [JSInvokable]
+    public async Task OnFileReceived(string fileName, string extension, string base64Data)
+    {
+        try
         {
-            Name = fileName,
-            Extension = extension,
-            StreamContent = ms
-        });
+            var bytes = Convert.FromBase64String(base64Data);
+            var ms = new MemoryStream(bytes);
+            var fileInfo = new FileInfo
+            {
+                Name = fileName,
+                Extension = extension,
+                StreamContent = ms
+            };
+
+            if (ImageExtensions.Contains(extension.ToLowerInvariant()))
+            {
+                _selectedImages.Add((fileInfo, base64Data));
+            }
+            else
+            {
+                _selectedFiles.Add(fileInfo);
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Failed to load file {fileName}: {ex.Message}";
+        }
+
         _isDragging = false;
         await InvokeAsync(StateHasChanged);
     }
@@ -365,7 +418,7 @@
 
     private async Task SendAsync(string msg)
     {
-        if (string.IsNullOrWhiteSpace(msg) && !_selectedFiles.Any())
+        if (string.IsNullOrWhiteSpace(msg) && !_selectedFiles.Any() && !_selectedImages.Any())
         {
             return;
         }
@@ -377,10 +430,12 @@
         _isLoading = true;
         StateHasChanged();
 
-        var attachments = new List<FileInfo>(_selectedFiles);
+        var attachedFiles = new List<FileInfo>(_selectedFiles);
+        var attachedImages = new List<(FileInfo File, string Base64Preview)>(_selectedImages);
         try
         {
             _selectedFiles.Clear();
+            _selectedImages.Clear();
             _inputKey++;
             StateHasChanged();
 
@@ -392,11 +447,11 @@
             };
             Chat.Messages.Add(newMsg);
 
-            var attachedFileNames = attachments.Select(f => f.Name).ToList();
             Messages.Add(new MessageExt
             {
                 Message = newMsg,
-                AttachedFiles = attachedFileNames
+                AttachedFiles = attachedFiles.Select(f => f.Name).ToList(),
+                AttachedImages = attachedImages.Select(i => (i.File.Name, i.Base64Preview)).ToList()
             });
 
             Chat.ModelId = Utils.Model!;
@@ -410,9 +465,14 @@
                 await JS.InvokeVoidAsync("scrollManager.scrollToBottomSmooth", "messages-container");
 
             var request = ctx!.WithMessage(msg);
-            if (attachments.Count != 0)
+
+            // Combine files and images - images go as files, ExtractImageFromFiles will handle them
+            var allFiles = new List<FileInfo>(attachedFiles);
+            allFiles.AddRange(attachedImages.Select(i => i.File));
+
+            if (allFiles.Count != 0)
             {
-                request.WithFiles(attachments);
+                request.WithFiles(allFiles);
             }
 
             cancellationToken.ThrowIfCancellationRequested();
@@ -502,9 +562,13 @@
         }
         finally
         {
-            foreach (var attachment in attachments)
+            foreach (var attachment in attachedFiles)
                 attachment.StreamContent?.Dispose();
-            attachments.Clear();
+            attachedFiles.Clear();
+
+            foreach (var image in attachedImages)
+                image.File.StreamContent?.Dispose();
+            attachedImages.Clear();
 
             _isLoading = false;
             _isThinking = false;
@@ -548,11 +612,19 @@
             .Where(m => m.AttachedFiles.Any())
             .ToDictionary(m => m.Message, m => m.AttachedFiles);
 
+        var existingImagesMap = Messages
+            .Where(m => m.AttachedImages.Any())
+            .ToDictionary(m => m.Message, m => m.AttachedImages);
+
+        var existingReasonMap = Messages
+            .ToDictionary(m => m.Message, m => m.ShowReason);
+
         Messages = Chat.Messages.Select(x => new MessageExt
         {
             Message = x,
             AttachedFiles = existingFilesMap.TryGetValue(x, out var files) ? files : new List<string>(),
-            ShowReason = false
+            AttachedImages = existingImagesMap.TryGetValue(x, out var images) ? images : new List<(string, string)>(),
+            ShowReason = existingReasonMap.TryGetValue(x, out var show) && show
         }).ToList();
     }
 

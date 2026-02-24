@@ -444,19 +444,79 @@ public abstract class OpenAiCompatibleService(
             return null;
 
         var kernel = memoryFactory.CreateMemoryWithOpenAi(GetApiKey(), chat.MemoryParams);
-
         await memoryService.ImportDataToMemory((kernel, null), memoryOptions, cancellationToken);
 
-        var userQuery = chat.Messages.Last().Content;
+        var lastMessage = chat.Messages.Last();
+        var userQuery = lastMessage.Content;
+
         if (chat.MemoryParams.Grammar != null)
         {
             var jsonGrammarConverter = new GrammarToJsonConverter();
             var jsonGrammar = jsonGrammarConverter.ConvertToJson(chat.MemoryParams.Grammar);
             userQuery = $"{userQuery} | Respond only using the following JSON format: \n{jsonGrammar}\n. Do not add explanations, code tags, or any extra content.";
         }
-        
+
+        // If there are images, use SearchAsync + regular chat with images
+        if (HasImages(lastMessage))
+        {
+            var searchResult = await kernel.SearchAsync(userQuery, cancellationToken: cancellationToken);
+            await kernel.DeleteIndexAsync(cancellationToken: cancellationToken);
+
+            // Build context from search results
+            var contextBuilder = new StringBuilder();
+            foreach (var citation in searchResult.Results.SelectMany(r => r.Partitions))
+            {
+                contextBuilder.AppendLine(citation.Text);
+            }
+
+            // Create a temporary message with context + original query
+            var contextEnhancedContent = string.IsNullOrEmpty(contextBuilder.ToString())
+                ? userQuery
+                : $"Use the following context to answer the question:\n\n{contextBuilder}\n\nQuestion: {userQuery}";
+
+            // Create conversation with context-enhanced message
+            var conversation = new List<ChatMessage>
+            {
+                new(ServiceConstants.Roles.User, contextEnhancedContent)
+                {
+                    OriginalMessage = new Message
+                    {
+                        Role = "User",
+                        Content = contextEnhancedContent,
+                        Type = MessageType.CloudLLM,
+                        Images = lastMessage.Images
+                    }
+                }
+            };
+
+            var tokens = new List<LLMTokenValue>();
+            var resultBuilder = new StringBuilder();
+
+            if (requestOptions.InteractiveUpdates || requestOptions.TokenCallback != null)
+            {
+                await ProcessStreamingChatAsync(chat, conversation, GetApiKey(), tokens, resultBuilder, requestOptions, cancellationToken);
+            }
+            else
+            {
+                await ProcessNonStreamingChatAsync(chat, conversation, GetApiKey(), resultBuilder, requestOptions, cancellationToken);
+            }
+
+            var finalToken = new LLMTokenValue { Text = resultBuilder.ToString(), Type = TokenType.FullAnswer };
+            tokens.Add(finalToken);
+
+            if (requestOptions.InteractiveUpdates)
+            {
+                await _notificationService.DispatchNotification(
+                    NotificationMessageBuilder.CreateChatCompletion(chat.Id, finalToken, true),
+                    ServiceConstants.Notifications.ReceiveMessageUpdate);
+            }
+
+            return CreateChatResult(chat, resultBuilder.ToString(), tokens);
+        }
+
+        // No images - use standard AskAsync flow
         MemoryAnswer retrievedContext;
-        var tokens = new List<LLMTokenValue>();
+        var standardTokens = new List<LLMTokenValue>();
 
         if (requestOptions.InteractiveUpdates || requestOptions.TokenCallback != null)
         {
@@ -482,7 +542,7 @@ public abstract class OpenAiCompatibleService(
                         Type = TokenType.Message
                     };
 
-                    tokens.Add(tokenValue);
+                    standardTokens.Add(tokenValue);
 
                     if (requestOptions.InteractiveUpdates)
                     {
@@ -516,7 +576,7 @@ public abstract class OpenAiCompatibleService(
         }
 
         await kernel.DeleteIndexAsync(cancellationToken: cancellationToken);
-        return CreateChatResult(chat, retrievedContext.Result, tokens);
+        return CreateChatResult(chat, retrievedContext.Result, standardTokens);
     }
 
     public virtual async Task<string[]> GetCurrentModels()
