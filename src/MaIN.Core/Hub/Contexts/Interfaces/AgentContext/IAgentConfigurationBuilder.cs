@@ -10,6 +10,14 @@ namespace MaIN.Core.Hub.Contexts.Interfaces.AgentContext;
 public interface IAgentConfigurationBuilder : IAgentActions
 {
     /// <summary>
+    /// Flags the agent to automatically ensure the selected local model is downloaded before creation.
+    /// If the model is already present the download is skipped; cloud models are silently ignored.
+    /// The actual download is deferred until <see cref="CreateAsync"/> is called.
+    /// </summary>
+    /// <returns>The context instance implementing <see cref="IAgentConfigurationBuilder"/> for method chaining.</returns>
+    IAgentConfigurationBuilder EnsureModelDownloaded();
+
+    /// <summary>
     /// Sets the initial prompt for the agent. This prompt serves as an instruction or context that guides the agent's behavior during its execution.
     /// </summary>
     /// <param name="prompt"> The initial prompt or instruction for the agent.</param>
