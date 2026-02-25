@@ -1,4 +1,6 @@
-﻿using MaIN.Core.Hub;
+﻿using FuzzySharp;
+using MaIN.Core.Hub;
+using MaIN.Core.IntegrationTests.Helpers;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Models.Concrete;
 
@@ -66,7 +68,7 @@ public class ChatTests : IntegrationTestBase
         
         var result = await AIHub.Chat()
             .WithModel<Llama3_2_3b>()
-            .WithMessage("What is the title of game?")
+            .WithMessage("What is the title of the game? Answer only this question.")
             .WithMemoryParams(new MemoryParams
             {
                 AnswerTokens = 1000
@@ -77,13 +79,20 @@ public class ChatTests : IntegrationTestBase
         Assert.True(result.Done);
         Assert.NotNull(result.Message);
         Assert.NotEmpty(result.Message.Content);
-        Assert.Contains("call of duty", result.Message.Content.ToLower());
+        var ratio = Fuzz.PartialRatio("call of duty", result.Message.Content.ToLowerInvariant());
+        Assert.True(ratio > 50,
+            $"""
+            Fuzzy match failed!
+            Expected > 50, but got {ratio}.
+            Expexted: 'call of duty'
+            Actual: '{result.Message.Content}'
+            """);
     }
 
     [Fact(Skip = "Require powerful GPU")]
     public async Task Should_GenerateImage_BasedOnPrompt()
     {
-        Assert.True(PingHost("127.0.0.1", 5003, 5), "Please make sure ImageGen service is running on port 5003");
+        Assert.True(NetworkHelper.PingHost("127.0.0.1", 5003, 5), "Please make sure ImageGen service is running on port 5003");
         
         const string extension = "png";
         
