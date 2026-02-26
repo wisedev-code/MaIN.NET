@@ -36,37 +36,10 @@
         {
             @if (conversation.Message.Role != "System")
             {
-                @if (Chat.Visual)
-                {
-                    <FluentBadge Class="@(conversation.Message.Role == "User" ? "message-role-user" : "message-role-bot")"
-                                 Appearance="Appearance.Accent">
-                        @(conversation.Message.Role == "User" ? "User" : Utils.Model)
-                    </FluentBadge>
+                <FluentCard class="@(conversation.Message.Role == "User" ? "message-card user-message" : "message-card bot-message")">
                     @if (conversation.Message.Role == "User")
                     {
-                        <FluentCard class="message-card user-message">
-                            @conversation.Message.Content
-                        </FluentCard>
-                    }
-                    else
-                    {
-                        <FluentCard class="message-card-img bot-message"
-                                    Style="height: 30rem !important; width: 30rem !important; ">
-                            <div>
-                                <a href="data:image/png;base64,@Convert.ToBase64String(conversation.Message.Image!)"
-                                   style="cursor: -webkit-zoom-in; cursor: zoom-in;" target="_blank">
-                                    <img src="data:image/png;base64,@Convert.ToBase64String(conversation.Message.Image!)"
-                                         style="object-fit: fill; width:100%; height:100%;"
-                                         alt="imageResponse"/>
-                                </a>
-                            </div>
-                        </FluentCard>
-                    }
-                }
-                else
-                {
-                    <FluentCard class="@(conversation.Message.Role == "User" ? "message-card user-message" : "message-card bot-message")">
-                        @if (conversation.Message.Role == "User" && (conversation.AttachedFiles.Any() || conversation.AttachedImages.Any()))
+                        @if (conversation.AttachedFiles.Any() || conversation.AttachedImages.Any())
                         {
                             <div class="attached-files-display">
                                 @foreach (var image in conversation.AttachedImages)
@@ -84,10 +57,36 @@
                                 }
                             </div>
                         }
-                        @if (conversation.Message.Role == "User")
+                        <div>
+                            @((MarkupString)Markdown.ToHtml(conversation.Message.Content ?? string.Empty, _markdownPipeline))
+                        </div>
+                    }
+                    else
+                    {
+                        @if (conversation.Message.Images?.Any() == true)
                         {
-                            <div>
-                                @((MarkupString)Markdown.ToHtml(conversation.Message.Content ?? string.Empty, _markdownPipeline))
+                            <div class="generated-images">
+                                @foreach (var imageBytes in conversation.Message.Images)
+                                {
+                                    var b64 = Convert.ToBase64String(imageBytes);
+                                    <div class="image-wrapper">
+                                        <a href="data:image/png;base64,@b64" target="_blank">
+                                            <img src="data:image/png;base64,@b64" class="generated-image" alt="generated image" />
+                                        </a>
+                                        <div class="image-actions">
+                                            <a href="data:image/png;base64,@b64" download="generated-image.png"
+                                               class="image-action-btn" title="Download">
+                                                <FluentIcon Value="@(new Icons.Filled.Size24.ArrowDownload())"
+                                                            Style="fill: var(--accent-base-color);" />
+                                            </a>
+                                            <span class="image-action-btn" title="Copy to clipboard"
+                                                  @onclick="@(async () => await CopyImageToClipboard(b64))">
+                                                <FluentIcon Value="@(new Icons.Filled.Size24.Copy())"
+                                                            Style="fill: var(--accent-base-color);" />
+                                            </span>
+                                        </div>
+                                    </div>
+                                }
                             </div>
                         }
                         else
@@ -114,33 +113,30 @@
                                 @((MarkupString)Markdown.ToHtml(GetMessageContent(conversation.Message), _markdownPipeline))
                             </div>
                         }
-                    </FluentCard>
-                }
+                    }
+                </FluentCard>
             }
         }
         @if (_isLoading)
         {
-            @if (Chat.Visual)
+            @if (Utils.Visual)
             {
                 <span class="message-role-bot" style="font-style: italic; font-size: small">This might take a while...</span>
             }
-            else
+            else if (_incomingMessage != null || _incomingReasoning != null)
             {
-                @if (_incomingMessage != null || _incomingReasoning != null)
-                {
-                    <FluentCard class="message-card bot-message">
-                        @if (_isThinking)
-                        {
-                            <span class="thinker">
-                                @((MarkupString)Markdown.ToHtml(_incomingReasoning ?? string.Empty, _markdownPipeline))
-                            </span>
-                        }
-                        else
-                        {
-                            @((MarkupString)Markdown.ToHtml(_incomingMessage ?? string.Empty, _markdownPipeline))
-                        }
-                    </FluentCard>
-                }
+                <FluentCard class="message-card bot-message">
+                    @if (_isThinking)
+                    {
+                        <span class="thinker">
+                            @((MarkupString)Markdown.ToHtml(_incomingReasoning ?? string.Empty, _markdownPipeline))
+                        </span>
+                    }
+                    else
+                    {
+                        @((MarkupString)Markdown.ToHtml(_incomingMessage ?? string.Empty, _markdownPipeline))
+                    }
+                </FluentCard>
             }
         }
         <div id="bottom" @ref="_bottomElement"></div>
@@ -277,7 +273,7 @@
             }
 
             ctx = Utils.Visual
-                ? AIHub.Chat().EnableVisual()
+                ? AIHub.Chat().WithModel(model).EnableVisual()
                 : AIHub.Chat().WithModel(model);
         }
         catch (MaINCustomException ex)
@@ -626,6 +622,18 @@
             AttachedImages = existingImagesMap.TryGetValue(x, out var images) ? images : new List<(string, string)>(),
             ShowReason = existingReasonMap.TryGetValue(x, out var show) && show
         }).ToList();
+    }
+
+    private async Task CopyImageToClipboard(string base64)
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("editorManager.copyImageToClipboard", base64);
+        }
+        catch
+        {
+            // silently ignore — clipboard API may not be available in all browsers
+        }
     }
 
     public void Dispose()

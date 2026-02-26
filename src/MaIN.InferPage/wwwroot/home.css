@@ -406,3 +406,58 @@ body {
     30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
     40%, 60% { transform: translate3d(4px, 0, 0); }
 }
+
+/* Generated image display */
+.generated-images {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+}
+
+.image-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+/* Fix: <a> is inline by default — make it block so width: 100% on <img> works correctly */
+.image-wrapper > a {
+    display: block;
+    width: 100%;
+}
+
+.generated-image {
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+    display: block;
+    cursor: zoom-in;
+}
+
+/* Action buttons overlaid on bottom-left corner of the image */
+.image-actions {
+    display: flex;
+    gap: 6px;
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+}
+
+.image-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    border-radius: 8px;
+    opacity: 0.85;
+    transition: opacity 0.15s, background-color 0.15s;
+    color: var(--accent-base-color);
+    text-decoration: none;
+    cursor: pointer;
+    background-color: rgba(0, 0, 0, 0.4);
+}
+
+.image-action-btn:hover {
+    opacity: 1;
+    background-color: rgba(0, 0, 0, 0.6);
+}

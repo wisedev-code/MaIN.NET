@@ -109,5 +109,10 @@ window.editorManager = {
         } catch (err) {
             try { await dotNetHelper.invokeMethodAsync('OnDragLeave'); } catch {}
         }
+    },
+    copyImageToClipboard: async (base64) => {
+        const res = await fetch(`data:image/png;base64,${base64}`);
+        const blob = await res.blob();
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
     }
 };

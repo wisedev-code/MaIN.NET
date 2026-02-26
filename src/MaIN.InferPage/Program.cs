@@ -8,7 +8,11 @@ using Utils = MaIN.InferPage.Utils;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
+    .AddInteractiveServerComponents()
+    .AddHubOptions(options =>
+    {
+        options.MaximumReceiveMessageSize = 10 * 1024 * 1024; // 10 MB
+    });
 builder.Services.AddFluentUIComponents();
 
 try

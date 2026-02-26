@@ -31,7 +31,14 @@ public sealed record DallE3() : CloudModel(
     BackendType.OpenAi,
     "DALL-E 3",
     4000,
-    "Advanced image generation model from OpenAI");
+    "Advanced image generation model from OpenAI"), IImageGenerationModel;
+
+public sealed record GptImage1() : CloudModel(
+    "gpt-image-1",
+    BackendType.OpenAi,
+    "GPT Image 1",
+    4000,
+    "OpenAI's latest image generation model"), IImageGenerationModel;
 
 // ===== Anthropic Models =====
 
@@ -73,6 +80,13 @@ public sealed record Grok3Beta() : CloudModel(
     "Grok 3 Beta",
     ModelDefaults.DefaultMaxContextWindow,
     "xAI latest Grok model in beta testing phase");
+
+public sealed record GrokImage() : CloudModel(
+    "grok-2-image",
+    BackendType.Xai,
+    "Grok 2 Image",
+    4000,
+    "xAI image generation model"), IImageGenerationModel;
 
 // ===== GroqCloud Models =====
 
