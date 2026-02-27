@@ -10,21 +10,30 @@ public sealed record Gpt4oMini() : CloudModel(
     BackendType.OpenAi,
     "GPT-4o Mini",
     ModelDefaults.DefaultMaxContextWindow,
-    "Fast and affordable OpenAI model for everyday tasks");
+    "Fast and affordable OpenAI model for everyday tasks"), IVisionModel
+{
+    public string? MMProjectName => null;
+}
 
 public sealed record Gpt4_1Mini() : CloudModel(
     "gpt-4.1-mini",
     BackendType.OpenAi,
     "GPT-4.1 Mini",
     ModelDefaults.DefaultMaxContextWindow,
-    "Updated mini model with improved capabilities");
+    "Updated mini model with improved capabilities"), IVisionModel
+{
+    public string? MMProjectName => null;
+}
 
 public sealed record Gpt5Nano() : CloudModel(
     "gpt-5-nano",
     BackendType.OpenAi,
     "GPT-5 Nano",
     ModelDefaults.DefaultMaxContextWindow,
-    "Next generation OpenAI nano model");
+    "Next generation OpenAI nano model"), IVisionModel
+{
+    public string? MMProjectName => null;
+}
 
 public sealed record DallE3() : CloudModel(
     "dall-e-3",
@@ -47,14 +56,20 @@ public sealed record ClaudeSonnet4() : CloudModel(
     BackendType.Anthropic,
     "Claude Sonnet 4",
     200000,
-    "Latest Claude model with enhanced reasoning capabilities");
+    "Latest Claude model with enhanced reasoning capabilities"), IVisionModel
+{
+    public string? MMProjectName => null;
+}
 
 public sealed record ClaudeSonnet4_5() : CloudModel(
     "claude-sonnet-4-5-20250929",
     BackendType.Anthropic,
     "Claude Sonnet 4.5",
     200000,
-    "Advanced Claude model with superior performance and extended context");
+    "Advanced Claude model with superior performance and extended context"), IVisionModel
+{
+    public string? MMProjectName => null;
+}
 
 // ===== Gemini Models =====
 
@@ -63,14 +78,20 @@ public sealed record Gemini2_5Flash() : CloudModel(
     BackendType.Gemini,
     "Gemini 2.5 Flash",
     1000000,
-    "Fast and efficient Google Gemini model for quick responses");
+    "Fast and efficient Google Gemini model for quick responses"), IVisionModel
+{
+    public string? MMProjectName => null;
+}
 
 public sealed record Gemini2_0Flash() : CloudModel(
     "gemini-2.0-flash",
     BackendType.Gemini,
     "Gemini 2.0 Flash",
     1000000,
-    "Google Gemini 2.0 flash model optimized for speed and efficiency");
+    "Google Gemini 2.0 flash model optimized for speed and efficiency"), IVisionModel
+{
+    public string? MMProjectName => null;
+}
 
 // ===== xAI Models =====
 
@@ -79,7 +100,10 @@ public sealed record Grok3Beta() : CloudModel(
     BackendType.Xai,
     "Grok 3 Beta",
     ModelDefaults.DefaultMaxContextWindow,
-    "xAI latest Grok model in beta testing phase");
+    "xAI latest Grok model in beta testing phase"), IVisionModel
+{
+    public string? MMProjectName => null;
+}
 
 public sealed record GrokImage() : CloudModel(
     "grok-2-image",
@@ -124,4 +148,7 @@ public sealed record OllamaGemma3_4b() : CloudModel(
     BackendType.Ollama,
     "Gemma3 4B (Ollama)",
     8192,
-    "Balanced 4B model running on Ollama for writing, analysis, and mathematical reasoning");
+    "Balanced 4B model running on Ollama for writing, analysis, and mathematical reasoning"), IVisionModel
+{
+    public string? MMProjectName => null;
+}
