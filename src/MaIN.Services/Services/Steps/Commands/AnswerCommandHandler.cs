@@ -51,7 +51,7 @@ public class AnswerCommandHandler(
                 return await ProcessKnowledgeQuery(command.Knowledge, command.Chat, command.AgentId);
         }
 
-        result = command.Chat.Visual
+        result = command.Chat.ImageGen
             ? await imageGenService!.Send(command.Chat)
             : await llmService.Send(command.Chat,
                 new ChatRequestOptions { InteractiveUpdates = command.Chat.Interactive, TokenCallback = command.Callback, ToolCallback = command.ToolCallback });

@@ -5,13 +5,6 @@ namespace MaIN.Core.Hub.Contexts.Interfaces.ChatContext;
 public interface IChatMessageBuilder : IChatActions
 {
     /// <summary>
-    /// Enables the visual output for the current chat session. This flag allows the AI to generate and return visual content,
-    /// such as images or charts, as part of its response.
-    /// </summary>
-    /// <returns>The context instance implementing <see cref="IChatMessageBuilder"/> for method chaining.</returns>
-    IChatMessageBuilder EnableVisual();
-    
-    /// <summary>
     /// Adds a user message to the chat. This method captures the message content and assigns the "User" role to it.
     /// It also timestamps the message for proper ordering.
     /// </summary>

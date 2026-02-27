@@ -29,14 +29,23 @@
             Color="#000"
             Style="margin-left: 10px">Reasoning ✨</FluentBadge>
     }
-    @if (Utils.Visual)
+    @if (Utils.ImageGen)
     {
         <FluentBadge
             Appearance="Appearance.Neutral"
             Fill="highlight"
             BackgroundColor="#7c3aed"
             Color="#fff"
-            Style="margin-left: 10px">Visual 🎨</FluentBadge>
+            Style="margin-left: 10px">Image Gen 🎨</FluentBadge>
+    }
+    @if (Utils.Vision)
+    {
+        <FluentBadge
+            Appearance="Appearance.Neutral"
+            Fill="highlight"
+            BackgroundColor="#0ea5e9"
+            Color="#fff"
+            Style="margin-left: 10px">Vision 👁️</FluentBadge>
     }
     <div  style="margin-left: auto; align-self: flex-end;">
         <FluentButton Style="padding: 10px; background-color: transparent;"

@@ -37,7 +37,7 @@ public class Chat
     }
     public List<Message> Messages { get; set; } = [];
     public ChatType Type { get; set; } = ChatType.Conversation;
-    public bool Visual { get; set; }
+    public bool ImageGen { get; set; }
     public InferenceParams InterferenceParams { get; set; } = new();
     public MemoryParams MemoryParams { get; set; } = new();
     public ToolsConfiguration? ToolsConfiguration { get; set; }

@@ -35,7 +35,7 @@ public class ChatService(
     {
         if (chat.ModelId == ImageGenService.LocalImageModels.FLUX) 
         {
-            chat.Visual = true; // TODO: add IImageGenModel interface and check for that instead
+            chat.ImageGen = true;
         }
         chat.Backend = settings.BackendType;
 
@@ -60,7 +60,7 @@ public class ChatService(
             }))];
         }
 
-        var result = chat.Visual
+        var result = chat.ImageGen
             ? await imageGenServiceFactory.CreateService(chat.Backend.Value)!.Send(chat)
             : await llmServiceFactory.CreateService(chat.Backend.Value).Send(chat, new ChatRequestOptions()
             {
@@ -74,7 +74,7 @@ public class ChatService(
             result.Message.Time = DateTime.Now;
         }
     
-        if (!chat.Visual && chat.TextToSpeechParams is not null)
+        if (!chat.ImageGen && chat.TextToSpeechParams is not null)
         {
             var speechBytes = await ttsServiceFactory
                 .CreateService(chat.Backend.Value).Send(result!.Message, chat.TextToSpeechParams.Model,

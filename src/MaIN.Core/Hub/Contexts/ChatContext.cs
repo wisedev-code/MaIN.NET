@@ -39,9 +39,10 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
         _chat = existingChat;
     }
 
-    public IChatMessageBuilder WithModel(AIModel model)
+    public IChatMessageBuilder WithModel(AIModel model, bool? imageGen = null)
     {
         SetModel(model);
+        _chat.ImageGen = imageGen ?? model is IImageGenerationModel;
         return this;
     }
 
@@ -81,14 +82,9 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
         _chat.ModelId = model.Id;
         _chat.ModelInstance = model;
         _chat.Backend = model.Backend;
+        _chat.ImageGen = model.HasImageGeneration;
     }
 
-    public IChatMessageBuilder EnableVisual()
-    {
-        _chat.Visual = true;
-        return this;
-    }
-    
     public IChatConfigurationBuilder WithInferenceParams(InferenceParams inferenceParams)
     {
         _chat.InterferenceParams = inferenceParams;
@@ -109,7 +105,7 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
 
     public IChatConfigurationBuilder Speak(TextToSpeechParams speechParams)
     {
-        _chat.Visual = false;
+        _chat.ImageGen = false;
         _chat.TextToSpeechParams = speechParams;
         return this;
     }
@@ -246,9 +242,6 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
         }
     }
     
-    IChatMessageBuilder IChatMessageBuilder.EnableVisual() => EnableVisual();
-
- 
     public string GetChatId() => _chat.Id;
     
     public async Task<Chat> GetCurrentChat()

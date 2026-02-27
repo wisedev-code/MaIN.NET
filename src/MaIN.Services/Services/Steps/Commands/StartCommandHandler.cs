@@ -9,7 +9,7 @@ public class StartCommandHandler : ICommandHandler<StartCommand, Message?>
 {
     public Task<Message?> HandleAsync(StartCommand command)
     {
-        if (command.Chat.Visual)
+        if (command.Chat.ImageGen)
         {
             return Task.FromResult<Message?>(null);
         }
