@@ -9,29 +9,35 @@ public class Chat
 {
     public string Id { get; init; } = string.Empty;
     public required string Name { get; init; }
+    private string? _modelId;
     public required string ModelId
     {
-        get => _modelInstance?.Id ?? string.Empty;
+        get => _modelInstance?.Id ?? _modelId ?? string.Empty;
         set
         {
+            _modelId = value;
             if (string.IsNullOrEmpty(value))
             {
                 _modelInstance = null;
                 return;
             }
 
-            _modelInstance = ModelRegistry.GetById(value);
+            ModelRegistry.TryGetById(value, out _modelInstance);
         }
     }
     private AIModel? _modelInstance;
     public AIModel? ModelInstance
     {
         get => _modelInstance;
-        set => (_modelInstance, ModelId) = (value, value?.Id ?? string.Empty);
+        set
+        {
+            _modelInstance = value;
+            _modelId = value?.Id ?? string.Empty;
+        }
     }
     public List<Message> Messages { get; set; } = [];
     public ChatType Type { get; set; } = ChatType.Conversation;
-    public bool Visual { get; set; }
+    public bool ImageGen { get; set; }
     public InferenceParams InterferenceParams { get; set; } = new();
     public MemoryParams MemoryParams { get; set; } = new();
     public ToolsConfiguration? ToolsConfiguration { get; set; }

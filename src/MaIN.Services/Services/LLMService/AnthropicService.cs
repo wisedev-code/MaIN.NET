@@ -12,6 +12,7 @@ using LLama.Common;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities.Tools;
 using MaIN.Domain.Exceptions;
+using MaIN.Domain.Models.Concrete;
 using MaIN.Services.Services.LLMService.Utils;
 
 namespace MaIN.Services.Services.LLMService;
@@ -25,6 +26,7 @@ public sealed class AnthropicService(
 {
     private readonly MaINSettings _settings = settings ?? throw new ArgumentNullException(nameof(settings));
 
+    private static readonly HashSet<string> AnthropicImageExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
     private static readonly ConcurrentDictionary<string, List<ChatMessage>> SessionCache = new();
 
     private const string CompletionsUrl = ServiceConstants.ApiUrls.AnthropicChatMessages;
@@ -63,11 +65,13 @@ public sealed class AnthropicService(
             return null;
 
         var apiKey = GetApiKey();
+
+        var lastMessage = chat.Messages.Last();
+        await ExtractImageFromFiles(lastMessage);
+
         var conversation = GetOrCreateConversation(chat, options.CreateSession);
         var resultBuilder = new StringBuilder();
         var tokens = new List<LLMTokenValue>();
-
-        var lastMessage = chat.Messages.Last();
 
         if (HasFiles(lastMessage))
         {
@@ -629,6 +633,42 @@ public sealed class AnthropicService(
     private static bool HasFiles(Message message)
     {
         return message.Files != null && message.Files.Count > 0;
+    }
+
+    private static async Task ExtractImageFromFiles(Message message)
+    {
+        if (message.Files == null || message.Files.Count == 0)
+            return;
+
+        var imageFiles = message.Files
+            .Where(f => AnthropicImageExtensions.Contains(f.Extension.ToLowerInvariant()))
+            .ToList();
+
+        if (imageFiles.Count == 0)
+            return;
+
+        var imageBytesList = new List<byte[]>();
+        foreach (var imageFile in imageFiles)
+        {
+            if (imageFile.StreamContent != null)
+            {
+                using var ms = new MemoryStream();
+                imageFile.StreamContent.Position = 0;
+                await imageFile.StreamContent.CopyToAsync(ms);
+                imageBytesList.Add(ms.ToArray());
+            }
+            else if (imageFile.Path != null)
+            {
+                imageBytesList.Add(await File.ReadAllBytesAsync(imageFile.Path));
+            }
+
+            message.Files.Remove(imageFile);
+        }
+
+        message.Images = imageBytesList;
+
+        if (message.Files.Count == 0)
+            message.Files = null;
     }
 
     private async Task ProcessStreamingChatAsync(

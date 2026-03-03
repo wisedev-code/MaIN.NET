@@ -2,6 +2,7 @@
 using MaIN.Core.Hub;
 using MaIN.Core.IntegrationTests.Helpers;
 using MaIN.Domain.Entities;
+using MaIN.Domain.Models.Abstract;
 using MaIN.Domain.Models.Concrete;
 
 namespace MaIN.Core.IntegrationTests;
@@ -97,7 +98,7 @@ public class ChatTests : IntegrationTestBase
         const string extension = "png";
         
         var result = await AIHub.Chat()
-            .EnableVisual()
+            .WithModel(new GenericLocalModel("FLUX.1_Shnell"), imageGen: true)
             .WithMessage("Generate cat in Rome. Sightseeing, colloseum, ancient builidngs, Italy.")
             .CompleteAsync();
 

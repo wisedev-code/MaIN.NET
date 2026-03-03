@@ -11,6 +11,7 @@ using System.Text.Json.Serialization;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Exceptions;
 using MaIN.Domain.Models;
+using MaIN.Domain.Models.Concrete;
 using MaIN.Services.Services.LLMService.Utils;
 using MaIN.Services.Utils;
 

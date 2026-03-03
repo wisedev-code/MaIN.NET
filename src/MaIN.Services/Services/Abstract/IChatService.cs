@@ -11,7 +11,8 @@ public interface IChatService
         Chat chat,
         bool translatePrompt = false,
         bool interactiveUpdates = false,
-        Func<LLMTokenValue?, Task>? changeOfValue = null);
+        Func<LLMTokenValue?, Task>? changeOfValue = null,
+        CancellationToken cancellationToken = default);
     Task Delete(string id);
     Task<Chat> GetById(string id);
     Task<List<Chat>> GetAll();

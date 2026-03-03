@@ -28,16 +28,13 @@ public abstract class OpenAiCompatibleService(
     ILogger<OpenAiCompatibleService>? logger = null)
     : ILLMService
 {
-    private readonly INotificationService _notificationService =
-        notificationService ?? throw new ArgumentNullException(nameof(notificationService));
-
-    private readonly IHttpClientFactory _httpClientFactory =
-        httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
+    private readonly INotificationService _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
+    private readonly IHttpClientFactory _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
 
     private static readonly ConcurrentDictionary<string, List<ChatMessage>> SessionCache = new();
+    private static readonly HashSet<string> ImageExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".tiff", ".tif", ".heic", ".heif", ".avif"];
 
-    private static readonly JsonSerializerOptions DefaultJsonSerializerOptions =
-        new() { PropertyNameCaseInsensitive = true };
+    private static readonly JsonSerializerOptions DefaultJsonSerializerOptions = new() { PropertyNameCaseInsensitive = true };
 
     private const string ToolCallsProperty = "ToolCalls";
     private const string ToolCallIdProperty = "ToolCallId";
@@ -63,10 +60,11 @@ public abstract class OpenAiCompatibleService(
         List<LLMTokenValue> tokens = new();
         string apiKey = GetApiKey();
 
+        var lastMessage = chat.Messages.Last();
+        await ExtractImageFromFiles(lastMessage);
+
         List<ChatMessage> conversation = GetOrCreateConversation(chat, options.CreateSession);
         StringBuilder resultBuilder = new();
-
-        var lastMessage = chat.Messages.Last();
         if (HasFiles(lastMessage))
         {
             var result = ChatHelper.ExtractMemoryOptions(lastMessage);
@@ -74,15 +72,7 @@ public abstract class OpenAiCompatibleService(
             resultBuilder.Append(memoryResult!.Message.Content);
             lastMessage.MarkProcessed();
             UpdateSessionCache(chat.Id, resultBuilder.ToString(), options.CreateSession);
-            if (options.TokenCallback != null)
-            {
-                await InvokeTokenCallbackAsync(options.TokenCallback, new LLMTokenValue()
-                {
-                    Text = resultBuilder.ToString(),
-                    Type = TokenType.FullAnswer
-                });
-            }
-            return CreateChatResult(chat, resultBuilder.ToString(), tokens);
+            return CreateChatResult(chat, resultBuilder.ToString(), memoryResult.Message.Tokens);
         }
 
         if (chat.ToolsConfiguration?.Tools != null && chat.ToolsConfiguration.Tools.Any())
@@ -454,23 +444,84 @@ public abstract class OpenAiCompatibleService(
             return null;
 
         var kernel = memoryFactory.CreateMemoryWithOpenAi(GetApiKey(), chat.MemoryParams);
-
         await memoryService.ImportDataToMemory((kernel, null), memoryOptions, cancellationToken);
 
-        var userQuery = chat.Messages.Last().Content;
+        var lastMessage = chat.Messages.Last();
+        var userQuery = lastMessage.Content;
+
         if (chat.MemoryParams.Grammar != null)
         {
             var jsonGrammarConverter = new GrammarToJsonConverter();
             var jsonGrammar = jsonGrammarConverter.ConvertToJson(chat.MemoryParams.Grammar);
             userQuery = $"{userQuery} | Respond only using the following JSON format: \n{jsonGrammar}\n. Do not add explanations, code tags, or any extra content.";
         }
-        
+
+        // If there are images, use SearchAsync + regular chat with images
+        if (HasImages(lastMessage))
+        {
+            var searchResult = await kernel.SearchAsync(userQuery, cancellationToken: cancellationToken);
+            await kernel.DeleteIndexAsync(cancellationToken: cancellationToken);
+
+            // Build context from search results
+            var contextBuilder = new StringBuilder();
+            foreach (var citation in searchResult.Results.SelectMany(r => r.Partitions))
+            {
+                contextBuilder.AppendLine(citation.Text);
+            }
+
+            // Create a temporary message with context + original query
+            var contextEnhancedContent = string.IsNullOrEmpty(contextBuilder.ToString())
+                ? userQuery
+                : $"Use the following context to answer the question:\n\n{contextBuilder}\n\nQuestion: {userQuery}";
+
+            // Create conversation with context-enhanced message
+            var conversation = new List<ChatMessage>
+            {
+                new(ServiceConstants.Roles.User, contextEnhancedContent)
+                {
+                    OriginalMessage = new Message
+                    {
+                        Role = "User",
+                        Content = contextEnhancedContent,
+                        Type = MessageType.CloudLLM,
+                        Images = lastMessage.Images
+                    }
+                }
+            };
+
+            var tokens = new List<LLMTokenValue>();
+            var resultBuilder = new StringBuilder();
+
+            if (requestOptions.InteractiveUpdates || requestOptions.TokenCallback != null)
+            {
+                await ProcessStreamingChatAsync(chat, conversation, GetApiKey(), tokens, resultBuilder, requestOptions, cancellationToken);
+            }
+            else
+            {
+                await ProcessNonStreamingChatAsync(chat, conversation, GetApiKey(), resultBuilder, requestOptions, cancellationToken);
+            }
+
+            var finalToken = new LLMTokenValue { Text = resultBuilder.ToString(), Type = TokenType.FullAnswer };
+            tokens.Add(finalToken);
+
+            if (requestOptions.InteractiveUpdates)
+            {
+                await _notificationService.DispatchNotification(
+                    NotificationMessageBuilder.CreateChatCompletion(chat.Id, finalToken, true),
+                    ServiceConstants.Notifications.ReceiveMessageUpdate);
+            }
+
+            return CreateChatResult(chat, resultBuilder.ToString(), tokens);
+        }
+
+        // No images - use standard AskAsync flow
         MemoryAnswer retrievedContext;
+        var standardTokens = new List<LLMTokenValue>();
 
         if (requestOptions.InteractiveUpdates || requestOptions.TokenCallback != null)
         {
             var responseBuilder = new StringBuilder();
-        
+
             var searchOptions = new SearchOptions
             {
                 Stream = true
@@ -484,12 +535,14 @@ public abstract class OpenAiCompatibleService(
                 if (!string.IsNullOrEmpty(chunk.Result))
                 {
                     responseBuilder.Append(chunk.Result);
-                    
+
                     var tokenValue = new LLMTokenValue
                     {
                         Text = chunk.Result,
                         Type = TokenType.Message
                     };
+
+                    standardTokens.Add(tokenValue);
 
                     if (requestOptions.InteractiveUpdates)
                     {
@@ -498,10 +551,10 @@ public abstract class OpenAiCompatibleService(
                             ServiceConstants.Notifications.ReceiveMessageUpdate);
                     }
 
-                    requestOptions.TokenCallback?.Invoke(tokenValue);
+                    await InvokeTokenCallbackAsync(requestOptions.TokenCallback, tokenValue);
                 }
             }
-            
+
             retrievedContext = new MemoryAnswer
             {
                 Question = userQuery,
@@ -521,9 +574,9 @@ public abstract class OpenAiCompatibleService(
                 options: searchOptions,
                 cancellationToken: cancellationToken);
         }
-        
+
         await kernel.DeleteIndexAsync(cancellationToken: cancellationToken);
-        return CreateChatResult(chat, retrievedContext.Result, []);
+        return CreateChatResult(chat, retrievedContext.Result, standardTokens);
     }
 
     public virtual async Task<string[]> GetCurrentModels()
@@ -581,6 +634,42 @@ public abstract class OpenAiCompatibleService(
         }
     }
 
+    private static async Task ExtractImageFromFiles(Message message)
+    {
+        if (message.Files == null || message.Files.Count == 0)
+            return;
+
+        var imageFiles = message.Files
+            .Where(f => ImageExtensions.Contains(f.Extension.ToLowerInvariant()))
+            .ToList();
+
+        if (imageFiles.Count == 0)
+            return;
+
+        var imageBytesList = new List<byte[]>();
+        foreach (var imageFile in imageFiles)
+        {
+            if (imageFile.StreamContent != null)
+            {
+                using var ms = new MemoryStream();
+                imageFile.StreamContent.Position = 0;
+                await imageFile.StreamContent.CopyToAsync(ms);
+                imageBytesList.Add(ms.ToArray());
+            }
+            else if (imageFile.Path != null)
+            {
+                imageBytesList.Add(await File.ReadAllBytesAsync(imageFile.Path));
+            }
+
+            message.Files.Remove(imageFile);
+        }
+
+        message.Images = imageBytesList;
+
+        if (message.Files.Count == 0)
+            message.Files = null;
+    }
+
     private static bool HasFiles(Message message)
     {
         return message.Files != null && message.Files.Count > 0;
@@ -631,6 +720,8 @@ public abstract class OpenAiCompatibleService(
 
         while (!reader.EndOfStream)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             var line = await reader.ReadLineAsync(cancellationToken);
             if (string.IsNullOrWhiteSpace(line))
                 continue;
@@ -915,7 +1006,7 @@ public abstract class OpenAiCompatibleService(
     
     private static bool HasImages(Message message)
     {
-        return message.Image != null && message.Image.Length > 0;
+        return message.Images?.Count > 0;
     }
 
     private static object BuildMessageContent(Message message, ImageType imageType)
@@ -936,10 +1027,10 @@ public abstract class OpenAiCompatibleService(
             });
         }
 
-        if (message.Image != null && message.Image.Length > 0)
+        foreach (var imageBytes in message.Images!)
         {
-            var base64Data = Convert.ToBase64String(message.Image);
-            var mimeType = DetectImageMimeType(message.Image);
+            var base64Data = Convert.ToBase64String(imageBytes);
+            var mimeType = DetectImageMimeType(imageBytes);
 
             switch (imageType)
             {
@@ -979,23 +1070,42 @@ public abstract class OpenAiCompatibleService(
 
         if (imageBytes[0] == 0xFF && imageBytes[1] == 0xD8)
             return "image/jpeg";
-    
+
         if (imageBytes.Length >= 8 && 
             imageBytes[0] == 0x89 && imageBytes[1] == 0x50 && 
             imageBytes[2] == 0x4E && imageBytes[3] == 0x47)
             return "image/png";
-        
+
         if (imageBytes.Length >= 6 && 
             imageBytes[0] == 0x47 && imageBytes[1] == 0x49 && 
             imageBytes[2] == 0x46 && imageBytes[3] == 0x38)
             return "image/gif";
-        
+
         if (imageBytes.Length >= 12 && 
             imageBytes[0] == 0x52 && imageBytes[1] == 0x49 && 
             imageBytes[2] == 0x46 && imageBytes[3] == 0x46 &&
             imageBytes[8] == 0x57 && imageBytes[9] == 0x45 && 
             imageBytes[10] == 0x42 && imageBytes[11] == 0x50)
             return "image/webp";
+
+        // HEIC/HEIF format (iPhone photos)
+        if (imageBytes.Length >= 12 &&
+            imageBytes[4] == 0x66 && imageBytes[5] == 0x74 && 
+            imageBytes[6] == 0x79 && imageBytes[7] == 0x70)
+        {
+            // Check for heic/heif brands
+            if ((imageBytes[8] == 0x68 && imageBytes[9] == 0x65 && imageBytes[10] == 0x69 && imageBytes[11] == 0x63) ||
+                (imageBytes[8] == 0x68 && imageBytes[9] == 0x65 && imageBytes[10] == 0x69 && imageBytes[11] == 0x66))
+                return "image/heic";
+        }
+
+        // AVIF format
+        if (imageBytes.Length >= 12 &&
+            imageBytes[4] == 0x66 && imageBytes[5] == 0x74 && 
+            imageBytes[6] == 0x79 && imageBytes[7] == 0x70 &&
+            imageBytes[8] == 0x61 && imageBytes[9] == 0x76 && 
+            imageBytes[10] == 0x69 && imageBytes[11] == 0x66)
+            return "image/avif";
 
         return "image/jpeg";
     }

@@ -1,15 +1,15 @@
 ﻿@page "/"
 @rendermode @(new InteractiveServerRenderMode(prerender: true))
 @inject IJSRuntime JS
+@implements IDisposable
 @using MaIN.Core.Hub
-@using MaIN.Core.Hub.Contexts
 @using MaIN.Core.Hub.Contexts.Interfaces.ChatContext
+@using MaIN.Domain.Configuration
 @using MaIN.Domain.Entities
 @using MaIN.Domain.Exceptions
 @using MaIN.Domain.Models
 @using MaIN.Domain.Models.Abstract
 @using Markdig
-@using Microsoft.FluentUI.AspNetCore.Components.Icons.Regular
 @using Message = MaIN.Domain.Entities.Message
 @using MessageType = MaIN.Domain.Entities.MessageType
 <link rel="stylesheet" href="home.css">
@@ -18,302 +18,624 @@
 
 <ErrorNotification @bind-ErrorMessage="_errorMessage" />
 
-<FluentGrid>
-    <FluentGridItem sm="1" xs="1" lg="1"></FluentGridItem>
-    <FluentGridItem sm="10" xs="10" lg="10" Style="align-self: center; align-items: center">
-        <div class="messages-container" id="messages-container">
-            @foreach (var conversation in Messages)
+<div class="chat-container" id="chat-container">
+    @if (_isDragging)
+    {
+        <div class="drop-overlay">
+            <div class="drop-overlay-content">
+                <FluentIcon Value="@(new Icons.Regular.Size48.ArrowDownload())" Style="fill: var(--accent-base-color);" />
+                <span>Drop files here</span>
+            </div>
+        </div>
+    }
+
+    <FluentProgress Visible="@(_isLoading)" Style="width: 100%; margin: 0; color: var(--accent-base-color)"/>
+
+    <div class="messages-container" id="messages-container">
+        @foreach (var conversation in Messages)
+        {
+            @if (conversation.Message.Role != "System")
             {
-                <br/>
-                @if (conversation.Message.Role != "System")
-                {
-                    @if (Chat.Visual)
+                <FluentCard class="@(conversation.Message.Role == "User" ? "message-card user-message" : "message-card bot-message")">
+                    @if (conversation.Message.Role == "User")
                     {
-                        <FluentBadge
-                            Class="@(conversation.Message.Role == "User" ? "message-role-user" : "message-role-bot")"
-                            Appearance="Appearance.Accent">
-                            @(conversation.Message.Role == "User" ? "User" : Utils.Model)
-                        </FluentBadge>
-                        @if (conversation.Message.Role == "User")
+                        @if (conversation.AttachedFiles.Any() || conversation.AttachedImages.Any())
                         {
-                            <FluentCard class="message-card user-message">
-                                @conversation.Message.Content
-                            </FluentCard>
+                            <div class="attached-files-display">
+                                @foreach (var image in conversation.AttachedImages)
+                                {
+                                    <div class="history-image-preview" title="@image.Name">
+                                        <img src="data:image/png;base64,@image.Base64" alt="@image.Name" />
+                                    </div>
+                                }
+                                @foreach (var fileName in conversation.AttachedFiles)
+                                {
+                                    <span class="attached-file-tag">
+                                        <FluentIcon Value="@(new Icons.Regular.Size16.Document())"/>
+                                        @fileName
+                                    </span>
+                                }
+                            </div>
                         }
-                        else
-                        {
-                            <FluentCard class="message-card-img bot-message"
-                                        Style="height: 30rem !important; width: 30rem !important; ">
-                                <div>
-                                    <a href="data:image/png;base64,@Convert.ToBase64String(conversation.Message.Image!)"
-                                       style="cursor: -webkit-zoom-in; cursor: zoom-in;" target="_blank">
-                                        <img
-                                            src="data:image/png;base64,@Convert.ToBase64String(conversation.Message.Image!)"
-                                            style="object-fit: fill; width:100%; height:100%;"
-                                            alt="imageResponse"/>
-                                    </a>
-                                </div>
-                            </FluentCard>
-                        }
+                        <div>
+                            @((MarkupString)Markdown.ToHtml(conversation.Message.Content ?? string.Empty, _markdownPipeline))
+                        </div>
                     }
                     else
                     {
-                        @if (conversation.Message.Role == "User")
+                        @if (conversation.Message.Images?.Any() == true)
                         {
-                            <FluentBadge Class="message-role-user"
-                                         Appearance="Appearance.Accent">
-                                User
-                            </FluentBadge>
+                            <div class="generated-images">
+                                @foreach (var imageBytes in conversation.Message.Images)
+                                {
+                                    var b64 = Convert.ToBase64String(imageBytes);
+                                    <div class="image-wrapper">
+                                        <a href="data:image/png;base64,@b64" target="_blank">
+                                            <img src="data:image/png;base64,@b64" class="generated-image" alt="generated image" />
+                                        </a>
+                                        <div class="image-actions">
+                                            <a href="data:image/png;base64,@b64" download="generated-image.png"
+                                               class="image-action-btn" title="Download">
+                                                <FluentIcon Value="@(new Icons.Filled.Size24.ArrowDownload())"
+                                                            Style="fill: var(--accent-base-color);" />
+                                            </a>
+                                            <span class="image-action-btn" title="Copy to clipboard"
+                                                  @onclick="@(async () => await CopyImageToClipboard(b64))">
+                                                <FluentIcon Value="@(new Icons.Filled.Size24.Copy())"
+                                                            Style="fill: var(--accent-base-color);" />
+                                            </span>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
                         }
                         else
                         {
-                            <FluentStack>
-                                <FluentBadge Class="message-role-bot"
-                                             Appearance="Appearance.Accent">
-                                    @Utils.Model
-                                </FluentBadge>
-                                @if (_reasoning && conversation.Message.Role == "Assistant")
+                            <div>
+                                @if (conversation.HasReasoning)
                                 {
-                                    <FluentSwitch Label="Show reasoning"
-                                                  @bind-Value="@conversation.ShowReason"></FluentSwitch>
+                                    <div class="reasoning-row">
+                                        <span class="brain-toggle" title="@(conversation.ShowReason ? "Hide reasoning" : "Show reasoning")"
+                                              @onclick="@(() => ToggleReasoning(conversation))">
+                                            <FluentIcon Value="@(new Icons.Regular.Size24.Brain())"
+                                                        Style="@($"fill: {(conversation.ShowReason ? "var(--accent-base-color)" : "var(--neutral-foreground-hint)")};")"/>
+                                        </span>
+                                        @if (conversation.ShowReason)
+                                        {
+                                            <div class="thinker reasoning-text"
+                                                 style="border-radius: 10px; padding: 10px; border-width: 2px; background-color: var(--neutral-fill-hover)">
+                                                @((MarkupString)Markdown.ToHtml(conversation.ComputedReasoning, _markdownPipeline))
+                                            </div>
+                                        }
+                                    </div>
+                                    <hr class="reasoning-hr"/>
                                 }
-                            </FluentStack>
+                                @((MarkupString)Markdown.ToHtml(conversation.ComputedContent, _markdownPipeline))
+                            </div>
                         }
-
-                        <FluentCard
-                            class="@(conversation.Message.Role == "User" ? "message-card user-message" : "message-card bot-message")">
-                            @if (conversation.Message.Role == "User")
-                            {
-                                <span>@conversation.Message.Content</span>
-                            }
-                            else
-                            {
-                                <div>
-                                    @if (conversation.ShowReason)
-                                    {
-                                        <div class="thinker"
-                                             style="border-radius: 10px; padding: 10px; border-width: 2px; background-color: var(--neutral-fill-hover)">
-                                            @((MarkupString)Markdown.ToHtml(string.Concat(conversation.Message.Tokens.Where(x => x.Type == TokenType.Reason).Select(x => x.Text)),
-                                                new MarkdownPipelineBuilder()
-                                                    .UseAdvancedExtensions()
-                                                    .Build()))
-                                        </div>
-                                        <hr/>
-                                    }
-                                    @((MarkupString)Markdown.ToHtml(string.Concat(conversation.Message.Tokens.Where(x => x.Type == TokenType.Message).Select(x => x.Text)),
-                                        new MarkdownPipelineBuilder()
-                                            .UseAdvancedExtensions()
-                                            .Build()))
-                                </div>
-                            }
-
-
-                        </FluentCard>
                     }
-                }
+                </FluentCard>
             }
-            @if (_isLoading)
+        }
+        @if (_isLoading)
+        {
+            @if (Utils.ImageGen)
             {
-                @if (Chat.Visual)
-                {
-                    <FluentBadge Appearance="Appearance.Accent" Class="message-role-bot">@_displayName</FluentBadge>
-                    <span class="message-role-bot" style="font-style: italic; font-size: small">This might take a while...</span>
-                    <FluentProgressRing Visible="_isLoading" Color="#afffab"></FluentProgressRing>
-                }
-                else
-                {
-                    <FluentStack>
-                        <FluentBadge Appearance="Appearance.Accent" Class="message-role-bot">@_displayName</FluentBadge>
-                        <FluentProgressRing Width="20px" Visible="_isLoading"></FluentProgressRing>
-                        @if (_isThinking)
-                        {
-                            <span class="message-role-bot"
-                                  style="font-style: italic; font-size: small">Thinking...</span>
-                        }
-                    </FluentStack>
-                    @if (_incomingMessage != null || _incomingReasoning != null)
-                    {
-                        <FluentCard class="message-card bot-message">
-                            @if (_isThinking)
-                            {
-                                <span class="thinker">
-                                   @((MarkupString)Markdown.ToHtml(_incomingReasoning!,
-                                        new MarkdownPipelineBuilder()
-                                            .UseAdvancedExtensions()
-                                            .Build()))
-                                </span>
-                            }
-                            else
-                            {
-                                @((MarkupString)Markdown.ToHtml(_incomingMessage!,
-                                    new MarkdownPipelineBuilder()
-                                        .UseAdvancedExtensions()
-                                        .Build()))
-                            }
-
-                        </FluentCard>
-                    }
-                }
+                <span class="message-role-bot" style="font-style: italic; font-size: small">This might take a while...</span>
             }
-            <div id="bottom" @ref="_bottomElement"></div>
-        </div>
+            else if (_incomingMessage != null || _incomingReasoning != null)
+            {
+                <FluentCard class="message-card bot-message">
+                    @if (_isThinking)
+                    {
+                        <span class="thinker">
+                            @((MarkupString)Markdown.ToHtml(_incomingReasoning ?? string.Empty, _markdownPipeline))
+                        </span>
+                    }
+                    else
+                    {
+                        @((MarkupString)Markdown.ToHtml(_incomingMessage ?? string.Empty, _markdownPipeline))
+                    }
+                </FluentCard>
+            }
+        }
+        <div id="bottom" @ref="_bottomElement"></div>
+    </div>
+    <div class="chat-input-section">
+        @if (_selectedImages.Any() || _selectedFiles.Any())
+        {
+            <div class="selected-attachments-container">
+                @foreach (var image in _selectedImages)
+                {
+                    <div class="image-preview" title="@image.File.Name">
+                        <img src="data:image/@image.File.Extension.TrimStart('.');base64,@image.Base64Preview" alt="@image.File.Name" />
+                        <span class="image-dismiss-button" @onclick="@(() => RemoveImage(image))">
+                            <FluentIcon Value="@(new Icons.Regular.Size12.Dismiss())" Style="fill: var(--accent-base-color);" />
+                        </span>
+                    </div>
+                }
+                @foreach (var file in _selectedFiles)
+                {
+                    <div class="file-badge" title="@file.Name">
+                        <span class="file-name">@file.Name</span>
+                        <span class="dismiss-button" @onclick="@(() => RemoveFile(file))">
+                            <FluentIcon Value="@(new Icons.Regular.Size12.Dismiss())" Style="fill: var(--accent-base-color)" />
+                        </span>
+                    </div>
+                }
+            </div>
+        }
         <div class="input-container">
-            <FluentTextArea Style="width: 95%;"
-                            @key="_inputKey"
-                            bind-Value="@_prompt"
-                            Rows="1"
-                            @oninput="Callback"
-                            Disabled="@_isLoading"
-                            placeholder="Enter your prompt here..."
-                            @onkeyup="CheckEnterKey">
-            </FluentTextArea>
+            <div class="attachment-wrapper">
+                <InputFile @key="@_inputKey" OnChange="@HandleFileSelected" class="file-input-overlay" multiple/>
+                <FluentButton Class="attachment-button"
+                              IconStart="@(new Icons.Regular.Size28.Attach().WithColor(_accentColor))"
+                              BackgroundColor="rgba(0, 0, 0, 0)"
+                              Style="background-color: transparent; width: 100%; height: 100%; pointer-events: none;"
+                              Appearance="Appearance.Lightweight"/>
+            </div>
 
-            <FluentButton IconStart="@(new Size28.Send())" BackgroundColor="rgba(0, 0, 0, 0)"
-                          Style="margin-top: 5px; background-color: transparent"
+            <div class="input-content-wrapper">
+                <div @ref="_editorRef"
+                     class="chat-input"
+                     contenteditable="@(!_isLoading)"
+                     data-placeholder="Enter your prompt here..."
+                     @onkeydown="HandleKeyDown"
+                     @oninput="HandleInput"></div>
+            </div>
+
+            <FluentButton class="send-button"
+                          IconStart="@(new Icons.Regular.Size28.Send().WithColor(_accentColor))"
+                          BackgroundColor="rgba(0, 0, 0, 0)"
+                          Style="@(_isLoading ? "display: none;" : "background-color: transparent; margin-bottom: 2px;")"
                           Appearance="Appearance.Lightweight"
-                          Loading="@_isLoading"
-                          OnClick="@(() => SendAsync(_prompt!))">
+                          OnClick="@HandleSend">
+            </FluentButton>
+
+            <FluentButton class="stop-button"
+                          IconStart="@(new Icons.Filled.Size28.RecordStop().WithColor(_accentColor))"
+                          BackgroundColor="rgba(0, 0, 0, 0)"
+                          Style="@(_isLoading ? "background-color: transparent; margin-bottom: 2px;" : "display: none;")"
+                          Appearance="Appearance.Lightweight"
+                          OnClick="@HandleStop">
             </FluentButton>
         </div>
-    </FluentGridItem>
-    <FluentGridItem sm="1" xs="1" lg="1"></FluentGridItem>
-</FluentGrid>
-<FluentProgress Visible="@(_isLoading)"
-                style="width: 100%; !important; position: absolute; margin-bottom: auto"></FluentProgress>
-
-@* ReSharper disable once UnassignedField.Compiler *@
+    </div>
+</div>
 
 @code {
-    private string _prompt = string.Empty;
     private bool _isLoading;
     private bool _isThinking;
-    private bool _reasoning;
+    private bool _isDragging;
+    private bool _preserveScroll;
+    private string _accentColor = "#00cca3";
     private string? _errorMessage;
-    private string? _incomingMessage = null;
-    private string? _incomingReasoning = null;
-    private readonly string? _displayName = Utils.Model;
-    private IChatMessageBuilder? ctxBuilder;
+    private string? _incomingMessage;
+    private string? _incomingReasoning;
+    private IChatMessageBuilder? ctx;
+    private CancellationTokenSource? _cancellationTokenSource;
     private Chat Chat { get; } = new() { Name = "MaIN Infer", ModelId = Utils.Model! };
     private List<MessageExt> Messages { get; set; } = new();
     private ElementReference? _bottomElement;
-    private int _inputKey = 0;
+    private ElementReference _editorRef;
+    private DotNetObjectReference<Home>? _dotNetRef;
+    private List<FileInfo> _selectedFiles = new();
+    private List<(FileInfo File, string Base64Preview)> _selectedImages = new();
+    private int _inputKey;
+
+    private static readonly HashSet<string> ImageExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"];
+
+    private readonly MarkdownPipeline _markdownPipeline = new MarkdownPipelineBuilder()
+        .UseAdvancedExtensions()
+        .UseSoftlineBreakAsHardlineBreak()
+        .Build();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender)
+        if (firstRender)
         {
+            var theme = await JS.InvokeAsync<string>("themeManager.load");
+            _accentColor = (theme == "dark" || theme == "system-dark") ? "#00ffcc" : "#00cca3";
+            await JS.InvokeVoidAsync("scrollManager.attachScrollListener", "messages-container");
+            await JS.InvokeVoidAsync("scrollManager.restoreScrollPosition", "messages-container");
+
+            _dotNetRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("editorManager.attachPasteHandler", _editorRef, _dotNetRef);
+            await JS.InvokeVoidAsync("editorManager.attachDropZone", "chat-container", _dotNetRef);
+
+            StateHasChanged();
+        }
+        else if (_preserveScroll)
+        {
+            _preserveScroll = false;
             await JS.InvokeVoidAsync("scrollManager.restoreScrollPosition", "messages-container");
         }
     }
 
     protected override Task OnInitializedAsync()
     {
-        ctxBuilder = Utils.Visual
-            ? AIHub.Chat().EnableVisual()
-            : Utils.Path != null
-                ? AIHub.Chat().WithCustomModel(model: Utils.Model!, path: Utils.Path)
-                : AIHub.Chat().WithModel(Utils.Model!); //If that grows with different chat types we can consider switch ex
+        AIModel? model = null;
 
-        if (Utils.DeepSeek)
+        try
         {
-            _reasoning = Utils.Model!.ToLower().Contains("reasoner");
-            Utils.Reason = _reasoning;
+            if (Utils.BackendType == BackendType.Self && Utils.Path != null)
+            {
+                model = ModelRegistry.TryGetById(Utils.Model!, out var foundModel1)
+                    ? foundModel1!
+                    : new GenericLocalModel($"{Utils.Model}.gguf");
+            }
+            else
+            {
+                model = ModelRegistry.TryGetById(Utils.Model!, out var foundModel1)
+                    ? foundModel1!
+                    : new GenericCloudModel(Id: Utils.Model!, Backend: Utils.BackendType);
+            }
+
+            ctx = AIHub.Chat().WithModel(model, imageGen: Utils.ImageGen);
         }
-        else if (!Utils.OpenAi)
+        catch (MaINCustomException ex)
         {
-            var model = ModelRegistry.TryGetById(Utils.Model!, out var foundModel) ? foundModel : null;
-            _reasoning = !Utils.Visual && model?.HasReasoning == true;
-            Utils.Reason = _reasoning;
+            _errorMessage = ex.PublicErrorMessage;
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
         }
 
         return base.OnInitializedAsync();
     }
 
-    private async Task CheckEnterKey(KeyboardEventArgs e)
+    private async Task HandleKeyDown(KeyboardEventArgs e)
     {
         if (e is { Key: "Enter", ShiftKey: false })
         {
-            _prompt = _prompt.Replace("\n", string.Empty);
-            await SendAsync(_prompt);
+            await HandleSend();
         }
+    }
+
+    private async Task HandleSend()
+    {
+        if (_isLoading) return;
+
+        var msg = await JS.InvokeAsync<string>("editorManager.getInnerText", _editorRef);
+        if (!string.IsNullOrWhiteSpace(msg) || _selectedFiles.Any() || _selectedImages.Any())
+        {
+            await JS.InvokeVoidAsync("editorManager.clearContent", _editorRef);
+            await SendAsync(msg?.Trim() ?? string.Empty);
+        }
+    }
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        foreach (var file in e.GetMultipleFiles(10))
+        {
+            var ms = new MemoryStream();
+            try
+            {
+                await file.OpenReadStream(20 * 1024 * 1024).CopyToAsync(ms);
+                ms.Position = 0;
+
+                var extension = Path.GetExtension(file.Name).ToLowerInvariant();
+                var fileInfo = new FileInfo
+                {
+                    Name = file.Name,
+                    Extension = extension,
+                    StreamContent = ms
+                };
+
+                if (ImageExtensions.Contains(extension))
+                {
+                    var base64 = Convert.ToBase64String(ms.ToArray());
+                    ms.Position = 0;
+                    _selectedImages.Add((fileInfo, base64));
+                }
+                else
+                {
+                    _selectedFiles.Add(fileInfo);
+                }
+            }
+            catch (Exception ex)
+            {
+                await ms.DisposeAsync();
+                _errorMessage = $"Failed to read file {file.Name}: {ex.Message}";
+            }
+        }
+        StateHasChanged();
+    }
+
+    private void RemoveFile(FileInfo file)
+    {
+        file.StreamContent?.Dispose();
+        _selectedFiles.Remove(file);
+    }
+
+    private void RemoveImage((FileInfo File, string Base64Preview) image)
+    {
+        image.File.StreamContent?.Dispose();
+        _selectedImages.Remove(image);
+    }
+
+    [JSInvokable]
+    public async Task OnFileReceived(string fileName, string extension, string base64Data)
+    {
+        try
+        {
+            var bytes = Convert.FromBase64String(base64Data);
+            var ms = new MemoryStream(bytes);
+            var fileInfo = new FileInfo
+            {
+                Name = fileName,
+                Extension = extension,
+                StreamContent = ms
+            };
+
+            if (ImageExtensions.Contains(extension.ToLowerInvariant()))
+            {
+                _selectedImages.Add((fileInfo, base64Data));
+            }
+            else
+            {
+                _selectedFiles.Add(fileInfo);
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Failed to load file {fileName}: {ex.Message}";
+        }
+
+        _isDragging = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public async Task OnDragEnter()
+    {
+        _isDragging = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public async Task OnDragLeave()
+    {
+        _isDragging = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void HandleStop()
+    {
+        _cancellationTokenSource?.Cancel();
     }
 
     private async Task SendAsync(string msg)
     {
-        if (!string.IsNullOrWhiteSpace(msg))
+        if (string.IsNullOrWhiteSpace(msg) && !_selectedFiles.Any() && !_selectedImages.Any())
         {
-            StateHasChanged();
-            var newMsg = new Message { Role = "User", Content = msg, Type = Utils.OpenAi || Utils.Gemini ? MessageType.CloudLLM : MessageType.LocalLLM };
-            Chat.Messages.Add(newMsg);
-            Messages.Add(new MessageExt()
-            {
-                Message = newMsg
-            });
-            Chat.ModelId = Utils.Model!;
-            _isLoading = true;
-            Chat.Visual = Utils.Visual;
+            return;
+        }
+
+        _cancellationTokenSource?.Dispose();
+        _cancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = _cancellationTokenSource.Token;
+
+        _isLoading = true;
+        StateHasChanged();
+
+        var attachedFiles = new List<FileInfo>(_selectedFiles);
+        var attachedImages = new List<(FileInfo File, string Base64Preview)>(_selectedImages);
+        try
+        {
+            _selectedFiles.Clear();
+            _selectedImages.Clear();
             _inputKey++;
-            _prompt = string.Empty;
             StateHasChanged();
+
+            var newMsg = new Message
+            {
+                Role = "User",
+                Content = msg,
+                Type = GetMessageType()
+            };
+            Chat.Messages.Add(newMsg);
+
+            Messages.Add(new MessageExt
+            {
+                Message = newMsg,
+                AttachedFiles = attachedFiles.Select(f => f.Name).ToList(),
+                AttachedImages = attachedImages.Select(i => (i.File.Name, i.Base64Preview)).ToList()
+            });
+
+            Chat.ModelId = Utils.Model!;
+            Chat.ImageGen = Utils.ImageGen;
+
             bool wasAtBottom = await JS.InvokeAsync<bool>("scrollManager.isAtBottom", "messages-container");
 
-            try
-            {
-                await ctxBuilder!.WithMessage(msg)
-                    .CompleteAsync(changeOfValue: async message =>
-                    {
-                        if (message?.Type == TokenType.Reason)
-                        {
-                            _isThinking = true;
-                            _incomingReasoning += message.Text;
-                        }
-                        else if (message?.Type == TokenType.Message)
-                        {
-                            _isThinking = false;
-                            _incomingMessage += message.Text;
-                        }
+            StateHasChanged();
 
-                        StateHasChanged();
-                        if (wasAtBottom)
-                        {
-                            await JS.InvokeVoidAsync("scrollManager.scrollToBottomSmooth", _bottomElement);
-                        }
-                    });
-                
-                _isLoading = false;
-                var currentChat = (await ctxBuilder.GetCurrentChat());
-                Chat.Messages.Add(currentChat.Messages.Last());
-                Messages = Chat.Messages.Select(x => new MessageExt()
+            if (wasAtBottom)
+                await JS.InvokeVoidAsync("scrollManager.scrollToBottomSmooth", "messages-container");
+
+            var request = ctx!.WithMessage(msg);
+
+            // Combine files and images - images go as files, ExtractImageFromFiles will handle them
+            var allFiles = new List<FileInfo>(attachedFiles);
+            allFiles.AddRange(attachedImages.Select(i => i.File));
+
+            if (allFiles.Count != 0)
+            {
+                request.WithFiles(allFiles);
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var completionTask = request.CompleteAsync(changeOfValue: async message =>
+            {
+                if (cancellationToken.IsCancellationRequested)
                 {
-                    Message = x
-                }).ToList();
-                _incomingReasoning = null;
-                _incomingMessage = null;
-                await JS.InvokeVoidAsync("scrollManager.scrollToBottomSmooth", _bottomElement);
-                StateHasChanged();
+                    return;
+                }
 
-            }
-            catch (Exception ex)
+                if (message?.Type == TokenType.Reason)
+                {
+                    _isThinking = true;
+                    _incomingReasoning += message.Text;
+                }
+                else if (message?.Type == TokenType.Message)
+                {
+                    _isThinking = false;
+                    _incomingMessage += message.Text;
+                }
+
+                await InvokeAsync(StateHasChanged);
+                if (wasAtBottom)
+                {
+                    await InvokeAsync(async () => await JS.InvokeVoidAsync("scrollManager.scrollToBottomSmooth", "messages-container"));
+                }
+            }, cancellationToken: cancellationToken);
+
+            await completionTask.WaitAsync(cancellationToken);
+
+            var currentChat = await ctx.GetCurrentChat();
+            Chat.Messages.Add(currentChat.Messages.Last());
+
+            await JS.InvokeVoidAsync("scrollManager.saveScrollPosition", "messages-container");
+            _preserveScroll = true;
+            RebuildMessagesWithFiles();
+            _incomingReasoning = null;
+            _incomingMessage = null;
+        }
+        catch (OperationCanceledException)
+        {
+            bool hasPartialResponse = !string.IsNullOrWhiteSpace(_incomingMessage) || !string.IsNullOrWhiteSpace(_incomingReasoning);
+
+            if (hasPartialResponse)
             {
-                _errorMessage = null;
-                StateHasChanged();
+                var partialMsg = new Message
+                {
+                    Role = "Assistant",
+                    Content = _incomingMessage ?? string.Empty,
+                    Type = GetMessageType(),
+                    Time = DateTime.Now
+                };
 
-                _errorMessage = ex is MaINCustomException maInException 
-                    ? $"{maInException.PublicErrorMessage}" 
-                    : $"{ex.Message}";
+                if (!string.IsNullOrWhiteSpace(_incomingReasoning))
+                    partialMsg.Tokens.Add(new LLMTokenValue { Text = _incomingReasoning, Type = TokenType.Reason });
 
-                StateHasChanged();
+                if (!string.IsNullOrWhiteSpace(_incomingMessage))
+                    partialMsg.Tokens.Add(new LLMTokenValue { Text = _incomingMessage, Type = TokenType.Message });
+
+                Chat.Messages.Add(partialMsg);
+                RebuildMessagesWithFiles();
             }
-            finally
+            else
             {
-                _isLoading = false;
-                _isThinking = false;
+                if (Chat.Messages.Count > 0 && Chat.Messages.Last().Role == "User")
+                    Chat.Messages.RemoveAt(Chat.Messages.Count - 1);
+
+                if (Messages.Count > 0 && Messages.Last().Message.Role == "User")
+                    Messages.RemoveAt(Messages.Count - 1);
             }
+
+            _incomingReasoning = null;
+            _incomingMessage = null;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = null;
+            StateHasChanged();
+
+            _errorMessage = ex is MaINCustomException maInException
+                ? maInException.PublicErrorMessage
+                : ex.Message;
+
+            StateHasChanged();
+        }
+        finally
+        {
+            foreach (var attachment in attachedFiles)
+                attachment.StreamContent?.Dispose();
+            attachedFiles.Clear();
+
+            foreach (var image in attachedImages)
+                image.File.StreamContent?.Dispose();
+            attachedImages.Clear();
+
+            _isLoading = false;
+            _isThinking = false;
+            StateHasChanged();
         }
     }
 
-    private void Callback(ChangeEventArgs obj)
+    private void HandleInput(ChangeEventArgs obj)
     {
-        _prompt = obj.Value?.ToString()!;
+        // Handled by JS on send to ensure accuracy
+    }
+
+    private string GetMessageContent(Message message)
+    {
+        var tokensContent = string.Concat(message.Tokens.Where(x => x.Type == TokenType.Message).Select(x => x.Text));
+        return !string.IsNullOrEmpty(tokensContent) ? tokensContent : message.Content ?? string.Empty;
+    }
+
+    private string GetReasoningContent(Message message)
+    {
+        return string.Concat(message.Tokens.Where(x => x.Type == TokenType.Reason).Select(x => x.Text));
+    }
+
+    private MessageType GetMessageType()
+    {
+        return Utils.IsLocal
+            ? MessageType.LocalLLM
+            : MessageType.CloudLLM;
+    }
+
+    private async Task ToggleReasoning(MessageExt conversation)
+    {
+        await JS.InvokeVoidAsync("scrollManager.saveScrollPosition", "messages-container");
+        _preserveScroll = true;
+        conversation.ShowReason = !conversation.ShowReason;
+    }
+
+    private void RebuildMessagesWithFiles()
+    {
+        var existingFilesMap = Messages
+            .Where(m => m.AttachedFiles.Any())
+            .ToDictionary(m => m.Message, m => m.AttachedFiles);
+
+        var existingImagesMap = Messages
+            .Where(m => m.AttachedImages.Any())
+            .ToDictionary(m => m.Message, m => m.AttachedImages);
+
+        var existingReasonMap = Messages
+            .ToDictionary(m => m.Message, m => m.ShowReason);
+
+        Messages = Chat.Messages.Select(x => new MessageExt
+        {
+            Message = x,
+            AttachedFiles = existingFilesMap.TryGetValue(x, out var files) ? files : new List<string>(),
+            AttachedImages = existingImagesMap.TryGetValue(x, out var images) ? images : new List<(string, string)>(),
+            ShowReason = existingReasonMap.TryGetValue(x, out var show) && show,
+            HasReasoning = x.Tokens.Any(t => t.Type == TokenType.Reason),
+            ComputedContent = GetMessageContent(x),
+            ComputedReasoning = GetReasoningContent(x)
+        }).ToList();
+    }
+
+    private async Task CopyImageToClipboard(string base64)
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("editorManager.copyImageToClipboard", base64);
+        }
+        catch
+        {
+            // silently ignore — clipboard API may not be available in all browsers
+        }
+    }
+
+    public void Dispose()
+    {
+        _cancellationTokenSource?.Dispose();
+        _dotNetRef?.Dispose();
     }
 }

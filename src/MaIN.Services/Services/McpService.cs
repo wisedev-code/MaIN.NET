@@ -1,5 +1,6 @@
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
+using MaIN.Domain.Models.Concrete;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.LLMService.Utils;
 using MaIN.Services.Services.Models;

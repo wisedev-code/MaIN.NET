@@ -1,12 +1,13 @@
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Exceptions;
+using MaIN.Domain.Models.Concrete;
 using MaIN.Services.Constants;
 using MaIN.Services.Services.Abstract;
-using MaIN.Services.Services.LLMService.Utils;
 using MaIN.Services.Services.Models;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Text.Json.Serialization;
 
 namespace MaIN.Services.Services.ImageGenServices;
 
@@ -33,8 +34,8 @@ public class OpenAiImageGenService(
         };
 
         using var response = await client.PostAsJsonAsync(ServiceConstants.ApiUrls.OpenAiImageGenerations, requestBody);
-        var imageUrl = await ProcessOpenAiResponse(response);
-        byte[] imageBytes = await DownloadImageAsync(imageUrl);
+
+        byte[] imageBytes = await ProcessOpenAiResponse(response);
         return CreateChatResult(imageBytes);
     }
     
@@ -54,13 +55,22 @@ public class OpenAiImageGenService(
         
         return await imageResponse.Content.ReadAsByteArrayAsync();
     }
-    
-    private async Task<string> ProcessOpenAiResponse(HttpResponseMessage response)
+
+    private async Task<byte[]> ProcessOpenAiResponse(HttpResponseMessage response)
     {
         response.EnsureSuccessStatusCode();
         var responseData = await response.Content.ReadFromJsonAsync<OpenAiImageResponse>();
-        return responseData?.Data.FirstOrDefault()?.Url 
-               ?? throw new InvalidOperationException("No image URL returned from OpenAI");
+
+        var imageData = responseData?.Data.FirstOrDefault()
+                        ?? throw new InvalidOperationException("No image data returned from OpenAI");
+
+        if (!string.IsNullOrEmpty(imageData.B64Json))
+            return Convert.FromBase64String(imageData.B64Json);
+
+        if (!string.IsNullOrEmpty(imageData.Url))
+            return await DownloadImageAsync(imageData.Url);
+
+        throw new InvalidOperationException("No image URL or base64 data returned from OpenAI");
     }
     
     private static ChatResult CreateChatResult(byte[] imageBytes)
@@ -94,4 +104,6 @@ file class OpenAiImageResponse
 file class ImageData
 {
     public string Url { get; set; } = string.Empty;
+    [JsonPropertyName("b64_json")]
+    public string B64Json { get; set; } = string.Empty;
 }
