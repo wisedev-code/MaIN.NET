@@ -13,7 +13,6 @@ public class ChatWithImageGenOpenAiExample : IExample
         
         var result = await AIHub.Chat()
             .WithModel<DallE3>()
-            .EnableVisual()
             .WithMessage("Generate rock style cow playing guitar")
             .CompleteAsync();
         

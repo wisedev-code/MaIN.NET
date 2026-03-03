@@ -88,7 +88,7 @@ public class ChatContextTests
         };
         
 
-        _mockChatService.Setup(s => s.Completions(It.IsAny<Chat>(), It.IsAny<bool>(), It.IsAny<bool>(), null))
+        _mockChatService.Setup(s => s.Completions(It.IsAny<Chat>(), It.IsAny<bool>(), It.IsAny<bool>(), null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(chatResult);
         
         _chatContext.WithMessage("User message");
@@ -98,7 +98,7 @@ public class ChatContextTests
         var result = await _chatContext.CompleteAsync();
         
         // Assert
-        _mockChatService.Verify(s => s.Completions(It.IsAny<Chat>(), false, false, null), Times.Once);
+        _mockChatService.Verify(s => s.Completions(It.IsAny<Chat>(), false, false, null, It.IsAny<CancellationToken>()), Times.Once);
         Assert.Equal(chatResult, result);
     }
 
@@ -128,6 +128,6 @@ public class ChatContextTests
             .CompleteAsync();
         
         // Assert
-        _mockChatService.Verify(s => s.Completions(It.Is<Chat>(c => c.ModelId == _testModelId && c.ModelInstance == model), It.IsAny<bool>(), It.IsAny<bool>(), null), Times.Once);
+        _mockChatService.Verify(s => s.Completions(It.Is<Chat>(c => c.ModelId == _testModelId && c.ModelInstance == model), It.IsAny<bool>(), It.IsAny<bool>(), null, It.IsAny<CancellationToken>()), Times.Once);
     }
 }

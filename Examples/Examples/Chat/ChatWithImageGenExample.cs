@@ -1,5 +1,6 @@
 using Examples.Utils;
 using MaIN.Core.Hub;
+using MaIN.Domain.Models.Abstract;
 
 namespace Examples.Chat;
 
@@ -10,7 +11,7 @@ public class ChatWithImageGenExample : IExample
         Console.WriteLine("ChatExample with image gen is running!");
         
         var result = await AIHub.Chat()
-            .EnableVisual()
+            .WithModel(new GenericLocalModel("FLUX.1_Shnell"), imageGen: true)
             .WithMessage("Generate cyberpunk godzilla cat warrior")
             .CompleteAsync();
         

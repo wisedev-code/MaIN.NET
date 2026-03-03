@@ -1,5 +1,28 @@
 @import url('https://fonts.googleapis.com/css2?family=Tiny5&display=swap'); /* Importing a coding font */
 
+/* Kolor akcentu ciemny motyw */
+body[data-theme="dark"],
+body[data-theme="system-dark"] {
+    --accent-base-color: #00ffcc !important;
+    --accent-fill-rest: #00ffcc !important;
+}
+
+/* Lekko szare tło + kolor akcentu jasny motyw */
+body[data-theme="light"],
+body[data-theme="system-light"],
+body:not([data-theme="dark"]):not([data-theme="system-dark"]) {
+    --accent-base-color: #00cca3 !important;
+    --accent-fill-rest: #00cca3 !important;
+    --light-bg: #f0f0f0;
+    --neutral-layer-1: var(--light-bg) !important;
+    --neutral-fill-layer-rest: var(--light-bg) !important;
+    --neutral-fill-input-rest: var(--light-bg) !important;
+    --neutral-layer-2: #e8e8e8 !important;
+    --neutral-layer-3: #e0e0e0 !important;
+    --neutral-layer-4: #d8d8d8 !important;
+    --neutral-fill-input-hover: #ebebeb !important;
+    --neutral-fill-input-active: #e8e8e8 !important;
+}
 
 body {
     --body-font: "Segoe UI Variable", "Segoe UI", sans-serif;
@@ -210,8 +233,8 @@ code {
     font-weight: 400;
     font-size: 45px;
     font-style: normal;
-    color: var(--accent-fill-rest);
-    text-shadow: 0 0 5px #00ffcc;
+    color: var(--accent-base-color);
+    text-shadow: 0 0 5px var(--accent-base-color);
 }
 
 .navbar {

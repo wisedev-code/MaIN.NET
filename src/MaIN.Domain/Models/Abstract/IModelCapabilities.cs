@@ -45,3 +45,8 @@ public interface IEmbeddingModel
 /// Interface for models that support text-to-speech.
 /// </summary>
 public interface ITTSModel;
+
+/// <summary>
+/// Interface for models that generate images from text prompts.
+/// </summary>
+public interface IImageGenerationModel;

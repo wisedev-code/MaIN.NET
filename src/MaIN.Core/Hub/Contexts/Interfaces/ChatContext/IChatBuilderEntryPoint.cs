@@ -1,4 +1,4 @@
-﻿namespace MaIN.Core.Hub.Contexts.Interfaces.ChatContext;
+namespace MaIN.Core.Hub.Contexts.Interfaces.ChatContext;
 
 public interface IChatBuilderEntryPoint : IChatActions
 {
@@ -9,7 +9,7 @@ public interface IChatBuilderEntryPoint : IChatActions
     /// <param name="model">The name of the AI model to be used.</param>
     /// <returns>The context instance implementing <see cref="IChatMessageBuilder"/> for method chaining.</returns>
     IChatMessageBuilder WithModel(string model);
-    
+
     /// <summary>
     /// Configures a custom model with a specific path and project context.
     /// </summary>
@@ -18,14 +18,7 @@ public interface IChatBuilderEntryPoint : IChatActions
     /// <param name="mmProject">Optional multi-modal project identifier.</param>
     /// <returns>The context instance implementing <see cref="IChatMessageBuilder"/> for method chaining.</returns>
     IChatMessageBuilder WithCustomModel(string model, string path, string? mmProject = null);
-    
-    /// <summary>
-    /// Enables visual/image generation mode. Use this method now if you do not plan to explicitly define the model.
-    /// Otherwise, you will be able to use this method in the next step, after defining the model.
-    /// </summary>
-    /// <returns>The context instance implementing <see cref="IChatMessageBuilder"/> for method chaining.</returns>
-    IChatMessageBuilder EnableVisual();
-    
+
     /// <summary>
     /// Loads an existing chat session from the database using its unique identifier.
     /// </summary>

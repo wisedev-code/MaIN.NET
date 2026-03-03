@@ -7,6 +7,7 @@ using MaIN.Services.Services.LLMService.Memory;
 using Microsoft.Extensions.Logging;
 using System.Text;
 using MaIN.Domain.Exceptions;
+using MaIN.Domain.Models.Concrete;
 using MaIN.Services.Services.LLMService.Utils;
 
 namespace MaIN.Services.Services.LLMService;
@@ -49,7 +50,7 @@ public sealed class XaiService(
         CancellationToken cancellationToken = default)
     {
         var lastMsg = chat.Messages.Last();
-        var filePaths = await DocumentProcessor.ConvertToFilesContent(memoryOptions);
+        var filePaths = await DocumentProcessor.ConvertToFilesContent(memoryOptions, cancellationToken);
         var message = new Message()
         {
             Role = ServiceConstants.Roles.User,
@@ -59,7 +60,7 @@ public sealed class XaiService(
 
         chat.Messages.Last().Content = message.Content;
         chat.Messages.Last().Files = [];
-        var result = await Send(chat, new ChatRequestOptions(), cancellationToken);
+        var result = await Send(chat, requestOptions, cancellationToken);
         chat.Messages.Last().Content = lastMsg.Content;
         return result;
     }

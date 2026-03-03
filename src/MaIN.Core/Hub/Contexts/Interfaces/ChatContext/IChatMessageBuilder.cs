@@ -5,20 +5,13 @@ namespace MaIN.Core.Hub.Contexts.Interfaces.ChatContext;
 public interface IChatMessageBuilder : IChatActions
 {
     /// <summary>
-    /// Enables the visual output for the current chat session. This flag allows the AI to generate and return visual content,
-    /// such as images or charts, as part of its response.
-    /// </summary>
-    /// <returns>The context instance implementing <see cref="IChatMessageBuilder"/> for method chaining.</returns>
-    IChatMessageBuilder EnableVisual();
-
-    /// <summary>
     /// Flags the chat to automatically ensure the selected local model is downloaded before completing.
     /// If the model is already present the download is skipped; cloud models are silently ignored.
     /// The actual download is deferred until <see cref="IChatConfigurationBuilder.CompleteAsync"/> is called.
     /// </summary>
     /// <returns>The context instance implementing <see cref="IChatMessageBuilder"/> for method chaining.</returns>
     IChatMessageBuilder EnsureModelDownloaded();
-    
+
     /// <summary>
     /// Adds a user message to the chat. This method captures the message content and assigns the "User" role to it.
     /// It also timestamps the message for proper ordering.

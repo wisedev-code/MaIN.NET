@@ -130,10 +130,12 @@ public class LLMService : ILLMService
         
         MemoryAnswer result;
 
+        var tokens = new List<LLMTokenValue>();
+
         if (requestOptions.InteractiveUpdates || requestOptions.TokenCallback != null)
         {
             var responseBuilder = new StringBuilder();
-        
+
             var searchOptions = new SearchOptions
             {
                 Stream = true
@@ -147,24 +149,27 @@ public class LLMService : ILLMService
                 if (!string.IsNullOrEmpty(chunk.Result))
                 {
                     responseBuilder.Append(chunk.Result);
-                    
+
                     var tokenValue = new LLMTokenValue
                     {
                         Text = chunk.Result,
                         Type = TokenType.Message
                     };
-                    
+
+                    tokens.Add(tokenValue);
+
                     if (requestOptions.InteractiveUpdates)
                     {
                         await notificationService.DispatchNotification(
                             NotificationMessageBuilder.CreateChatCompletion(chat.Id, tokenValue, false),
                             ServiceConstants.Notifications.ReceiveMessageUpdate);
                     }
-                    
-                    requestOptions.TokenCallback?.Invoke(tokenValue);
+
+                    if (requestOptions.TokenCallback != null)
+                        await requestOptions.TokenCallback(tokenValue);
                 }
             }
-            
+
             result = new MemoryAnswer
             {
                 Question = userMessage.Content,
@@ -184,9 +189,9 @@ public class LLMService : ILLMService
                 options: searchOptions,
                 cancellationToken: cancellationToken);
         }
-        
+
         await km.DeleteIndexAsync(cancellationToken: cancellationToken);
-        
+
         if (disableCache)
         {
             llmModel.Dispose();
@@ -205,6 +210,7 @@ public class LLMService : ILLMService
             Message = new Message
             {
                 Content = memoryService.CleanResponseText(result.Result),
+                Tokens = tokens,
                 Role = nameof(AuthorRole.Assistant),
                 Type = MessageType.LocalLLM,
             }

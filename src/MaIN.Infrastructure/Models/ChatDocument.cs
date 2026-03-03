@@ -14,7 +14,7 @@ public class ChatDocument
     public ChatTypeDocument Type { get; init; }
     public required Dictionary<string, string> Properties { get; init; } = [];
     public BackendType? Backend { get; set; }
-    public bool Visual { get; init; }
+    public bool ImageGen { get; init; }
     public bool Interactive { get; init; }
     public bool Translate { get; init; }
     public InferenceParamsDocument? InferenceParams { get; init; }

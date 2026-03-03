@@ -19,7 +19,19 @@ public class Message
     public List<LLMTokenValue> Tokens { get; set; } = [];
     public bool Tool { get; init; }
     public DateTime Time { get; set; }
-    public byte[]? Image { get; init; }
+    public List<byte[]>? Images { get; set; }
+
+    // Backward-compat wrapper – single image access
+    public byte[]? Image
+    {
+        get => Images?.Count > 0 ? Images[0] : null;
+        set
+        {
+            if (value == null) Images = null;
+            else Images = [value];
+        }
+    }
+
     public byte[]? Speech { get; set; }
     public List<FileInfo>? Files { get; set; } 
     public Dictionary<string, string> Properties { get; set; } = [];

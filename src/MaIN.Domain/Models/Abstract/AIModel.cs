@@ -34,6 +34,9 @@ public abstract record AIModel(
     
     /// <summary> Checks if model supports vision/image input. </summary>
     public bool HasVision => this is IVisionModel;
+
+    /// <summary> Checks if model generates images from text prompts. </summary>
+    public bool HasImageGeneration => this is IImageGenerationModel;
 }
 
 /// <summary> Base class for local models. </summary>

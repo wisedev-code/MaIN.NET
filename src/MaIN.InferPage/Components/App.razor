@@ -9,12 +9,39 @@
     <link href="_content/Microsoft.FluentUI.AspNetCore.Components/css/reboot.css" rel="stylesheet" />
     <link rel="stylesheet" href="MaIN.InferPage.styles.css"/>
     <HeadOutlet/>
+    <script>
+        (function () {
+            try {
+                var raw = localStorage.getItem('theme');
+                if (raw) {
+                    var mode = JSON.parse(raw).mode;
+                    if (mode === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+                }
+            } catch (e) {}
+        })();
+    </script>
 </head>
 
 <body>
 <Routes/>
 <script src="_framework/blazor.web.js"></script>
 <script src="scroll.js"></script>
+<script src="editor.js"></script>
+<script>
+    window.themeManager = {
+        save: function (theme) { localStorage.setItem('theme', theme); },
+        load: function () {
+            try {
+                var raw = localStorage.getItem('theme');
+                if (!raw) return '';
+                var parsed = JSON.parse(raw);
+                return parsed.mode ? parsed.mode.toLowerCase() : raw.toLowerCase();
+            } catch (e) {
+                return '';
+            }
+        }
+    };
+</script>
 </body>
 
 </html>

@@ -20,6 +20,6 @@ public record ChatDto
 
     [JsonPropertyName("properties")] public Dictionary<string, string> Properties { get; init; } = [];
 
-    [JsonPropertyName("visual")]
-    public bool Visual { get; set; }
+    [JsonPropertyName("imageGen")]
+    public bool ImageGen { get; set; }
 }

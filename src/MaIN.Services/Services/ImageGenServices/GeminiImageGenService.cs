@@ -7,7 +7,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using MaIN.Domain.Exceptions;
-using MaIN.Services.Services.LLMService.Utils;
+using MaIN.Domain.Models.Concrete;
 
 namespace MaIN.Services.Services.ImageGenServices;
 

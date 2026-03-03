@@ -39,7 +39,7 @@ public class SqliteChatRepository(IDbConnection connection) : IChatRepository
             Properties = row.Properties != null ? 
                 JsonSerializer.Deserialize<Dictionary<string, string>>(row.Properties, _jsonOptions) : 
                 new Dictionary<string, string>(),
-            Visual = Convert.ToBoolean(row.Visual),
+            ImageGen = Convert.ToBoolean(row.Visual),
             Backend = row.BackendType,
             Interactive = Convert.ToBoolean(row.Interactive)
         };
@@ -59,7 +59,7 @@ public class SqliteChatRepository(IDbConnection connection) : IChatRepository
             MemoryParams = JsonSerializer.Serialize(chat.MemoryParams, _jsonOptions),
             Type = JsonSerializer.Serialize(chat.Type, _jsonOptions),
             Properties = JsonSerializer.Serialize(chat.Properties, _jsonOptions),
-            Visual = chat.Visual ? 1 : 0,
+            Visual = chat.ImageGen ? 1 : 0,
             BackendType = chat.Backend ?? 0,
             Interactive = chat.Interactive ? 1 : 0
         };

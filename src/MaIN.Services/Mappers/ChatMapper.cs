@@ -17,7 +17,7 @@ public static class ChatMapper
             Name = chat.Name,
             Model = chat.ModelId,
             Messages = chat.Messages.Select(m => m.ToDto()).ToList(),
-            Visual = chat.Visual,
+            ImageGen = chat.ImageGen,
             Type = Enum.Parse<ChatTypeDto>(chat.Type.ToString()),
             Properties = chat.Properties
         };
@@ -46,7 +46,7 @@ public static class ChatMapper
             Name = chat.Name!,
             ModelId = chat.Model!,
             Messages = chat.Messages?.Select(m => m.ToDomain()).ToList()!,
-            Visual = chat.Model == ImageGenService.LocalImageModels.FLUX,
+            ImageGen = chat.Model == ImageGenService.LocalImageModels.FLUX,
             Type = Enum.Parse<ChatType>(chat.Type.ToString()),
             Properties = chat.Properties
         };
@@ -89,7 +89,7 @@ public static class ChatMapper
             Name = chat.Name,
             Model = chat.ModelId,
             Messages = chat.Messages.Select(m => m.ToDocument()).ToList(),
-            Visual = chat.Visual,
+            ImageGen = chat.ImageGen,
             Backend = chat.Backend,
             ToolsConfiguration = chat.ToolsConfiguration,  
             MemoryParams = chat.MemoryParams.ToDocument(),
@@ -108,7 +108,7 @@ public static class ChatMapper
             Name = chat.Name,
             ModelId = chat.Model,
             Messages = chat.Messages.Select(m => m.ToDomain()).ToList(),
-            Visual = chat.Visual,
+            ImageGen = chat.ImageGen,
             Backend = chat.Backend,
             Properties = chat.Properties,
             ToolsConfiguration = chat.ToolsConfiguration,
