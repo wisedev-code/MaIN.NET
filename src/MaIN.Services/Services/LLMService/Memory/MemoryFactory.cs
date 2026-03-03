@@ -68,10 +68,10 @@ public class MemoryFactory() : IMemoryFactory
             .WithSearchClientConfig(searchOptions)
 #pragma warning disable SKEXP0070 // For evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
             .WithSemanticKernelTextGenerationService(
-                new GeminiTextGeneratorAdapter(new GoogleAIGeminiChatCompletionService("gemini-2.0-flash", geminiKey)),
+                new GeminiTextGeneratorAdapter(new GoogleAIGeminiChatCompletionService("gemini-2.5-flash", geminiKey)),
                 new SemanticKernelConfig())
             .WithSemanticKernelTextEmbeddingGenerationService(
-                new GoogleAITextEmbeddingGenerationService("embedding-001", geminiKey), new SemanticKernelConfig())
+                new GoogleAITextEmbeddingGenerationService("gemini-embedding-001", geminiKey), new SemanticKernelConfig())
 #pragma warning restore SKEXP0070
             .WithSimpleVectorDb()
             .Build();
