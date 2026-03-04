@@ -39,24 +39,6 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
         _chat = existingChat;
     }
 
-    public IChatMessageBuilder WithModel(AIModel model, bool? imageGen = null)
-    {
-        ModelRegistry.RegisterOrReplace(model);
-        _chat.ModelId = model.Id;
-        _chat.ImageGen = imageGen ?? (model is IImageGenerationModel);
-        _chat.ImageGen = model.HasImageGeneration;
-        return this;
-    }
-
-    [Obsolete("Use WithModel(string modelId) or WithModel(AIModel model) instead.")]
-    public IChatMessageBuilder WithModel<TModel>() where TModel : AIModel, new()
-    {
-        var model = new TModel();
-        ModelRegistry.RegisterOrReplace(model);
-        _chat.ModelId = model.Id;
-        return this;
-    }
-
     public IChatMessageBuilder WithModel(string modelId)
     {
         if (!ModelRegistry.Exists(modelId))
@@ -65,14 +47,7 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
         }
 
         _chat.ModelId = modelId;
-        return this;
-    }
-
-    [Obsolete("Use WithModel(AIModel model) instead.")]
-    public IChatMessageBuilder WithCustomModel(string model, string path, string? mmProject = null)
-    {
-        KnownModels.AddModel(model, path, mmProject);
-        _chat.ModelId = model;
+        _chat.ImageGen = ModelRegistry.GetById(modelId).HasImageGeneration;
         return this;
     }
 

@@ -1,7 +1,6 @@
 using MaIN.Core.Hub;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Models;
-using MaIN.Domain.Models.Concrete;
 using Grammar = MaIN.Domain.Models.Grammar;
 
 namespace Examples.Chat;
@@ -13,16 +12,17 @@ public class ChatCustomGrammarExample : IExample
         Console.WriteLine("ChatExample with grammar is running!");
 
         var personGrammar = new Grammar("""
-                                        root ::= person
-                                        person ::= "{" ws "\"name\":" ws name "," ws "\"age\":" ws age "," ws "\"city\":" ws city ws "}"
-                                        name ::= "\"" [A-Za-z ]+ "\""
-                                        age ::= [1-9] | [1-9][0-9]
-                                        city ::= "\"" [A-Za-z ]+ "\""
-                                        ws ::= [ \t]*
-                                        """, GrammarFormat.GBNF);
+            root ::= person
+            person ::= "{" ws "\"name\":" ws name "," ws "\"age\":" ws age "," ws "\"city\":" ws city ws "}"
+            name ::= "\"" [A-Za-z ]+ "\""
+            age ::= [1-9] | [1-9][0-9]
+            city ::= "\"" [A-Za-z ]+ "\""
+            ws ::= [ \t]*
+            """,
+            GrammarFormat.GBNF);
 
         await AIHub.Chat()
-            .WithModel<Gemma2_2b>()
+            .WithModel(Models.Local.Gemma2_2b)
             .WithMessage("Generate random person")
             .WithInferenceParams(new InferenceParams
             {

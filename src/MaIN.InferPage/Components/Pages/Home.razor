@@ -1,4 +1,4 @@
-﻿@page "/"
+@page "/"
 @rendermode @(new InteractiveServerRenderMode(prerender: true))
 @inject IJSRuntime JS
 @inject SettingsService SettingsStorage
@@ -308,7 +308,8 @@
             var model = ResolveModel();
             if (model != null)
             {
-                var newCtx = AIHub.Chat().WithModel(model, imageGen: Utils.ImageGen);
+                ModelRegistry.RegisterOrReplace(model);
+                var newCtx = AIHub.Chat().WithModel(model.Id);
                 // Preserve history on model switch; cast is safe — ChatContext implements both interfaces.
                 ctx = Chat.Messages.Count > 0
                     ? (IChatMessageBuilder)newCtx.WithMessages(Chat.Messages)
