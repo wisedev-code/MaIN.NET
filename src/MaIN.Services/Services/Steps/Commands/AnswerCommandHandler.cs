@@ -1,8 +1,8 @@
-using System.Text.Json;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents.Knowledge;
 using MaIN.Domain.Models;
+using MaIN.Domain.Models.Abstract;
 using MaIN.Services.Constants;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.LLMService;
@@ -11,6 +11,7 @@ using MaIN.Services.Services.Models;
 using MaIN.Services.Services.Models.Commands;
 using MaIN.Services.Services.Steps.Commands.Abstract;
 using MaIN.Services.Utils;
+using System.Text.Json;
 
 namespace MaIN.Services.Services.Steps.Commands;
 
@@ -22,7 +23,7 @@ public class AnswerCommandHandler(
     MaINSettings settings)
     : ICommandHandler<AnswerCommand, Message?>
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
+    private static readonly JsonSerializerOptions _jsonOptions = new()
     {
         PropertyNameCaseInsensitive = true
     };
@@ -30,8 +31,11 @@ public class AnswerCommandHandler(
     public async Task<Message?> HandleAsync(AnswerCommand command)
     {
         ChatResult? result;
-        var llmService = llmServiceFactory.CreateService(command.Chat.Backend ?? settings.BackendType);
-        var imageGenService = imageGenServiceFactory.CreateService(command.Chat.Backend ?? settings.BackendType);
+        var backend = ModelRegistry.TryGetById(command.Chat.ModelId, out var resolvedModel)
+            ? resolvedModel!.Backend
+            : settings.BackendType;
+        var llmService = llmServiceFactory.CreateService(backend);
+        var imageGenService = imageGenServiceFactory.CreateService(backend);
 
         switch (command.KnowledgeUsage)
         {
@@ -54,7 +58,12 @@ public class AnswerCommandHandler(
         result = command.Chat.ImageGen
             ? await imageGenService!.Send(command.Chat)
             : await llmService.Send(command.Chat,
-                new ChatRequestOptions { InteractiveUpdates = command.Chat.Interactive, TokenCallback = command.Callback, ToolCallback = command.ToolCallback });
+                new ChatRequestOptions
+                {
+                    InteractiveUpdates = command.Chat.Interactive,
+                    TokenCallback = command.Callback,
+                    ToolCallback = command.ToolCallback
+                });
 
         return result!.Message;
     }
@@ -64,7 +73,7 @@ public class AnswerCommandHandler(
         var originalContent = chat.Messages.Last().Content;
 
         var indexAsKnowledge = knowledge?.Index.Items.ToDictionary(x => x.Name, x => x.Tags);
-        var index = JsonSerializer.Serialize(indexAsKnowledge, JsonOptions);
+        var index = JsonSerializer.Serialize(indexAsKnowledge, _jsonOptions);
 
         chat.InterferenceParams.Grammar = new Grammar(ServiceConstants.Grammars.DecisionGrammar, GrammarFormat.GBNF);
         chat.Messages.Last().Content =
@@ -78,25 +87,28 @@ public class AnswerCommandHandler(
                    Content of available knowledge has source tags. Prompt: {originalContent}
              """;
 
-        var service = llmServiceFactory.CreateService(chat.Backend ?? settings.BackendType);
+        var backend = ModelRegistry.TryGetById(chat.ModelId, out var resolvedModel)
+            ? resolvedModel!.Backend
+            : settings.BackendType;
+        var service = llmServiceFactory.CreateService(backend);
 
         var result = await service.Send(chat, new ChatRequestOptions()
         {
             SaveConv = false
         });
-        var decision = JsonSerializer.Deserialize<JsonElement>(result!.Message.Content, JsonOptions);
+        var decision = JsonSerializer.Deserialize<JsonElement>(result!.Message.Content, _jsonOptions);
         var decisionValue = decision.GetProperty("decision").GetRawText();
         chat.InterferenceParams.Grammar = null;
         var shouldUseKnowledge = bool.Parse(decisionValue.Trim('"'));
         chat.Messages.Last().Content = originalContent;
-        return shouldUseKnowledge!;
+        return shouldUseKnowledge;
     }
 
     private async Task<Message?> ProcessKnowledgeQuery(Knowledge? knowledge, Chat chat, string agentId)
     {
         var originalContent = chat.Messages.Last().Content;
         var indexAsKnowledge = knowledge?.Index.Items.ToDictionary(x => x.Name, x => x.Tags);
-        var index = JsonSerializer.Serialize(indexAsKnowledge, JsonOptions);
+        var index = JsonSerializer.Serialize(indexAsKnowledge, _jsonOptions);
 
         chat.InterferenceParams.Grammar = new Grammar(ServiceConstants.Grammars.KnowledgeGrammar, GrammarFormat.GBNF);
         chat.Messages.Last().Content =
@@ -108,18 +120,20 @@ public class AnswerCommandHandler(
              Always return at least 1 tag in array, and no more than 4. Prompt: {originalContent}
              """;
 
-        var llmService = llmServiceFactory.CreateService(chat.Backend ?? settings.BackendType);
+        var backend = ModelRegistry.TryGetById(chat.ModelId, out var resolvedModel)
+            ? resolvedModel!.Backend
+            : settings.BackendType;
+        var llmService = llmServiceFactory.CreateService(backend);
 
         var searchResult = await llmService.Send(chat, new ChatRequestOptions()
         {
             SaveConv = false
         });
-        var matchedTags = JsonSerializer.Deserialize<List<string>>(searchResult!.Message.Content, JsonOptions);
+        var matchedTags = JsonSerializer.Deserialize<List<string>>(searchResult!.Message.Content, _jsonOptions);
         var knowledgeItems = knowledge!.Index.Items
-            .Where(x => x.Tags.Intersect(matchedTags!).Any() ||
-                        matchedTags!.Contains(x.Name))
+            .Where(x => x.Tags.Intersect(matchedTags!).Any() || matchedTags!.Contains(x.Name))
             .ToList();
-        
+
         //NOTE: perhaps good idea for future to combine knowledge form MCP and from KM 
         var memoryOptions = new ChatMemoryOptions();
         var mcpConfig = BuildMemoryOptionsFromKnowledgeItems(knowledgeItems, memoryOptions);
@@ -127,13 +141,13 @@ public class AnswerCommandHandler(
         chat.Messages.Last().Content = $"{originalContent} - Use information given you as memory.";
         chat.MemoryParams.IncludeQuestionSource = true;
         chat.MemoryParams.Grammar = null;
-        
+
         await notificationService.DispatchNotification(NotificationMessageBuilder.CreateActorKnowledgeStepProgress(
             agentId,
-            knowledgeItems.Select(x => $" {x.Name}|{x.Type} ").ToList(),
+            [.. knowledgeItems.Select(x => $" {x.Name}|{x.Type} ")],
             mcpConfig?.Model ?? chat.ModelId), "ReceiveAgentUpdate");
-        
-        if (mcpConfig != null)
+
+        if (mcpConfig is not null)
         {
             var result = await mcpService.Prompt(mcpConfig, chat.Messages);
             return result.Message;
@@ -149,9 +163,9 @@ public class AnswerCommandHandler(
     {
         //First or default because we cannot combine response from multiple servers in one go at the moment
         var mcp = knowledgeItems?.FirstOrDefault(x => x.Type == KnowledgeItemType.Mcp);
-        if (mcp != null)
+        if (mcp is not null)
         {
-            return JsonSerializer.Deserialize<Mcp>(mcp.Value, JsonOptions);
+            return JsonSerializer.Deserialize<Mcp>(mcp.Value, _jsonOptions);
         }
 
         foreach (var item in knowledgeItems!)

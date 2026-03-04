@@ -1,5 +1,6 @@
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
+using MaIN.Domain.Models.Abstract;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models.Commands;
 using MaIN.Services.Services.Steps.Commands.Abstract;
@@ -11,6 +12,7 @@ public class RedirectCommandHandler(IAgentService agentService) : ICommandHandle
     public async Task<Message?> HandleAsync(RedirectCommand command)
     {
         var chat = await agentService.GetChatByAgent(command.RelatedAgentId);
+        var backend = ModelRegistry.GetById(chat.ModelId).Backend;
         chat.Messages.Add(new Message()
         {
             Role = "User",
@@ -20,7 +22,7 @@ public class RedirectCommandHandler(IAgentService agentService) : ICommandHandle
                 { "agent_internal", "true" },
                 { Message.UnprocessedMessageProperty, string.Empty}
             },
-            Type = chat.Backend != BackendType.Self ? MessageType.CloudLLM : MessageType.LocalLLM
+            Type = backend != BackendType.Self ? MessageType.CloudLLM : MessageType.LocalLLM
         });
 
         if (!string.IsNullOrEmpty(command.Filter))
@@ -35,7 +37,7 @@ public class RedirectCommandHandler(IAgentService agentService) : ICommandHandle
             Content = result.Messages.Last().Content,
             Image = result.Messages.Last().Image,
             Role = "System",
-            Type = chat.Backend != BackendType.Self ? MessageType.CloudLLM : MessageType.LocalLLM,
+            Type = backend != BackendType.Self ? MessageType.CloudLLM : MessageType.LocalLLM,
             Properties = new Dictionary<string, string>()
             {
                 { "agent_internal", "true" },
