@@ -1,6 +1,6 @@
 using Examples.Utils;
 using MaIN.Core.Hub;
-using MaIN.Domain.Models.Concrete;
+using MaIN.Domain.Models;
 
 namespace Examples.Chat;
 
@@ -12,7 +12,7 @@ public class ChatExampleGroqCloud : IExample
         Console.WriteLine("(GroqCloud) ChatExample is running!");
 
         await AIHub.Chat()
-            .WithModel<Llama3_1_8bInstant>()
+            .WithModel(Models.Groq.Llama3_1_8bInstant)
             .WithMessage("Which color do people like the most?")
             .CompleteAsync(interactive: true);
     }

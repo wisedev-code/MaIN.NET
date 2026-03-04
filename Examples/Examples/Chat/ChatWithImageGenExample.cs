@@ -9,12 +9,14 @@ public class ChatWithImageGenExample : IExample
     public async Task Start()
     {
         Console.WriteLine("ChatExample with image gen is running!");
-        
+
+        var fluxModel = new GenericLocalModel("FLUX.1_Shnell");
+        ModelRegistry.RegisterOrReplace(fluxModel);
         var result = await AIHub.Chat()
-            .WithModel(new GenericLocalModel("FLUX.1_Shnell"), imageGen: true)
+            .WithModel(fluxModel.Id)
             .WithMessage("Generate cyberpunk godzilla cat warrior")
             .CompleteAsync();
-        
+
         ImagePreview.ShowImage(result.Message.Image);
     }
 }

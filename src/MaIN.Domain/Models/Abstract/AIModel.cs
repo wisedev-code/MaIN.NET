@@ -1,4 +1,4 @@
-﻿using MaIN.Domain.Configuration;
+using MaIN.Domain.Configuration;
 using MaIN.Domain.Exceptions.Models.LocalModels;
 
 namespace MaIN.Domain.Models.Abstract;
@@ -31,7 +31,7 @@ public abstract record AIModel(
 
     /// <summary> Checks if model supports reasoning/thinking mode. </summary>
     public bool HasReasoning => this is IReasoningModel;
-    
+
     /// <summary> Checks if model supports vision/image input. </summary>
     public bool HasVision => this is IVisionModel;
 
@@ -70,7 +70,7 @@ public abstract record LocalModel(
             return false;
         }
     }
-        
+
     /// <summary>
     /// Combines the specified base path with the file name to generate a full file path.
     /// </summary>
@@ -81,12 +81,9 @@ public abstract record LocalModel(
     /// <exception cref="ModelPathNullOrEmptyException">Thrown if both CustomPath and basePath are null or empty.</exception>
     public string GetFullPath(string? basePath = null)
     {
-        if (string.IsNullOrEmpty(CustomPath) && string.IsNullOrEmpty(basePath))
-        {
-            throw new ModelPathNullOrEmptyException();
-        }
-
-        return Path.Combine((CustomPath ?? basePath)!, FileName);
+        return string.IsNullOrEmpty(CustomPath) && string.IsNullOrEmpty(basePath)
+            ? throw new ModelPathNullOrEmptyException()
+            : Path.Combine((CustomPath ?? basePath)!, FileName);
     }
 }
 
@@ -109,6 +106,16 @@ public record GenericCloudModel(
     string? SystemMessage = null
 ) : CloudModel(Id, Backend, Name, MaxContextWindowSize, Description, SystemMessage);
 
+/// <summary> Generic class for runtime defined cloud image generation models. </summary>
+public record GenericImageGenerationCloudModel(
+    string Id,
+    BackendType Backend,
+    string? Name = null,
+    uint MaxContextWindowSize = ModelDefaults.DefaultMaxContextWindow,
+    string? Description = null,
+    string? SystemMessage = null
+) : CloudModel(Id, Backend, Name, MaxContextWindowSize, Description, SystemMessage), IImageGenerationModel;
+
 /// <summary> Generic class for runtime defined cloud models with reasoning capability. </summary>
 public record GenericCloudReasoningModel(
     string Id,
@@ -119,7 +126,7 @@ public record GenericCloudReasoningModel(
     string? SystemMessage = null,
     string? AdditionalPrompt = null
 ) : CloudModel(Id, Backend, Name, MaxContextWindowSize, Description, SystemMessage), IReasoningModel
-{   
+{
     // IReasoningModel - null for cloud (handled by provider API)
     public Func<string, ThinkingState, LLMTokenValue>? ReasonFunction => null;
     public string? AdditionalPrompt { get; } = AdditionalPrompt;
@@ -134,7 +141,7 @@ public record GenericCloudVisionModel(
     string? Description = null,
     string? SystemMessage = null
 ) : CloudModel(Id, Backend, Name, MaxContextWindowSize, Description, SystemMessage), IVisionModel
-{   
+{
     // IVisionModel - cloud models don't need MMProjectPath
     public string? MMProjectName => null;
 }
@@ -149,10 +156,10 @@ public record GenericCloudVisionReasoningModel(
     string? SystemMessage = null,
     string? AdditionalPrompt = null
 ) : CloudModel(Id, Backend, Name, MaxContextWindowSize, Description, SystemMessage), IVisionModel, IReasoningModel
-{   
+{
     // IVisionModel - null for cloud (handled by provider API)
     public string? MMProjectName => null;
-    
+
     // IReasoningModel - null for cloud (handled by provider API)
     public Func<string, ThinkingState, LLMTokenValue>? ReasonFunction => null;
     public string? AdditionalPrompt { get; } = AdditionalPrompt;
@@ -183,7 +190,7 @@ public record GenericLocalReasoningModel(
     string? Description = null,
     string? SystemMessage = null
 ) : LocalModel(Id ?? FileName, FileName, DownloadUrl, Name ?? FileName, MaxContextWindowSize, Description, SystemMessage, CustomPath), IReasoningModel
-{    
+{
     // IReasoningModel implementation
     public Func<string, ThinkingState, LLMTokenValue> ReasonFunction { get; } = ReasonFunction;
     public string? AdditionalPrompt { get; } = AdditionalPrompt;
@@ -201,7 +208,7 @@ public record GenericLocalVisionModel(
     string? Description = null,
     string? SystemMessage = null
 ) : LocalModel(Id ?? FileName, FileName, DownloadUrl, Name ?? FileName, MaxContextWindowSize, Description, SystemMessage, CustomPath), IVisionModel
-{    
+{
     // IVisionModel implementation
     public string MMProjectName { get; } = MMProjectPath;
 }
@@ -223,7 +230,7 @@ public record GenericLocalVisionReasoningModel(
 {
     // IVisionModel implementation
     public string MMProjectName { get; } = MMProjectPath;
-    
+
     // IReasoningModel implementation
     public Func<string, ThinkingState, LLMTokenValue> ReasonFunction { get; } = ReasonFunction;
     public string? AdditionalPrompt { get; } = AdditionalPrompt;

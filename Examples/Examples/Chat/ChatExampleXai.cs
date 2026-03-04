@@ -1,6 +1,6 @@
 using Examples.Utils;
 using MaIN.Core.Hub;
-using MaIN.Domain.Models.Concrete;
+using MaIN.Domain.Models;
 
 namespace Examples.Chat;
 
@@ -12,7 +12,7 @@ public class ChatExampleXai : IExample
         Console.WriteLine("(xAI) ChatExample is running!");
 
         await AIHub.Chat()
-            .WithModel<Grok3Beta>()
+            .WithModel(Models.Xai.Grok3Beta)
             .WithMessage("Is the killer whale cute?")
             .CompleteAsync(interactive: true);
     }
