@@ -1,4 +1,3 @@
-using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities.Tools;
 using MongoDB.Bson.Serialization.Attributes;
 
@@ -13,7 +12,6 @@ public class ChatDocument
     public required List<MessageDocument> Messages { get; init; }
     public ChatTypeDocument Type { get; init; }
     public required Dictionary<string, string> Properties { get; init; } = [];
-    public BackendType? Backend { get; set; }
     public bool ImageGen { get; init; }
     public bool Interactive { get; init; }
     public bool Translate { get; init; }

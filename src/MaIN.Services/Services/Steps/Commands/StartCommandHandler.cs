@@ -1,5 +1,6 @@
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
+using MaIN.Domain.Models.Abstract;
 using MaIN.Services.Services.Models.Commands;
 using MaIN.Services.Services.Steps.Commands.Abstract;
 
@@ -14,14 +15,15 @@ public class StartCommandHandler : ICommandHandler<StartCommand, Message?>
             return Task.FromResult<Message?>(null);
         }
 
+        var backend = ModelRegistry.GetById(command.Chat.ModelId).Backend;
         var message = new Message()
         {
             Content = command.InitialPrompt!,
-            Type = command.Chat.Backend != BackendType.Self ? MessageType.CloudLLM : MessageType.LocalLLM,
+            Type = backend != BackendType.Self ? MessageType.CloudLLM : MessageType.LocalLLM,
             Role = "System"
         };
         command.Chat.Messages.Add(message);
-        
+
         return Task.FromResult(new Message()
         {
             Content = "STARTED",
