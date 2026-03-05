@@ -1,6 +1,7 @@
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents.Knowledge;
+using MaIN.Domain.Exceptions.Agents;
 using MaIN.Domain.Models;
 using MaIN.Domain.Models.Abstract;
 using MaIN.Services.Constants;
@@ -19,8 +20,7 @@ public class AnswerCommandHandler(
     ILLMServiceFactory llmServiceFactory,
     IMcpService mcpService,
     INotificationService notificationService,
-    IImageGenServiceFactory imageGenServiceFactory,
-    MaINSettings settings)
+    IImageGenServiceFactory imageGenServiceFactory)
     : ICommandHandler<AnswerCommand, Message?>
 {
     private static readonly JsonSerializerOptions _jsonOptions = new()
@@ -30,10 +30,13 @@ public class AnswerCommandHandler(
 
     public async Task<Message?> HandleAsync(AnswerCommand command)
     {
+        if (!ModelRegistry.TryGetById(command.Chat.ModelId, out var model))
+        {
+            throw new AgentModelNotAvailableException(command.AgentId, command.Chat.ModelId);
+        }
+
         ChatResult? result;
-        var backend = ModelRegistry.TryGetById(command.Chat.ModelId, out var resolvedModel)
-            ? resolvedModel!.Backend
-            : settings.BackendType;
+        var backend = model!.Backend;
         var llmService = llmServiceFactory.CreateService(backend);
         var imageGenService = imageGenServiceFactory.CreateService(backend);
 
@@ -44,15 +47,15 @@ public class AnswerCommandHandler(
                     new ChatMemoryOptions { Memory = command.Chat.Memory }, new ChatRequestOptions());
                 return result!.Message;
             case KnowledgeUsage.UseKnowledge:
-                var isKnowledgeNeeded = await ShouldUseKnowledge(command.Knowledge, command.Chat);
+                var isKnowledgeNeeded = await ShouldUseKnowledge(command.Knowledge, command.Chat, backend);
                 if (isKnowledgeNeeded)
                 {
-                    return await ProcessKnowledgeQuery(command.Knowledge, command.Chat, command.AgentId);
+                    return await ProcessKnowledgeQuery(command.Knowledge, command.Chat, command.AgentId, llmService);
                 }
 
                 break;
             case KnowledgeUsage.AlwaysUseKnowledge:
-                return await ProcessKnowledgeQuery(command.Knowledge, command.Chat, command.AgentId);
+                return await ProcessKnowledgeQuery(command.Knowledge, command.Chat, command.AgentId, llmService);
         }
 
         result = command.Chat.ImageGen
@@ -68,7 +71,7 @@ public class AnswerCommandHandler(
         return result!.Message;
     }
 
-    private async Task<bool> ShouldUseKnowledge(Knowledge? knowledge, Chat chat)
+    private async Task<bool> ShouldUseKnowledge(Knowledge? knowledge, Chat chat, BackendType backend)
     {
         var originalContent = chat.Messages.Last().Content;
 
@@ -87,9 +90,6 @@ public class AnswerCommandHandler(
                    Content of available knowledge has source tags. Prompt: {originalContent}
              """;
 
-        var backend = ModelRegistry.TryGetById(chat.ModelId, out var resolvedModel)
-            ? resolvedModel!.Backend
-            : settings.BackendType;
         var service = llmServiceFactory.CreateService(backend);
 
         var result = await service.Send(chat, new ChatRequestOptions()
@@ -104,7 +104,7 @@ public class AnswerCommandHandler(
         return shouldUseKnowledge;
     }
 
-    private async Task<Message?> ProcessKnowledgeQuery(Knowledge? knowledge, Chat chat, string agentId)
+    private async Task<Message?> ProcessKnowledgeQuery(Knowledge? knowledge, Chat chat, string agentId, ILLMService llmService)
     {
         var originalContent = chat.Messages.Last().Content;
         var indexAsKnowledge = knowledge?.Index.Items.ToDictionary(x => x.Name, x => x.Tags);
@@ -116,14 +116,9 @@ public class AnswerCommandHandler(
              KNOWLEDGE:
              {index}
 
-             Find tags that fits user query based on available knowledge (provided to you above as pair of item names with tags). 
+             Find tags that fits user query based on available knowledge (provided to you above as pair of item names with tags).
              Always return at least 1 tag in array, and no more than 4. Prompt: {originalContent}
              """;
-
-        var backend = ModelRegistry.TryGetById(chat.ModelId, out var resolvedModel)
-            ? resolvedModel!.Backend
-            : settings.BackendType;
-        var llmService = llmServiceFactory.CreateService(backend);
 
         var searchResult = await llmService.Send(chat, new ChatRequestOptions()
         {
@@ -134,7 +129,7 @@ public class AnswerCommandHandler(
             .Where(x => x.Tags.Intersect(matchedTags!).Any() || matchedTags!.Contains(x.Name))
             .ToList();
 
-        //NOTE: perhaps good idea for future to combine knowledge form MCP and from KM 
+        //NOTE: perhaps good idea for future to combine knowledge form MCP and from KM
         var memoryOptions = new ChatMemoryOptions();
         var mcpConfig = BuildMemoryOptionsFromKnowledgeItems(knowledgeItems, memoryOptions);
 

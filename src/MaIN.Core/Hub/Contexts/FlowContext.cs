@@ -3,6 +3,7 @@ using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
 using MaIN.Domain.Entities.Agents.AgentSource;
+using MaIN.Domain.Exceptions.Agents;
 using MaIN.Domain.Exceptions.Flows;
 using MaIN.Domain.Models.Abstract;
 using MaIN.Services.Services.Abstract;
@@ -152,7 +153,12 @@ public sealed class FlowContext : IFlowContext
     public async Task<ChatResult> ProcessAsync(string message, bool translate = false)
     {
         var chat = await _agentService.GetChatByAgent(_firstAgent!.Id);
-        var backend = ModelRegistry.GetById(chat.ModelId).Backend;
+        if (!ModelRegistry.TryGetById(chat.ModelId, out var model))
+        {
+            throw new AgentModelNotAvailableException(_firstAgent.Id, chat.ModelId);
+        }
+
+        var backend = model!.Backend;
         chat.Messages.Add(new Message()
         {
             Content = message,

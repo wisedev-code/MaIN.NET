@@ -39,8 +39,12 @@ public class ChatService(
             chat.ImageGen = true;
         }
 
-        var model = ModelRegistry.GetById(chat.ModelId);
-        var backend = model.Backend;
+        if (!ModelRegistry.TryGetById(chat.ModelId, out var model))
+        {
+            throw new ChatModelNotAvailableException(chat.Id, chat.ModelId);
+        }
+
+        var backend = model!.Backend;
 
         chat.Messages.Where(x => x.Type == MessageType.NotSet).ToList()
             .ForEach(x => x.Type = backend != BackendType.Self ? MessageType.CloudLLM : MessageType.LocalLLM);

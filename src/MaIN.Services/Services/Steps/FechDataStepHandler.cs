@@ -1,6 +1,7 @@
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Exceptions;
+using MaIN.Domain.Exceptions.Agents;
 using MaIN.Domain.Models.Abstract;
 using MaIN.Services.Mappers;
 using MaIN.Services.Services.Abstract;
@@ -53,7 +54,12 @@ public class FetchDataStepHandler(
 
     private static Chat CreateMemoryChat(StepContext context, string? filterVal)
     {
-        var backend = ModelRegistry.GetById(context.Chat.ModelId).Backend;
+        if (!ModelRegistry.TryGetById(context.Chat.ModelId, out var model))
+        {
+            throw new AgentModelNotAvailableException(context.Agent.Id, context.Chat.ModelId);
+        }
+
+        var backend = model!.Backend;
         return new Chat
         {
             Messages =
