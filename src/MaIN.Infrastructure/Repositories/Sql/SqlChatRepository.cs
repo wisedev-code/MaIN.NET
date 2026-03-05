@@ -46,22 +46,21 @@ public class SqlChatRepository(IDbConnection connection) : IChatRepository
 
     private object MapChatToParameters(ChatDocument chat)
     {
-        return chat is null
-            ? throw new ArgumentNullException(nameof(chat))
-            : new
-            {
-                chat.Id,
-                chat.Name,
-                chat.Model,
-                Messages = JsonSerializer.Serialize(chat.Messages, _jsonOptions),
-                Type = JsonSerializer.Serialize(chat.Type, _jsonOptions),
-                ConvState = JsonSerializer.Serialize(chat.ConvState, _jsonOptions),
-                InferenceParams = JsonSerializer.Serialize(chat.InferenceParams, _jsonOptions),
-                MemoryParams = JsonSerializer.Serialize(chat.MemoryParams, _jsonOptions),
-                Properties = JsonSerializer.Serialize(chat.Properties, _jsonOptions),
-                Visual = chat.ImageGen,
-                chat.Interactive
-            };
+        ArgumentNullException.ThrowIfNull(chat);
+        return new
+        {
+            chat.Id,
+            chat.Name,
+            chat.Model,
+            Messages = JsonSerializer.Serialize(chat.Messages, _jsonOptions),
+            Type = JsonSerializer.Serialize(chat.Type, _jsonOptions),
+            ConvState = JsonSerializer.Serialize(chat.ConvState, _jsonOptions),
+            InferenceParams = JsonSerializer.Serialize(chat.InferenceParams, _jsonOptions),
+            MemoryParams = JsonSerializer.Serialize(chat.MemoryParams, _jsonOptions),
+            Properties = JsonSerializer.Serialize(chat.Properties, _jsonOptions),
+            Visual = chat.ImageGen,
+            chat.Interactive
+        };
     }
 
     public async Task<IEnumerable<ChatDocument>> GetAllChats()
