@@ -2,67 +2,37 @@ using Microsoft.JSInterop;
 
 namespace MaIN.InferPage.Services;
 
-public class SettingsService
+public class SettingsService(IJSRuntime js)
 {
     private const string SettingsKey = "inferpage-settings";
     private const string ApiKeysKey = "inferpage-apikeys";
     private const string ModelHistoryKey = "inferpage-model-history";
 
-    private readonly IJSRuntime _js;
-
-    public SettingsService(IJSRuntime js)
-    {
-        _js = js;
-    }
-
     public async Task<InferPageSettings?> LoadSettingsAsync()
-    {
-        return await _js.InvokeAsync<InferPageSettings?>("settingsManager.load", SettingsKey);
-    }
+        => await js.InvokeAsync<InferPageSettings?>("settingsManager.load", SettingsKey);
 
     public async Task SaveSettingsAsync(InferPageSettings settings)
-    {
-        await _js.InvokeVoidAsync("settingsManager.save", SettingsKey, settings);
-    }
+        => await js.InvokeVoidAsync("settingsManager.save", SettingsKey, settings);
 
     public async Task<bool> HasSettingsAsync()
+        => await js.InvokeAsync<bool>("settingsManager.exists", SettingsKey);
+
+    public Task SaveApiKeyAsync(string backend, string key) => SetInDictAsync(ApiKeysKey, backend, key);
+    public Task<string?> GetApiKeyForBackendAsync(string backend) => GetFromDictAsync(ApiKeysKey, backend);
+
+    public Task SaveModelForBackendAsync(string backend, string model) => SetInDictAsync(ModelHistoryKey, backend, model);
+    public Task<string?> GetLastModelForBackendAsync(string backend) => GetFromDictAsync(ModelHistoryKey, backend);
+
+    private async Task SetInDictAsync(string storageKey, string key, string value)
     {
-        return await _js.InvokeAsync<bool>("settingsManager.exists", SettingsKey);
+        var dict = await LoadDictAsync(storageKey);
+        dict[key] = value;
+        await js.InvokeVoidAsync("settingsManager.save", storageKey, dict);
     }
 
-    public async Task<Dictionary<string, string>?> LoadApiKeysAsync()
-    {
-        return await _js.InvokeAsync<Dictionary<string, string>?>("settingsManager.load", ApiKeysKey);
-    }
+    private async Task<string?> GetFromDictAsync(string storageKey, string key)
+        => (await LoadDictAsync(storageKey)).GetValueOrDefault(key);
 
-    public async Task SaveApiKeyAsync(string backendName, string key)
-    {
-        var keys = await LoadApiKeysAsync() ?? new Dictionary<string, string>();
-        keys[backendName] = key;
-        await _js.InvokeVoidAsync("settingsManager.save", ApiKeysKey, keys);
-    }
-
-    public async Task<string?> GetApiKeyForBackendAsync(string backendName)
-    {
-        var keys = await LoadApiKeysAsync();
-        return keys?.GetValueOrDefault(backendName);
-    }
-
-    public async Task<Dictionary<string, string>?> LoadModelHistoryAsync()
-    {
-        return await _js.InvokeAsync<Dictionary<string, string>?>("settingsManager.load", ModelHistoryKey);
-    }
-
-    public async Task SaveModelForBackendAsync(string backendName, string model)
-    {
-        var history = await LoadModelHistoryAsync() ?? new Dictionary<string, string>();
-        history[backendName] = model;
-        await _js.InvokeVoidAsync("settingsManager.save", ModelHistoryKey, history);
-    }
-
-    public async Task<string?> GetLastModelForBackendAsync(string backendName)
-    {
-        var history = await LoadModelHistoryAsync();
-        return history?.GetValueOrDefault(backendName);
-    }
+    private async Task<Dictionary<string, string>> LoadDictAsync(string storageKey)
+        => await js.InvokeAsync<Dictionary<string, string>?>("settingsManager.load", storageKey) ?? new();
 }

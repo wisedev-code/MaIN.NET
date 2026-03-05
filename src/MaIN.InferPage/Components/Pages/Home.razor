@@ -460,6 +460,11 @@
 
                 if (ImageExtensions.Contains(extension))
                 {
+                    if (!Utils.Vision)
+                    {
+                        _errorMessage = "This model doesn't support image input.";
+                        continue;
+                    }
                     var base64 = Convert.ToBase64String(ms.ToArray());
                     ms.Position = 0;
                     _selectedImages.Add((fileInfo, base64));
@@ -506,6 +511,11 @@
 
             if (ImageExtensions.Contains(extension.ToLowerInvariant()))
             {
+                if (!Utils.Vision)
+                {
+                    _errorMessage = "This model doesn't support image input.";
+                    return;
+                }
                 _selectedImages.Add((fileInfo, base64Data));
             }
             else

@@ -11,7 +11,8 @@ public static class Utils
     public static bool HasApiKey { get; set; }
     public static string? Path { get; set; }
     public static bool IsLocal => BackendType == BackendType.Self || (BackendType == BackendType.Ollama && !HasApiKey);
-    public static string? Model = "gemma3-4b";
+    public static string? Model;
+
     public static bool NeedsConfiguration { get; set; }
 
     // Manual capability overrides for unregistered models (set from Settings UI)
@@ -19,41 +20,17 @@ public static class Utils
     public static bool? ManualReasoning { get; set; }
     public static bool? ManualImageGen { get; set; }
 
-    public static bool Reason
-    {
-        get
-        {
-            if (string.IsNullOrEmpty(Model)) return false;
-            if (ModelRegistry.TryGetById(Model, out var m))
-                return m is IReasoningModel && !ImageGen; // reasoning and image gen are mutually exclusive
-            if (ManualReasoning.HasValue) return ManualReasoning.Value;
-            return false;
-        }
-    }
+    // registry → manual override → fallback set (null = no fallback)
+    private static bool GetCapability<T>(bool? manual, HashSet<string>? fallback = null)
+        where T : class =>
+        !string.IsNullOrEmpty(Model) && (
+            ModelRegistry.TryGetById(Model, out var m) ? m is T :
+            manual.HasValue ? manual.Value :
+            fallback?.Contains(Model) ?? false);
 
-    public static bool ImageGen
-    {
-        get
-        {
-            if (string.IsNullOrEmpty(Model)) return false;
-            if (ModelRegistry.TryGetById(Model, out var m))
-                return m is IImageGenerationModel;
-            if (ManualImageGen.HasValue) return ManualImageGen.Value;
-            return ImageGenerationModels.Contains(Model); // fallback for unregistered models (e.g. FLUX via separate server)
-        }
-    }
-
-    public static bool Vision
-    {
-        get
-        {
-            if (string.IsNullOrEmpty(Model)) return false;
-            if (ModelRegistry.TryGetById(Model, out var m))
-                return m is IVisionModel;
-            if (ManualVision.HasValue) return ManualVision.Value;
-            return VisionModels.Contains(Model); // fallback for unregistered models
-        }
-    }
+    public static bool ImageGen => GetCapability<IImageGenerationModel>(ManualImageGen, ImageGenerationModels);
+    public static bool Vision   => GetCapability<IVisionModel>(ManualVision, VisionModels);
+    public static bool Reason   => GetCapability<IReasoningModel>(ManualReasoning);
 
     public static bool IsKnownVisionModel(string model) => VisionModels.Contains(model);
     public static bool IsKnownImageGenModel(string model) => ImageGenerationModels.Contains(model);
@@ -95,44 +72,20 @@ public static class Utils
 
         mainSettings.BackendType = backendType;
 
-        if (!string.IsNullOrEmpty(apiKey))
-        {
-            var entry = LLMApiRegistry.GetEntry(backendType);
-            if (entry != null)
-            {
-                Environment.SetEnvironmentVariable(entry.ApiKeyEnvName, apiKey);
-            }
+        // null clears env var and key; handles both "set new key" and "clear stale key" cases
+        var entry = LLMApiRegistry.GetEntry(backendType);
+        if (entry != null)
+            Environment.SetEnvironmentVariable(entry.ApiKeyEnvName, apiKey);
 
-            switch (backendType)
-            {
-                case BackendType.OpenAi: mainSettings.OpenAiKey = apiKey; break;
-                case BackendType.Gemini: mainSettings.GeminiKey = apiKey; break;
-                case BackendType.DeepSeek: mainSettings.DeepSeekKey = apiKey; break;
-                case BackendType.Anthropic: mainSettings.AnthropicKey = apiKey; break;
-                case BackendType.GroqCloud: mainSettings.GroqCloudKey = apiKey; break;
-                case BackendType.Ollama: mainSettings.OllamaKey = apiKey; break;
-                case BackendType.Xai: mainSettings.XaiKey = apiKey; break;
-            }
-        }
-        else
+        switch (backendType)
         {
-            // Clear stale key for this backend (e.g. switching Ollama Cloud → Local)
-            var entry = LLMApiRegistry.GetEntry(backendType);
-            if (entry != null)
-            {
-                Environment.SetEnvironmentVariable(entry.ApiKeyEnvName, null);
-            }
-
-            switch (backendType)
-            {
-                case BackendType.OpenAi: mainSettings.OpenAiKey = null; break;
-                case BackendType.Gemini: mainSettings.GeminiKey = null; break;
-                case BackendType.DeepSeek: mainSettings.DeepSeekKey = null; break;
-                case BackendType.Anthropic: mainSettings.AnthropicKey = null; break;
-                case BackendType.GroqCloud: mainSettings.GroqCloudKey = null; break;
-                case BackendType.Ollama: mainSettings.OllamaKey = null; break;
-                case BackendType.Xai: mainSettings.XaiKey = null; break;
-            }
+            case BackendType.OpenAi: mainSettings.OpenAiKey = apiKey; break;
+            case BackendType.Gemini: mainSettings.GeminiKey = apiKey; break;
+            case BackendType.DeepSeek: mainSettings.DeepSeekKey = apiKey; break;
+            case BackendType.Anthropic: mainSettings.AnthropicKey = apiKey; break;
+            case BackendType.GroqCloud: mainSettings.GroqCloudKey = apiKey; break;
+            case BackendType.Ollama: mainSettings.OllamaKey = apiKey; break;
+            case BackendType.Xai: mainSettings.XaiKey = apiKey; break;
         }
     }
 

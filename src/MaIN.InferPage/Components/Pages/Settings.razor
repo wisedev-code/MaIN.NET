@@ -202,9 +202,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var localOption = new BackendOption(0, "Local", BackendType.Self, false);
-
-        var backendOptions = new List<BackendOption>
+        _backendOptions = new List<BackendOption>
         {
             new(1, "OpenAI", BackendType.OpenAi, true),
             new(2, "Gemini", BackendType.Gemini, true),
@@ -214,11 +212,9 @@
             new(6, "xAI", BackendType.Xai, true),
             new(7, "Ollama (Local)", BackendType.Ollama, false),
             new(8, "Ollama (Cloud)", BackendType.Ollama, true)
-
-        }.OrderBy(x => x.DisplayName).ToList();
-
-        backendOptions.Insert(0, localOption);
-        _backendOptions = backendOptions;
+        }.OrderBy(x => x.DisplayName)
+         .Prepend(new BackendOption(0, "Local", BackendType.Self, false))
+         .ToList();
 
         await base.OnInitializedAsync();
     }

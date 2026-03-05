@@ -100,28 +100,19 @@ catch (Exception ex)
     return;
 }
 
-if (Utils.NeedsConfiguration)
+// For Self backend CLI mode, validate model before registering
+if (!Utils.NeedsConfiguration && Utils.BackendType == BackendType.Self
+    && Utils.Path == null && !ModelRegistry.Exists(Utils.Model!))
 {
-    // Register with defaults — will be reconfigured at runtime via Settings UI
-    builder.Services.AddMaIN(builder.Configuration);
+    Console.WriteLine($"Model: {Utils.Model} is not supported");
+    Environment.Exit(0);
 }
-else if (Utils.BackendType != BackendType.Self)
-{
-    builder.Services.AddMaIN(builder.Configuration, settings =>
-    {
-        settings.BackendType = Utils.BackendType;
-    });
-}
-else
-{
-    if (Utils.Path == null && !ModelRegistry.Exists(Utils.Model!))
-    {
-        Console.WriteLine($"Model: {Utils.Model} is not supported");
-        Environment.Exit(0);
-    }
 
+if (!Utils.NeedsConfiguration && Utils.BackendType != BackendType.Self)
+    builder.Services.AddMaIN(builder.Configuration, s => s.BackendType = Utils.BackendType);
+else
+    // NeedsConfiguration or Self backend: register with defaults
     builder.Services.AddMaIN(builder.Configuration);
-}
 
 var app = builder.Build();
 

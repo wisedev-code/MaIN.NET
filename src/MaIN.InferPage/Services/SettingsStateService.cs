@@ -1,9 +1,6 @@
 namespace MaIN.InferPage.Services;
 
-/// <summary>
-/// Scoped service for cross-component settings event communication.
-/// NavBar (interactive) fires events, Home (interactive) subscribes.
-/// </summary>
+/// <summary>Event bus for NavBar ↔ Home sibling communication.</summary>
 public class SettingsStateService
 {
     public event Action? OnSettingsRequested;
