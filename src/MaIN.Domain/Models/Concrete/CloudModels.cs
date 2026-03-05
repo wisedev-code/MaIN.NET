@@ -6,7 +6,7 @@ namespace MaIN.Domain.Models.Concrete;
 // ===== OpenAI Models =====
 
 public sealed record Gpt4oMini() : CloudModel(
-    "gpt-4o-mini",
+    Models.OpenAi.Gpt4oMini,
     BackendType.OpenAi,
     "GPT-4o Mini",
     ModelDefaults.DefaultMaxContextWindow,
@@ -16,7 +16,7 @@ public sealed record Gpt4oMini() : CloudModel(
 }
 
 public sealed record Gpt4_1Mini() : CloudModel(
-    "gpt-4.1-mini",
+    Models.OpenAi.Gpt4_1Mini,
     BackendType.OpenAi,
     "GPT-4.1 Mini",
     ModelDefaults.DefaultMaxContextWindow,
@@ -26,7 +26,7 @@ public sealed record Gpt4_1Mini() : CloudModel(
 }
 
 public sealed record Gpt5Nano() : CloudModel(
-    "gpt-5-nano",
+    Models.OpenAi.Gpt5Nano,
     BackendType.OpenAi,
     "GPT-5 Nano",
     ModelDefaults.DefaultMaxContextWindow,
@@ -36,14 +36,14 @@ public sealed record Gpt5Nano() : CloudModel(
 }
 
 public sealed record DallE3() : CloudModel(
-    "dall-e-3",
+    Models.OpenAi.DallE3,
     BackendType.OpenAi,
     "DALL-E 3",
     4000,
     "Advanced image generation model from OpenAI"), IImageGenerationModel;
 
 public sealed record GptImage1() : CloudModel(
-    "gpt-image-1",
+    Models.OpenAi.GptImage1,
     BackendType.OpenAi,
     "GPT Image 1",
     4000,
@@ -52,7 +52,7 @@ public sealed record GptImage1() : CloudModel(
 // ===== Anthropic Models =====
 
 public sealed record ClaudeSonnet4() : CloudModel(
-    "claude-sonnet-4-20250514",
+    Models.Anthropic.ClaudeSonnet4,
     BackendType.Anthropic,
     "Claude Sonnet 4",
     200000,
@@ -62,7 +62,7 @@ public sealed record ClaudeSonnet4() : CloudModel(
 }
 
 public sealed record ClaudeSonnet4_5() : CloudModel(
-    "claude-sonnet-4-5-20250929",
+    Models.Anthropic.ClaudeSonnet4_5,
     BackendType.Anthropic,
     "Claude Sonnet 4.5",
     200000,
@@ -74,7 +74,7 @@ public sealed record ClaudeSonnet4_5() : CloudModel(
 // ===== Gemini Models =====
 
 public sealed record Gemini2_5Flash() : CloudModel(
-    "gemini-2.5-flash",
+    Models.Gemini.Gemini2_5Flash,
     BackendType.Gemini,
     "Gemini 2.5 Flash",
     1000000,
@@ -84,7 +84,7 @@ public sealed record Gemini2_5Flash() : CloudModel(
 }
 
 public sealed record Gemini2_0Flash() : CloudModel(
-    "gemini-2.0-flash",
+    Models.Gemini.Gemini2_0Flash,
     BackendType.Gemini,
     "Gemini 2.0 Flash",
     1000000,
@@ -96,7 +96,7 @@ public sealed record Gemini2_0Flash() : CloudModel(
 // ===== xAI Models =====
 
 public sealed record Grok3Beta() : CloudModel(
-    "grok-3-beta",
+    Models.Xai.Grok3Beta,
     BackendType.Xai,
     "Grok 3 Beta",
     ModelDefaults.DefaultMaxContextWindow,
@@ -106,7 +106,7 @@ public sealed record Grok3Beta() : CloudModel(
 }
 
 public sealed record GrokImage() : CloudModel(
-    "grok-2-image",
+    Models.Xai.GrokImage,
     BackendType.Xai,
     "Grok 2 Image",
     4000,
@@ -115,14 +115,14 @@ public sealed record GrokImage() : CloudModel(
 // ===== GroqCloud Models =====
 
 public sealed record Llama3_1_8bInstant() : CloudModel(
-    "llama-3.1-8b-instant",
+    Models.Groq.Llama3_1_8bInstant,
     BackendType.GroqCloud,
     "Llama 3.1 8B Instant",
     8192,
     "Meta Llama 3.1 8B model optimized for fast inference on Groq hardware");
 
 public sealed record GptOss20b() : CloudModel(
-    "openai/gpt-oss-20b",
+    Models.Groq.GptOss20b,
     BackendType.GroqCloud,
     "GPT OSS 20B",
     8192,
@@ -131,7 +131,7 @@ public sealed record GptOss20b() : CloudModel(
 // ===== DeepSeek Models =====
 
 public sealed record DeepSeekReasoner() : CloudModel(
-    "deepseek-reasoner",
+    Models.DeepSeek.Reasoner,
     BackendType.DeepSeek,
     "DeepSeek Reasoner",
     64000,
@@ -144,7 +144,7 @@ public sealed record DeepSeekReasoner() : CloudModel(
 // ===== Ollama Models =====
 
 public sealed record OllamaGemma3_4b() : CloudModel(
-    "gemma3:4b",
+    Models.Ollama.Gemma3_4b,
     BackendType.Ollama,
     "Gemma3 4B (Ollama)",
     8192,

@@ -1,13 +1,15 @@
-using System.IO.Compression;
-using System.Text.Json;
 using MaIN.Core.Hub.Contexts.Interfaces.FlowContext;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
 using MaIN.Domain.Entities.Agents.AgentSource;
+using MaIN.Domain.Exceptions.Agents;
 using MaIN.Domain.Exceptions.Flows;
+using MaIN.Domain.Models.Abstract;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
+using System.IO.Compression;
+using System.Text.Json;
 
 namespace MaIN.Core.Hub.Contexts;
 
@@ -26,7 +28,7 @@ public sealed class FlowContext : IFlowContext
         {
             Id = Guid.NewGuid().ToString(),
             Name = string.Empty,
-            Agents = new List<Agent>(),
+            Agents = [],
         };
     }
 
@@ -48,13 +50,13 @@ public sealed class FlowContext : IFlowContext
         _flow.Name = name;
         return this;
     }
-    
+
     public IFlowContext WithDescription(string description)
     {
         _flow.Description = description;
         return this;
     }
-    
+
     public IFlowContext Save(string path)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
@@ -73,12 +75,10 @@ public sealed class FlowContext : IFlowContext
             {
                 var agentFileName = $"{agent.Id}.json";
                 var agentEntry = archive.CreateEntry(agentFileName);
-                using (var entryStream = agentEntry.Open())
-                using (var writer = new StreamWriter(entryStream))
-                {
-                    var json = JsonSerializer.Serialize(agent);
-                    writer.Write(json);
-                }
+                using var entryStream = agentEntry.Open();
+                using var writer = new StreamWriter(entryStream);
+                var json = JsonSerializer.Serialize(agent);
+                writer.Write(json);
             }
         }
 
@@ -97,26 +97,22 @@ public sealed class FlowContext : IFlowContext
             var descriptionEntry = archive.GetEntry("description.txt");
             if (descriptionEntry != null)
             {
-                using (var entryStream = descriptionEntry.Open())
-                using (var reader = new StreamReader(entryStream))
-                {
-                    description = reader.ReadToEnd();
-                }
+                using var entryStream = descriptionEntry.Open();
+                using var reader = new StreamReader(entryStream);
+                description = reader.ReadToEnd();
             }
 
             foreach (var entry in archive.Entries)
             {
                 if (entry.FullName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
                 {
-                    using (var entryStream = entry.Open())
-                    using (var reader = new StreamReader(entryStream))
+                    using var entryStream = entry.Open();
+                    using var reader = new StreamReader(entryStream);
+                    var json = reader.ReadToEnd();
+                    var agent = JsonSerializer.Deserialize<Agent>(json);
+                    if (agent != null)
                     {
-                        var json = reader.ReadToEnd();
-                        var agent = JsonSerializer.Deserialize<Agent>(json);
-                        if (agent != null)
-                        {
-                            agents.Add(agent);
-                        }
+                        agents.Add(agent);
                     }
                 }
             }
@@ -139,8 +135,7 @@ public sealed class FlowContext : IFlowContext
         _flow.Agents.Add(agent);
         return this;
     }
-    
-    
+
     public async Task<ChatResult> ProcessAsync(Chat chat, bool translate = false)
     {
         //TODO add knowledge support also to flows
@@ -154,15 +149,21 @@ public sealed class FlowContext : IFlowContext
             CreatedAt = DateTime.Now
         };
     }
-    
+
     public async Task<ChatResult> ProcessAsync(string message, bool translate = false)
     {
         var chat = await _agentService.GetChatByAgent(_firstAgent!.Id);
+        if (!ModelRegistry.TryGetById(chat.ModelId, out var model))
+        {
+            throw new AgentModelNotAvailableException(_firstAgent.Id, chat.ModelId);
+        }
+
+        var backend = model!.Backend;
         chat.Messages.Add(new Message()
         {
             Content = message,
             Role = "User",
-            Type = chat.Backend != BackendType.Self ? MessageType.LocalLLM : MessageType.CloudLLM,
+            Type = backend == BackendType.Self ? MessageType.LocalLLM : MessageType.CloudLLM,
             Time = DateTime.Now
         });
         var result = await _agentService.Process(chat, _firstAgent.Id, null, translate);
@@ -175,7 +176,7 @@ public sealed class FlowContext : IFlowContext
             CreatedAt = DateTime.Now
         };
     }
-    
+
     public async Task<ChatResult> ProcessAsync(Message message, bool translate = false)
     {
         var chat = await _agentService.GetChatByAgent(_firstAgent!.Id);
@@ -190,7 +191,7 @@ public sealed class FlowContext : IFlowContext
             CreatedAt = DateTime.Now
         };
     }
-    
+
     public IFlowContext AddAgents(IEnumerable<Agent> agents)
     {
         foreach (var agent in agents)
@@ -198,42 +199,37 @@ public sealed class FlowContext : IFlowContext
             agent.Flow = true;
             _flow.Agents.Add(agent);
         }
-        
+
         return this;
     }
-    
-    public async Task<AgentFlow> CreateAsync()
-    {
-        return await _flowService.CreateFlow(_flow);
-    }
+
+    public async Task<AgentFlow> CreateAsync() => await _flowService.CreateFlow(_flow);
 
     public async Task Delete()
     {
-        if (_flow.Id == null)
+        if (_flow.Id is null)
+        {
             throw new FlowNotInitializedException();
-            
+        }
+
         await _flowService.DeleteFlow(_flow.Id);
     }
 
     // Retrieval Methods
     public async Task<AgentFlow> GetCurrentFlow()
     {
-        if (_flow.Id == null)
-            throw new FlowNotInitializedException();
-            
-        return await _flowService.GetFlowById(_flow.Id);
+        return _flow.Id is null
+            ? throw new FlowNotInitializedException()
+            : await _flowService.GetFlowById(_flow.Id);
     }
 
-    public async Task<List<AgentFlow>> GetAllFlows()
-    {
-        return await _flowService.GetAllFlows();
-    }
+    public async Task<List<AgentFlow>> GetAllFlows() => await _flowService.GetAllFlows();
 
     // Static factory methods
     public async Task<IFlowContext> FromExisting(string flowId)
     {
         var existingFlow = await _flowService.GetFlowById(flowId);
-        return existingFlow == null
+        return existingFlow is null
             ? throw new FlowNotFoundException(flowId)
             : this;
     }

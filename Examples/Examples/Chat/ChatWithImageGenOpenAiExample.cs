@@ -1,6 +1,6 @@
 using Examples.Utils;
 using MaIN.Core.Hub;
-using MaIN.Domain.Models.Concrete;
+using MaIN.Domain.Models;
 
 namespace Examples.Chat;
 
@@ -10,12 +10,12 @@ public class ChatWithImageGenOpenAiExample : IExample
     {
         Console.WriteLine("ChatExample with image gen is running! (OpenAi)");
         OpenAiExample.Setup(); // We need to provide OpenAi API key
-        
+
         var result = await AIHub.Chat()
-            .WithModel<DallE3>()
+            .WithModel(Models.OpenAi.DallE3)
             .WithMessage("Generate rock style cow playing guitar")
             .CompleteAsync();
-        
+
         ImagePreview.ShowImage(result.Message.Image);
     }
 }
