@@ -525,8 +525,6 @@ public class LLMService : ILLMService
             }
         }
 
-
-
         return (tokens, isComplete, hasFailed);
     }
 

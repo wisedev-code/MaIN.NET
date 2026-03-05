@@ -1,5 +1,6 @@
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
+using MaIN.Domain.Exceptions.Agents;
 using MaIN.Domain.Models.Abstract;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models.Commands;
@@ -12,7 +13,12 @@ public class RedirectCommandHandler(IAgentService agentService) : ICommandHandle
     public async Task<Message?> HandleAsync(RedirectCommand command)
     {
         var chat = await agentService.GetChatByAgent(command.RelatedAgentId);
-        var backend = ModelRegistry.GetById(chat.ModelId).Backend;
+        if (!ModelRegistry.TryGetById(chat.ModelId, out var model))
+        {
+            throw new AgentModelNotAvailableException(command.RelatedAgentId, chat.ModelId);
+        }
+
+        var backend = model!.Backend;
         chat.Messages.Add(new Message()
         {
             Role = "User",
