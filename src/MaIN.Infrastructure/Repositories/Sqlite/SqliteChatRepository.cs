@@ -27,13 +27,13 @@ public class SqliteChatRepository(IDbConnection connection) : IChatRepository
             Type = row.Type is not null
                 ? JsonSerializer.Deserialize<ChatTypeDocument>(row.Type, _jsonOptions)
                 : default,
-            ConvState = row.Type is not null
+            ConvState = row.ConvState is not null
                 ? JsonSerializer.Deserialize<dynamic>(row.ConvState, _jsonOptions)
                 : default,
-            InferenceParams = row.Type is not null
+            InferenceParams = row.InferenceParams is not null
                 ? JsonSerializer.Deserialize<InferenceParamsDocument>(row.InferenceParams, _jsonOptions)
                 : default,
-            MemoryParams = row.Type is not null
+            MemoryParams = row.MemoryParams is not null
                 ? JsonSerializer.Deserialize<MemoryParams>(row.MemoryParams, _jsonOptions)
                 : default,
             Properties = row.Properties is not null
