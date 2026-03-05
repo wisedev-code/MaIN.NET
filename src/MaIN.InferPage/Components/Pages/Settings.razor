@@ -278,11 +278,27 @@
         if (_selectedBackend == null) return;
 
         var backendKey = GetBackendStorageKey();
-        var lastModel = await SettingsStorage.GetLastModelForBackendAsync(backendKey);
-        if (!string.IsNullOrEmpty(lastModel))
+        var profile = await SettingsStorage.GetProfileForBackendAsync(backendKey);
+        if (profile != null)
         {
-            _modelName = lastModel;
-            OnModelNameChanged();
+            _modelName = profile.Model;
+            OnModelNameChanged();                    // sets _isRegisteredModel + auto-detects caps
+            if (!_isRegisteredModel)                // only restore manual caps for unregistered models
+            {
+                _manualVision    = profile.Vision;
+                _manualReasoning = profile.Reasoning;
+                _manualImageGen  = profile.ImageGen;
+            }
+        }
+        else
+        {
+            // Fallback: old model-history entry (no capability info)
+            var lastModel = await SettingsStorage.GetLastModelForBackendAsync(backendKey);
+            if (!string.IsNullOrEmpty(lastModel))
+            {
+                _modelName = lastModel;
+                OnModelNameChanged();
+            }
         }
 
         await LoadApiKeyPreview();
@@ -370,7 +386,8 @@
         };
         await SettingsStorage.SaveSettingsAsync(settings);
 
-        await SettingsStorage.SaveModelForBackendAsync(backendKey, _modelName);
+        await SettingsStorage.SaveProfileForBackendAsync(
+            backendKey, _modelName, hasVision, hasReasoning, hasImageGen);
 
         // Resolve API key: use new input, or fall back to saved key
         string? apiKey = null;
