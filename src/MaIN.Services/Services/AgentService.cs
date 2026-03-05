@@ -156,7 +156,10 @@ public class AgentService(
         var agent = await agentRepository.GetAgentById(agentId) ?? throw new AgentNotFoundException(agentId);
 
         var chat = (await chatRepository.GetChatById(agent.ChatId))!.ToDomain();
-        var llmService = llmServiceFactory.CreateService(agent.Backend ?? maInSettings.BackendType);
+        var backend = ModelRegistry.TryGetById(chat.ModelId, out var model)
+            ? model!.Backend
+            : maInSettings.BackendType;
+        var llmService = llmServiceFactory.CreateService(backend);
         await llmService.CleanSessionCache(chat.Id!);
         AgentStateManager.ClearState(agent, chat);
 
