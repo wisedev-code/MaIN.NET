@@ -1,0 +1,116 @@
+.settings-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 5000;
+    backdrop-filter: blur(3px);
+}
+
+.settings-panel {
+    background: var(--neutral-layer-1);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    width: 480px;
+    max-width: 90vw;
+    max-height: 85vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.settings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px 12px;
+    border-bottom: 1px solid var(--neutral-stroke-rest);
+}
+
+.settings-header h2 {
+    margin: 0;
+    color: var(--accent-base-color);
+    font-size: 1.25rem;
+}
+
+.settings-body {
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.settings-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.settings-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--neutral-foreground-rest);
+}
+
+.settings-footer {
+    padding: 12px 24px 20px;
+    display: flex;
+    justify-content: flex-end;
+    border-top: 1px solid var(--neutral-stroke-rest);
+}
+
+.api-key-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+}
+
+.api-key-hint {
+    font-size: 12px;
+    color: var(--neutral-foreground-hint);
+    font-family: monospace;
+}
+
+.capabilities-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.capabilities-hint {
+    font-size: 12px;
+    color: var(--neutral-foreground-hint);
+}
+
+.capabilities-checkboxes {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.no-capabilities {
+    font-size: 13px;
+    color: var(--neutral-foreground-hint);
+    font-style: italic;
+}
+
+@media (max-width: 600px) {
+    .settings-panel {
+        width: 95vw;
+        max-height: 90vh;
+        border-radius: 8px;
+    }
+
+    .settings-header,
+    .settings-body,
+    .settings-footer {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+}

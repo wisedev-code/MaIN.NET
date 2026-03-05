@@ -1,7 +1,10 @@
 @using Microsoft.FluentUI.AspNetCore.Components.Icons.Regular
 @using MaIN.Domain.Configuration
+@using MaIN.InferPage.Services
 @inject NavigationManager _navigationManager
 @inject IJSRuntime JS
+@inject SettingsStateService SettingsState
+@implements IDisposable
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 
 <FluentDesignTheme @bind-Mode="@Mode"
@@ -48,6 +51,11 @@
             Style="margin-left: 10px">Vision 👁️</FluentBadge>
     }
     <div  style="margin-left: auto; align-self: flex-end;">
+        <FluentButton Style="background-color: transparent;"
+                      BackgroundColor="rgba(0, 0, 0, 0)"
+                      Appearance="Appearance.Lightweight"
+                      OnClick="@OpenSettings" IconStart="@(new Icons.Regular.Size24.Settings().WithColor(AccentColor))">
+        </FluentButton>
         <FluentButton Style="padding: 10px; background-color: transparent;"
                       BackgroundColor="rgba(0, 0, 0, 0)"
                       Appearance="Appearance.Lightweight"
@@ -72,8 +80,14 @@
         {
             var stored = await JS.InvokeAsync<string>("themeManager.load");
             Mode = stored == "dark" ? DesignThemeModes.Dark : DesignThemeModes.Light;
+            SettingsState.OnSettingsApplied += OnSettingsChanged;
             StateHasChanged();
         }
+    }
+
+    private void OnSettingsChanged()
+    {
+        InvokeAsync(StateHasChanged);
     }
 
     private void SetTheme()
@@ -89,6 +103,11 @@
         _navigationManager.Refresh(true);
     }
 
+    private void OpenSettings()
+    {
+        SettingsState.RequestSettings();
+    }
+
     private string GetBackendColor()
     {
         return Utils.IsLocal ? "#6b7280" : "#10a37f";
@@ -102,5 +121,10 @@
             BackendType.Ollama when !Utils.HasApiKey => "Local Ollama",
             _ => Utils.BackendType.ToString()
         };
+    }
+
+    public void Dispose()
+    {
+        SettingsState.OnSettingsApplied -= OnSettingsChanged;
     }
 }

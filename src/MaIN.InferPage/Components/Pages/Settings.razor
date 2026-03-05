@@ -1,0 +1,422 @@
+@using MaIN.Domain.Configuration
+@using MaIN.Domain.Models.Abstract
+@inject SettingsService SettingsStorage
+@inject MaINSettings MaINSettings
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+<link rel="stylesheet" href="settings.css">
+
+<div class="settings-overlay">
+    <div class="settings-panel">
+        <div class="settings-header">
+            <h2>Settings</h2>
+            @if (ShowCloseButton)
+            {
+                <FluentButton Appearance="Appearance.Lightweight"
+                              Style="--neutral-fill-stealth-rest: transparent; --neutral-fill-stealth-hover: rgba(128,128,128,0.15); --neutral-fill-stealth-active: rgba(128,128,128,0.25);"
+                              OnClick="@OnClose"
+                              IconStart="@(new Icons.Regular.Size24.Dismiss())">
+                </FluentButton>
+            }
+        </div>
+
+        <div class="settings-body">
+            <div class="settings-field">
+                <label class="settings-label">Backend</label>
+                <FluentSelect TOption="BackendOption"
+                              Items="@_backendOptions"
+                              OptionValue="@(o => o.Id.ToString())"
+                              OptionText="@(o => o.DisplayName)"
+                              @bind-SelectedOption="_selectedBackend"
+                              @bind-SelectedOption:after="OnBackendChanged"
+                              Style="width: 100%;" />
+            </div>
+
+            <div class="settings-field">
+                <label class="settings-label">Model</label>
+                <FluentTextField @bind-Value="_modelName"
+                                 @bind-Value:after="OnModelNameChanged"
+                                 Placeholder="e.g., gpt-4o, gemma3-4b"
+                                 Style="width: 100%;" />
+            </div>
+
+            @if (RequiresApiKey)
+            {
+                <div class="settings-field">
+                    <label class="settings-label">API Key</label>
+                    <div class="api-key-row">
+                        <FluentTextField @bind-Value="_apiKeyInput"
+                                         Placeholder="Enter API key"
+                                         TextFieldType="@(_showApiKey ? TextFieldType.Text : TextFieldType.Password)"
+                                         Style="flex: 1;" />
+                        <FluentButton Appearance="Appearance.Lightweight"
+                                      Style="--neutral-fill-stealth-rest: transparent; --neutral-fill-stealth-hover: rgba(128,128,128,0.15); --neutral-fill-stealth-active: rgba(128,128,128,0.25);"
+                                      OnClick="@ToggleApiKeyVisibility"
+                                      IconStart="@(_showApiKey
+                                          ? new Icons.Regular.Size20.EyeOff()
+                                          : (Icon)new Icons.Regular.Size20.Eye())">
+                        </FluentButton>
+                    </div>
+                    @if (!string.IsNullOrEmpty(_savedKeyPreview))
+                    {
+                        <span class="api-key-hint">Saved: @_savedKeyPreview</span>
+                    }
+                </div>
+            }
+
+            @if (_selectedBackend?.BackendType == BackendType.Self)
+            {
+                <div class="settings-field">
+                    <label class="settings-label">Model Path</label>
+                    <FluentTextField @bind-Value="_modelPath"
+                                     Placeholder="Optional: model.gguf, C:\dir\model.gguf, or C:\dir"
+                                     Style="width: 100%;" />
+                    @if (ResolvedModelPathPreview is { } preview)
+                    {
+                        <span class="api-key-hint">Will load: @preview</span>
+                    }
+                </div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(_modelName))
+            {
+                <div class="settings-field">
+                    @if (_isRegisteredModel)
+                    {
+                        <label class="settings-label">Detected Capabilities</label>
+                        <div class="capabilities-row">
+                            @if (_detectedVision)
+                            {
+                                <FluentBadge BackgroundColor="#0ea5e9" Color="#fff">Vision</FluentBadge>
+                            }
+                            @if (_detectedReasoning)
+                            {
+                                <FluentBadge BackgroundColor="#ffd800" Color="#000">Reasoning</FluentBadge>
+                            }
+                            @if (_detectedImageGen)
+                            {
+                                <FluentBadge BackgroundColor="#7c3aed" Color="#fff">Image Gen</FluentBadge>
+                            }
+                            @if (!_detectedVision && !_detectedReasoning && !_detectedImageGen)
+                            {
+                                <span class="no-capabilities">No special capabilities</span>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <label class="settings-label">Model Capabilities</label>
+                        <span class="capabilities-hint">Model not in registry. Select supported capabilities:</span>
+                        <div class="capabilities-checkboxes">
+                            <FluentCheckbox @bind-Value="_manualVision" Label="Vision" />
+                            <FluentCheckbox @bind-Value="_manualReasoning" Label="Reasoning" />
+                            <FluentCheckbox @bind-Value="_manualImageGen" Label="Image Generation" />
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        <div class="settings-footer">
+            <FluentButton Appearance="Appearance.Accent"
+                          OnClick="@SaveAndApply"
+                          Disabled="@(!CanSave)">
+                @(ShowCloseButton ? "Save & Apply" : "Get Started")
+            </FluentButton>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public bool ShowCloseButton { get; set; }
+    [Parameter] public EventCallback OnSettingsApplied { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private List<BackendOption> _backendOptions = null!;
+    private BackendOption? _selectedBackend;
+    private string? _modelName;
+    private string? _modelPath;
+    private string? _apiKeyInput;
+    private string? _savedKeyPreview;
+    private bool _showApiKey;
+
+    // "Will load:" path preview shown below the model path field (Self backend only)
+    private string? ResolvedModelPathPreview
+    {
+        get
+        {
+            if (_selectedBackend?.BackendType != BackendType.Self) return null;
+            if (string.IsNullOrWhiteSpace(_modelName)) return null;
+
+            // Mirror Utils.ApplySettings sanitization (strips U+202A and other format chars)
+            var rawPath = _modelPath?.Trim() ?? "";
+            int i = 0;
+            while (i < rawPath.Length && (char.IsControl(rawPath[i]) || char.GetUnicodeCategory(rawPath[i]) == System.Globalization.UnicodeCategory.Format))
+            {
+                i++;
+            }
+
+            var cleanPath = i < rawPath.Length ? rawPath.Substring(i) : "";
+            var sanitizedModel = $"{_modelName.Trim().Replace(':', '-')}.gguf";
+
+            string fileName;
+            if (!string.IsNullOrEmpty(cleanPath))
+            {
+                fileName = cleanPath.EndsWith(".gguf", StringComparison.OrdinalIgnoreCase)
+                    ? cleanPath
+                    : Path.Combine(cleanPath, sanitizedModel);
+            }
+            else
+            {
+                fileName = sanitizedModel;
+            }
+
+            // Relative path: prepend configured models directory
+            if (!Path.IsPathFullyQualified(fileName))
+            {
+                var modelsDir = MaINSettings.ModelsPath
+                    ?? Environment.GetEnvironmentVariable("MaIN_ModelsPath");
+                if (!string.IsNullOrEmpty(modelsDir))
+                    fileName = Path.Combine(modelsDir, fileName);
+            }
+
+            return fileName;
+        }
+    }
+
+    // Registered model detection
+    private bool _isRegisteredModel;
+    private bool _detectedVision;
+    private bool _detectedReasoning;
+    private bool _detectedImageGen;
+
+    // Manual capability selection (unregistered models)
+    private bool _manualVision;
+    private bool _manualReasoning;
+    private bool _manualImageGen;
+
+    private bool RequiresApiKey => _selectedBackend?.RequiresApiKey == true;
+    private bool CanSave => !string.IsNullOrWhiteSpace(_modelName)
+                            && _selectedBackend != null
+                            && (!RequiresApiKey || !string.IsNullOrEmpty(_apiKeyInput) || !string.IsNullOrEmpty(_savedKeyPreview));
+
+    protected override async Task OnInitializedAsync()
+    {
+        var localOption = new BackendOption(0, "Local", BackendType.Self, false);
+
+        var backendOptions = new List<BackendOption>
+        {
+            new(1, "OpenAI", BackendType.OpenAi, true),
+            new(2, "Gemini", BackendType.Gemini, true),
+            new(3, "DeepSeek", BackendType.DeepSeek, true),
+            new(4, "GroqCloud", BackendType.GroqCloud, true),
+            new(5, "Anthropic", BackendType.Anthropic, true),
+            new(6, "xAI", BackendType.Xai, true),
+            new(7, "Ollama (Local)", BackendType.Ollama, false),
+            new(8, "Ollama (Cloud)", BackendType.Ollama, true)
+
+        }.OrderBy(x => x.DisplayName).ToList();
+
+        backendOptions.Insert(0, localOption);
+        _backendOptions = backendOptions;
+
+        await base.OnInitializedAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadCurrentSettings();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadCurrentSettings()
+    {
+        var settings = await SettingsStorage.LoadSettingsAsync();
+        if (settings != null)
+        {
+            var backendType = (BackendType)settings.BackendType;
+
+            if (backendType == BackendType.Ollama)
+            {
+                _selectedBackend = settings.IsOllamaCloud
+                    ? _backendOptions.First(o => o.Id == 8)
+                    : _backendOptions.First(o => o.Id == 7);
+            }
+            else
+            {
+                _selectedBackend = _backendOptions.FirstOrDefault(o => o.BackendType == backendType && o.Id < 7);
+            }
+
+            _modelName = settings.Model;
+            _modelPath = settings.ModelPath;
+            _manualVision = settings.HasVision;
+            _manualReasoning = settings.HasReasoning;
+            _manualImageGen = settings.HasImageGen;
+
+            OnModelNameChanged();
+        }
+        else if (!Utils.NeedsConfiguration)
+        {
+            // Load from current Utils state (CLI-configured)
+            _selectedBackend = Utils.BackendType == BackendType.Ollama
+                ? (Utils.HasApiKey
+                    ? _backendOptions.First(o => o.Id == 8)
+                    : _backendOptions.First(o => o.Id == 7))
+                : _backendOptions.FirstOrDefault(o => o.BackendType == Utils.BackendType && o.Id < 7);
+
+            _modelName = Utils.Model;
+            _modelPath = Utils.Path;
+
+            OnModelNameChanged();
+        }
+
+        if (_selectedBackend != null)
+            await LoadApiKeyPreview();
+    }
+
+    private async Task OnBackendChanged()
+    {
+        if (_selectedBackend == null) return;
+
+        var backendKey = GetBackendStorageKey();
+        var lastModel = await SettingsStorage.GetLastModelForBackendAsync(backendKey);
+        if (!string.IsNullOrEmpty(lastModel))
+        {
+            _modelName = lastModel;
+            OnModelNameChanged();
+        }
+
+        await LoadApiKeyPreview();
+        _apiKeyInput = null;
+    }
+
+    private void OnModelNameChanged()
+    {
+        if (string.IsNullOrWhiteSpace(_modelName))
+        {
+            _isRegisteredModel = false;
+            return;
+        }
+
+        _isRegisteredModel = ModelRegistry.TryGetById(_modelName, out var model);
+        if (_isRegisteredModel && model != null)
+        {
+            _detectedVision = model is IVisionModel;
+            _detectedReasoning = model is IReasoningModel;
+            _detectedImageGen = model is IImageGenerationModel;
+        }
+        else
+        {
+            _detectedVision = false;
+            _detectedReasoning = false;
+            _detectedImageGen = false;
+
+            // Pre-check known models from fallback lists
+            if (Utils.IsKnownVisionModel(_modelName)) _manualVision = true;
+            if (Utils.IsKnownImageGenModel(_modelName)) _manualImageGen = true;
+        }
+    }
+
+    private async Task LoadApiKeyPreview()
+    {
+        if (_selectedBackend == null || !_selectedBackend.RequiresApiKey)
+        {
+            _savedKeyPreview = null;
+            return;
+        }
+
+        var backendKey = GetBackendStorageKey();
+        var savedKey = await SettingsStorage.GetApiKeyForBackendAsync(backendKey);
+
+        _savedKeyPreview = string.IsNullOrEmpty(savedKey)
+            ? null
+            : MaskApiKey(savedKey);
+    }
+
+    private void ToggleApiKeyVisibility()
+    {
+        _showApiKey = !_showApiKey;
+    }
+
+    private async Task SaveAndApply()
+    {
+        if (_selectedBackend == null || string.IsNullOrWhiteSpace(_modelName)) return;
+
+        var backendKey = GetBackendStorageKey();
+        var isOllamaCloud = _selectedBackend.Id == 8;
+
+        bool hasVision, hasReasoning, hasImageGen;
+        if (_isRegisteredModel)
+        {
+            hasVision = _detectedVision;
+            hasReasoning = _detectedReasoning;
+            hasImageGen = _detectedImageGen;
+        }
+        else
+        {
+            hasVision = _manualVision;
+            hasReasoning = _manualReasoning;
+            hasImageGen = _manualImageGen;
+        }
+
+        var settings = new InferPageSettings
+        {
+            BackendType = (int)_selectedBackend.BackendType,
+            IsOllamaCloud = isOllamaCloud,
+            Model = _modelName,
+            HasVision = hasVision,
+            HasReasoning = hasReasoning,
+            HasImageGen = hasImageGen,
+            ModelPath = _modelPath
+        };
+        await SettingsStorage.SaveSettingsAsync(settings);
+
+        await SettingsStorage.SaveModelForBackendAsync(backendKey, _modelName);
+
+        // Resolve API key: use new input, or fall back to saved key
+        string? apiKey = null;
+        if (RequiresApiKey)
+        {
+            if (!string.IsNullOrWhiteSpace(_apiKeyInput))
+            {
+                apiKey = _apiKeyInput;
+                await SettingsStorage.SaveApiKeyAsync(backendKey, apiKey);
+            }
+            else
+            {
+                apiKey = await SettingsStorage.GetApiKeyForBackendAsync(backendKey);
+            }
+        }
+
+        Utils.ApplySettings(
+            _selectedBackend.BackendType,
+            _modelName,
+            _modelPath,
+            hasVision,
+            hasReasoning,
+            hasImageGen,
+            MaINSettings,
+            apiKey);
+
+        await OnSettingsApplied.InvokeAsync();
+    }
+
+    private string GetBackendStorageKey()
+    {
+        if (_selectedBackend == null) return "Self";
+        if (_selectedBackend.Id == 7) return "OllamaLocal";
+        if (_selectedBackend.Id == 8) return "OllamaCloud";
+        return _selectedBackend.BackendType.ToString();
+    }
+
+    private static string MaskApiKey(string key)
+    {
+        if (key.Length <= 12) return key;
+        return key[..6] + "..." + key[^6..];
+    }
+
+    public record BackendOption(int Id, string DisplayName, BackendType BackendType, bool RequiresApiKey);
+}
