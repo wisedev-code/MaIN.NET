@@ -47,11 +47,10 @@ public class ChatTests : IntegrationTestBase
     public async Task Should_AnswerQuestion_FromExistingChat()
     {
         var result = AIHub.Chat()
-            .WithModel(Models.Local.Qwen2_5_0_5b);
+            .WithModel(Models.Local.Gemma2_2b);
 
         await result.WithMessage("What do you think about math theories?")
             .CompleteAsync();
-
 
         await result.WithMessage("And about physics?")
             .CompleteAsync();

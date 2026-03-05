@@ -76,7 +76,10 @@ public class AgentService(
             await agentRepository.UpdateAgent(agent.Id, agent);
 
             await notificationService.DispatchNotification(
-                NotificationMessageBuilder.ProcessingComplete(agentId, agent.CurrentBehaviour, "COMPLETED"), "ReceiveAgentUpdate");
+                NotificationMessageBuilder.ProcessingComplete(
+                    agentId,
+                    agent.CurrentBehaviour,
+                    "COMPLETED"), "ReceiveAgentUpdate");
 
             //normalize message before returning it to user
             chat.Messages.Last().Content = Replace(
@@ -90,7 +93,8 @@ public class AgentService(
         catch (Exception ex)
         {
             await notificationService.DispatchNotification(
-                NotificationMessageBuilder.ProcessingFailed(agentId, agent.CurrentBehaviour, ex.Message), "ReceiveAgentUpdate");
+                NotificationMessageBuilder.ProcessingFailed(agentId, agent.CurrentBehaviour, ex.Message),
+                "ReceiveAgentUpdate");
             throw;
         }
     }
@@ -128,15 +132,13 @@ public class AgentService(
 
         agent.Started = true;
         agent.Flow = flow;
+        agent.ChatId = chat.Id;
         agent.Behaviours ??= [];
         agent.Behaviours.Add("Default", agent.Context.Instruction!);
         agent.CurrentBehaviour = "Default";
 
-        var agentDocument = agent.ToDocument();
-        agentDocument.ChatId = chat.Id;
-
         await chatRepository.AddChat(chat.ToDocument());
-        await agentRepository.AddAgent(agentDocument);
+        await agentRepository.AddAgent(agent.ToDocument());
 
         return agent;
     }
