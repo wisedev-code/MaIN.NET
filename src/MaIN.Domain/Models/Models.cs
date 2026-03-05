@@ -12,6 +12,7 @@ public static class Models
         public const string Gpt4_1Mini = "gpt-4.1-mini";
         public const string Gpt5Nano = "gpt-5-nano";
         public const string DallE3 = "dall-e-3";
+        public const string GptImage1 = "gpt-image-1";
     }
 
     public static class Anthropic
@@ -29,6 +30,7 @@ public static class Models
     public static class Xai
     {
         public const string Grok3Beta = "grok-3-beta";
+        public const string GrokImage = "grok-2-image";
     }
 
     public static class Groq
