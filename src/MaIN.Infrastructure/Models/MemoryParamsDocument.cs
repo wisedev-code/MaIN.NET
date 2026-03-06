@@ -2,13 +2,13 @@ using MaIN.Domain.Models;
 
 namespace MaIN.Infrastructure.Models;
 
-public class MemoryParamsDocument
+internal class MemoryParamsDocument
 {
     public int ContextSize { get; set; }
     public int GpuLayerCount { get; set; }
-    public int MaxMatchesCount { get; set; } 
+    public int MaxMatchesCount { get; set; }
     public float FrequencyPenalty { get; set; }
-    public float Temperature { get; set; } 
+    public float Temperature { get; set; }
     public int AnswerTokens { get; set; }
     public bool MultiModalMode { get; set; }
     public Grammar? Grammar { get; set; }

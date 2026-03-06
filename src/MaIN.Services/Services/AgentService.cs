@@ -41,11 +41,6 @@ public class AgentService(
     {
         var agent = await agentRepository.GetAgentById(agentId) ?? throw new AgentNotFoundException(agentId);
 
-        if (agent.Config is null)
-        {
-            throw new AgentContextNotFoundException(agentId);
-        }
-
         await notificationService.DispatchNotification(
             NotificationMessageBuilder.ProcessingStarted(
                 agentId,

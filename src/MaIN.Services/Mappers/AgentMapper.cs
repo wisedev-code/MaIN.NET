@@ -22,7 +22,7 @@ public static class AgentMapper
             Context = agent.Config.ToDto()
         };
 
-    public static AgentContextDto ToDto(this AgentConfig agentContext)
+    public static AgentConfigDto ToDto(this AgentConfig agentContext)
         => new()
         {
             Instruction = agentContext.Instruction!,
@@ -51,7 +51,7 @@ public static class AgentMapper
             Config = agent.Context.ToDomain()
         };
 
-    public static AgentConfig ToDomain(this AgentContextDto agentContextDto)
+    public static AgentConfig ToDomain(this AgentConfigDto agentContextDto)
         => new()
         {
             Instruction = agentContextDto.Instruction,
