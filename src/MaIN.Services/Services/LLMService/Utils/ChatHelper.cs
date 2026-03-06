@@ -13,6 +13,53 @@ namespace MaIN.Services.Services.LLMService.Utils;
 /// </summary>
 public static class ChatHelper
 {
+    private static readonly HashSet<string> ImageExtensions =
+    [
+        ".jpg", ".jpeg", ".png", ".gif", ".webp",
+        ".bmp", ".tiff", ".tif", ".heic", ".heif", ".avif"
+    ];
+
+    /// <summary>
+    /// Extracts image files from message.Files into message.Images and removes them from Files.
+    /// This must be called before HasFiles() so images are not mistakenly routed to the RAG/memory path.
+    /// </summary>
+    public static async Task ExtractImageFromFiles(Message message)
+    {
+        if (message.Files == null || message.Files.Count == 0)
+            return;
+
+        var imageFiles = message.Files
+            .Where(f => ImageExtensions.Contains(f.Extension.ToLowerInvariant()))
+            .ToList();
+
+        if (imageFiles.Count == 0)
+            return;
+
+        var imageBytesList = new List<byte[]>();
+        foreach (var imageFile in imageFiles)
+        {
+            if (imageFile.StreamContent != null)
+            {
+                using var ms = new MemoryStream();
+                imageFile.StreamContent.Position = 0;
+                await imageFile.StreamContent.CopyToAsync(ms);
+                imageBytesList.Add(ms.ToArray());
+            }
+            else if (imageFile.Path != null)
+            {
+                imageBytesList.Add(await File.ReadAllBytesAsync(imageFile.Path));
+            }
+
+            message.Files.Remove(imageFile);
+        }
+
+        message.Images = imageBytesList;
+
+        if (message.Files.Count == 0)
+            message.Files = null;
+    }
+
+
     /// <summary>
     /// Generates final prompt including additional prompt if needed
     /// </summary>

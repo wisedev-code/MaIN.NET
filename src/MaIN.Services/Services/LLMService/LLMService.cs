@@ -62,6 +62,8 @@ public class LLMService : ILLMService
 
         var lastMsg = chat.Messages.Last();
 
+        await ChatHelper.ExtractImageFromFiles(lastMsg);
+
         if (ChatHelper.HasFiles(lastMsg))
         {
             var memoryOptions = ChatHelper.ExtractMemoryOptions(lastMsg);
@@ -73,7 +75,7 @@ public class LLMService : ILLMService
             return await ProcessWithToolsAsync(chat, requestOptions, cancellationToken);
         }
 
-        var model = GetLocalModel(chat.ModelId);
+        var model = GetLocalModel(chat);
         var tokens = await ProcessChatRequest(chat, model, lastMsg, requestOptions, cancellationToken);
         lastMsg.MarkProcessed();
         return await CreateChatResult(chat, tokens, requestOptions);
@@ -108,8 +110,8 @@ public class LLMService : ILLMService
         ChatRequestOptions requestOptions,
         CancellationToken cancellationToken = default)
     {
-        var model = GetLocalModel(chat.ModelId);
-        var parameters = new ModelParams(Path.Combine(modelsPath, model.FileName))
+        var model = GetLocalModel(chat);
+        var parameters = new ModelParams(ResolvePath(null, model.FileName))
         {
             GpuLayerCount = chat.MemoryParams.GpuLayerCount,
             ContextSize = (uint)chat.MemoryParams.ContextSize,
@@ -235,14 +237,26 @@ public class LLMService : ILLMService
             : await ModelLoader.GetOrLoadModelAsync(modelsPath, modelKey);
 
         var visionModel = model as IVisionModel;
-        var llavaWeights = visionModel?.MMProjectName is not null
-            ? await LLavaWeights.LoadFromFileAsync(Path.Combine(modelsPath, visionModel.MMProjectName), cancellationToken)
-            : null;
-        
-        using var executor = new BatchedExecutor(llmModel, parameters);
+        var mmProjName = visionModel?.MMProjectName
+            ?? (chat.Properties.TryGetValue(ServiceConstants.Properties.MmProjNameProperty, out var p) ? p : null);
+
+        MtmdWeights? mtmdWeights = null;
+        if (mmProjName is not null && lastMsg.Image != null)
+        {
+            // When the model file is at a custom location (fully-qualified path),
+            // look for the mmproj in the same directory. Otherwise fall back to modelsPath.
+            var mmProjDir = Path.IsPathFullyQualified(modelKey)
+                ? Path.GetDirectoryName(modelKey)
+                : null;
+            var mmProjPath = ResolvePath(mmProjDir, mmProjName);
+            mtmdWeights = await MtmdWeights.LoadFromFileAsync(
+                mmProjPath, llmModel, MtmdContextParams.Default(), cancellationToken);
+        }
+
+        using var executor = new BatchedExecutor(llmModel, parameters, mtmdWeights);
 
         var (conversation, isComplete, hasFailed) = await LLMService.InitializeConversation(
-            chat, lastMsg, model, llmModel, llavaWeights, executor, cancellationToken);
+            chat, lastMsg, model, llmModel, mtmdWeights, executor, cancellationToken);
 
         if (!isComplete)
         {
@@ -267,12 +281,13 @@ public class LLMService : ILLMService
             }
         }
 
+        mtmdWeights?.Dispose();
         return tokens;
     }
 
     private ModelParams CreateModelParameters(Chat chat, string modelKey, string? customPath)
     {
-        return new ModelParams(Path.Combine(customPath ?? modelsPath, modelKey))
+        return new ModelParams(ResolvePath(customPath, modelKey))
         {
             ContextSize = (uint?)chat.InterferenceParams.ContextSize,
             GpuLayerCount = chat.InterferenceParams.GpuLayerCount,
@@ -290,7 +305,7 @@ public class LLMService : ILLMService
         Message lastMsg,
         LocalModel model,
         LLamaWeights llmModel,
-        LLavaWeights? llavaWeights,
+        MtmdWeights? mtmdWeights,
         BatchedExecutor executor,
         CancellationToken cancellationToken)
     {
@@ -299,9 +314,9 @@ public class LLMService : ILLMService
             ? executor.Create()
             : executor.Load(chat.ConversationState!);
 
-        if (lastMsg.Image != null)
+        if (lastMsg.Image != null && mtmdWeights != null)
         {
-            await ProcessImageMessage(conversation, lastMsg, llmModel, llavaWeights, executor, cancellationToken);
+            await ProcessImageMessage(conversation, lastMsg, mtmdWeights, executor, cancellationToken);
         }
         else
         {
@@ -313,21 +328,22 @@ public class LLMService : ILLMService
 
     private static async Task ProcessImageMessage(Conversation conversation,
         Message lastMsg,
-        LLamaWeights llmModel,
-        LLavaWeights? llavaWeights,
+        MtmdWeights mtmdWeights,
         BatchedExecutor executor,
         CancellationToken cancellationToken)
     {
-        var imageEmbeddings = llavaWeights?.CreateImageEmbeddings(lastMsg.Image!);
-        conversation.Prompt(imageEmbeddings!);
+        using var imageEmbed = mtmdWeights.LoadMedia(lastMsg.Image!);
+
+        var mediaMarker = NativeApi.MtmdDefaultMarker() ?? "<image>";
+        conversation.Prompt(
+            $"USER: {mediaMarker}\n{lastMsg.Content}\nASSISTANT:",
+            new ReadOnlySpan<SafeMtmdEmbed>(new[] { imageEmbed }),
+            addBos: true);
 
         while (executor.BatchedTokenCount > 0)
         {
             await executor.Infer(cancellationToken);
         }
-
-        var prompt = llmModel.Tokenize($"USER: {lastMsg.Content}\nASSISTANT:", true, false, Encoding.UTF8);
-        conversation.Prompt(prompt);
     }
 
     private static void ProcessTextMessage(Conversation conversation,
@@ -500,23 +516,55 @@ public class LLMService : ILLMService
         };
     }
 
-    private static LocalModel GetLocalModel(string modelId)
+    private static LocalModel GetLocalModel(Chat chat)
     {
-        var model = ModelRegistry.GetById(modelId);
-        if (model is not LocalModel localModel)
+        // 1. Use stored model instance if available
+        if (chat.ModelInstance is LocalModel storedLocal)
+            return storedLocal;
+
+        // 2. Try registry lookup (TryGetById to avoid throwing for unregistered models)
+        if (ModelRegistry.TryGetById(chat.ModelId, out var model) && model is LocalModel localModel)
+            return localModel;
+
+        // 3. Fallback: create generic local model for unregistered models
+        var modelId = chat.ModelId;
+        string fileName;
+        if (Path.IsPathFullyQualified(modelId))
         {
-            throw new InvalidModelTypeException(nameof(LocalModel));
+            // Fully-qualified path passed as ModelId — keep as-is.
+            // Applying Replace(':','-') would corrupt the drive letter: "C:\" → "C-\"
+            fileName = modelId.EndsWith(".gguf", StringComparison.OrdinalIgnoreCase)
+                ? modelId
+                : modelId + ".gguf";
         }
-        
-        return localModel;
+        else
+        {
+            // Model name only — replace ':' with '-' (colon is illegal in Windows file names)
+            fileName = modelId.Replace(':', '-');
+            if (!fileName.EndsWith(".gguf", StringComparison.OrdinalIgnoreCase))
+                fileName += ".gguf";
+        }
+        return new GenericLocalModel(FileName: fileName);
     }
 
     private string GetModelsPath()
     {
         var path = options.ModelsPath ?? Environment.GetEnvironmentVariable(DEFAULT_MODEL_ENV_PATH);
-        return string.IsNullOrEmpty(path) 
-            ? throw new ModelsPathNotFoundException() 
+        return string.IsNullOrEmpty(path)
+            ? throw new ModelsPathNotFoundException()
             : path;
+    }
+
+    /// <summary>
+    /// Resolves the full path to a model file.
+    /// If <paramref name="fileName"/> is already fully qualified (absolute), it is used as-is.
+    /// Otherwise it is combined with <paramref name="customPath"/> (or <see cref="modelsPath"/>).
+    /// </summary>
+    private string ResolvePath(string? customPath, string fileName)
+    {
+        if (Path.IsPathFullyQualified(fileName))
+            return fileName;
+        return Path.Combine(customPath ?? modelsPath, fileName);
     }
 
     private async Task<ChatResult> CreateChatResult(Chat chat, List<LLMTokenValue> tokens,
