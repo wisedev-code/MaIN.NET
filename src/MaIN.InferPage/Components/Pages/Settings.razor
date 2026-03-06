@@ -102,6 +102,10 @@
                                 <span class="no-capabilities">No special capabilities</span>
                             }
                         </div>
+                        @if (RegisteredMmProjPathHint is { } mmProjHint)
+                        {
+                            <span class="api-key-hint">MMProj file: @mmProjHint</span>
+                        }
                     }
                     else
                     {
@@ -200,6 +204,30 @@
     private bool _detectedVision;
     private bool _detectedReasoning;
     private bool _detectedImageGen;
+
+    // Shows expected MMProj file path for registered local vision models.
+    // Derives the directory from ResolvedModelPathPreview so it always stays in sync
+    // with the "Will load:" hint (including any custom Model Path the user typed).
+    private string? RegisteredMmProjPathHint
+    {
+        get
+        {
+            if (_selectedBackend?.BackendType != BackendType.Self || !_isRegisteredModel) return null;
+            if (!_detectedVision) return null;
+            if (string.IsNullOrWhiteSpace(_modelName)) return null;
+            if (!ModelRegistry.TryGetById(_modelName, out var aiModel) || aiModel is not LocalModel localModel) return null;
+            if (localModel is not IVisionModel visionModel || visionModel.MMProjectName is not { } mmProjName) return null;
+
+            // Reuse the already-resolved model file path to derive the directory,
+            // so changes to the Model Path field are immediately reflected here too.
+            var modelFilePath = ResolvedModelPathPreview;
+            var dir = modelFilePath != null
+                ? (Path.GetDirectoryName(modelFilePath) ?? "")
+                : (MaINSettings.ModelsPath ?? Environment.GetEnvironmentVariable("MaIN_ModelsPath") ?? "");
+
+            return string.IsNullOrEmpty(dir) ? mmProjName : Path.Combine(dir, mmProjName);
+        }
+    }
 
     // Manual capability selection (unregistered models)
     private bool _manualVision;

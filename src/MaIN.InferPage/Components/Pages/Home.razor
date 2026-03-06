@@ -330,7 +330,40 @@
         if (string.IsNullOrEmpty(Utils.Model)) return null;
 
         if (ModelRegistry.TryGetById(Utils.Model, out var registeredModel))
+        {
+            // When a custom Model Path is set, bake the resolved full path into a generic
+            // model so LLMService loads from the right location. This is needed because
+            // ctx._chat (which reaches LLMService) is a separate object from Home.razor's Chat,
+            // so Chat.Properties never reach the service — the path must be in model.FileName.
+            if (Utils.BackendType == BackendType.Self && registeredModel is LocalModel localReg
+                && !string.IsNullOrEmpty(Utils.Path))
+            {
+                var fullPath = Utils.Path.EndsWith(".gguf", StringComparison.OrdinalIgnoreCase)
+                    ? Utils.Path
+                    : System.IO.Path.Combine(Utils.Path, localReg.FileName);
+
+                return localReg switch
+                {
+                    IVisionModel vm when localReg is IReasoningModel { ReasonFunction: not null } rm
+                        => new GenericLocalVisionReasoningModel(
+                            FileName: fullPath, MMProjectPath: vm.MMProjectName ?? "",
+                            ReasonFunction: rm.ReasonFunction,
+                            MaxContextWindowSize: localReg.MaxContextWindowSize),
+                    IVisionModel vm
+                        => new GenericLocalVisionModel(
+                            FileName: fullPath, MMProjectPath: vm.MMProjectName ?? "",
+                            MaxContextWindowSize: localReg.MaxContextWindowSize),
+                    IReasoningModel { ReasonFunction: not null } rm
+                        => new GenericLocalReasoningModel(
+                            FileName: fullPath, ReasonFunction: rm.ReasonFunction,
+                            MaxContextWindowSize: localReg.MaxContextWindowSize),
+                    _ => new GenericLocalModel(
+                            FileName: fullPath,
+                            MaxContextWindowSize: localReg.MaxContextWindowSize)
+                };
+            }
             return registeredModel;
+        }
 
         // Self = local GGUF file; Ollama Local is an HTTP server, not a file path
         if (Utils.BackendType == BackendType.Self)

@@ -243,7 +243,12 @@ public class LLMService : ILLMService
         MtmdWeights? mtmdWeights = null;
         if (mmProjName is not null && lastMsg.Image != null)
         {
-            var mmProjPath = ResolvePath(null, mmProjName);
+            // When the model file is at a custom location (fully-qualified path),
+            // look for the mmproj in the same directory. Otherwise fall back to modelsPath.
+            var mmProjDir = Path.IsPathFullyQualified(modelKey)
+                ? Path.GetDirectoryName(modelKey)
+                : null;
+            var mmProjPath = ResolvePath(mmProjDir, mmProjName);
             mtmdWeights = await MtmdWeights.LoadFromFileAsync(
                 mmProjPath, llmModel, MtmdContextParams.Default(), cancellationToken);
         }
