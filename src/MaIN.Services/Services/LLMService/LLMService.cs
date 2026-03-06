@@ -239,14 +239,19 @@ public class LLMService : ILLMService
         var visionModel = model as IVisionModel;
         var mmProjName = visionModel?.MMProjectName
             ?? (chat.Properties.TryGetValue(ServiceConstants.Properties.MmProjNameProperty, out var p) ? p : null);
-        var llavaWeights = mmProjName is not null
-            ? await LLavaWeights.LoadFromFileAsync(ResolvePath(null, mmProjName), cancellationToken)
-            : null;
-        
-        using var executor = new BatchedExecutor(llmModel, parameters);
+
+        MtmdWeights? mtmdWeights = null;
+        if (mmProjName is not null && lastMsg.Image != null)
+        {
+            var mmProjPath = ResolvePath(null, mmProjName);
+            mtmdWeights = await MtmdWeights.LoadFromFileAsync(
+                mmProjPath, llmModel, MtmdContextParams.Default(), cancellationToken);
+        }
+
+        using var executor = new BatchedExecutor(llmModel, parameters, mtmdWeights);
 
         var (conversation, isComplete, hasFailed) = await LLMService.InitializeConversation(
-            chat, lastMsg, model, llmModel, llavaWeights, executor, cancellationToken);
+            chat, lastMsg, model, llmModel, mtmdWeights, executor, cancellationToken);
 
         if (!isComplete)
         {
@@ -271,6 +276,7 @@ public class LLMService : ILLMService
             }
         }
 
+        mtmdWeights?.Dispose();
         return tokens;
     }
 
@@ -294,7 +300,7 @@ public class LLMService : ILLMService
         Message lastMsg,
         LocalModel model,
         LLamaWeights llmModel,
-        LLavaWeights? llavaWeights,
+        MtmdWeights? mtmdWeights,
         BatchedExecutor executor,
         CancellationToken cancellationToken)
     {
@@ -303,9 +309,9 @@ public class LLMService : ILLMService
             ? executor.Create()
             : executor.Load(chat.ConversationState!);
 
-        if (lastMsg.Image != null && llavaWeights != null)
+        if (lastMsg.Image != null && mtmdWeights != null)
         {
-            await ProcessImageMessage(conversation, lastMsg, llmModel, llavaWeights, executor, cancellationToken);
+            await ProcessImageMessage(conversation, lastMsg, mtmdWeights, executor, cancellationToken);
         }
         else
         {
@@ -317,21 +323,22 @@ public class LLMService : ILLMService
 
     private static async Task ProcessImageMessage(Conversation conversation,
         Message lastMsg,
-        LLamaWeights llmModel,
-        LLavaWeights? llavaWeights,
+        MtmdWeights mtmdWeights,
         BatchedExecutor executor,
         CancellationToken cancellationToken)
     {
-        var imageEmbeddings = llavaWeights?.CreateImageEmbeddings(lastMsg.Image!);
-        conversation.Prompt(imageEmbeddings!);
+        using var imageEmbed = mtmdWeights.LoadMedia(lastMsg.Image!);
+
+        var mediaMarker = NativeApi.MtmdDefaultMarker() ?? "<image>";
+        conversation.Prompt(
+            $"USER: {mediaMarker}\n{lastMsg.Content}\nASSISTANT:",
+            new ReadOnlySpan<SafeMtmdEmbed>(new[] { imageEmbed }),
+            addBos: true);
 
         while (executor.BatchedTokenCount > 0)
         {
             await executor.Infer(cancellationToken);
         }
-
-        var prompt = llmModel.Tokenize($"USER: {lastMsg.Content}\nASSISTANT:", true, false, Encoding.UTF8);
-        conversation.Prompt(prompt);
     }
 
     private static void ProcessTextMessage(Conversation conversation,
