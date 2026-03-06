@@ -22,7 +22,7 @@ public class AgentDto
     [JsonPropertyName("flow")]
     public bool Flow { get; set; }
     [JsonPropertyName("context")]
-    public AgentContextDto Context { get; set; }
+    public AgentConfigDto Context { get; set; }
     public AgentProcessingState State { get; set; }
     public bool IsProcessing { get; set; }
     public List<string>? AgentDependencies { get; set; } = [];

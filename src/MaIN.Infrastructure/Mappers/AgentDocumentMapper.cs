@@ -35,6 +35,7 @@ internal static class AgentDocumentMapper
         Flow = agent.Flow,
         ToolsConfiguration = agent.ToolsConfiguration,
         Backend = agent.Backend,
+        ChatId = agent.ChatId,
         Description = agent.Description,
         Behaviours = agent.Behaviours,
         CurrentBehaviour = agent.CurrentBehaviour,
