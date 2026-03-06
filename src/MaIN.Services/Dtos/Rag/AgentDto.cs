@@ -15,8 +15,8 @@ public class AgentDto
     public string? Description { get; init; }
     [JsonPropertyName("started")]
     public bool Started { get; init; }
-    [JsonPropertyName("context")]
-    public AgentConfigDto Context { get; init; } = null!;
+    [JsonPropertyName("config")]
+    public AgentConfigDto Config { get; init; } = null!;
 
     [JsonPropertyName("order")]
     public int Order { get; init; }

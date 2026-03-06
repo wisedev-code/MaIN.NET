@@ -19,20 +19,20 @@ public static class AgentMapper
             Description = agent.Description,
             Behaviours = agent.Behaviours,
             CurrentBehaviour = agent.CurrentBehaviour,
-            Context = agent.Config.ToDto()
+            Config = agent.Config.ToDto()
         };
 
-    public static AgentConfigDto ToDto(this AgentConfig agentContext)
+    public static AgentConfigDto ToDto(this AgentConfig agentConfig)
         => new()
         {
-            Instruction = agentContext.Instruction!,
-            Relations = agentContext.Relations,
-            Steps = agentContext.Steps ?? [],
-            Source = (agentContext.Source is not null ? new AgentSourceDto()
+            Instruction = agentConfig.Instruction!,
+            Relations = agentConfig.Relations,
+            Steps = agentConfig.Steps ?? [],
+            Source = (agentConfig.Source is not null ? new AgentSourceDto()
             {
-                Details = agentContext.Source?.Details,
-                AdditionalMessage = agentContext?.Source?.AdditionalMessage,
-                Type = Enum.Parse<AgentSourceTypeDto>(agentContext?.Source?.Type.ToString()!)
+                Details = agentConfig.Source?.Details,
+                AdditionalMessage = agentConfig?.Source?.AdditionalMessage,
+                Type = Enum.Parse<AgentSourceTypeDto>(agentConfig?.Source?.Type.ToString()!)
             } : null)!
         };
 
@@ -48,20 +48,20 @@ public static class AgentMapper
             Description = agent.Description,
             Behaviours = agent.Behaviours,
             CurrentBehaviour = agent.CurrentBehaviour,
-            Config = agent.Context.ToDomain()
+            Config = agent.Config.ToDomain()
         };
 
-    public static AgentConfig ToDomain(this AgentConfigDto agentContextDto)
+    public static AgentConfig ToDomain(this AgentConfigDto agentConfigDto)
         => new()
         {
-            Instruction = agentContextDto.Instruction,
-            Relations = agentContextDto?.Relations,
-            Source = agentContextDto?.Source is not null ? new AgentSource()
+            Instruction = agentConfigDto.Instruction,
+            Relations = agentConfigDto?.Relations,
+            Source = agentConfigDto?.Source is not null ? new AgentSource()
             {
-                Details = agentContextDto?.Source?.Details,
-                AdditionalMessage = agentContextDto?.Source?.AdditionalMessage,
-                Type = Enum.Parse<AgentSourceType>(agentContextDto?.Source?.Type.ToString()!)
+                Details = agentConfigDto?.Source?.Details,
+                AdditionalMessage = agentConfigDto?.Source?.AdditionalMessage,
+                Type = Enum.Parse<AgentSourceType>(agentConfigDto?.Source?.Type.ToString()!)
             } : null,
-            Steps = agentContextDto!.Steps
+            Steps = agentConfigDto!.Steps
         };
 }
