@@ -1,7 +1,9 @@
-using System.Text.Json;
+using MaIN.Domain.Entities.Agents;
 using MaIN.Domain.Exceptions.Agents;
+using MaIN.Infrastructure.Mappers;
 using MaIN.Infrastructure.Models;
 using MaIN.Infrastructure.Repositories.Abstract;
+using System.Text.Json;
 
 namespace MaIN.Infrastructure.Repositories.FileSystem;
 
@@ -18,50 +20,59 @@ public class FileSystemAgentRepository : IAgentRepository
 
     private string GetFilePath(string id) => Path.Combine(_directoryPath, $"{id}.json");
 
-    public async Task<IEnumerable<AgentDocument>> GetAllAgents()
+    public async Task<IEnumerable<Agent>> GetAllAgents()
     {
         var files = Directory.GetFiles(_directoryPath, "*.json");
-        var agents = new List<AgentDocument>();
+        var agents = new List<Agent>();
 
         foreach (var file in files)
         {
             var json = await File.ReadAllTextAsync(file);
-            var agent = JsonSerializer.Deserialize<AgentDocument>(json);
-            if (agent != null) agents.Add(agent);
+            var doc = JsonSerializer.Deserialize<AgentDocument>(json);
+            if (doc is not null)
+            {
+                agents.Add(doc.ToDomain());
+            }
         }
 
         return agents;
     }
 
-    public async Task<AgentDocument?> GetAgentById(string id)
-    {
-        var filePath = GetFilePath(id);
-        if (!File.Exists(filePath)) return null;
-
-        var json = await File.ReadAllTextAsync(filePath);
-        return JsonSerializer.Deserialize<AgentDocument>(json);
-    }
-
-    public async Task AddAgent(AgentDocument agent)
-    {
-        if (agent == null)
-            throw new ArgumentNullException(nameof(agent));
-
-        var filePath = GetFilePath(agent.Id);
-        if (File.Exists(filePath))
-            throw new AgentAlreadyExistsException(agent.Id);
-
-        var json = JsonSerializer.Serialize(agent, JsonOptions);
-        await File.WriteAllTextAsync(filePath, json);
-    }
-
-    public async Task UpdateAgent(string id, AgentDocument agent)
+    public async Task<Agent?> GetAgentById(string id)
     {
         var filePath = GetFilePath(id);
         if (!File.Exists(filePath))
-            throw new KeyNotFoundException($"Agent with ID {id} not found.");
+        {
+            return null;
+        }
 
-        var json = JsonSerializer.Serialize(agent, JsonOptions);
+        var json = await File.ReadAllTextAsync(filePath);
+        return JsonSerializer.Deserialize<AgentDocument>(json)?.ToDomain();
+    }
+
+    public async Task AddAgent(Agent agent)
+    {
+        ArgumentNullException.ThrowIfNull(agent);
+
+        var filePath = GetFilePath(agent.Id);
+        if (File.Exists(filePath))
+        {
+            throw new AgentAlreadyExistsException(agent.Id);
+        }
+
+        var json = JsonSerializer.Serialize(agent.ToDocument(), JsonOptions);
+        await File.WriteAllTextAsync(filePath, json);
+    }
+
+    public async Task UpdateAgent(string id, Agent agent)
+    {
+        var filePath = GetFilePath(id);
+        if (!File.Exists(filePath))
+        {
+            throw new KeyNotFoundException($"Agent with ID {id} not found.");
+        }
+
+        var json = JsonSerializer.Serialize(agent.ToDocument(), JsonOptions);
         await File.WriteAllTextAsync(filePath, json);
     }
 
@@ -69,7 +80,9 @@ public class FileSystemAgentRepository : IAgentRepository
     {
         var filePath = GetFilePath(id);
         if (!File.Exists(filePath))
+        {
             throw new KeyNotFoundException($"Agent with ID {id} not found.");
+        }
 
         await Task.Run(() => File.Delete(filePath));
     }

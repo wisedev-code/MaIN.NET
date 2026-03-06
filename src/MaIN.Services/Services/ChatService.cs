@@ -4,7 +4,6 @@ using MaIN.Domain.Exceptions.Chats;
 using MaIN.Domain.Models;
 using MaIN.Domain.Models.Abstract;
 using MaIN.Infrastructure.Repositories.Abstract;
-using MaIN.Services.Mappers;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.ImageGenServices;
 using MaIN.Services.Services.LLMService;
@@ -24,7 +23,7 @@ public class ChatService(
     public async Task Create(Chat chat)
     {
         chat.Type = ChatType.Conversation;
-        await chatProvider.AddChat(chat.ToDocument());
+        await chatProvider.AddChat(chat);
     }
 
     public async Task<ChatResult> Completions(
@@ -93,14 +92,14 @@ public class ChatService(
         originalMessages.Add(result!.Message);
         chat.Messages = originalMessages;
 
-        await chatProvider.UpdateChat(chat.Id!, chat.ToDocument());
+        await chatProvider.UpdateChat(chat.Id!, chat);
         return result;
     }
 
     public async Task Delete(string id)
     {
-        var chatDoc = await chatProvider.GetChatById(id);
-        var backend = chatDoc is not null && ModelRegistry.TryGetById(chatDoc.Model, out var model)
+        var chat = await chatProvider.GetChatById(id);
+        var backend = chat is not null && ModelRegistry.TryGetById(chat.ModelId, out var model)
             ? model!.Backend
             : settings.BackendType;
         var llmService = llmServiceFactory.CreateService(backend);
@@ -110,9 +109,9 @@ public class ChatService(
 
     public async Task<Chat> GetById(string id)
     {
-        var chatDocument = await chatProvider.GetChatById(id);
-        return chatDocument is null ? throw new ChatNotFoundException(id) : chatDocument.ToDomain();
+        var chat = await chatProvider.GetChatById(id);
+        return chat is null ? throw new ChatNotFoundException(id) : chat;
     }
 
-    public async Task<List<Chat>> GetAll() => [.. (await chatProvider.GetAllChats()).Select(x => x.ToDomain())];
+    public async Task<List<Chat>> GetAll() => [.. await chatProvider.GetAllChats()];
 }

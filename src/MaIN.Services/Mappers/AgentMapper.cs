@@ -1,7 +1,5 @@
-using System.Text.Json;
 using MaIN.Domain.Entities.Agents;
 using MaIN.Domain.Entities.Agents.AgentSource;
-using MaIN.Infrastructure.Models;
 using MaIN.Services.Dtos.Rag;
 using MaIN.Services.Dtos.Rag.AgentSource;
 
@@ -21,10 +19,10 @@ public static class AgentMapper
             Description = agent.Description,
             Behaviours = agent.Behaviours,
             CurrentBehaviour = agent.CurrentBehaviour,
-            Context = agent.Context.ToDto()
+            Context = agent.Config.ToDto()
         };
 
-    public static AgentContextDto ToDto(this AgentData agentContext)
+    public static AgentContextDto ToDto(this AgentConfig agentContext)
         => new()
         {
             Instruction = agentContext.Instruction!,
@@ -50,10 +48,10 @@ public static class AgentMapper
             Description = agent.Description,
             Behaviours = agent.Behaviours,
             CurrentBehaviour = agent.CurrentBehaviour,
-            Context = agent.Context.ToDomain()
+            Config = agent.Context.ToDomain()
         };
 
-    public static AgentData ToDomain(this AgentContextDto agentContextDto)
+    public static AgentConfig ToDomain(this AgentContextDto agentContextDto)
         => new()
         {
             Instruction = agentContextDto.Instruction,
@@ -65,83 +63,5 @@ public static class AgentMapper
                 Type = Enum.Parse<AgentSourceType>(agentContextDto?.Source?.Type.ToString()!)
             } : null,
             Steps = agentContextDto!.Steps
-        };
-
-    private static AgentSourceDetailsBase MapDetailsToType(object? details, AgentSourceTypeDto? sourceDetailsType)
-    {
-        return sourceDetailsType switch
-        {
-            AgentSourceTypeDto.Text => (AgentTextSourceDetails)details!,
-            AgentSourceTypeDto.File => (AgentFileSourceDetails)details!,
-            AgentSourceTypeDto.API => (AgentApiSourceDetails)details!,
-            AgentSourceTypeDto.Web => (AgentWebSourceDetails)details!,
-            //TBD add all types
-            _ => new()
-        };
-    }
-
-    public static AgentContextDocument ToDocument(this AgentData context)
-        => new()
-        {
-            Instruction = context.Instruction,
-            Relations = context.Relations?.ToList(),
-            Steps = context.Steps!.ToList(),
-            McpConfig = context.McpConfig,
-            Source = context.Source is not null ? new AgentSourceDocument()
-            {
-                DetailsSerialized = JsonSerializer.Serialize(context.Source.Details),
-                AdditionalMessage = context.Source.AdditionalMessage,
-                Type = Enum.Parse<AgentSourceTypeDocument>(context.Source.Type.ToString())
-            } : null
-        };
-
-    public static AgentDocument ToDocument(this Agent agent)
-        => new()
-        {
-            Id = agent.Id,
-            Name = agent.Name,
-            Model = agent.Model,
-            Order = agent.Order,
-            Started = agent.Started,
-            Flow = agent.Flow,
-            ToolsConfiguration = agent.ToolsConfiguration,
-            Backend = agent.Backend,
-            ChatId = agent.ChatId,
-            Description = agent.Description,
-            Behaviours = agent.Behaviours,
-            CurrentBehaviour = agent.CurrentBehaviour,
-            Context = agent.Context.ToDocument()
-        };
-    
-    public static Agent ToDomain(this AgentDocument agent)
-        => new()
-        {
-            Id = agent.Id,
-            Name = agent.Name,
-            Model = agent.Model,
-            Started = agent.Started,
-            Order = agent.Order,
-            Flow = agent.Flow,
-            ToolsConfiguration = agent.ToolsConfiguration,
-            Backend = agent.Backend,
-            Description = agent.Description,
-            Behaviours = agent.Behaviours,
-            CurrentBehaviour = agent.CurrentBehaviour,
-            Context = agent.Context!.ToDomain()
-        };
-
-    public static AgentData ToDomain(this AgentContextDocument agentContextDocument)
-        => new()
-        {
-            Instruction = agentContextDocument.Instruction,
-            Relations = agentContextDocument.Relations,
-            McpConfig = agentContextDocument.McpConfig,
-            Source = new AgentSource
-            {
-                AdditionalMessage = agentContextDocument.Source?.AdditionalMessage,
-                Details = agentContextDocument.Source?.DetailsSerialized,
-                Type = Enum.Parse<AgentSourceType>(agentContextDocument.Source?.Type.ToString() ?? AgentSourceType.Text.ToString())
-            },
-            Steps = agentContextDocument.Steps
         };
 }

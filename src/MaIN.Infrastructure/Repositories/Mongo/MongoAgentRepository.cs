@@ -1,3 +1,5 @@
+using MaIN.Domain.Entities.Agents;
+using MaIN.Infrastructure.Mappers;
 using MaIN.Infrastructure.Models;
 using MaIN.Infrastructure.Repositories.Abstract;
 using MongoDB.Driver;
@@ -8,22 +10,21 @@ public class MongoAgentRepository(IMongoDatabase database, string collectionName
 {
     private readonly IMongoCollection<AgentDocument> _agents = database.GetCollection<AgentDocument>(collectionName)!;
 
-    public async Task<IEnumerable<AgentDocument>> GetAllAgents() =>
-        await _agents.Find(chat => true).ToListAsync();
+    public async Task<IEnumerable<Agent>> GetAllAgents() =>
+        (await _agents.Find(agent => true).ToListAsync()).Select(d => d.ToDomain());
 
-    public async Task<AgentDocument?> GetAgentById(string id) => 
-        await _agents.Find<AgentDocument>(agent => agent.Id == id).FirstOrDefaultAsync();
+    public async Task<Agent?> GetAgentById(string id) =>
+        (await _agents.Find<AgentDocument>(agent => agent.Id == id).FirstOrDefaultAsync())?.ToDomain();
 
-    public async Task AddAgent(AgentDocument agent) =>
-        await _agents.InsertOneAsync(agent);    
-    
-    public async Task UpdateAgent(string id, AgentDocument agent) =>
-        await _agents.ReplaceOneAsync(x => x.Id == id, agent);
-    
+    public async Task AddAgent(Agent agent) =>
+        await _agents.InsertOneAsync(agent.ToDocument());
+
+    public async Task UpdateAgent(string id, Agent agent) =>
+        await _agents.ReplaceOneAsync(x => x.Id == id, agent.ToDocument());
+
     public async Task DeleteAgent(string id) =>
         await _agents.DeleteOneAsync(x => x.Id == id);
 
-    public async Task<bool> Exists(string id) => 
-        (await _agents.CountDocumentsAsync(x => x!.Id == id)) > 0;
-    
+    public async Task<bool> Exists(string id) =>
+        (await _agents.CountDocumentsAsync(x => x.Id == id)) > 0;
 }

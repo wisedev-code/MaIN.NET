@@ -12,7 +12,7 @@ public class AgentDocument
     public required string Model { get; init; }
     public string? Description { get; init; }
     public bool Started { get; init; }
-    public AgentContextDocument? Context { get; init; }
+    public AgentConfigDocument? Config { get; init; }
     public required string ChatId { get; set; }
     public int Order { get; init; }
     public BackendType? Backend { get; init; }

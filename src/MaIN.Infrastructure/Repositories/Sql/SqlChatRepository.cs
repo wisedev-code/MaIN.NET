@@ -1,4 +1,6 @@
 using Dapper;
+using MaIN.Domain.Entities;
+using MaIN.Infrastructure.Mappers;
 using MaIN.Infrastructure.Models;
 using MaIN.Infrastructure.Repositories.Abstract;
 using System.Data;
@@ -63,43 +65,43 @@ public class SqlChatRepository(IDbConnection connection) : IChatRepository
         };
     }
 
-    public async Task<IEnumerable<ChatDocument>> GetAllChats()
+    public async Task<IEnumerable<Chat>> GetAllChats()
     {
         var rows = await connection.QueryAsync(@"
             SELECT * FROM Chats");
-        return rows.Select(MapChatDocument);
+        return rows.Select(MapChatDocument).Select(x => x.ToDomain());
     }
 
-    public async Task<ChatDocument?> GetChatById(string id)
+    public async Task<Chat?> GetChatById(string id)
     {
         var row = await connection.QueryFirstOrDefaultAsync(@"
-            SELECT * FROM Chats 
+            SELECT * FROM Chats
             WHERE Id = @Id", new { Id = id });
-        return row is not null ? MapChatDocument(row) : null;
+        return row is not null ? MapChatDocument(row).ToDomain() : null;
     }
 
-    public async Task AddChat(ChatDocument chat)
+    public async Task AddChat(Chat chat)
     {
         ArgumentNullException.ThrowIfNull(chat);
 
-        var parameters = MapChatToParameters(chat);
+        var parameters = MapChatToParameters(chat.ToDocument());
         await connection.ExecuteAsync(@"
             INSERT INTO Chats (
-                Id, Name, Model, Messages, Type, Properties, 
+                Id, Name, Model, Messages, Type, Properties,
                 Stream, Visual, ConvState, InferenceParams, MemoryParams, Interactive
             ) VALUES (
-                @Id, @Name, @Model, @Messages, @Type, @Properties, 
+                @Id, @Name, @Model, @Messages, @Type, @Properties,
                  @Visual, @ConvState, @InferenceParams, @MemoryParams, @Interactive)",
             parameters);
     }
 
-    public async Task UpdateChat(string id, ChatDocument chat)
+    public async Task UpdateChat(string id, Chat chat)
     {
         ArgumentNullException.ThrowIfNull(chat);
 
-        var parameters = MapChatToParameters(chat);
+        var parameters = MapChatToParameters(chat.ToDocument());
         await connection.ExecuteAsync(@"
-            UPDATE Chats 
+            UPDATE Chats
             SET Name = @Name,
                 Model = @Model,
                 Messages = @Messages,
@@ -113,8 +115,7 @@ public class SqlChatRepository(IDbConnection connection) : IChatRepository
 
     public async Task DeleteChat(string id) =>
         await connection.ExecuteAsync(@"
-            DELETE FROM Chats 
+            DELETE FROM Chats
             WHERE Id = @Id",
             new { Id = id });
-
 }

@@ -1,8 +1,10 @@
-using System.Data;
-using System.Text.Json;
 using Dapper;
+using MaIN.Domain.Entities.Agents.AgentSource;
+using MaIN.Infrastructure.Mappers;
 using MaIN.Infrastructure.Models;
 using MaIN.Infrastructure.Repositories.Abstract;
+using System.Data;
+using System.Text.Json;
 
 namespace MaIN.Infrastructure.Repositories.Sqlite;
 
@@ -19,9 +21,9 @@ public class SqliteAgentFlowRepository(IDbConnection connection) : IAgentFlowRep
         {
             Id = row.Id,
             Name = row.Name,
-            Agents = row.Agents != null ? 
-                JsonSerializer.Deserialize<List<AgentDocument>>(row.Agents, _jsonOptions) : 
-                new List<AgentDocument>(),
+            Agents = row.Agents is not null
+                ? JsonSerializer.Deserialize<List<AgentDocument>>(row.Agents, _jsonOptions)
+                : new List<AgentDocument>(),
             Description = row.Description
         };
         return flow;
@@ -29,41 +31,39 @@ public class SqliteAgentFlowRepository(IDbConnection connection) : IAgentFlowRep
 
     private object MapAgentFlowToParameters(AgentFlowDocument flow)
     {
-        if (flow == null)
-            throw new ArgumentNullException(nameof(flow));
+        ArgumentNullException.ThrowIfNull(flow);
 
         return new
         {
             flow.Id,
             flow.Name,
-            Agents = JsonSerializer.Serialize(flow.Agents ?? new List<AgentDocument>(), _jsonOptions),
+            Agents = JsonSerializer.Serialize(flow.Agents ?? [], _jsonOptions),
             flow.Description,
             CreatedAt = DateTime.UtcNow.ToString("O"),
             UpdatedAt = DateTime.UtcNow.ToString("O")
         };
     }
 
-    public async Task<IEnumerable<AgentFlowDocument>> GetAllFlows()
+    public async Task<IEnumerable<AgentFlow>> GetAllFlows()
     {
         var rows = await connection.QueryAsync(
             "SELECT * FROM AgentFlows");
-        return rows.Select(MapAgentFlowDocument);
+        return rows.Select(MapAgentFlowDocument).Select(x => x.ToDomain());
     }
 
-    public async Task<AgentFlowDocument?> GetFlowById(string id)
+    public async Task<AgentFlow?> GetFlowById(string id)
     {
         var row = await connection.QueryFirstOrDefaultAsync(
             "SELECT * FROM AgentFlows WHERE Id = @Id",
             new { Id = id });
-        return row != null ? MapAgentFlowDocument(row) : null;
+        return row is not null ? MapAgentFlowDocument(row).ToDomain() : null;
     }
 
-    public async Task AddFlow(AgentFlowDocument flow)
+    public async Task AddFlow(AgentFlow flow)
     {
-        if (flow == null)
-            throw new ArgumentNullException(nameof(flow));
+        ArgumentNullException.ThrowIfNull(flow);
 
-        var parameters = MapAgentFlowToParameters(flow);
+        var parameters = MapAgentFlowToParameters(flow.ToDocument());
         await connection.ExecuteAsync(@"
             INSERT INTO AgentFlows (
                 Id, Name, Agents, Description, CreatedAt, UpdatedAt
@@ -72,14 +72,13 @@ public class SqliteAgentFlowRepository(IDbConnection connection) : IAgentFlowRep
             )", parameters);
     }
 
-    public async Task UpdateFlow(string id, AgentFlowDocument flow)
+    public async Task UpdateFlow(string id, AgentFlow flow)
     {
-        if (flow == null)
-            throw new ArgumentNullException(nameof(flow));
+        ArgumentNullException.ThrowIfNull(flow);
 
-        var parameters = MapAgentFlowToParameters(flow);
+        var parameters = MapAgentFlowToParameters(flow.ToDocument());
         await connection.ExecuteAsync(@"
-            UPDATE AgentFlows 
+            UPDATE AgentFlows
             SET Name = @Name,
                 Agents = @Agents,
                 Description = @Description,

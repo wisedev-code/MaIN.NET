@@ -1,8 +1,10 @@
-using System.Data;
-using System.Text.Json;
 using Dapper;
+using MaIN.Domain.Entities.Agents.AgentSource;
+using MaIN.Infrastructure.Mappers;
 using MaIN.Infrastructure.Models;
 using MaIN.Infrastructure.Repositories.Abstract;
+using System.Data;
+using System.Text.Json;
 
 namespace MaIN.Infrastructure.Repositories.Sql;
 
@@ -19,9 +21,9 @@ public class SqlAgentFlowRepository(IDbConnection connection) : IAgentFlowReposi
         {
             Id = row.Id,
             Name = row.Name,
-            Agents = row.Agents != null ? 
-                JsonSerializer.Deserialize<List<AgentDocument>>(row.Agents.ToString(), _jsonOptions) : 
-                new List<AgentDocument>(),
+            Agents = row.Agents is not null
+                ? JsonSerializer.Deserialize<List<AgentDocument>>(row.Agents.ToString(), _jsonOptions)
+                : new List<AgentDocument>(),
             Description = row.Description
         };
         return flow;
@@ -29,8 +31,7 @@ public class SqlAgentFlowRepository(IDbConnection connection) : IAgentFlowReposi
 
     private object MapAgentFlowToParameters(AgentFlowDocument flow)
     {
-        if (flow == null)
-            throw new ArgumentNullException(nameof(flow));
+        ArgumentNullException.ThrowIfNull(flow);
 
         return new
         {
@@ -43,28 +44,27 @@ public class SqlAgentFlowRepository(IDbConnection connection) : IAgentFlowReposi
         };
     }
 
-    public async Task<IEnumerable<AgentFlowDocument>> GetAllFlows()
+    public async Task<IEnumerable<AgentFlow>> GetAllFlows()
     {
         var rows = await connection.QueryAsync(@"
             SELECT * FROM AgentFlows");
-        return rows.Select(MapAgentFlowDocument);
+        return rows.Select(MapAgentFlowDocument).Select(x => x.ToDomain());
     }
 
-    public async Task<AgentFlowDocument?> GetFlowById(string id)
+    public async Task<AgentFlow?> GetFlowById(string id)
     {
         var row = await connection.QueryFirstOrDefaultAsync(@"
-            SELECT * FROM AgentFlows 
+            SELECT * FROM AgentFlows
             WHERE Id = @Id",
             new { Id = id });
-        return row != null ? MapAgentFlowDocument(row) : null;
+        return row is not null ? MapAgentFlowDocument(row).ToDomain() : null;
     }
 
-    public async Task AddFlow(AgentFlowDocument flow)
+    public async Task AddFlow(AgentFlow flow)
     {
-        if (flow == null)
-            throw new ArgumentNullException(nameof(flow));
+        ArgumentNullException.ThrowIfNull(flow);
 
-        var parameters = MapAgentFlowToParameters(flow);
+        var parameters = MapAgentFlowToParameters(flow.ToDocument());
         await connection.ExecuteAsync(@"
             INSERT INTO AgentFlows (
                 Id, Name, Agents, Description, CreatedAt, UpdatedAt
@@ -73,14 +73,13 @@ public class SqlAgentFlowRepository(IDbConnection connection) : IAgentFlowReposi
             parameters);
     }
 
-    public async Task UpdateFlow(string id, AgentFlowDocument flow)
+    public async Task UpdateFlow(string id, AgentFlow flow)
     {
-        if (flow == null)
-            throw new ArgumentNullException(nameof(flow));
+        ArgumentNullException.ThrowIfNull(flow);
 
-        var parameters = MapAgentFlowToParameters(flow);
+        var parameters = MapAgentFlowToParameters(flow.ToDocument());
         await connection.ExecuteAsync(@"
-            UPDATE AgentFlows 
+            UPDATE AgentFlows
             SET Name = @Name,
                 Agents = @Agents,
                 Description = @Description,
@@ -91,12 +90,11 @@ public class SqlAgentFlowRepository(IDbConnection connection) : IAgentFlowReposi
 
     public async Task DeleteFlow(string id) =>
         await connection.ExecuteAsync(@"
-            DELETE FROM AgentFlows 
+            DELETE FROM AgentFlows
             WHERE Id = @Id",
             new { Id = id });
 
-    // Optional: Add methods for JSON-specific queries
-    public async Task<IEnumerable<AgentFlowDocument>> GetFlowsByAgentName(string agentName)
+    public async Task<IEnumerable<AgentFlow>> GetFlowsByAgentName(string agentName)
     {
         var rows = await connection.QueryAsync(@"
             SELECT *
@@ -108,6 +106,6 @@ public class SqlAgentFlowRepository(IDbConnection connection) : IAgentFlowReposi
                 WHERE AgentData.Name = @agentName
             )",
             new { agentName });
-        return rows.Select(MapAgentFlowDocument);
+        return rows.Select(MapAgentFlowDocument).Select(x => x.ToDomain());
     }
 }

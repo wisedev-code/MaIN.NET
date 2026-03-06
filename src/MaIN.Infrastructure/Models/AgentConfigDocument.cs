@@ -2,7 +2,7 @@ using MaIN.Domain.Entities;
 
 namespace MaIN.Infrastructure.Models;
 
-public class AgentContextDocument
+public class AgentConfigDocument
 {
     public string? Instruction { get; init; }
     public AgentSourceDocument? Source { get; init; }
