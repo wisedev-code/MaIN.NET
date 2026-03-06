@@ -34,7 +34,7 @@ public class AgentContextTests
         Assert.NotNull(agentId);
         Assert.NotEmpty(agentId);
         Assert.NotNull(agent);
-        Assert.NotNull(agent.Context);
+        Assert.NotNull(agent.Config);
         Assert.NotNull(agent.Behaviours);
         Assert.Equal("Agent created by MaIN", agent.Description);
     }
@@ -88,7 +88,7 @@ public class AgentContextTests
         var result = _agentContext.WithInitialPrompt(expectedPrompt);
 
         // Assert
-        Assert.Equal(expectedPrompt, _agentContext.GetAgent().Context.Instruction);
+        Assert.Equal(expectedPrompt, _agentContext.GetAgent().Config.Instruction);
         Assert.Equal(result, _agentContext);
     }
 
@@ -102,7 +102,7 @@ public class AgentContextTests
         var result = _agentContext.WithSteps(expectedSteps);
 
         // Assert
-        Assert.Equal(expectedSteps, _agentContext.GetAgent().Context.Steps);
+        Assert.Equal(expectedSteps, _agentContext.GetAgent().Config.Steps);
         Assert.Equal(result, _agentContext);
     }
 
@@ -132,7 +132,7 @@ public class AgentContextTests
         {
             Id = Guid.NewGuid().ToString(),
             CurrentBehaviour = "Default",
-            Context = new AgentData()
+            Config = new AgentConfig()
         };
         _mockAgentService
             .Setup(s => s.CreateAgent(
@@ -224,7 +224,7 @@ public class AgentContextTests
             Id = existingAgentId,
             Name = "Existing Agent",
             CurrentBehaviour = "Default",
-            Context = new AgentData()
+            Config = new AgentConfig()
         };
 
         _mockAgentService

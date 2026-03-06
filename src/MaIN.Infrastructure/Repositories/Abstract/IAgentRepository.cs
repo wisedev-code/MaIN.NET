@@ -1,13 +1,13 @@
-using MaIN.Infrastructure.Models;
+using MaIN.Domain.Entities.Agents;
 
 namespace MaIN.Infrastructure.Repositories.Abstract;
 
 public interface IAgentRepository
 {
-    Task<IEnumerable<AgentDocument>> GetAllAgents();
-    Task<AgentDocument?> GetAgentById(string id);
-    Task AddAgent(AgentDocument agent);
-    Task UpdateAgent(string id, AgentDocument agent);
+    Task<IEnumerable<Agent>> GetAllAgents();
+    Task<Agent?> GetAgentById(string id);
+    Task AddAgent(Agent agent);
+    Task UpdateAgent(string id, Agent agent);
     Task DeleteAgent(string id);
     Task<bool> Exists(string id);
 }

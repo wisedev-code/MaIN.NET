@@ -1,12 +1,12 @@
-using MaIN.Infrastructure.Models;
+using MaIN.Domain.Entities.Agents.AgentSource;
 
 namespace MaIN.Infrastructure.Repositories.Abstract;
 
 public interface IAgentFlowRepository
 {
-    Task<IEnumerable<AgentFlowDocument>> GetAllFlows();
-    Task<AgentFlowDocument?> GetFlowById(string id);
-    Task AddFlow(AgentFlowDocument flow);
-    Task UpdateFlow(string id, AgentFlowDocument flow);
+    Task<IEnumerable<AgentFlow>> GetAllFlows();
+    Task<AgentFlow?> GetFlowById(string id);
+    Task AddFlow(AgentFlow flow);
+    Task UpdateFlow(string id, AgentFlow flow);
     Task DeleteFlow(string id);
 }
