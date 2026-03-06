@@ -9,4 +9,5 @@ public class InferPageSettings
     public bool HasReasoning { get; set; }
     public bool HasImageGen { get; set; }
     public string? ModelPath { get; set; }
+    public string? MmProjName { get; set; }
 }

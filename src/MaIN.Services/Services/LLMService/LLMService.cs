@@ -62,6 +62,8 @@ public class LLMService : ILLMService
 
         var lastMsg = chat.Messages.Last();
 
+        await ChatHelper.ExtractImageFromFiles(lastMsg);
+
         if (ChatHelper.HasFiles(lastMsg))
         {
             var memoryOptions = ChatHelper.ExtractMemoryOptions(lastMsg);
@@ -235,8 +237,10 @@ public class LLMService : ILLMService
             : await ModelLoader.GetOrLoadModelAsync(modelsPath, modelKey);
 
         var visionModel = model as IVisionModel;
-        var llavaWeights = visionModel?.MMProjectName is not null
-            ? await LLavaWeights.LoadFromFileAsync(ResolvePath(null, visionModel.MMProjectName), cancellationToken)
+        var mmProjName = visionModel?.MMProjectName
+            ?? (chat.Properties.TryGetValue(ServiceConstants.Properties.MmProjNameProperty, out var p) ? p : null);
+        var llavaWeights = mmProjName is not null
+            ? await LLavaWeights.LoadFromFileAsync(ResolvePath(null, mmProjName), cancellationToken)
             : null;
         
         using var executor = new BatchedExecutor(llmModel, parameters);
@@ -299,7 +303,7 @@ public class LLMService : ILLMService
             ? executor.Create()
             : executor.Load(chat.ConversationState!);
 
-        if (lastMsg.Image != null)
+        if (lastMsg.Image != null && llavaWeights != null)
         {
             await ProcessImageMessage(conversation, lastMsg, llmModel, llavaWeights, executor, cancellationToken);
         }

@@ -26,11 +26,11 @@ public class SettingsService(IJSRuntime js)
     private const string BackendProfilesKey = "inferpage-backend-profiles";
 
     public async Task SaveProfileForBackendAsync(string backend, string model,
-        bool vision, bool reasoning, bool imageGen)
+        bool vision, bool reasoning, bool imageGen, string? mmProjName = null)
     {
         var profiles = await js.InvokeAsync<Dictionary<string, BackendProfile>?>(
             "settingsManager.load", BackendProfilesKey) ?? new();
-        profiles[backend] = new BackendProfile(model, vision, reasoning, imageGen);
+        profiles[backend] = new BackendProfile(model, vision, reasoning, imageGen, mmProjName);
         await js.InvokeVoidAsync("settingsManager.save", BackendProfilesKey, profiles);
     }
 
@@ -55,4 +55,4 @@ public class SettingsService(IJSRuntime js)
         => await js.InvokeAsync<Dictionary<string, string>?>("settingsManager.load", storageKey) ?? new();
 }
 
-public record BackendProfile(string Model, bool Vision, bool Reasoning, bool ImageGen);
+public record BackendProfile(string Model, bool Vision, bool Reasoning, bool ImageGen, string? MmProjName = null);

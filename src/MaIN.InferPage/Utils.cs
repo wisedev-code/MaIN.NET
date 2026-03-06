@@ -19,6 +19,7 @@ public static class Utils
     public static bool? ManualVision { get; set; }
     public static bool? ManualReasoning { get; set; }
     public static bool? ManualImageGen { get; set; }
+    public static string? MmProjName { get; set; }
 
     // registry → manual override → fallback set (null = no fallback)
     private static bool GetCapability<T>(bool? manual, HashSet<string>? fallback = null)
@@ -42,6 +43,7 @@ public static class Utils
         bool hasVision,
         bool hasReasoning,
         bool hasImageGen,
+        string? mmProjName,
         MaINSettings mainSettings,
         string? apiKey)
     {
@@ -69,6 +71,7 @@ public static class Utils
         ManualVision = hasVision;
         ManualReasoning = hasReasoning;
         ManualImageGen = hasImageGen;
+        MmProjName = string.IsNullOrWhiteSpace(mmProjName) ? null : mmProjName.Trim();
 
         mainSettings.BackendType = backendType;
 

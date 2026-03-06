@@ -115,6 +115,17 @@
                     }
                 </div>
             }
+
+            @if (_selectedBackend?.BackendType == BackendType.Self && !_isRegisteredModel && _manualVision)
+            {
+                <div class="settings-field">
+                    <label class="settings-label">MMProj File</label>
+                    <FluentTextField @bind-Value="_mmProjName"
+                                     Placeholder="e.g., mmproj-model-f16.gguf"
+                                     Style="width: 100%;" />
+                    <span class="api-key-hint">Multimodal projector file (must be in the models folder)</span>
+                </div>
+            }
         </div>
 
         <div class="settings-footer">
@@ -194,6 +205,7 @@
     private bool _manualVision;
     private bool _manualReasoning;
     private bool _manualImageGen;
+    private string? _mmProjName;
 
     private bool RequiresApiKey => _selectedBackend?.RequiresApiKey == true;
     private bool CanSave => !string.IsNullOrWhiteSpace(_modelName)
@@ -251,6 +263,7 @@
             _manualVision = settings.HasVision;
             _manualReasoning = settings.HasReasoning;
             _manualImageGen = settings.HasImageGen;
+            _mmProjName = settings.MmProjName;
 
             OnModelNameChanged();
         }
@@ -288,6 +301,7 @@
                 _manualVision    = profile.Vision;
                 _manualReasoning = profile.Reasoning;
                 _manualImageGen  = profile.ImageGen;
+                _mmProjName      = profile.MmProjName;
             }
         }
         else
@@ -382,12 +396,13 @@
             HasVision = hasVision,
             HasReasoning = hasReasoning,
             HasImageGen = hasImageGen,
-            ModelPath = _modelPath
+            ModelPath = _modelPath,
+            MmProjName = _mmProjName
         };
         await SettingsStorage.SaveSettingsAsync(settings);
 
         await SettingsStorage.SaveProfileForBackendAsync(
-            backendKey, _modelName, hasVision, hasReasoning, hasImageGen);
+            backendKey, _modelName, hasVision, hasReasoning, hasImageGen, _mmProjName);
 
         // Resolve API key: use new input, or fall back to saved key
         string? apiKey = null;
@@ -411,6 +426,7 @@
             hasVision,
             hasReasoning,
             hasImageGen,
+            _mmProjName,
             MaINSettings,
             apiKey);
 

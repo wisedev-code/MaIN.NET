@@ -12,6 +12,8 @@
 @using MaIN.Domain.Exceptions
 @using MaIN.Domain.Models
 @using MaIN.Domain.Models.Abstract
+@using MaIN.Services
+@using MaIN.Services.Constants
 @using Markdig
 @using Message = MaIN.Domain.Entities.Message
 @using MessageType = MaIN.Domain.Entities.MessageType
@@ -396,6 +398,7 @@
             settings.HasVision,
             settings.HasReasoning,
             settings.HasImageGen,
+            settings.MmProjName,
             MaINSettings,
             apiKey);
     }
@@ -591,6 +594,11 @@
 
             Chat.ModelId = Utils.Model!;
             Chat.ImageGen = Utils.ImageGen;
+
+            // Sync mmproj setting for local unregistered vision models
+            Chat.Properties.Remove(ServiceConstants.Properties.MmProjNameProperty);
+            if (Utils.BackendType == BackendType.Self && !string.IsNullOrEmpty(Utils.MmProjName))
+                Chat.Properties.AddProperty(ServiceConstants.Properties.MmProjNameProperty, Utils.MmProjName);
 
             bool wasAtBottom = await JS.InvokeAsync<bool>("scrollManager.isAtBottom", "messages-container");
 
