@@ -39,39 +39,39 @@ internal static class AgentDocumentMapper
         Description = agent.Description,
         Behaviours = agent.Behaviours,
         CurrentBehaviour = agent.CurrentBehaviour,
-        Config = agent.Config?.ToDomain() ?? throw new AgentContextNotFoundException(agent.Id)
+        Config = agent.Config?.ToDomain() ?? throw new AgentConfigNotFoundException(agent.Id)
     };
 
-    internal static AgentConfigDocument ToDocument(this AgentConfig context) => new()
+    internal static AgentConfigDocument ToDocument(this AgentConfig config) => new()
     {
-        Instruction = context.Instruction,
-        Relations = context.Relations?.ToList(),
-        Steps = context.Steps?.ToList(),
-        McpConfig = context.McpConfig,
-        Source = context.Source is not null
+        Instruction = config.Instruction,
+        Relations = config.Relations?.ToList(),
+        Steps = config.Steps?.ToList(),
+        McpConfig = config.McpConfig,
+        Source = config.Source is not null
             ? new AgentSourceDocument
             {
-                DetailsSerialized = JsonSerializer.Serialize(context.Source.Details),
-                AdditionalMessage = context.Source.AdditionalMessage,
-                Type = Enum.Parse<AgentSourceTypeDocument>(context.Source.Type.ToString())
+                DetailsSerialized = JsonSerializer.Serialize(config.Source.Details),
+                AdditionalMessage = config.Source.AdditionalMessage,
+                Type = Enum.Parse<AgentSourceTypeDocument>(config.Source.Type.ToString())
             }
             : null
     };
 
-    internal static AgentConfig ToDomain(this AgentConfigDocument agentContextDocument) => new()
+    internal static AgentConfig ToDomain(this AgentConfigDocument agentConfigDocument) => new()
     {
-        Instruction = agentContextDocument.Instruction,
-        Relations = agentContextDocument.Relations,
-        McpConfig = agentContextDocument.McpConfig,
-        Source = agentContextDocument.Source is not null
+        Instruction = agentConfigDocument.Instruction,
+        Relations = agentConfigDocument.Relations,
+        McpConfig = agentConfigDocument.McpConfig,
+        Source = agentConfigDocument.Source is not null
             ? new AgentSource
             {
-                AdditionalMessage = agentContextDocument.Source.AdditionalMessage,
-                Details = agentContextDocument.Source.DetailsSerialized,
-                Type = Enum.Parse<AgentSourceType>(agentContextDocument.Source.Type.ToString())
+                AdditionalMessage = agentConfigDocument.Source.AdditionalMessage,
+                Details = agentConfigDocument.Source.DetailsSerialized,
+                Type = Enum.Parse<AgentSourceType>(agentConfigDocument.Source.Type.ToString())
             }
             : null,
-        Steps = agentContextDocument.Steps
+        Steps = agentConfigDocument.Steps
     };
 
     internal static AgentFlowDocument ToDocument(this AgentFlow agentFlow) => new()

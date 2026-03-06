@@ -21,8 +21,8 @@ public class AgentDto
     public bool Started { get; set; }
     [JsonPropertyName("flow")]
     public bool Flow { get; set; }
-    [JsonPropertyName("context")]
-    public AgentConfigDto Context { get; set; }
+    [JsonPropertyName("config")]
+    public AgentConfigDto Config { get; set; }
     public AgentProcessingState State { get; set; }
     public bool IsProcessing { get; set; }
     public List<string>? AgentDependencies { get; set; } = [];
