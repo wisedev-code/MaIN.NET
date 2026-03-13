@@ -1,6 +1,7 @@
 using MaIN.Core.Hub;
 using MaIN.Core.Hub.Utils;
 using MaIN.Domain.Entities.Agents.AgentSource;
+using MaIN.Domain.Models;
 
 namespace Examples.Agents;
 
@@ -9,7 +10,7 @@ public class AgentWithBecomeExample : IExample
     public async Task Start()
     {
         var becomeAgent = AIHub.Agent()
-            .WithModel("llama3.1:8b")
+            .WithModel(Models.Local.Llama3_1_8b)
             .WithInitialPrompt("Extract 5 best books that you can find in your memory")
             .WithSource(new AgentFileSourceDetails
             {

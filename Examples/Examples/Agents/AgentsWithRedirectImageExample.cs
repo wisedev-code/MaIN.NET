@@ -2,6 +2,8 @@ using Examples.Utils;
 using MaIN.Core.Hub;
 using MaIN.Core.Hub.Utils;
 using MaIN.Domain.Entities;
+using MaIN.Domain.Models;
+using MaIN.Domain.Models.Abstract;
 using FileInfo = MaIN.Domain.Entities.FileInfo;
 
 namespace Examples.Agents;
@@ -12,32 +14,34 @@ public class AgentWithRedirectImageExample : IExample
     {
         Console.WriteLine("Basic agent&friends with images example is running!");
 
+        ModelRegistry.RegisterOrReplace(new GenericLocalModel(Models.Local.Flux1Shnell));
+
         var systemPrompt =
             """
             You analyze a stored PDF and generate an image prompt. Your output must be a single prompt with a maximum of 10 words.
             Do not include any explanations, context, or extra text—only the prompt itself.
             Avoid mentioning specific characters or names; focus on the topic and context.
             """;
-        
+
         var systemPromptSecond =
             """
             Generate image based on given prompt
             """;
 
         var contextSecond = AIHub.Agent()
-            .WithModel("FLUX.1_Shnell")
+            .WithModel(Models.Local.Flux1Shnell)
             .WithInitialPrompt(systemPromptSecond)
             .Create();
-        
+
         var context = AIHub.Agent()
-            .WithModel("llama3.2:3b")
+            .WithModel(Models.Local.Llama3_2_3b)
             .WithInitialPrompt(systemPrompt)
             .WithSteps(StepBuilder.Instance
                 .Answer()
                 .Redirect(agentId: contextSecond.GetAgentId())
                 .Build())
             .Create(interactiveResponse: true);
-        
+
         var result = await context
             .ProcessAsync(new Message()
             {
@@ -51,7 +55,7 @@ public class AgentWithRedirectImageExample : IExample
                     Path = "./Files/Nicolaus_Copernicus.pdf"
                 }]
             });
-        
+
         ImagePreview.ShowImage(result.Message.Image);
     }
 }
