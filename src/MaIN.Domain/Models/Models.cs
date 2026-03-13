@@ -100,5 +100,8 @@ public static class Models
 
         // TTS
         public const string Kokoro82m = "kokoro-82m";
+
+        // Image Generation
+        public const string Flux1Shnell = "FLUX.1_Shnell";
     }
 }

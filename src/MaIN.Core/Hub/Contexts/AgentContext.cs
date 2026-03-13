@@ -1,6 +1,5 @@
 using MaIN.Core.Hub.Contexts.Interfaces.AgentContext;
 using MaIN.Core.Hub.Utils;
-using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
 using MaIN.Domain.Entities.Agents.AgentSource;
@@ -31,7 +30,7 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
         _agent = new Agent
         {
             Id = Guid.NewGuid().ToString(),
-            Behaviours = new Dictionary<string, string>(),
+            Behaviours = [],
             Name = $"Agent-{Guid.NewGuid()}",
             Description = "Agent created by MaIN",
             CurrentBehaviour = "Default",
@@ -63,27 +62,20 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
     public async Task Delete() => await _agentService.DeleteAgent(_agent.Id);
     public async Task<bool> Exists() => await _agentService.AgentExists(_agent.Id);
 
-
-    public IAgentConfigurationBuilder WithModel(string model)
+    public IAgentConfigurationBuilder WithModel(string modelId)
     {
-        _agent.Model = model;
-        return this;
-    }
+        if (!ModelRegistry.Exists(modelId))
+        {
+            throw new AgentModelNotAvailableException(_agent.Id, modelId);
+        }
 
-    public IAgentConfigurationBuilder WithCustomModel(string model, string path, string? mmProject = null)
-    {
-        KnownModels.AddModel(model, path, mmProject);
-        _agent.Model = model;
+        _agent.Model = modelId;
         return this;
     }
 
     public async Task<IAgentContextExecutor> FromExisting(string agentId)
     {
-        var existingAgent = await _agentService.GetAgentById(agentId);
-        if (existingAgent == null)
-        {
-            throw new AgentNotFoundException(agentId);
-        }
+        var existingAgent = await _agentService.GetAgentById(agentId) ?? throw new AgentNotFoundException(agentId);
 
         var context = new AgentContext(_agentService, existingAgent);
         context.LoadExistingKnowledgeIfExists();
@@ -136,18 +128,13 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
         return this;
     }
 
-    public IAgentConfigurationBuilder WithBackend(BackendType backendType)
-    {
-        _agent.Backend = backendType;
-        return this;
-    }
-
     public IAgentConfigurationBuilder WithMcpConfig(Mcp mcpConfig)
     {
-        if (_agent.Backend != null)
+        if (mcpConfig.Backend is null && ModelRegistry.Exists(_agent.Model))
         {
-            mcpConfig.Backend = _agent.Backend;
+            mcpConfig.Backend = ModelRegistry.GetById(_agent.Model).Backend;
         }
+
         _agent.Context.McpConfig = mcpConfig;
         return this;
     }
@@ -200,7 +187,7 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
 
     public IAgentConfigurationBuilder WithBehaviour(string name, string instruction)
     {
-        _agent.Behaviours ??= new Dictionary<string, string>();
+        _agent.Behaviours ??= [];
         _agent.Behaviours[name] = instruction;
         _agent.CurrentBehaviour = name;
         return this;
@@ -245,7 +232,7 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
 
     public async Task<ChatResult> ProcessAsync(Chat chat, bool translate = false)
     {
-        if (_knowledge == null)
+        if (_knowledge is null)
         {
             LoadExistingKnowledgeIfExists();
         }
@@ -267,16 +254,17 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
         Func<LLMTokenValue, Task>? tokenCallback = null,
         Func<ToolInvocation, Task>? toolCallback = null)
     {
-        if (_knowledge == null)
+        if (_knowledge is null)
         {
             LoadExistingKnowledgeIfExists();
         }
+
         var chat = await _agentService.GetChatByAgent(_agent.Id);
         chat.Messages.Add(new Message()
         {
             Content = message,
             Role = "User",
-            Type = MessageType.LocalLLM,
+            Type = MessageType.NotSet,
             Time = DateTime.Now
         });
         var result = await _agentService.Process(chat, _agent.Id, _knowledge, translate, tokenCallback, toolCallback);
@@ -295,10 +283,11 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
         Func<LLMTokenValue, Task>? tokenCallback = null,
         Func<ToolInvocation, Task>? toolCallback = null)
     {
-        if (_knowledge == null)
+        if (_knowledge is null)
         {
             LoadExistingKnowledgeIfExists();
         }
+
         var chat = await _agentService.GetChatByAgent(_agent.Id);
         chat.Messages.Add(message);
         var result = await _agentService.Process(chat, _agent.Id, _knowledge, translate, tokenCallback, toolCallback);
@@ -318,17 +307,21 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
         Func<LLMTokenValue, Task>? tokenCallback = null,
         Func<ToolInvocation, Task>? toolCallback = null)
     {
-        if (_knowledge == null)
+        if (_knowledge is null)
         {
             LoadExistingKnowledgeIfExists();
         }
+
         var chat = await _agentService.GetChatByAgent(_agent.Id);
-        var systemMsg = chat.Messages.FirstOrDefault(m => m.Role.Equals(ServiceConstants.Roles.System, StringComparison.InvariantCultureIgnoreCase));
+        var systemMsg = chat.Messages.FirstOrDefault(m => m.Role.Equals(
+            ServiceConstants.Roles.System,
+            StringComparison.InvariantCultureIgnoreCase));
         chat.Messages.Clear();
-        if (systemMsg != null)
+        if (systemMsg is not null)
         {
             chat.Messages.Add(systemMsg);
         }
+
         chat.Messages.AddRange(messages);
         var result = await _agentService.Process(chat, _agent.Id, _knowledge, translate, tokenCallback, toolCallback);
         var messageResult = result.Messages.LastOrDefault()!;
@@ -344,7 +337,7 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
     public static async Task<AgentContext> FromExisting(IAgentService agentService, string agentId)
     {
         var existingAgent = await agentService.GetAgentById(agentId);
-        if (existingAgent == null)
+        if (existingAgent is null)
         {
             throw new AgentNotFoundException(agentId);
         }
@@ -363,10 +356,11 @@ public static class AgentExtensions
         bool translate = false)
     {
         var agent = await agentTask;
-        if (agent._knowledge == null)
+        if (agent._knowledge is null)
         {
             agent.LoadExistingKnowledgeIfExists();
         }
+
         return await agent.ProcessAsync(message, translate);
     }
 }
