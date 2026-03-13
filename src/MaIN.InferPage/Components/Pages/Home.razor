@@ -1,4 +1,4 @@
-﻿@page "/"
+@page "/"
 @rendermode @(new InteractiveServerRenderMode(prerender: true))
 @inject IJSRuntime JS
 @implements IDisposable
@@ -271,7 +271,8 @@
                     : new GenericCloudModel(Id: Utils.Model!, Backend: Utils.BackendType);
             }
 
-            ctx = AIHub.Chat().WithModel(model, imageGen: Utils.ImageGen);
+            ModelRegistry.RegisterOrReplace(model!);
+            ctx = AIHub.Chat().WithModel(model!.Id);
         }
         catch (MaINCustomException ex)
         {
