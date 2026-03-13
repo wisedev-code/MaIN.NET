@@ -16,9 +16,10 @@
     background: var(--neutral-layer-1);
     border-radius: 12px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    width: 480px;
+    width: 40vw;
+    min-width: 480px;
     max-width: 90vw;
-    max-height: 85vh;
+    max-height: 95vh;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
