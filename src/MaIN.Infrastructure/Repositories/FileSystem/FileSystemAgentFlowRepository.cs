@@ -2,7 +2,7 @@ using MaIN.Domain.Entities.Agents.AgentSource;
 using MaIN.Domain.Exceptions.Flows;
 using MaIN.Infrastructure.Mappers;
 using MaIN.Infrastructure.Models;
-using MaIN.Infrastructure.Repositories.Abstract;
+using MaIN.Domain.Repositories;
 using System.Text.Json;
 
 namespace MaIN.Infrastructure.Repositories.FileSystem;

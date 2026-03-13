@@ -1,6 +1,6 @@
 using MaIN.Domain.Entities;
 using MaIN.Domain.Exceptions.Chats;
-using MaIN.Infrastructure.Repositories.Abstract;
+using MaIN.Domain.Repositories;
 using System.Collections.Concurrent;
 
 namespace MaIN.Infrastructure.Repositories;

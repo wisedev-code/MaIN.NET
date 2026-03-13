@@ -3,7 +3,7 @@ using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities.Agents;
 using MaIN.Infrastructure.Mappers;
 using MaIN.Infrastructure.Models;
-using MaIN.Infrastructure.Repositories.Abstract;
+using MaIN.Domain.Repositories;
 using System.Data;
 using System.Text.Json;
 

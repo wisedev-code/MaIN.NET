@@ -1,6 +1,6 @@
 using MaIN.Domain.Entities.Agents.AgentSource;
 using MaIN.Domain.Exceptions.Flows;
-using MaIN.Infrastructure.Repositories.Abstract;
+using MaIN.Domain.Repositories;
 using System.Collections.Concurrent;
 
 namespace MaIN.Infrastructure.Repositories;

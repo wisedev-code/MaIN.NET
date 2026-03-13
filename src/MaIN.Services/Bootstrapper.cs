@@ -1,6 +1,5 @@
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
-using MaIN.Infrastructure;
 using MaIN.Services.Constants;
 using MaIN.Services.Services;
 using MaIN.Services.Services.Abstract;
@@ -64,9 +63,6 @@ public static class Bootstrapper
         // Register the step processor
         serviceCollection.AddSingleton<IStepProcessor, StepProcessor>();
 
-        // Register the infrastructure
-        serviceCollection.ConfigureInfrastructure(configuration);
-        
         return serviceCollection;
     }
 

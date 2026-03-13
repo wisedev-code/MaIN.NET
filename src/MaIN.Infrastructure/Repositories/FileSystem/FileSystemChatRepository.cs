@@ -2,7 +2,7 @@ using MaIN.Domain.Entities;
 using MaIN.Domain.Exceptions.Chats;
 using MaIN.Infrastructure.Mappers;
 using MaIN.Infrastructure.Models;
-using MaIN.Infrastructure.Repositories.Abstract;
+using MaIN.Domain.Repositories;
 using System.Text.Json;
 
 namespace MaIN.Infrastructure.Repositories.FileSystem;

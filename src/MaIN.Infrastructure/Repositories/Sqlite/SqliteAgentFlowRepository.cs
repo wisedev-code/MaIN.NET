@@ -2,7 +2,7 @@ using Dapper;
 using MaIN.Domain.Entities.Agents.AgentSource;
 using MaIN.Infrastructure.Mappers;
 using MaIN.Infrastructure.Models;
-using MaIN.Infrastructure.Repositories.Abstract;
+using MaIN.Domain.Repositories;
 using System.Data;
 using System.Text.Json;
 
