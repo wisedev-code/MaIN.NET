@@ -3,7 +3,6 @@ using MaIN.Domain.Entities;
 using MaIN.Domain.Exceptions;
 using MaIN.Domain.Exceptions.Agents;
 using MaIN.Domain.Models.Abstract;
-using MaIN.Services.Mappers;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
 using MaIN.Services.Services.Models.Commands;
@@ -30,7 +29,7 @@ public class FetchDataStepHandler(
         {
             Chat = context.Chat,
             Filter = filter ?? string.Empty,
-            Context = context.Agent.Context!.ToDomain(),
+            Context = context.Agent.Config!,
             ResponseType = respondAsSystem ? FetchResponseType.AS_System : FetchResponseType.AS_Answer,
             MemoryChat = CreateMemoryChat(context, filter)
         };

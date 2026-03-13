@@ -1,8 +1,8 @@
 using MaIN.Domain.Entities;
+using MaIN.Domain.Entities.Agents;
 using MaIN.Domain.Entities.Agents.Knowledge;
 using MaIN.Domain.Entities.Tools;
 using MaIN.Domain.Models;
-using MaIN.Infrastructure.Models;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
 using Microsoft.Extensions.Logging;
@@ -15,8 +15,8 @@ public class StepProcessor : IStepProcessor
 
     public StepProcessor(IEnumerable<IStepHandler> stepHandlers)
     {
-        _stepHandlers = new Dictionary<string, IStepHandler>();
-        
+        _stepHandlers = [];
+
         foreach (var handler in stepHandlers)
         {
             foreach (var supportedStep in handler.SupportedSteps)
@@ -26,8 +26,8 @@ public class StepProcessor : IStepProcessor
         }
     }
 
-    public async Task<Chat> ProcessSteps(AgentContextDocument context,
-        AgentDocument agent,
+    public async Task<Chat> ProcessSteps(AgentConfig context,
+        Agent agent,
         Knowledge? knowledge,
         Chat chat,
         Func<LLMTokenValue, Task>? callbackToken,
@@ -44,7 +44,7 @@ public class StepProcessor : IStepProcessor
             stepCount++;
             var lastStep = stepCount.Equals(context.Steps.Count);
             logger.LogInformation("Processing step: {Step} on agent {agent}", step, agent.Name);
-            
+
             var (stepName, arguments) = ParseStep(step);
             var handler = GetStepHandler(stepName);
 
@@ -70,14 +70,14 @@ public class StepProcessor : IStepProcessor
             {
                 redirectMessage = result.RedirectMessage ?? redirectMessage;
             }
-            
+
             chat = result.Chat;
 
             await updateChat(chat);
         }
 
         CleanupBehaviors(agent, tagsToReplaceWithFilter);
-        
+
         return chat;
     }
 
@@ -92,7 +92,7 @@ public class StepProcessor : IStepProcessor
             ? handler
             : throw new InvalidOperationException($"Unknown step: {stepName}");
 
-    private static void CleanupBehaviors(AgentDocument agent, List<string> tagsToReplaceWithFilter)
+    private static void CleanupBehaviors(Agent agent, List<string> tagsToReplaceWithFilter)
     {
         foreach (var key in agent.Behaviours.Keys.ToList())
         {
