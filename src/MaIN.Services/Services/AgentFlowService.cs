@@ -1,6 +1,6 @@
 using MaIN.Domain.Entities.Agents.AgentSource;
 using MaIN.Domain.Exceptions.Agents;
-using MaIN.Infrastructure.Repositories.Abstract;
+using MaIN.Domain.Repositories;
 using MaIN.Services.Services.Abstract;
 
 namespace MaIN.Services.Services;

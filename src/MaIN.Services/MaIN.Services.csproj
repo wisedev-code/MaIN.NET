@@ -9,7 +9,6 @@
 
     <ItemGroup>
       <ProjectReference Include="..\MaIN.Domain\MaIN.Domain.csproj" />
-      <ProjectReference Include="..\MaIN.Infrastructure\MaIN.Infrastructure.csproj" />
     </ItemGroup>
 
     <ItemGroup>

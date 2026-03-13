@@ -1,7 +1,7 @@
 using MaIN.Domain.Configuration;
 using MaIN.Infrastructure.Configuration;
 using MaIN.Infrastructure.Repositories;
-using MaIN.Infrastructure.Repositories.Abstract;
+using MaIN.Domain.Repositories;
 using MaIN.Infrastructure.Repositories.FileSystem;
 using MaIN.Infrastructure.Repositories.Mongo;
 using Microsoft.Extensions.Configuration;

@@ -1,6 +1,6 @@
 using MaIN.Domain.Entities;
 
-namespace MaIN.Infrastructure.Repositories.Abstract;
+namespace MaIN.Domain.Repositories;
 
 public interface IChatRepository
 {

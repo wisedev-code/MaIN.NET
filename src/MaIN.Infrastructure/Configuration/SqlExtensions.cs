@@ -1,5 +1,5 @@
 using Dapper;
-using MaIN.Infrastructure.Repositories.Abstract;
+using MaIN.Domain.Repositories;
 using MaIN.Infrastructure.Repositories.Sql;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.DependencyInjection;

@@ -1,7 +1,7 @@
 using MaIN.Domain.Entities;
 using MaIN.Infrastructure.Mappers;
 using MaIN.Infrastructure.Models;
-using MaIN.Infrastructure.Repositories.Abstract;
+using MaIN.Domain.Repositories;
 using MongoDB.Driver;
 
 namespace MaIN.Infrastructure.Repositories.Mongo;

@@ -3,7 +3,7 @@ using MaIN.Domain.Entities;
 using MaIN.Domain.Exceptions.Chats;
 using MaIN.Domain.Models;
 using MaIN.Domain.Models.Abstract;
-using MaIN.Infrastructure.Repositories.Abstract;
+using MaIN.Domain.Repositories;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.ImageGenServices;
 using MaIN.Services.Services.LLMService;
