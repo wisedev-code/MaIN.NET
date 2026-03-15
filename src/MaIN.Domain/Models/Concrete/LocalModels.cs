@@ -297,11 +297,11 @@ public sealed record Olmo2_7b() : LocalModel(
 
 public sealed record Nomic_Embedding() : LocalModel(
     "nomic-embedding",
-    "nomicv2.gguf",
-    new Uri("https://huggingface.co/Inza124/Nomic/resolve/main/nomicv2.gguf?download=true"),
-    "Nomic Embedding",
-    8192,
-    "Model used to generate embeddings");
+    "mxbai-embed-large-v1.Q4_K_M.gguf",
+    new Uri("https://huggingface.co/ChristianAzinn/mxbai-embed-large-v1-gguf/resolve/main/mxbai-embed-large-v1.Q4_K_M.gguf?download=true"),
+    "mxbai-embed-large v1",
+    512,
+    "Model used to generate embeddings with superior knowledge search recall");
 
 // ===== TTS Model =====
 

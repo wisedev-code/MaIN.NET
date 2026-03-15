@@ -25,13 +25,7 @@ public sealed class LLamaEmbedderMaINClone
     /// <summary>
     /// Dimension of embedding vectors
     /// </summary>
-    public int EmbeddingSize => Context.EmbeddingSize;
-
-    /// <summary>
-    /// LLama Context
-    /// </summary>
-    public LLamaContext Context { get; set; }
-    public bool isContextDisposed { get; set; }
+    public int EmbeddingSize { get; }
 
     /// <summary>
     /// Create a new embedder, using the given LLamaWeights
@@ -46,17 +40,21 @@ public sealed class LLamaEmbedderMaINClone
         if (weights.NativeHandle is { HasEncoder: true, HasDecoder: true })
             throw new NotSupportedException("Computing embeddings in encoder-decoder models is not supported");
 
-        Context = weights.CreateContext(@params, logger);
+        // Create context only to read EmbeddingSize, then dispose immediately
+        // (matches LLamaSharp 0.26.0 LLamaEmbedder pattern)
+        using (var tempContext = weights.CreateContext(@params, logger))
+        {
+            EmbeddingSize = tempContext.EmbeddingSize;
+        }
+
         _weights = weights;
         _params = @params;
         _logger = logger;
-        NativeApi.llama_set_embeddings(Context.NativeHandle, true);
     }
 
     /// <inheritdoc />
     public void Dispose()
     {
-        Context.Dispose();
     }
 
     /// <summary>
@@ -74,22 +72,20 @@ public sealed class LLamaEmbedderMaINClone
 
     private async Task<(IReadOnlyList<float[]> Embeddings, int Tokens)> GetEmbeddingsWithTokenCount(string input, CancellationToken cancellationToken = default)
     {
-        if (isContextDisposed)
-        {
-            Context = _weights.CreateContext(_params, _logger);
-            NativeApi.llama_set_embeddings(Context.NativeHandle, true);
-        }
-        
-        var tokens = Context.Tokenize(input, special: true);
-        if (tokens.Length > Context.ContextSize)
-            throw new ArgumentException($"Embedding prompt is longer than the context window ({tokens.Length} > {Context.ContextSize})", nameof(input));
+        // Create a fresh context for each embedding call (0.26.0 pattern)
+        using var context = _weights.CreateContext(_params, _logger);
+        NativeApi.llama_set_embeddings(context.NativeHandle, true);
+
+        var tokens = context.Tokenize(input, special: true);
+        if (tokens.Length > context.ContextSize)
+            throw new ArgumentException($"Embedding prompt is longer than the context window ({tokens.Length} > {context.ContextSize})", nameof(input));
 
         cancellationToken.ThrowIfCancellationRequested();
 
         // Evaluate prompt in batch-size chunks
         var n_past = 0;
         var batch = new LLamaBatch();
-        var batchSize = (int)Context.Params.BatchSize;
+        var batchSize = (int)context.Params.BatchSize;
         for (var i = 0; i < tokens.Length; i += batchSize)
         {
             var n_eval = tokens.Length - i;
@@ -101,11 +97,11 @@ public sealed class LLamaEmbedderMaINClone
             n_past += n_eval;
 
             // Run model
-            switch (Context.NativeHandle.ModelHandle.HasEncoder, Context.NativeHandle.ModelHandle.HasDecoder)
+            switch (context.NativeHandle.ModelHandle.HasEncoder, context.NativeHandle.ModelHandle.HasDecoder)
             {
                 case (true, false):
                     {
-                        var result = await Context.EncodeAsync(batch, cancellationToken);
+                        var result = await context.EncodeAsync(batch, cancellationToken);
                         if (result != EncodeResult.Ok)
                             throw new RuntimeError($"Failed to encode: {result}");
                         break;
@@ -113,7 +109,7 @@ public sealed class LLamaEmbedderMaINClone
 
                 case (false, true):
                     {
-                        var result = await Context.DecodeAsync(batch, cancellationToken);
+                        var result = await context.DecodeAsync(batch, cancellationToken);
                         if (result != DecodeResult.Ok)
                             throw new RuntimeError($"Failed to decode: {result}");
                         break;
@@ -125,18 +121,17 @@ public sealed class LLamaEmbedderMaINClone
         }
 
         // Extract results
-        var poolingType = Context.NativeHandle.PoolingType;
+        var poolingType = context.NativeHandle.PoolingType;
         var resultsCount = poolingType == LLamaPoolingType.None ? tokens.Length : 1;
         var results = new List<float[]>(resultsCount);
-        results.Add(Context.NativeHandle.GetEmbeddingsSeq(LLamaSeqId.Zero).ToArray());
+        results.Add(context.NativeHandle.GetEmbeddingsSeq(LLamaSeqId.Zero).ToArray());
 
         // Normalize the embeddings vector
-        // https://github.com/ggerganov/llama.cpp/blob/2891c8aa9af17f4ff636ff3868bc34ff72b56e25/examples/embedding/embedding.cpp#L92
         foreach (var embedding in results)
         {
             embedding.EuclideanNormalization();
         }
-        
+
         return (results, tokens.Length);
     }
 }

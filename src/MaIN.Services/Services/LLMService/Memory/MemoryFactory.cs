@@ -1,6 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
 using LLama;
 using LLama.Common;
+using LLama.Abstractions;
+using LLama.Native;
 using LLamaSharp.KernelMemory;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Exceptions.Models;
@@ -108,11 +110,22 @@ public class MemoryFactory() : IMemoryFactory
 
         var parameters = new ModelParams(config.ModelPath)
         {
-            ContextSize = new uint?(config.ContextSize.GetValueOrDefault(2048U)),
+            ContextSize = 0, // let the model decide (mxbai-embed-large-v1 = 512)
             GpuLayerCount = config.GpuLayerCount.GetValueOrDefault(20),
+            Embeddings = true,
+            UseMemorymap = true,
+            PoolingType = LLamaPoolingType.CLS,
         };
 
         var weights = LLamaWeights.LoadFromFile(parameters);
+
+        // Override config context size for embedding — use model's native context
+        config = new LLamaSharpConfig(desiredPath)
+        {
+            DefaultInferenceParams = inferenceParams,
+            GpuLayerCount = memoryParams.GpuLayerCount,
+            ContextSize = 0,
+        };
         return new LLamaSharpTextEmbeddingMaINClone(config, weights);
     }
 
@@ -131,8 +144,8 @@ public class MemoryFactory() : IMemoryFactory
     {
         return new TextPartitioningOptions
         {
-            MaxTokensPerParagraph = 512,
-            OverlappingTokens = 30,
+            MaxTokensPerParagraph = 400,
+            OverlappingTokens = 20,
         };
     }
 
