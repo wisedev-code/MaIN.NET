@@ -1,7 +1,6 @@
 using LLama;
 using LLama.Sampling;
 using MaIN.Domain.Entities;
-using MaIN.Domain.Models;
 using MaIN.Domain.Models.Abstract;
 using MaIN.Services.Constants;
 using InferenceParams = LLama.Common.InferenceParams;

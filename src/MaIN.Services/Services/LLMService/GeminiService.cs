@@ -12,7 +12,6 @@ using MaIN.Domain.Entities;
 using MaIN.Domain.Exceptions;
 using MaIN.Domain.Models;
 using MaIN.Domain.Models.Concrete;
-using MaIN.Services.Services.LLMService.Utils;
 using MaIN.Services.Utils;
 
 namespace MaIN.Services.Services.LLMService;
