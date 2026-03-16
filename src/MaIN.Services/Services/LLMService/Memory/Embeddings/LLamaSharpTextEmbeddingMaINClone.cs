@@ -31,17 +31,18 @@ namespace MaIN.Services.Services.LLMService.Memory.Embeddings
         /// <param name="config">The configuration for LLamaSharp.</param>
         public LLamaSharpTextEmbeddingMaINClone(LLamaSharpConfig config)
         {
-            MaxTokens = (int?)config.ContextSize ?? 2048;
+            MaxTokens = (int)(config.ContextSize is > 0 ? config.ContextSize.Value : 2048);
 
             @params = new ModelParams(config.ModelPath)
             {
-                ContextSize = config?.ContextSize ?? 2048,
+                ContextSize = config?.ContextSize ?? 0, // 0 = use model default
                 GpuLayerCount = config?.GpuLayerCount ?? 20,
                 MainGpu = config?.MainGpu ?? 0,
                 SplitMode = config?.SplitMode ?? LLama.Native.GPUSplitMode.Layer,
-                BatchSize = 1024,
-                UBatchSize = 1024,
-                FlashAttention = true,
+                BatchSize = 512,
+                UBatchSize = 512,
+                Embeddings = true,
+                FlashAttention = false,
                 UseMemorymap = true,
                 PoolingType = LLamaPoolingType.Mean,
             };
@@ -59,17 +60,18 @@ namespace MaIN.Services.Services.LLMService.Memory.Embeddings
         /// <param name="weights">A LLamaWeights object.</param>
         public LLamaSharpTextEmbeddingMaINClone(LLamaSharpConfig config, LLamaWeights weights)
         {
-            MaxTokens = (int?)config.ContextSize ?? 2048;
+            MaxTokens = (int)(config.ContextSize is > 0 ? config.ContextSize.Value : 2048);
 
             @params = new ModelParams(config.ModelPath)
             {
-                ContextSize = config?.ContextSize ?? 2048,
+                ContextSize = config?.ContextSize ?? 0, // 0 = use model default
                 GpuLayerCount = config?.GpuLayerCount ?? 20,
                 MainGpu = config?.MainGpu ?? 0,
                 SplitMode = config?.SplitMode ?? LLama.Native.GPUSplitMode.Layer,
-                BatchSize = 1024,
-                UBatchSize = 1024,
-                FlashAttention = true,
+                BatchSize = 512,
+                UBatchSize = 512,
+                Embeddings = true,
+                FlashAttention = false,
                 UseMemorymap = true,
                 PoolingType = LLamaPoolingType.Mean,
             };

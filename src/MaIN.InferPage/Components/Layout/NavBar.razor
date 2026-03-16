@@ -1,7 +1,10 @@
 @using Microsoft.FluentUI.AspNetCore.Components.Icons.Regular
 @using MaIN.Domain.Configuration
+@using MaIN.InferPage.Services
 @inject NavigationManager _navigationManager
 @inject IJSRuntime JS
+@inject SettingsStateService SettingsState
+@implements IDisposable
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 
 <FluentDesignTheme @bind-Mode="@Mode"
@@ -48,6 +51,11 @@
             Style="margin-left: 10px">Vision 👁️</FluentBadge>
     }
     <div  style="margin-left: auto; align-self: flex-end;">
+        <FluentButton Style="background-color: transparent;"
+                      BackgroundColor="rgba(0, 0, 0, 0)"
+                      Appearance="Appearance.Lightweight"
+                      OnClick="@(() => SettingsState.RequestSettings())" IconStart="@(new Icons.Regular.Size24.Settings().WithColor(AccentColor))">
+        </FluentButton>
         <FluentButton Style="padding: 10px; background-color: transparent;"
                       BackgroundColor="rgba(0, 0, 0, 0)"
                       Appearance="Appearance.Lightweight"
@@ -64,7 +72,6 @@
 @code {
     private DesignThemeModes Mode { get; set; }
     private string AccentColor => Mode == DesignThemeModes.Dark ? "#00ffcc" : "#00cca3";
-    private bool _isChangingTheme = false;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -72,22 +79,21 @@
         {
             var stored = await JS.InvokeAsync<string>("themeManager.load");
             Mode = stored == "dark" ? DesignThemeModes.Dark : DesignThemeModes.Light;
+            SettingsState.OnSettingsApplied += OnSettingsChanged;
             StateHasChanged();
         }
     }
 
-    private void SetTheme()
+    private void OnSettingsChanged()
     {
-        if (_isChangingTheme) return;
-        _isChangingTheme = true;
-        Mode = Mode == DesignThemeModes.Dark ? DesignThemeModes.Light : DesignThemeModes.Dark;
-        _isChangingTheme = false;
+        InvokeAsync(StateHasChanged);
     }
 
-    private void Reload(MouseEventArgs obj)
-    {
-        _navigationManager.Refresh(true);
-    }
+    private void SetTheme()
+        => Mode = Mode == DesignThemeModes.Dark ? DesignThemeModes.Light : DesignThemeModes.Dark;
+
+    private void Reload()
+        => _navigationManager.Refresh(true);
 
     private string GetBackendColor()
     {
@@ -102,5 +108,10 @@
             BackendType.Ollama when !Utils.HasApiKey => "Local Ollama",
             _ => Utils.BackendType.ToString()
         };
+    }
+
+    public void Dispose()
+    {
+        SettingsState.OnSettingsApplied -= OnSettingsChanged;
     }
 }

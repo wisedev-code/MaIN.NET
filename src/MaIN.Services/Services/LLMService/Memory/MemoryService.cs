@@ -1,5 +1,3 @@
-using LLama.Native;
-using MaIN.Services.Services.LLMService.Memory.Embeddings;
 using MaIN.Services.Utils;
 using Microsoft.KernelMemory;
 using Microsoft.KernelMemory.AI;
@@ -22,7 +20,7 @@ public class MemoryService : IMemoryService
         await ImportWebUrls(memory, options.WebUrls, cancellationToken);
         await ImportMemoryItems(memory, options.Memory, cancellationToken);
     }
-    
+
     public string CleanResponseText(string text)
     {
         return text
@@ -38,10 +36,8 @@ public class MemoryService : IMemoryService
 
         foreach (var item in textData)
         {
-            PreImport(memory.generator);
             var cleanedValue = JsonCleaner.CleanAndUnescape(item.Value);
             await memory.km.ImportTextAsync(cleanedValue!, item.Key, cancellationToken: cancellationToken);
-            PostImport(memory.generator);
         }
     }
 
@@ -51,15 +47,11 @@ public class MemoryService : IMemoryService
         if (fileData?.Any() != true)
             return;
 
-        
         foreach (var item in fileData)
         {
-            PreImport(memory.generator);
             await memory.km.ImportDocumentAsync(item.Value, item.Key, cancellationToken: cancellationToken);
-            PostImport(memory.generator);
         }
     }
-    
 
     private async Task ImportStreamData((IKernelMemory km, ITextEmbeddingGenerator? generator) memory, Dictionary<string, Stream>? streamData,
         CancellationToken cancellationToken)
@@ -69,9 +61,7 @@ public class MemoryService : IMemoryService
 
         foreach (var item in streamData)
         {
-            PreImport(memory.generator);
             await memory.km.ImportDocumentAsync(item.Value, item.Key, cancellationToken: cancellationToken);
-            PostImport(memory.generator);
         }
     }
 
@@ -82,9 +72,7 @@ public class MemoryService : IMemoryService
 
         foreach (var item in webUrls)
         {
-            PreImport(memory.generator);
             await memory.km.ImportWebPageAsync(item, cancellationToken: cancellationToken);
-            PostImport(memory.generator);
         }
     }
 
@@ -97,15 +85,13 @@ public class MemoryService : IMemoryService
 
         foreach (var item in memoryItems.Select((value, i) => (value, i)))
         {
-            PreImport(memory.generator);
             await memory.km.ImportTextAsync(
                 item.value,
                 $"ANSWER_MEMORY_{item.i + 1}-{memoryItems.Count}",
                 cancellationToken: cancellationToken);
-            PostImport(memory.generator);
         }
     }
-    
+
     private static async Task PreprocessAvailableDocuments(ChatMemoryOptions options, CancellationToken cancellationToken)
     {
         foreach (var file in options.FilesData!)
@@ -123,28 +109,4 @@ public class MemoryService : IMemoryService
             options.StreamData = [];
         }
     }
-    
-    private void PostImport(ITextEmbeddingGenerator? memoryGenerator)
-    {
-        if (memoryGenerator is LLamaSharpTextEmbeddingMaINClone llamaGenerator)
-        {
-            llamaGenerator._embedder.Context.Dispose();
-            llamaGenerator._embedder.isContextDisposed = true;
-        }
-    }
-
-    private void PreImport(ITextEmbeddingGenerator? memoryGenerator)
-    {
-        if (memoryGenerator is LLamaSharpTextEmbeddingMaINClone { _embedder.isContextDisposed: true } llamaGenerator)
-        {
-            llamaGenerator._embedder.Context = llamaGenerator
-                ._embedder
-                ._weights
-                .CreateContext(llamaGenerator.@params!);
-            llamaGenerator._embedder.isContextDisposed = false;
-            NativeApi.llama_set_embeddings(llamaGenerator._embedder.Context.NativeHandle, true);
-
-        }
-    }
-
 }

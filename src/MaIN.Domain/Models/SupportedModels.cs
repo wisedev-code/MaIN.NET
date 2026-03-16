@@ -250,9 +250,9 @@ public static class KnownModels
         new()
         {
             Name = KnownModelNames.Nomic_Embedding,
-            FileName = "nomicv2.gguf",
-            Description = "Model used to generate embeddings.",
-            DownloadUrl = "https://huggingface.co/Inza124/Nomic/resolve/main/nomicv2.gguf?download=true",
+            FileName = "mxbai-embed-large-v1.Q4_K_M.gguf",
+            Description = "Model used to generate embeddings with superior knowledge search recall.",
+            DownloadUrl = "https://huggingface.co/ChristianAzinn/mxbai-embed-large-v1-gguf/resolve/main/mxbai-embed-large-v1.Q4_K_M.gguf?download=true",
         };
 
     public static bool IsModelSupported(string name) =>

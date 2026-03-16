@@ -1,6 +1,7 @@
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Models.Abstract;
+using MaIN.Domain.Models.Concrete;
 
 namespace MaIN.InferPage;
 
@@ -10,37 +11,84 @@ public static class Utils
     public static bool HasApiKey { get; set; }
     public static string? Path { get; set; }
     public static bool IsLocal => BackendType == BackendType.Self || (BackendType == BackendType.Ollama && !HasApiKey);
-    public static string? Model = "gemma3-4b";
-    public static bool Reason
-    {
-        get
-        {
-            if (string.IsNullOrEmpty(Model)) return false;
-            if (ModelRegistry.TryGetById(Model, out var m))
-                return m is IReasoningModel && !ImageGen; // reasoning and image gen are mutually exclusive
-            return false;
-        }
-    }
+    public static string? Model;
 
-    public static bool ImageGen
-    {
-        get
-        {
-            if (string.IsNullOrEmpty(Model)) return false;
-            if (ModelRegistry.TryGetById(Model, out var m))
-                return m is IImageGenerationModel;
-            return ImageGenerationModels.Contains(Model); // fallback for unregistered models (e.g. FLUX via separate server)
-        }
-    }
+    public static bool NeedsConfiguration { get; set; }
 
-    public static bool Vision
+    // Manual capability overrides for unregistered models (set from Settings UI)
+    public static bool? ManualVision { get; set; }
+    public static bool? ManualReasoning { get; set; }
+    public static bool? ManualImageGen { get; set; }
+    public static string? MmProjName { get; set; }
+
+    // registry → manual override → fallback set (null = no fallback)
+    private static bool GetCapability<T>(bool? manual, HashSet<string>? fallback = null)
+        where T : class =>
+        !string.IsNullOrEmpty(Model) && (
+            ModelRegistry.TryGetById(Model, out var m) ? m is T :
+            manual.HasValue ? manual.Value :
+            fallback?.Contains(Model) ?? false);
+
+    public static bool ImageGen => GetCapability<IImageGenerationModel>(ManualImageGen, ImageGenerationModels);
+    public static bool Vision   => GetCapability<IVisionModel>(ManualVision, VisionModels);
+    public static bool Reason   => GetCapability<IReasoningModel>(ManualReasoning);
+
+    public static bool IsKnownVisionModel(string model) => VisionModels.Contains(model);
+    public static bool IsKnownImageGenModel(string model) => ImageGenerationModels.Contains(model);
+
+    public static void ApplySettings(
+        BackendType backendType,
+        string model,
+        string? modelPath,
+        bool hasVision,
+        bool hasReasoning,
+        bool hasImageGen,
+        string? mmProjName,
+        MaINSettings mainSettings,
+        string? apiKey)
     {
-        get
+        BackendType = backendType;
+        Model = model;
+        // Strip leading/trailing whitespace and invisible Unicode control/format characters
+        // (e.g. U+202A LEFT-TO-RIGHT EMBEDDING, U+FEFF BOM — added by Windows Explorer on copy-paste)
+        if (!string.IsNullOrWhiteSpace(modelPath))
         {
-            if (string.IsNullOrEmpty(Model)) return false;
-            if (ModelRegistry.TryGetById(Model, out var m))
-                return m is IVisionModel;
-            return VisionModels.Contains(Model); // fallback for unregistered models
+            var cleaned = modelPath.Trim();
+            int i = 0;
+            while (i < cleaned.Length &&
+                   (char.IsControl(cleaned[i]) ||
+                    char.GetUnicodeCategory(cleaned[i]) == System.Globalization.UnicodeCategory.Format))
+                i++;
+            Path = i < cleaned.Length ? cleaned.Substring(i) : null;
+        }
+        else
+        {
+            Path = null;
+        }
+        HasApiKey = !string.IsNullOrEmpty(apiKey);
+        NeedsConfiguration = false;
+
+        ManualVision = hasVision;
+        ManualReasoning = hasReasoning;
+        ManualImageGen = hasImageGen;
+        MmProjName = string.IsNullOrWhiteSpace(mmProjName) ? null : mmProjName.Trim();
+
+        mainSettings.BackendType = backendType;
+
+        // null clears env var and key; handles both "set new key" and "clear stale key" cases
+        var entry = LLMApiRegistry.GetEntry(backendType);
+        if (entry != null)
+            Environment.SetEnvironmentVariable(entry.ApiKeyEnvName, apiKey);
+
+        switch (backendType)
+        {
+            case BackendType.OpenAi: mainSettings.OpenAiKey = apiKey; break;
+            case BackendType.Gemini: mainSettings.GeminiKey = apiKey; break;
+            case BackendType.DeepSeek: mainSettings.DeepSeekKey = apiKey; break;
+            case BackendType.Anthropic: mainSettings.AnthropicKey = apiKey; break;
+            case BackendType.GroqCloud: mainSettings.GroqCloudKey = apiKey; break;
+            case BackendType.Ollama: mainSettings.OllamaKey = apiKey; break;
+            case BackendType.Xai: mainSettings.XaiKey = apiKey; break;
         }
     }
 
