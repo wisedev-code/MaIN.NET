@@ -246,15 +246,6 @@ public static class KnownModels
         }
     ];
 
-    public static Model GetEmbeddingModel() =>
-        new()
-        {
-            Name = KnownModelNames.Nomic_Embedding,
-            FileName = "mxbai-embed-large-v1.Q4_K_M.gguf",
-            Description = "Model used to generate embeddings with superior knowledge search recall.",
-            DownloadUrl = "https://huggingface.co/ChristianAzinn/mxbai-embed-large-v1-gguf/resolve/main/mxbai-embed-large-v1.Q4_K_M.gguf?download=true",
-        };
-
     public static bool IsModelSupported(string name) =>
         Models.Any(x => x.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase)
                         || x.Name.Replace(':', '-').Equals(name,

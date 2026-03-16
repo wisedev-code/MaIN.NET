@@ -1,12 +1,11 @@
 using System.Diagnostics.CodeAnalysis;
 using LLama;
 using LLama.Common;
-using LLama.Abstractions;
 using LLama.Native;
 using LLamaSharp.KernelMemory;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Exceptions.Models;
-using MaIN.Domain.Models;
+using MaIN.Domain.Models.Abstract;
 using MaIN.Services.Services.LLMService.Memory.Embeddings;
 using Microsoft.KernelMemory;
 using Microsoft.KernelMemory.Configuration;
@@ -27,7 +26,7 @@ public class MemoryFactory() : IMemoryFactory
             MemoryParams memoryParams)
     {
         var path = ResolvePath(modelsPath);
-        var embeddingModel = KnownModels.GetEmbeddingModel();
+        var embeddingModel = (LocalModel)ModelRegistry.GetById("mxbai-embedding");
         var embeddingModelPath = Path.Combine(path, embeddingModel.FileName);
         var modelPath = Path.Combine(path, modelName);
         var generator = ConfigureGeneratorOptions(embeddingModelPath, modelPath, memoryParams);
