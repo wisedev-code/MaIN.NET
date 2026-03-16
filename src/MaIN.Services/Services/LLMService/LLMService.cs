@@ -129,7 +129,37 @@ public class LLMService : ILLMService
 
         await memoryService.ImportDataToMemory((km, generator), memoryOptions, cancellationToken);
         var userMessage = chat.Messages.Last();
-        
+
+        if (userMessage.Images?.Count > 0)
+        {
+            var searchResult = await km.SearchAsync(userMessage.Content, cancellationToken: cancellationToken);
+            await km.DeleteIndexAsync(cancellationToken: cancellationToken);
+
+            if (disableCache)
+            {
+                llmModel.Dispose();
+                ModelLoader.RemoveModel(model.FileName);
+                textGenerator.Dispose();
+            }
+            generator._embedder.Dispose();
+            generator._embedder._weights.Dispose();
+            generator.Dispose();
+
+            var ctxBuilder = new StringBuilder();
+            foreach (var citation in searchResult.Results.SelectMany(r => r.Partitions))
+                ctxBuilder.AppendLine(citation.Text);
+
+            var originalContent = userMessage.Content;
+            if (ctxBuilder.Length > 0)
+                userMessage.Content =
+                    $"Use the following context to answer the question:\n\n{ctxBuilder}\n\nQuestion: {originalContent}";
+            userMessage.Files = null;
+
+            var chatResult = await Send(chat, requestOptions, cancellationToken);
+            userMessage.Content = originalContent;
+            return chatResult;
+        }
+
         MemoryAnswer result;
 
         var tokens = new List<LLMTokenValue>();

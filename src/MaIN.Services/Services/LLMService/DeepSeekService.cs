@@ -67,7 +67,6 @@ public sealed class DeepSeekService(
 
         chat.Messages.Last().Content = message.Content;
         chat.Messages.Last().Files = [];
-        chat.Messages.Last().Images = null;
         var result = await Send(chat, requestOptions, cancellationToken);
         chat.Messages.Last().Content = lastMsg.Content;
         return result;
