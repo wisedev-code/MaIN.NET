@@ -41,7 +41,7 @@ public class ChatGrammarExampleGemini : IExample
         await AIHub.Chat()
           .WithModel<Gemini2_5Flash>()
           .WithMessage("Generate random person")
-          .WithInferenceParams(new InferenceParams
+          .WithInferenceParams(new LocalInferenceParams
           {
             Grammar = new Grammar(grammarValue, GrammarFormat.JSONSchema)
           })

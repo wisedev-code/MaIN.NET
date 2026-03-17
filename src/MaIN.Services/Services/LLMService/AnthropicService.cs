@@ -1,4 +1,5 @@
 ﻿using MaIN.Domain.Entities;
+using MaIN.Domain.Entities.ProviderParams;
 using MaIN.Domain.Models;
 using MaIN.Services.Constants;
 using MaIN.Services.Services.Abstract;
@@ -506,13 +507,22 @@ public sealed class AnthropicService(
 
     private object BuildAnthropicRequestBody(Chat chat, List<ChatMessage> conversation, bool stream)
     {
+        var anthParams = chat.ProviderParams as AnthropicParams;
+
         var requestBody = new Dictionary<string, object>
         {
             ["model"] = chat.ModelId,
-            ["max_tokens"] = chat.InterferenceParams.MaxTokens < 0 ? 4096 : chat.InterferenceParams.MaxTokens,
+            ["max_tokens"] = anthParams?.MaxTokens ?? 4096,
             ["stream"] = stream,
             ["messages"] = BuildAnthropicMessages(conversation)
         };
+
+        if (anthParams != null)
+        {
+            requestBody["temperature"] = anthParams.Temperature;
+            if (anthParams.TopP < 1.0f) requestBody["top_p"] = anthParams.TopP;
+            if (anthParams.TopK > 0) requestBody["top_k"] = anthParams.TopK;
+        }
 
         var systemMessage = conversation.FirstOrDefault(m =>
             m.Role.Equals("system", StringComparison.OrdinalIgnoreCase));
@@ -522,10 +532,10 @@ public sealed class AnthropicService(
             requestBody["system"] = systemContent;
         }
 
-        if (chat.InterferenceParams.Grammar is not null)
+        if (chat.InferenceGrammar is not null)
         {
             requestBody["system"] =
-                $"Respond only using the following grammar format: \n{chat.InterferenceParams.Grammar.Value}\n. Do not add explanations, code tags, or any extra content.";
+                $"Respond only using the following grammar format: \n{chat.InferenceGrammar.Value}\n. Do not add explanations, code tags, or any extra content.";
         }
 
         if (chat.ToolsConfiguration?.Tools != null && chat.ToolsConfiguration.Tools.Any())
@@ -683,16 +693,23 @@ public sealed class AnthropicService(
     {
         var httpClient = CreateAnthropicHttpClient();
 
-        var requestBody = new
+        var anthParams2 = chat.ProviderParams as AnthropicParams;
+        var requestBody = new Dictionary<string, object>
         {
-            model = chat.ModelId,
-            max_tokens = chat.InterferenceParams.MaxTokens < 0 ? 4096 : chat.InterferenceParams.MaxTokens,
-            stream = true,
-            system = chat.InterferenceParams.Grammar is not null
-                ? $"Respond only using the following grammar format: \n{chat.InterferenceParams.Grammar.Value}\n. Do not add explanations, code tags, or any extra content."
+            ["model"] = chat.ModelId,
+            ["max_tokens"] = anthParams2?.MaxTokens ?? 4096,
+            ["stream"] = true,
+            ["system"] = chat.InferenceGrammar is not null
+                ? $"Respond only using the following grammar format: \n{chat.InferenceGrammar.Value}\n. Do not add explanations, code tags, or any extra content."
                 : "",
-            messages = await OpenAiCompatibleService.BuildMessagesArray(conversation, chat, ImageType.AsBase64)
+            ["messages"] = await OpenAiCompatibleService.BuildMessagesArray(conversation, chat, ImageType.AsBase64)
         };
+        if (anthParams2 != null)
+        {
+            requestBody["temperature"] = anthParams2.Temperature;
+            if (anthParams2.TopP < 1.0f) requestBody["top_p"] = anthParams2.TopP;
+            if (anthParams2.TopK > 0) requestBody["top_k"] = anthParams2.TopK;
+        }
 
         var requestJson = JsonSerializer.Serialize(requestBody);
         var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
@@ -771,16 +788,23 @@ public sealed class AnthropicService(
     {
         var httpClient = CreateAnthropicHttpClient();
 
-        var requestBody = new
+        var anthParams3 = chat.ProviderParams as AnthropicParams;
+        var requestBody = new Dictionary<string, object>
         {
-            model = chat.ModelId,
-            max_tokens = chat.InterferenceParams.MaxTokens < 0 ? 4096 : chat.InterferenceParams.MaxTokens,
-            stream = false,
-            system = chat.InterferenceParams.Grammar is not null
-                ? $"Respond only using the following grammar format: \n{chat.InterferenceParams.Grammar.Value}\n. Do not add explanations, code tags, or any extra content."
+            ["model"] = chat.ModelId,
+            ["max_tokens"] = anthParams3?.MaxTokens ?? 4096,
+            ["stream"] = false,
+            ["system"] = chat.InferenceGrammar is not null
+                ? $"Respond only using the following grammar format: \n{chat.InferenceGrammar.Value}\n. Do not add explanations, code tags, or any extra content."
                 : "",
-            messages = await OpenAiCompatibleService.BuildMessagesArray(conversation, chat, ImageType.AsBase64)
+            ["messages"] = await OpenAiCompatibleService.BuildMessagesArray(conversation, chat, ImageType.AsBase64)
         };
+        if (anthParams3 != null)
+        {
+            requestBody["temperature"] = anthParams3.Temperature;
+            if (anthParams3.TopP < 1.0f) requestBody["top_p"] = anthParams3.TopP;
+            if (anthParams3.TopK > 0) requestBody["top_k"] = anthParams3.TopK;
+        }
 
         var requestJson = JsonSerializer.Serialize(requestBody);
         var content = new StringContent(requestJson, Encoding.UTF8, "application/json");

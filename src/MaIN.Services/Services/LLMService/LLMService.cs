@@ -20,7 +20,7 @@ using MaIN.Services.Services.Models;
 using MaIN.Services.Utils;
 using Microsoft.KernelMemory;
 using Grammar = LLama.Sampling.Grammar;
-using InferenceParams = MaIN.Domain.Entities.InferenceParams;
+using LocalInferenceParams = MaIN.Domain.Entities.LocalInferenceParams;
 #pragma warning disable KMEXP00
 
 namespace MaIN.Services.Services.LLMService;
@@ -319,14 +319,14 @@ public class LLMService : ILLMService
     {
         return new ModelParams(ResolvePath(customPath, modelKey))
         {
-            ContextSize = (uint?)chat.InterferenceParams.ContextSize,
-            GpuLayerCount = chat.InterferenceParams.GpuLayerCount,
-            SeqMax = chat.InterferenceParams.SeqMax,
-            BatchSize = chat.InterferenceParams.BatchSize,
-            UBatchSize = chat.InterferenceParams.UBatchSize,
-            Embeddings = chat.InterferenceParams.Embeddings,
-            TypeK = (GGMLType)chat.InterferenceParams.TypeK,
-            TypeV = (GGMLType)chat.InterferenceParams.TypeV,
+            ContextSize = (uint?)chat.LocalParams!.ContextSize,
+            GpuLayerCount = chat.LocalParams!.GpuLayerCount,
+            SeqMax = chat.LocalParams!.SeqMax,
+            BatchSize = chat.LocalParams!.BatchSize,
+            UBatchSize = chat.LocalParams!.UBatchSize,
+            Embeddings = chat.LocalParams!.Embeddings,
+            TypeK = (GGMLType)chat.LocalParams!.TypeK,
+            TypeV = (GGMLType)chat.LocalParams!.TypeV,
         };
     }
 
@@ -461,7 +461,7 @@ public class LLMService : ILLMService
         var isComplete = false;
         var hasFailed = false;
 
-        using var sampler = LLMService.CreateSampler(chat.InterferenceParams);
+        using var sampler = LLMService.CreateSampler(chat.LocalParams!);
         var decoder = new StreamingTokenDecoder(executor.Context);
 
         var inferenceParams = ChatHelper.CreateInferenceParams(chat, llmModel);
@@ -527,7 +527,7 @@ public class LLMService : ILLMService
         return (tokens, isComplete, hasFailed);
     }
 
-    private static BaseSamplingPipeline CreateSampler(InferenceParams interferenceParams)
+    private static BaseSamplingPipeline CreateSampler(LocalInferenceParams interferenceParams)
     {
         if (interferenceParams.Temperature == 0)
         {

@@ -9,6 +9,7 @@ using Microsoft.KernelMemory;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using MaIN.Domain.Entities;
+using MaIN.Domain.Entities.ProviderParams;
 using MaIN.Domain.Exceptions;
 using MaIN.Domain.Models;
 using MaIN.Domain.Models.Concrete;
@@ -73,6 +74,16 @@ public sealed class GeminiService(
         {
             throw new APIKeyNotConfiguredException(LLMApiRegistry.Gemini.ApiName);
         }
+    }
+
+    protected override void ApplyProviderParams(Dictionary<string, object> requestBody, Chat chat)
+    {
+        if (chat.ProviderParams is not GeminiParams p) return;
+        requestBody["temperature"] = p.Temperature;
+        requestBody["max_tokens"] = p.MaxTokens;
+        requestBody["top_p"] = p.TopP;
+        if (p.TopK > 0) requestBody["top_k"] = p.TopK;
+        if (p.StopSequences is { Length: > 0 }) requestBody["stop"] = p.StopSequences;
     }
 
     public override async Task<ChatResult?> AskMemory(

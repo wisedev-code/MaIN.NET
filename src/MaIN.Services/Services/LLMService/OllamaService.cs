@@ -1,6 +1,7 @@
 using System.Text;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
+using MaIN.Domain.Entities.ProviderParams;
 using MaIN.Domain.Models.Concrete;
 using MaIN.Services.Constants;
 using MaIN.Services.Services.Abstract;
@@ -38,6 +39,16 @@ public sealed class OllamaService(
     {
         // No validation required - local Ollama doesn't need an API key
         // Cloud Ollama will fail at runtime if the key is missing
+    }
+
+    protected override void ApplyProviderParams(Dictionary<string, object> requestBody, Chat chat)
+    {
+        if (chat.ProviderParams is not OllamaParams p) return;
+        requestBody["temperature"] = p.Temperature;
+        requestBody["max_tokens"] = p.MaxTokens;
+        requestBody["top_p"] = p.TopP;
+        if (p.TopK > 0) requestBody["top_k"] = p.TopK;
+        if (p.NumCtx > 0) requestBody["options"] = new { num_ctx = p.NumCtx, num_gpu = p.NumGpu };
     }
 
     public override async Task<ChatResult?> AskMemory(

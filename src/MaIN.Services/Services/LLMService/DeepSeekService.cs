@@ -1,6 +1,7 @@
 using System.Text;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
+using MaIN.Domain.Entities.ProviderParams;
 using MaIN.Services.Services.Abstract;
 using Microsoft.Extensions.Logging;
 using MaIN.Services.Services.LLMService.Memory;
@@ -47,6 +48,17 @@ public sealed class DeepSeekService(
         {
             throw new APIKeyNotConfiguredException(LLMApiRegistry.Deepseek.ApiName);
         }
+    }
+
+    protected override void ApplyProviderParams(Dictionary<string, object> requestBody, Chat chat)
+    {
+        if (chat.ProviderParams is not DeepSeekParams p) return;
+        requestBody["temperature"] = p.Temperature;
+        requestBody["max_tokens"] = p.MaxTokens;
+        requestBody["top_p"] = p.TopP;
+        if (p.FrequencyPenalty != 0) requestBody["frequency_penalty"] = p.FrequencyPenalty;
+        if (p.PresencePenalty != 0) requestBody["presence_penalty"] = p.PresencePenalty;
+        if (p.ResponseFormat != null) requestBody["response_format"] = new { type = p.ResponseFormat };
     }
 
     public override async Task<ChatResult?> AskMemory(

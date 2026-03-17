@@ -24,7 +24,7 @@ public class ChatCustomGrammarExample : IExample
         await AIHub.Chat()
             .WithModel<Gemma2_2b>()
             .WithMessage("Generate random person")
-            .WithInferenceParams(new InferenceParams
+            .WithInferenceParams(new LocalInferenceParams
             {
                 Grammar = personGrammar
             })

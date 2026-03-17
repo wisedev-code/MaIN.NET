@@ -2,6 +2,7 @@
 using MaIN.Services.Constants;
 using MaIN.Services.Services.Models;
 using MaIN.Domain.Entities;
+using MaIN.Domain.Entities.ProviderParams;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.LLMService.Memory;
 using Microsoft.Extensions.Logging;
@@ -40,6 +41,16 @@ public sealed class XaiService(
         {
             throw new APIKeyNotConfiguredException(LLMApiRegistry.Xai.ApiName);
         }
+    }
+
+    protected override void ApplyProviderParams(Dictionary<string, object> requestBody, Chat chat)
+    {
+        if (chat.ProviderParams is not XaiParams p) return;
+        requestBody["temperature"] = p.Temperature;
+        requestBody["max_tokens"] = p.MaxTokens;
+        requestBody["top_p"] = p.TopP;
+        if (p.FrequencyPenalty != 0) requestBody["frequency_penalty"] = p.FrequencyPenalty;
+        if (p.PresencePenalty != 0) requestBody["presence_penalty"] = p.PresencePenalty;
     }
 
     public override async Task<ChatResult?> AskMemory(

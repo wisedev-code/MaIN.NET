@@ -79,13 +79,13 @@ public static class ChatHelper
         {
             SamplingPipeline = new DefaultSamplingPipeline
             {
-                Temperature = chat.InterferenceParams.Temperature,
-                TopK = chat.InterferenceParams.TopK,
-                TopP = chat.InterferenceParams.TopP
+                Temperature = chat.LocalParams!.Temperature,
+                TopK = chat.LocalParams!.TopK,
+                TopP = chat.LocalParams!.TopP
             },
             AntiPrompts = [model.Vocab.EOT?.ToString() ?? "User:"],
-            TokensKeep = chat.InterferenceParams.TokensKeep,
-            MaxTokens = chat.InterferenceParams.MaxTokens
+            TokensKeep = chat.LocalParams!.TokensKeep,
+            MaxTokens = chat.LocalParams!.MaxTokens
         };
     }
 

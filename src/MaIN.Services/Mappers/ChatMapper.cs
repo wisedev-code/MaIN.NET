@@ -93,7 +93,7 @@ public static class ChatMapper
             Backend = chat.Backend,
             ToolsConfiguration = chat.ToolsConfiguration,  
             MemoryParams = chat.MemoryParams.ToDocument(),
-            InferenceParams = chat.InterferenceParams.ToDocument(),
+            InferenceParams = (chat.ProviderParams as LocalInferenceParams)?.ToDocument(),
             ConvState = chat.ConversationState,
             Properties = chat.Properties,
             Interactive = chat.Interactive,
@@ -114,7 +114,7 @@ public static class ChatMapper
             ToolsConfiguration = chat.ToolsConfiguration,
             ConversationState = chat.ConvState as Conversation.State,
             MemoryParams = chat.MemoryParams!.ToDomain(),
-            InterferenceParams = chat.InferenceParams!.ToDomain(),
+            ProviderParams = chat.InferenceParams?.ToDomain() ?? new LocalInferenceParams(),
             Interactive = chat.Interactive,
             Translate = chat.Translate,
             Type = Enum.Parse<ChatType>(chat.Type.ToString())
@@ -147,8 +147,8 @@ public static class ChatMapper
             Type = llmTokenValue.Type
         };
 
-    private static InferenceParams ToDomain(this InferenceParamsDocument inferenceParams)
-        => new InferenceParams
+    private static LocalInferenceParams ToDomain(this InferenceParamsDocument inferenceParams)
+        => new LocalInferenceParams
         {
             Temperature = inferenceParams.Temperature,
             ContextSize = inferenceParams.ContextSize,
@@ -179,7 +179,7 @@ public static class ChatMapper
             Grammar = memoryParams.Grammar
         };
 
-    private static InferenceParamsDocument ToDocument(this InferenceParams inferenceParams)
+    private static InferenceParamsDocument ToDocument(this LocalInferenceParams inferenceParams)
         => new InferenceParamsDocument
         {
             Temperature = inferenceParams.Temperature,

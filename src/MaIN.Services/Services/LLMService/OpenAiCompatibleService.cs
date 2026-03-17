@@ -856,6 +856,8 @@ public abstract class OpenAiCompatibleService(
             ["stream"] = stream
         };
 
+        ApplyProviderParams(requestBody, chat);
+
         if (chat.ToolsConfiguration?.Tools != null && chat.ToolsConfiguration.Tools.Any())
         {
             requestBody["tools"] = chat.ToolsConfiguration.Tools.Select(t => new
@@ -868,7 +870,7 @@ public abstract class OpenAiCompatibleService(
                     parameters = t.Function.Parameters
                 } : null
             }).ToList();
-            
+
             if (!string.IsNullOrEmpty(chat.ToolsConfiguration.ToolChoice))
             {
                 requestBody["tool_choice"] = chat.ToolsConfiguration.ToolChoice;
@@ -876,6 +878,10 @@ public abstract class OpenAiCompatibleService(
         }
 
         return requestBody;
+    }
+
+    protected virtual void ApplyProviderParams(Dictionary<string, object> requestBody, Chat chat)
+    {
     }
 
     internal static void MergeMessages(List<ChatMessage> conversation, List<Message> messages)
@@ -950,10 +956,10 @@ public abstract class OpenAiCompatibleService(
         foreach (var msg in conversation)
         {
             var content = msg.OriginalMessage != null ? BuildMessageContent(msg.OriginalMessage, imageType) : msg.Content;            
-            if (chat.InterferenceParams.Grammar != null && msg.Role == "user")
+            if (chat.InferenceGrammar != null && msg.Role == "user")
             {
                 var jsonGrammarConverter = new GrammarToJsonConverter();
-                string jsonGrammar = jsonGrammarConverter.ConvertToJson(chat.InterferenceParams.Grammar);
+                string jsonGrammar = jsonGrammarConverter.ConvertToJson(chat.InferenceGrammar);
                 
                 var grammarInstruction = $" | Respond only using the following JSON format: \n{jsonGrammar}\n. Do not add explanations, code tags, or any extra content.";
             

@@ -79,10 +79,10 @@ public interface IAgentConfigurationBuilder : IAgentActions
     /// based on specific parameters. Inference parameters can influence various aspects of the chat, such as response length,
     /// temperature, and other model-specific settings.
     /// </summary>
-    /// <param name="inferenceParams">An <see cref="InferenceParams"/> object that holds the parameters for inference, such as Temperature, MaxTokens,
+    /// <param name="inferenceParams">An <see cref="IProviderInferenceParams"/> object that holds the parameters for inference, such as Temperature, MaxTokens,
     /// TopP, etc. These parameters control the generation behavior of the agent.</param>
     /// <returns>The context instance implementing <see cref="IAgentConfigurationBuilder"/> for method chaining.</returns>
-    IAgentConfigurationBuilder WithInferenceParams(InferenceParams inferenceParams);
+    IAgentConfigurationBuilder WithInferenceParams(IProviderInferenceParams inferenceParams);
 
     /// <summary>
     /// Sets the memory parameters for the chat session, allowing you to customize how the AI accesses and uses its memory
