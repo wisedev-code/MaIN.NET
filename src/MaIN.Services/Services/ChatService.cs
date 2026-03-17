@@ -37,7 +37,7 @@ public class ChatService(
         {
             chat.ImageGen = true;
         }
-        chat.Backend = chat.Backend ?? settings.BackendType;
+        chat.Backend ??= settings.BackendType;
 
         chat.Messages.Where(x => x.Type == MessageType.NotSet).ToList()
             .ForEach(x => x.Type = chat.Backend != BackendType.Self ? MessageType.CloudLLM : MessageType.LocalLLM);

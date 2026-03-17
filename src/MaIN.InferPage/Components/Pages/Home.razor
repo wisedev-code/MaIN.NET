@@ -9,6 +9,7 @@
 @using MaIN.Core.Hub.Contexts.Interfaces.ChatContext
 @using MaIN.Domain.Configuration
 @using MaIN.Domain.Entities
+@using MaIN.Domain.Entities.ProviderParams
 @using MaIN.Domain.Exceptions
 @using MaIN.Domain.Models
 @using MaIN.Domain.Models.Abstract
@@ -309,7 +310,12 @@
             if (model != null)
             {
                 var newCtx = AIHub.Chat().WithModel(model, imageGen: Utils.ImageGen);
-                // Preserve history on model switch; cast is safe — ChatContext implements both interfaces.
+                // Set backend and provider params before adding messages.
+                // Cast is safe — ChatContext implements both IChatMessageBuilder and IChatConfigurationBuilder.
+                ((IChatConfigurationBuilder)newCtx)
+                    .WithBackend(Utils.BackendType)
+                    .WithInferenceParams(ProviderParamsFactory.Create(Utils.BackendType));
+                // Preserve history on model switch.
                 ctx = Chat.Messages.Count > 0
                     ? (IChatMessageBuilder)newCtx.WithMessages(Chat.Messages)
                     : newCtx;
