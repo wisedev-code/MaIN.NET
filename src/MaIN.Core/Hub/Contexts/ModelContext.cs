@@ -35,7 +35,7 @@ public sealed class ModelContext : IModelContext
 
     public AIModel GetModel(string modelId) => ModelRegistry.GetById(modelId);
 
-    public AIModel GetEmbeddingModel() => new Nomic_Embedding();
+    public AIModel GetEmbeddingModel() => new Mxbai_Embedding();
 
     public bool Exists(string modelId)
     {
