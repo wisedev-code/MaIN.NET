@@ -550,11 +550,7 @@ public class LLMService : ILLMService
 
     private static LocalModel GetLocalModel(Chat chat)
     {
-        // 1. Use stored model instance if available
-        if (chat.ModelInstance is LocalModel storedLocal)
-            return storedLocal;
-
-        // 2. Try registry lookup (TryGetById to avoid throwing for unregistered models)
+        // Try registry lookup (TryGetById to avoid throwing for unregistered models)
         if (ModelRegistry.TryGetById(chat.ModelId, out var model) && model is LocalModel localModel)
             return localModel;
 

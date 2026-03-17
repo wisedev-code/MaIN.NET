@@ -386,6 +386,7 @@
         // Cloud model — pick the right generic type based on capabilities
         bool vision = Utils.Vision;
         bool reasoning = Utils.Reason;
+        bool imageGen = Utils.ImageGen;
 
         if (vision && reasoning)
             return new GenericCloudVisionReasoningModel(Id: Utils.Model, Backend: Utils.BackendType);
@@ -393,6 +394,8 @@
             return new GenericCloudVisionModel(Id: Utils.Model, Backend: Utils.BackendType);
         if (reasoning)
             return new GenericCloudReasoningModel(Id: Utils.Model, Backend: Utils.BackendType);
+        if (imageGen)
+            return new GenericImageGenerationCloudModel(Id: Utils.Model, Backend: Utils.BackendType);
 
         return new GenericCloudModel(Id: Utils.Model, Backend: Utils.BackendType);
     }
