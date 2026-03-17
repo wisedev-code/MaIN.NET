@@ -32,6 +32,7 @@ public sealed class DeepSeekService(
     protected override string HttpClientName => ServiceConstants.HttpClients.DeepSeekClient;
     protected override string ChatCompletionsUrl => ServiceConstants.ApiUrls.DeepSeekOpenAiChatCompletions;
     protected override string ModelsUrl => ServiceConstants.ApiUrls.DeepSeekModels;
+    protected override Type ExpectedParamsType => typeof(DeepSeekParams);
 
     protected override string GetApiKey()
     {

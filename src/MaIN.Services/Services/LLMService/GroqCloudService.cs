@@ -26,6 +26,7 @@ public sealed class GroqCloudService(
     protected override string HttpClientName => ServiceConstants.HttpClients.GroqCloudClient;
     protected override string ChatCompletionsUrl => ServiceConstants.ApiUrls.GroqCloudOpenAiChatCompletions;
     protected override string ModelsUrl => ServiceConstants.ApiUrls.GroqCloudModels;
+    protected override Type ExpectedParamsType => typeof(GroqCloudParams);
 
     protected override string GetApiKey()
     {

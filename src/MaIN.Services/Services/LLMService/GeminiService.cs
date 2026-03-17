@@ -24,9 +24,7 @@ public sealed class GeminiService(
     IMemoryFactory memoryFactory,
     IMemoryService memoryService,
     ILogger<GeminiService>? logger = null)
-#pragma warning disable CS9107 // Parameter is captured into the state of the enclosing type and its value is also passed to the base constructor. The value might be captured by the base class as well.
     : OpenAiCompatibleService(notificationService, httpClientFactory, memoryFactory, memoryService, logger)
-#pragma warning restore CS9107 // Parameter is captured into the state of the enclosing type and its value is also passed to the base constructor. The value might be captured by the base class as well.
 {
     private readonly MaINSettings _settings = settings ?? throw new ArgumentNullException(nameof(settings));
 
@@ -38,6 +36,7 @@ public sealed class GeminiService(
 
     protected override string HttpClientName => ServiceConstants.HttpClients.GeminiClient;
     protected override string ChatCompletionsUrl => ServiceConstants.ApiUrls.GeminiOpenAiChatCompletions;
+    protected override Type ExpectedParamsType => typeof(GeminiParams);
 
     public override async Task<string[]> GetCurrentModels()
     {
@@ -82,7 +81,6 @@ public sealed class GeminiService(
         requestBody["temperature"] = p.Temperature;
         requestBody["max_tokens"] = p.MaxTokens;
         requestBody["top_p"] = p.TopP;
-        if (p.TopK > 0) requestBody["top_k"] = p.TopK;
         if (p.StopSequences is { Length: > 0 }) requestBody["stop"] = p.StopSequences;
     }
 

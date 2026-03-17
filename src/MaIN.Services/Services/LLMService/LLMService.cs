@@ -8,6 +8,7 @@ using LLama.Native;
 using LLama.Sampling;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
+using MaIN.Domain.Exceptions;
 using MaIN.Domain.Exceptions.Models;
 using MaIN.Domain.Entities.Tools;
 using MaIN.Domain.Models;
@@ -55,6 +56,11 @@ public class LLMService : ILLMService
         ChatRequestOptions requestOptions,
         CancellationToken cancellationToken = default)
     {
+        if (chat.ProviderParams is not LocalInferenceParams)
+        {
+            throw new InvalidProviderParamsException("Local LLM", nameof(LocalInferenceParams), chat.ProviderParams.GetType().Name);
+        }
+
         if (chat.Messages.Count == 0)
         {
             return null;

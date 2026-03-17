@@ -19,7 +19,9 @@ public sealed class OpenAiService(
     : OpenAiCompatibleService(notificationService, httpClientFactory, memoryFactory, memoryService, logger)
 {
     private readonly MaINSettings _settings = settings ?? throw new ArgumentNullException(nameof(settings));
-      
+
+    protected override Type ExpectedParamsType => typeof(OpenAiParams);
+
     protected override string GetApiKey()
     {
         return _settings.OpenAiKey ?? Environment.GetEnvironmentVariable(LLMApiRegistry.OpenAi.ApiKeyEnvName) ??

@@ -60,6 +60,11 @@ public sealed class AnthropicService(
 
     public async Task<ChatResult?> Send(Chat chat, ChatRequestOptions options, CancellationToken cancellationToken = default)
     {
+        if (chat.ProviderParams is not AnthropicParams)
+        {
+            throw new InvalidProviderParamsException(LLMApiRegistry.Anthropic.ApiName, nameof(AnthropicParams), chat.ProviderParams.GetType().Name);
+        }
+
         ValidateApiKey();
 
         if (!chat.Messages.Any())

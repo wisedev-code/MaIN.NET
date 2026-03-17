@@ -26,6 +26,7 @@ public sealed class XaiService(
     protected override string HttpClientName => ServiceConstants.HttpClients.XaiClient;
     protected override string ChatCompletionsUrl => ServiceConstants.ApiUrls.XaiOpenAiChatCompletions;
     protected override string ModelsUrl => ServiceConstants.ApiUrls.XaiModels;
+    protected override Type ExpectedParamsType => typeof(XaiParams);
 
     protected override string GetApiKey()
     {

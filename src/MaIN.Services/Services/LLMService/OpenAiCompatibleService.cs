@@ -43,6 +43,7 @@ public abstract class OpenAiCompatibleService(
     protected abstract string GetApiKey();
     protected abstract string GetApiName();
     protected abstract void ValidateApiKey();
+    protected abstract Type ExpectedParamsType { get; }
     protected virtual string HttpClientName => ServiceConstants.HttpClients.OpenAiClient;
     protected virtual string ChatCompletionsUrl => ServiceConstants.ApiUrls.OpenAiChatCompletions;
     protected virtual string ModelsUrl => ServiceConstants.ApiUrls.OpenAiModels;
@@ -53,6 +54,11 @@ public abstract class OpenAiCompatibleService(
         ChatRequestOptions options,
         CancellationToken cancellationToken = default)
     {
+        if (chat.ProviderParams.GetType() != ExpectedParamsType)
+        {
+            throw new InvalidProviderParamsException(GetApiName(), ExpectedParamsType.Name, chat.ProviderParams.GetType().Name);
+        }
+
         ValidateApiKey();
         if (!chat.Messages.Any())
             return null;
@@ -682,7 +688,6 @@ public abstract class OpenAiCompatibleService(
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
         }
     }
-
     private async Task ProcessStreamingChatAsync(
         Chat chat,
         List<ChatMessage> conversation,
