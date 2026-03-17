@@ -12,7 +12,6 @@ using MaIN.Domain.Entities;
 using MaIN.Domain.Exceptions;
 using MaIN.Domain.Models;
 using MaIN.Domain.Models.Concrete;
-using MaIN.Services.Services.LLMService.Utils;
 using MaIN.Services.Utils;
 
 namespace MaIN.Services.Services.LLMService;
@@ -96,6 +95,27 @@ public sealed class GeminiService(
             var jsonGrammar = jsonGrammarConverter.ConvertToJson(chat.MemoryParams.Grammar);
             userQuery =
                 $"{userQuery} | For your next response only, please respond using exactly the following JSON format: \n{jsonGrammar}\n. Do not include any explanations, code blocks, or additional content. After this single JSON response, resume your normal conversational style.";
+        }
+
+        var lastMessage = chat.Messages.Last();
+        if (lastMessage.Images?.Count > 0)
+        {
+            var searchResult = await kernel.SearchAsync(userQuery, cancellationToken: cancellationToken);
+            await kernel.DeleteIndexAsync(cancellationToken: cancellationToken);
+
+            var ctxBuilder = new StringBuilder();
+            foreach (var citation in searchResult.Results.SelectMany(r => r.Partitions))
+                ctxBuilder.AppendLine(citation.Text);
+
+            var originalContent = lastMessage.Content;
+            if (ctxBuilder.Length > 0)
+                lastMessage.Content =
+                    $"Use the following context to answer the question:\n\n{ctxBuilder}\n\nQuestion: {originalContent}";
+            lastMessage.Files = null;
+
+            var result = await Send(chat, requestOptions, cancellationToken);
+            lastMessage.Content = originalContent;
+            return result;
         }
 
         MemoryAnswer retrievedContext;

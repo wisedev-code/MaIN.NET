@@ -1,27 +1,40 @@
 @import url('https://fonts.googleapis.com/css2?family=Tiny5&display=swap'); /* Importing a coding font */
 
-/* Kolor akcentu ciemny motyw */
+/* Accent palette — dark theme.
+   FAST computes accent-fill-hover, accent-stroke-control-* and focus-stroke-outer
+   from accent-base-color, but its algorithm produces blue. Override explicitly. */
 body[data-theme="dark"],
 body[data-theme="system-dark"] {
     --accent-base-color: #00ffcc !important;
     --accent-fill-rest: #00ffcc !important;
+    --accent-fill-hover: #00e6b8 !important;
+    --accent-fill-active: #00cca3 !important;
+    --accent-stroke-control-rest: #00ffcc !important;
+    --accent-stroke-control-hover: #00e6b8 !important;
+    --focus-stroke-outer: #00ffcc !important;
 }
 
-/* Lekko szare tło + kolor akcentu jasny motyw */
+/* Accent palette + neutral layers — light theme.
+   Input fields use white (#fff) so they stand out from the panel background (#f0f0f0). */
 body[data-theme="light"],
 body[data-theme="system-light"],
 body:not([data-theme="dark"]):not([data-theme="system-dark"]) {
     --accent-base-color: #00cca3 !important;
     --accent-fill-rest: #00cca3 !important;
+    --accent-fill-hover: #00b892 !important;
+    --accent-fill-active: #00a583 !important;
+    --accent-stroke-control-rest: #00cca3 !important;
+    --accent-stroke-control-hover: #00b892 !important;
+    --focus-stroke-outer: #00cca3 !important;
     --light-bg: #f0f0f0;
     --neutral-layer-1: var(--light-bg) !important;
     --neutral-fill-layer-rest: var(--light-bg) !important;
-    --neutral-fill-input-rest: var(--light-bg) !important;
+    --neutral-fill-input-rest: #ffffff !important;
+    --neutral-fill-input-hover: #f5f5f5 !important;
+    --neutral-fill-input-active: #efefef !important;
     --neutral-layer-2: #e8e8e8 !important;
     --neutral-layer-3: #e0e0e0 !important;
     --neutral-layer-4: #d8d8d8 !important;
-    --neutral-fill-input-hover: #ebebeb !important;
-    --neutral-fill-input-active: #e8e8e8 !important;
 }
 
 body {

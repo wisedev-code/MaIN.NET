@@ -62,6 +62,7 @@ public static class ServiceConstants
         public const string PreProcessProperty = "Pre_Process";
         public const string DisableCacheProperty = "DisableCache";
         public const string AgentIdProperty = "AgentId";
+        public const string MmProjNameProperty = "MmProjName";
     }
 
     public static class Defaults

@@ -1,6 +1,9 @@
 ﻿@page "/"
 @rendermode @(new InteractiveServerRenderMode(prerender: true))
 @inject IJSRuntime JS
+@inject SettingsService SettingsStorage
+@inject SettingsStateService SettingsState
+@inject MaIN.Domain.Configuration.MaINSettings MaINSettings
 @implements IDisposable
 @using MaIN.Core.Hub
 @using MaIN.Core.Hub.Contexts.Interfaces.ChatContext
@@ -9,6 +12,8 @@
 @using MaIN.Domain.Exceptions
 @using MaIN.Domain.Models
 @using MaIN.Domain.Models.Abstract
+@using MaIN.Services
+@using MaIN.Services.Constants
 @using Markdig
 @using Message = MaIN.Domain.Entities.Message
 @using MessageType = MaIN.Domain.Entities.MessageType
@@ -17,6 +22,13 @@
 <PageTitle>MaIN Infer</PageTitle>
 
 <ErrorNotification @bind-ErrorMessage="_errorMessage" />
+
+@if (_showSettings)
+{
+    <Settings ShowCloseButton="@_hasExistingConfig"
+              OnSettingsApplied="@HandleSettingsApplied"
+              OnClose="@HideSettings" />
+}
 
 <div class="chat-container" id="chat-container">
     @if (_isDragging)
@@ -204,6 +216,8 @@
 </div>
 
 @code {
+    private bool _showSettings;
+    private bool _hasExistingConfig;
     private bool _isLoading;
     private bool _isThinking;
     private bool _isDragging;
@@ -214,7 +228,7 @@
     private string? _incomingReasoning;
     private IChatMessageBuilder? ctx;
     private CancellationTokenSource? _cancellationTokenSource;
-    private Chat Chat { get; } = new() { Name = "MaIN Infer", ModelId = Utils.Model! };
+    private Chat Chat { get; set; } = new() { Name = "MaIN Infer", ModelId = Utils.Model ?? "unknown" };
     private List<MessageExt> Messages { get; set; } = new();
     private ElementReference? _bottomElement;
     private ElementReference _editorRef;
@@ -243,6 +257,30 @@
             await JS.InvokeVoidAsync("editorManager.attachPasteHandler", _editorRef, _dotNetRef);
             await JS.InvokeVoidAsync("editorManager.attachDropZone", "chat-container", _dotNetRef);
 
+            // Settings initialization (requires JS interop, so must be in OnAfterRenderAsync)
+            SettingsState.OnSettingsRequested += ShowSettingsFromGear;
+
+            if (Utils.NeedsConfiguration)
+            {
+                var hasBrowserSettings = await SettingsStorage.HasSettingsAsync();
+                if (hasBrowserSettings)
+                {
+                    await LoadAndApplyBrowserSettings();
+                    _hasExistingConfig = true;
+                    InitializeChatContext();
+                    SettingsState.NotifySettingsApplied();
+                }
+                else
+                {
+                    _showSettings = true;
+                    _hasExistingConfig = false;
+                }
+            }
+            else
+            {
+                _hasExistingConfig = true;
+            }
+
             StateHasChanged();
         }
         else if (_preserveScroll)
@@ -254,24 +292,28 @@
 
     protected override Task OnInitializedAsync()
     {
-        AIModel? model = null;
+        // Only init chat if CLI args provided (no browser settings needed)
+        if (!Utils.NeedsConfiguration && !string.IsNullOrEmpty(Utils.Model))
+        {
+            InitializeChatContext();
+        }
 
+        return base.OnInitializedAsync();
+    }
+
+    private void InitializeChatContext()
+    {
         try
         {
-            if (Utils.BackendType == BackendType.Self && Utils.Path != null)
+            var model = ResolveModel();
+            if (model != null)
             {
-                model = ModelRegistry.TryGetById(Utils.Model!, out var foundModel1)
-                    ? foundModel1!
-                    : new GenericLocalModel($"{Utils.Model}.gguf");
+                var newCtx = AIHub.Chat().WithModel(model, imageGen: Utils.ImageGen);
+                // Preserve history on model switch; cast is safe — ChatContext implements both interfaces.
+                ctx = Chat.Messages.Count > 0
+                    ? (IChatMessageBuilder)newCtx.WithMessages(Chat.Messages)
+                    : newCtx;
             }
-            else
-            {
-                model = ModelRegistry.TryGetById(Utils.Model!, out var foundModel1)
-                    ? foundModel1!
-                    : new GenericCloudModel(Id: Utils.Model!, Backend: Utils.BackendType);
-            }
-
-            ctx = AIHub.Chat().WithModel(model, imageGen: Utils.ImageGen);
         }
         catch (MaINCustomException ex)
         {
@@ -281,8 +323,137 @@
         {
             _errorMessage = ex.Message;
         }
+    }
 
-        return base.OnInitializedAsync();
+    private AIModel? ResolveModel()
+    {
+        if (string.IsNullOrEmpty(Utils.Model)) return null;
+
+        if (ModelRegistry.TryGetById(Utils.Model, out var registeredModel))
+        {
+            // When a custom Model Path is set, bake the resolved full path into a generic
+            // model so LLMService loads from the right location. This is needed because
+            // ctx._chat (which reaches LLMService) is a separate object from Home.razor's Chat,
+            // so Chat.Properties never reach the service — the path must be in model.FileName.
+            if (Utils.BackendType == BackendType.Self && registeredModel is LocalModel localReg
+                && !string.IsNullOrEmpty(Utils.Path))
+            {
+                var fullPath = Utils.Path.EndsWith(".gguf", StringComparison.OrdinalIgnoreCase)
+                    ? Utils.Path
+                    : System.IO.Path.Combine(Utils.Path, localReg.FileName);
+
+                return localReg switch
+                {
+                    IVisionModel vm when localReg is IReasoningModel { ReasonFunction: not null } rm
+                        => new GenericLocalVisionReasoningModel(
+                            FileName: fullPath, MMProjectPath: vm.MMProjectName ?? "",
+                            ReasonFunction: rm.ReasonFunction,
+                            MaxContextWindowSize: localReg.MaxContextWindowSize),
+                    IVisionModel vm
+                        => new GenericLocalVisionModel(
+                            FileName: fullPath, MMProjectPath: vm.MMProjectName ?? "",
+                            MaxContextWindowSize: localReg.MaxContextWindowSize),
+                    IReasoningModel { ReasonFunction: not null } rm
+                        => new GenericLocalReasoningModel(
+                            FileName: fullPath, ReasonFunction: rm.ReasonFunction,
+                            MaxContextWindowSize: localReg.MaxContextWindowSize),
+                    _ => new GenericLocalModel(
+                            FileName: fullPath,
+                            MaxContextWindowSize: localReg.MaxContextWindowSize)
+                };
+            }
+            return registeredModel;
+        }
+
+        // Self = local GGUF file; Ollama Local is an HTTP server, not a file path
+        if (Utils.BackendType == BackendType.Self)
+        {
+            string modelFileName;
+            if (!string.IsNullOrEmpty(Utils.Path))
+            {
+                modelFileName = Utils.Path.EndsWith(".gguf", StringComparison.OrdinalIgnoreCase)
+                    ? Utils.Path
+                    : System.IO.Path.Combine(Utils.Path, $"{Utils.Model.Replace(':', '-')}.gguf");
+            }
+            else
+            {
+                modelFileName = $"{Utils.Model.Replace(':', '-')}.gguf";
+            }
+            return new GenericLocalModel(FileName: modelFileName);
+        }
+
+        // Cloud model — pick the right generic type based on capabilities
+        bool vision = Utils.Vision;
+        bool reasoning = Utils.Reason;
+
+        if (vision && reasoning)
+            return new GenericCloudVisionReasoningModel(Id: Utils.Model, Backend: Utils.BackendType);
+        if (vision)
+            return new GenericCloudVisionModel(Id: Utils.Model, Backend: Utils.BackendType);
+        if (reasoning)
+            return new GenericCloudReasoningModel(Id: Utils.Model, Backend: Utils.BackendType);
+
+        return new GenericCloudModel(Id: Utils.Model, Backend: Utils.BackendType);
+    }
+
+    private void ReinitializeChat()
+    {
+        if (string.IsNullOrEmpty(Utils.Model)) return;
+
+        _errorMessage = null;
+        Chat.ModelId = Utils.Model;
+        Chat.ImageGen = Utils.ImageGen;
+        InitializeChatContext();
+        StateHasChanged();
+    }
+
+    private async Task LoadAndApplyBrowserSettings()
+    {
+        var settings = await SettingsStorage.LoadSettingsAsync();
+        if (settings == null) return;
+
+        var backendType = (BackendType)settings.BackendType;
+
+        string? apiKey = null;
+        if (backendType != BackendType.Self)
+        {
+            var backendKey = backendType == BackendType.Ollama
+                ? (settings.IsOllamaCloud ? "OllamaCloud" : "OllamaLocal")
+                : backendType.ToString();
+
+            apiKey = await SettingsStorage.GetApiKeyForBackendAsync(backendKey);
+        }
+
+        Utils.ApplySettings(
+            backendType,
+            settings.Model!,
+            settings.ModelPath,
+            settings.HasVision,
+            settings.HasReasoning,
+            settings.HasImageGen,
+            settings.MmProjName,
+            MaINSettings,
+            apiKey);
+    }
+
+    private void ShowSettingsFromGear()
+    {
+        _showSettings = true;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void HandleSettingsApplied()
+    {
+        _hasExistingConfig = true;
+        _showSettings = false;
+        ReinitializeChat();
+        SettingsState.NotifySettingsApplied();
+    }
+
+    private void HideSettings()
+    {
+        _showSettings = false;
+        StateHasChanged();
     }
 
     private async Task HandleKeyDown(KeyboardEventArgs e)
@@ -325,6 +496,11 @@
 
                 if (ImageExtensions.Contains(extension))
                 {
+                    if (!Utils.Vision)
+                    {
+                        _errorMessage = "This model doesn't support image input.";
+                        continue;
+                    }
                     var base64 = Convert.ToBase64String(ms.ToArray());
                     ms.Position = 0;
                     _selectedImages.Add((fileInfo, base64));
@@ -371,6 +547,11 @@
 
             if (ImageExtensions.Contains(extension.ToLowerInvariant()))
             {
+                if (!Utils.Vision)
+                {
+                    _errorMessage = "This model doesn't support image input.";
+                    return;
+                }
                 _selectedImages.Add((fileInfo, base64Data));
             }
             else
@@ -446,6 +627,11 @@
 
             Chat.ModelId = Utils.Model!;
             Chat.ImageGen = Utils.ImageGen;
+
+            // Sync mmproj setting for local unregistered vision models
+            Chat.Properties.Remove(ServiceConstants.Properties.MmProjNameProperty);
+            if (Utils.BackendType == BackendType.Self && !string.IsNullOrEmpty(Utils.MmProjName))
+                Chat.Properties.AddProperty(ServiceConstants.Properties.MmProjNameProperty, Utils.MmProjName);
 
             bool wasAtBottom = await JS.InvokeAsync<bool>("scrollManager.isAtBottom", "messages-container");
 
@@ -635,6 +821,7 @@
 
     public void Dispose()
     {
+        SettingsState.OnSettingsRequested -= ShowSettingsFromGear;
         _cancellationTokenSource?.Dispose();
         _dotNetRef?.Dispose();
     }

@@ -7,7 +7,6 @@ using MaIN.Services.Services.Abstract;
 using Microsoft.Extensions.Logging;
 using MaIN.Services.Services.LLMService.Memory;
 using MaIN.Services.Constants;
-using MaIN.Services.Services.LLMService.Utils;
 using MaIN.Services.Services.Models;
 
 namespace MaIN.Services.Services.LLMService;

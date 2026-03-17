@@ -246,15 +246,6 @@ public static class KnownModels
         }
     ];
 
-    public static Model GetEmbeddingModel() =>
-        new()
-        {
-            Name = KnownModelNames.Nomic_Embedding,
-            FileName = "nomicv2.gguf",
-            Description = "Model used to generate embeddings.",
-            DownloadUrl = "https://huggingface.co/Inza124/Nomic/resolve/main/nomicv2.gguf?download=true",
-        };
-
     public static bool IsModelSupported(string name) =>
         Models.Any(x => x.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase)
                         || x.Name.Replace(':', '-').Equals(name,

@@ -18,7 +18,10 @@ public sealed record Gemma3_4b() : LocalModel(
     new Uri("https://huggingface.co/Inza124/Gemma3-4b/resolve/main/gemma3-4b.gguf?download=true"),
     "Gemma3 4B",
     8192,
-    "Balanced 4B model for writing, analysis, and mathematical reasoning");
+    "Balanced 4B model for writing, analysis, and mathematical reasoning"), IVisionModel
+{
+    public string MMProjectName => "mmproj-model-gemma3-4b.gguf";
+}
 
 public sealed record Gemma3_12b() : LocalModel(
     "gemma3-12b",
@@ -26,7 +29,10 @@ public sealed record Gemma3_12b() : LocalModel(
     new Uri("https://huggingface.co/Inza124/Gemma3-12b/resolve/main/gemma3-12b.gguf?download=true"),
     "Gemma3 12B",
     8192,
-    "Large 12B model for complex analysis, research, and creative writing");
+    "Large 12B model for complex analysis, research, and creative writing"), IVisionModel
+{
+    public string MMProjectName => "mmproj-model-gemma3-12b.gguf";
+}
 
 public sealed record Gemma3n_e4b() : LocalModel(
     "gemma3n-e4b",
@@ -34,7 +40,10 @@ public sealed record Gemma3n_e4b() : LocalModel(
     new Uri("https://huggingface.co/Inza124/Gemma-3n-e4b/resolve/main/gemma-3n-e4b.gguf?download=true"),
     "Gemma3n E4B",
     8192,
-    "Compact 4B model optimized for efficient reasoning and general-purpose tasks");
+    "Compact 4B model optimized for efficient reasoning and general-purpose tasks"), IVisionModel
+{
+    public string MMProjectName => "mmproj-model-gemma3n-e4b.gguf";
+}
 
 // ===== Llama Family =====
 
@@ -285,6 +294,17 @@ public sealed record Olmo2_7b() : LocalModel(
     "Open-source 7B model for research, benchmarking, and academic studies");
 
 // ===== Embedding Model =====
+
+public sealed record Mxbai_Embedding() : LocalModel(
+    "mxbai-embedding",
+    "mxbai-embed-large-v1.Q4_K_M.gguf",
+    new Uri("https://huggingface.co/ChristianAzinn/mxbai-embed-large-v1-gguf/resolve/main/mxbai-embed-large-v1.Q4_K_M.gguf?download=true"),
+    "mxbai-embed-large v1",
+    512,
+    "Model used to generate embeddings with superior knowledge search recall"), IEmbeddingModel
+{
+    public int EmbeddingDimension => 1024;
+}
 
 public sealed record Nomic_Embedding() : LocalModel(
     "nomic-embedding",

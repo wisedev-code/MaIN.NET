@@ -2,6 +2,7 @@ using MaIN.Core;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Models.Concrete;
 using MaIN.Domain.Models.Abstract;
+using MaIN.InferPage.Services;
 using Microsoft.FluentUI.AspNetCore.Components;
 using MaIN.InferPage.Components;
 using Utils = MaIN.InferPage.Utils;
@@ -14,6 +15,8 @@ builder.Services.AddRazorComponents()
         options.MaximumReceiveMessageSize = 10 * 1024 * 1024; // 10 MB
     });
 builder.Services.AddFluentUIComponents();
+builder.Services.AddScoped<SettingsService>();
+builder.Services.AddScoped<SettingsStateService>();
 
 try
 {
@@ -21,65 +24,74 @@ try
     var modelPathArg = builder.Configuration["path"];
     var backendArg = builder.Configuration["backend"];
 
+    bool hasCommandLineConfig = backendArg != null || modelArg != null;
 
-    if (backendArg != null)
+    if (hasCommandLineConfig)
     {
-        Utils.BackendType = backendArg.ToLower() switch
+        if (backendArg != null)
         {
-            "openai" => BackendType.OpenAi,
-            "gemini" => BackendType.Gemini,
-            "deepseek" => BackendType.DeepSeek,
-            "groqcloud" => BackendType.GroqCloud,
-            "anthropic" => BackendType.Anthropic,
-            "xai" => BackendType.Xai,
-            "ollama" => BackendType.Ollama,
-            _ => BackendType.Self
-        };
-
-        if (Utils.BackendType != BackendType.Self)
-        {
-            var apiKeyVariable = LLMApiRegistry.GetEntry(Utils.BackendType)?.ApiKeyEnvName ?? string.Empty;
-            var key = Environment.GetEnvironmentVariable(apiKeyVariable);
-
-            if (string.IsNullOrEmpty(key) && !string.IsNullOrEmpty(apiKeyVariable))
+            Utils.BackendType = backendArg.ToLower() switch
             {
-                Console.Write($"Please enter your {Utils.BackendType.ToString()} API key: ");
-                key = Console.ReadLine();
+                "openai" => BackendType.OpenAi,
+                "gemini" => BackendType.Gemini,
+                "deepseek" => BackendType.DeepSeek,
+                "groqcloud" => BackendType.GroqCloud,
+                "anthropic" => BackendType.Anthropic,
+                "xai" => BackendType.Xai,
+                "ollama" => BackendType.Ollama,
+                _ => BackendType.Self
+            };
 
-                if (!string.IsNullOrWhiteSpace(key))
+            if (Utils.BackendType != BackendType.Self)
+            {
+                var apiKeyVariable = LLMApiRegistry.GetEntry(Utils.BackendType)?.ApiKeyEnvName ?? string.Empty;
+                var key = Environment.GetEnvironmentVariable(apiKeyVariable);
+
+                if (string.IsNullOrEmpty(key) && !string.IsNullOrEmpty(apiKeyVariable))
                 {
-                    Utils.HasApiKey = true;
-                    Environment.SetEnvironmentVariable(apiKeyVariable, key);
+                    Console.Write($"Please enter your {Utils.BackendType.ToString()} API key: ");
+                    key = Console.ReadLine();
+
+                    if (!string.IsNullOrWhiteSpace(key))
+                    {
+                        Utils.HasApiKey = true;
+                        Environment.SetEnvironmentVariable(apiKeyVariable, key);
+                    }
                 }
             }
         }
-    }
 
-    if (!string.IsNullOrEmpty(modelArg))
-    {
-        Utils.Model = modelArg;
-        Utils.Path = modelPathArg;
-
-        if (Utils.BackendType == BackendType.Self)
+        if (!string.IsNullOrEmpty(modelArg))
         {
-            if (string.IsNullOrEmpty(modelPathArg))
-            {
-                Console.WriteLine("Error: A model path must be provided using --path when a local model is specified.");
-                return;
-            }
+            Utils.Model = modelArg;
+            Utils.Path = modelPathArg;
 
-            var envModelsPath = Environment.GetEnvironmentVariable("MaIN_ModelsPath");
-            if (string.IsNullOrEmpty(envModelsPath))
+            if (Utils.BackendType == BackendType.Self)
             {
-                Console.Write("Please enter the MaIN_ModelsPath: ");
-                envModelsPath = Console.ReadLine();
-                Environment.SetEnvironmentVariable("MaIN_ModelsPath", envModelsPath);
+                if (string.IsNullOrEmpty(modelPathArg))
+                {
+                    Console.WriteLine("Error: A model path must be provided using --path when a local model is specified.");
+                    return;
+                }
+
+                var envModelsPath = Environment.GetEnvironmentVariable("MaIN_ModelsPath");
+                if (string.IsNullOrEmpty(envModelsPath))
+                {
+                    Console.Write("Please enter the MaIN_ModelsPath: ");
+                    envModelsPath = Console.ReadLine();
+                    Environment.SetEnvironmentVariable("MaIN_ModelsPath", envModelsPath);
+                }
             }
+        }
+        else
+        {
+            Console.WriteLine("No model argument provided. Continuing without model configuration.");
         }
     }
     else
     {
-        Console.WriteLine("No model argument provided. Continuing without model configuration.");
+        // No CLI args — settings will be loaded from browser localStorage
+        Utils.NeedsConfiguration = true;
     }
 }
 catch (Exception ex)
@@ -88,23 +100,19 @@ catch (Exception ex)
     return;
 }
 
-if (Utils.BackendType != BackendType.Self)
+// For Self backend CLI mode, validate model before registering
+if (!Utils.NeedsConfiguration && Utils.BackendType == BackendType.Self
+    && Utils.Path == null && !ModelRegistry.Exists(Utils.Model!))
 {
-    builder.Services.AddMaIN(builder.Configuration, settings =>
-    {
-        settings.BackendType = Utils.BackendType;
-    });
+    Console.WriteLine($"Model: {Utils.Model} is not supported");
+    Environment.Exit(0);
 }
-else
-{
-    if (Utils.Path == null && !ModelRegistry.Exists(Utils.Model!))
-    {
-        Console.WriteLine($"Model: {Utils.Model} is not supported");
-        Environment.Exit(0);
-    }
 
+if (!Utils.NeedsConfiguration && Utils.BackendType != BackendType.Self)
+    builder.Services.AddMaIN(builder.Configuration, s => s.BackendType = Utils.BackendType);
+else
+    // NeedsConfiguration or Self backend: register with defaults
     builder.Services.AddMaIN(builder.Configuration);
-}
 
 var app = builder.Build();
 

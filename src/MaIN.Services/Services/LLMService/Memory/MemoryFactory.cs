@@ -1,10 +1,11 @@
 using System.Diagnostics.CodeAnalysis;
 using LLama;
 using LLama.Common;
+using LLama.Native;
 using LLamaSharp.KernelMemory;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Exceptions.Models;
-using MaIN.Domain.Models;
+using MaIN.Domain.Models.Abstract;
 using MaIN.Services.Services.LLMService.Memory.Embeddings;
 using Microsoft.KernelMemory;
 using Microsoft.KernelMemory.Configuration;
@@ -25,7 +26,7 @@ public class MemoryFactory() : IMemoryFactory
             MemoryParams memoryParams)
     {
         var path = ResolvePath(modelsPath);
-        var embeddingModel = KnownModels.GetEmbeddingModel();
+        var embeddingModel = (LocalModel)ModelRegistry.GetById("mxbai-embedding");
         var embeddingModelPath = Path.Combine(path, embeddingModel.FileName);
         var modelPath = Path.Combine(path, modelName);
         var generator = ConfigureGeneratorOptions(embeddingModelPath, modelPath, memoryParams);
@@ -108,11 +109,22 @@ public class MemoryFactory() : IMemoryFactory
 
         var parameters = new ModelParams(config.ModelPath)
         {
-            ContextSize = new uint?(config.ContextSize.GetValueOrDefault(2048U)),
+            ContextSize = 0, // let the model decide (mxbai-embed-large-v1 = 512)
             GpuLayerCount = config.GpuLayerCount.GetValueOrDefault(20),
+            Embeddings = true,
+            UseMemorymap = true,
+            PoolingType = LLamaPoolingType.CLS,
         };
 
         var weights = LLamaWeights.LoadFromFile(parameters);
+
+        // Override config context size for embedding — use model's native context
+        config = new LLamaSharpConfig(desiredPath)
+        {
+            DefaultInferenceParams = inferenceParams,
+            GpuLayerCount = memoryParams.GpuLayerCount,
+            ContextSize = 0,
+        };
         return new LLamaSharpTextEmbeddingMaINClone(config, weights);
     }
 
@@ -131,8 +143,8 @@ public class MemoryFactory() : IMemoryFactory
     {
         return new TextPartitioningOptions
         {
-            MaxTokensPerParagraph = 512,
-            OverlappingTokens = 30,
+            MaxTokensPerParagraph = 400,
+            OverlappingTokens = 20,
         };
     }
 
