@@ -40,7 +40,7 @@ public class Chat
     public List<Message> Messages { get; set; } = [];
     public ChatType Type { get; set; } = ChatType.Conversation;
     public bool ImageGen { get; set; }
-    public IBackendInferenceParams BackendParams { get; set; } = new LocalInferenceParams();
+    public IBackendInferenceParams? BackendParams { get; set; }
     public LocalInferenceParams? LocalParams => BackendParams as LocalInferenceParams;
 
     public Grammar? InferenceGrammar

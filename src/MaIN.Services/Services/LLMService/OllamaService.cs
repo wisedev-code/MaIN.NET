@@ -45,11 +45,17 @@ public sealed class OllamaService(
     protected override void ApplyBackendParams(Dictionary<string, object> requestBody, Chat chat)
     {
         if (chat.BackendParams is not OllamaInferenceParams p) return;
-        requestBody["temperature"] = p.Temperature;
-        requestBody["max_tokens"] = p.MaxTokens;
-        requestBody["top_p"] = p.TopP;
-        if (p.TopK > 0) requestBody["top_k"] = p.TopK;
-        if (p.NumCtx > 0) requestBody["options"] = new { num_ctx = p.NumCtx, num_gpu = p.NumGpu };
+        if (p.Temperature.HasValue) requestBody["temperature"] = p.Temperature.Value;
+        if (p.MaxTokens.HasValue) requestBody["max_tokens"] = p.MaxTokens.Value;
+        if (p.TopP.HasValue) requestBody["top_p"] = p.TopP.Value;
+        if (p.TopK.HasValue) requestBody["top_k"] = p.TopK.Value;
+        if (p.NumCtx.HasValue || p.NumGpu.HasValue)
+        {
+            var options = new Dictionary<string, object>();
+            if (p.NumCtx.HasValue) options["num_ctx"] = p.NumCtx.Value;
+            if (p.NumGpu.HasValue) options["num_gpu"] = p.NumGpu.Value;
+            requestBody["options"] = options;
+        }
     }
 
     public override async Task<ChatResult?> AskMemory(

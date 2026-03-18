@@ -8,9 +8,9 @@ public class GeminiInferenceParams : IBackendInferenceParams
 {
     public BackendType Backend => BackendType.Gemini;
 
-    public float Temperature { get; init; } = 0.7f;
-    public int MaxTokens { get; init; } = 4096;
-    public float TopP { get; init; } = 0.95f;
+    public float? Temperature { get; init; }
+    public int? MaxTokens { get; init; }
+    public float? TopP { get; init; }
     public string[]? StopSequences { get; init; }
     public Grammar? Grammar { get; set; }
 }

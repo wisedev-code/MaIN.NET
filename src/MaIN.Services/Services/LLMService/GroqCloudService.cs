@@ -48,10 +48,10 @@ public sealed class GroqCloudService(
     protected override void ApplyBackendParams(Dictionary<string, object> requestBody, Chat chat)
     {
         if (chat.BackendParams is not GroqCloudInferenceParams p) return;
-        requestBody["temperature"] = p.Temperature;
-        requestBody["max_tokens"] = p.MaxTokens;
-        requestBody["top_p"] = p.TopP;
-        if (p.FrequencyPenalty != 0) requestBody["frequency_penalty"] = p.FrequencyPenalty;
+        if (p.Temperature.HasValue) requestBody["temperature"] = p.Temperature.Value;
+        if (p.MaxTokens.HasValue) requestBody["max_tokens"] = p.MaxTokens.Value;
+        if (p.TopP.HasValue) requestBody["top_p"] = p.TopP.Value;
+        if (p.FrequencyPenalty.HasValue) requestBody["frequency_penalty"] = p.FrequencyPenalty.Value;
         if (p.ResponseFormat != null) requestBody["response_format"] = new { type = p.ResponseFormat };
     }
 

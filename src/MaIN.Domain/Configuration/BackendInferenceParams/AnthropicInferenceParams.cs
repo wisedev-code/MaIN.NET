@@ -8,9 +8,9 @@ public class AnthropicInferenceParams : IBackendInferenceParams
 {
     public BackendType Backend => BackendType.Anthropic;
 
-    public float Temperature { get; init; } = 1.0f;
-    public int MaxTokens { get; init; } = 4096;
-    public int TopK { get; init; } = -1;
-    public float TopP { get; init; } = 1.0f;
+    public float? Temperature { get; init; }
+    public int? MaxTokens { get; init; }
+    public int? TopK { get; init; }
+    public float? TopP { get; init; }
     public Grammar? Grammar { get; set; }
 }

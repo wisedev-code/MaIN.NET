@@ -8,11 +8,11 @@ public class OllamaInferenceParams : IBackendInferenceParams
 {
     public BackendType Backend => BackendType.Ollama;
 
-    public float Temperature { get; init; } = 0.8f;
-    public int MaxTokens { get; init; } = 4096;
-    public int TopK { get; init; } = 40;
-    public float TopP { get; init; } = 0.9f;
-    public int NumCtx { get; init; } = 2048;
-    public int NumGpu { get; init; } = 30;
+    public float? Temperature { get; init; }
+    public int? MaxTokens { get; init; }
+    public int? TopK { get; init; }
+    public float? TopP { get; init; }
+    public int? NumCtx { get; init; }
+    public int? NumGpu { get; init; }
     public Grammar? Grammar { get; set; }
 }

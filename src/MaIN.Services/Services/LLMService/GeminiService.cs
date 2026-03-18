@@ -78,9 +78,9 @@ public sealed class GeminiService(
     protected override void ApplyBackendParams(Dictionary<string, object> requestBody, Chat chat)
     {
         if (chat.BackendParams is not GeminiInferenceParams p) return;
-        requestBody["temperature"] = p.Temperature;
-        requestBody["max_tokens"] = p.MaxTokens;
-        requestBody["top_p"] = p.TopP;
+        if (p.Temperature.HasValue) requestBody["temperature"] = p.Temperature.Value;
+        if (p.MaxTokens.HasValue) requestBody["max_tokens"] = p.MaxTokens.Value;
+        if (p.TopP.HasValue) requestBody["top_p"] = p.TopP.Value;
         if (p.StopSequences is { Length: > 0 }) requestBody["stop"] = p.StopSequences;
     }
 

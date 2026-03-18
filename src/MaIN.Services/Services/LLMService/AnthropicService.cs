@@ -524,9 +524,9 @@ public sealed class AnthropicService(
 
         if (anthParams != null)
         {
-            requestBody["temperature"] = anthParams.Temperature;
-            if (anthParams.TopP < 1.0f) requestBody["top_p"] = anthParams.TopP;
-            if (anthParams.TopK > 0) requestBody["top_k"] = anthParams.TopK;
+            if (anthParams.Temperature.HasValue) requestBody["temperature"] = anthParams.Temperature.Value;
+            if (anthParams.TopP.HasValue) requestBody["top_p"] = anthParams.TopP.Value;
+            if (anthParams.TopK.HasValue) requestBody["top_k"] = anthParams.TopK.Value;
         }
 
         var systemMessage = conversation.FirstOrDefault(m =>
@@ -711,9 +711,9 @@ public sealed class AnthropicService(
         };
         if (anthParams2 != null)
         {
-            requestBody["temperature"] = anthParams2.Temperature;
-            if (anthParams2.TopP < 1.0f) requestBody["top_p"] = anthParams2.TopP;
-            if (anthParams2.TopK > 0) requestBody["top_k"] = anthParams2.TopK;
+            if (anthParams2.Temperature.HasValue) requestBody["temperature"] = anthParams2.Temperature.Value;
+            if (anthParams2.TopP.HasValue) requestBody["top_p"] = anthParams2.TopP.Value;
+            if (anthParams2.TopK.HasValue) requestBody["top_k"] = anthParams2.TopK.Value;
         }
 
         var requestJson = JsonSerializer.Serialize(requestBody);
@@ -806,9 +806,9 @@ public sealed class AnthropicService(
         };
         if (anthParams3 != null)
         {
-            requestBody["temperature"] = anthParams3.Temperature;
-            if (anthParams3.TopP < 1.0f) requestBody["top_p"] = anthParams3.TopP;
-            if (anthParams3.TopK > 0) requestBody["top_k"] = anthParams3.TopK;
+            if (anthParams3.Temperature.HasValue) requestBody["temperature"] = anthParams3.Temperature.Value;
+            if (anthParams3.TopP.HasValue) requestBody["top_p"] = anthParams3.TopP.Value;
+            if (anthParams3.TopK.HasValue) requestBody["top_k"] = anthParams3.TopK.Value;
         }
 
         var requestJson = JsonSerializer.Serialize(requestBody);

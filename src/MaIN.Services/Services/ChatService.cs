@@ -1,4 +1,5 @@
 using MaIN.Domain.Configuration;
+using MaIN.Domain.Configuration.BackendInferenceParams;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Exceptions.Chats;
 using MaIN.Domain.Models;
@@ -38,6 +39,7 @@ public class ChatService(
             chat.ImageGen = true;
         }
         chat.Backend ??= settings.BackendType;
+        chat.BackendParams ??= BackendParamsFactory.Create(chat.Backend.Value);
 
         chat.Messages.Where(x => x.Type == MessageType.NotSet).ToList()
             .ForEach(x => x.Type = chat.Backend != BackendType.Self ? MessageType.CloudLLM : MessageType.LocalLLM);
