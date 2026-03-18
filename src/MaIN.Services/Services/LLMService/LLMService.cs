@@ -391,7 +391,7 @@ public class LLMService : ILLMService
         bool isNewConversation)
     {
         var template = new LLamaTemplate(llmModel);
-        var finalPrompt = ChatHelper.GetFinalPrompt(lastMsg, model, isNewConversation);
+        var finalPrompt = GetFinalPrompt(lastMsg, model, isNewConversation);
 
         var hasTools = chat.ToolsConfiguration?.Tools != null && chat.ToolsConfiguration.Tools.Count != 0;
 
@@ -470,7 +470,19 @@ public class LLMService : ILLMService
         using var sampler = LLMService.CreateSampler(chat.LocalParams!);
         var decoder = new StreamingTokenDecoder(executor.Context);
 
-        var inferenceParams = ChatHelper.CreateInferenceParams(chat, llmModel);
+        var inferenceParams = new InferenceParams
+        {
+            SamplingPipeline = new DefaultSamplingPipeline
+            {
+                Temperature = chat.LocalParams!.Temperature,
+                TopK = chat.LocalParams!.TopK,
+                TopP = chat.LocalParams!.TopP
+            },
+            AntiPrompts = [llmModel.Vocab.EOT?.ToString() ?? "User:"],
+            TokensKeep = chat.LocalParams!.TokensKeep,
+            MaxTokens = chat.LocalParams!.MaxTokens
+        };
+
         var maxTokens = inferenceParams.MaxTokens == -1 ? int.MaxValue : inferenceParams.MaxTokens;
         var reasoningModel = model as IReasoningModel;
 
@@ -704,7 +716,7 @@ public class LLMService : ILLMService
             }
 
             var toolCalls = parseResult.ToolCalls!;
-            responseMessage.Properties[ToolCallsProperty] = JsonSerializer.Serialize(toolCalls);
+            responseMessage.Properties[ServiceConstants.Properties.ToolCallsProperty] = JsonSerializer.Serialize(toolCalls);
 
             foreach (var toolCall in toolCalls)
             {                
@@ -758,8 +770,8 @@ public class LLMService : ILLMService
                         Type = MessageType.LocalLLM,
                         Tool = true
                     };
-                    toolMessage.Properties[ToolCallIdProperty] = toolCall.Id;
-                    toolMessage.Properties[ToolNameProperty] = toolCall.Function.Name;
+                    toolMessage.Properties[ServiceConstants.Properties.ToolCallIdProperty] = toolCall.Id;
+                    toolMessage.Properties[ServiceConstants.Properties.ToolNameProperty] = toolCall.Function.Name;
                     chat.Messages.Add(toolMessage.MarkProcessed());
                 }
                 catch (Exception ex)
@@ -772,8 +784,8 @@ public class LLMService : ILLMService
                         Type = MessageType.LocalLLM,
                         Tool = true
                     };
-                    toolMessage.Properties[ToolCallIdProperty] = toolCall.Id;
-                    toolMessage.Properties[ToolNameProperty] = toolCall.Function.Name;
+                    toolMessage.Properties[ServiceConstants.Properties.ToolCallIdProperty] = toolCall.Id;
+                    toolMessage.Properties[ServiceConstants.Properties.ToolNameProperty] = toolCall.Function.Name;
                     chat.Messages.Add(toolMessage.MarkProcessed());
                 }
             }
@@ -808,7 +820,12 @@ public class LLMService : ILLMService
         };
     }
 
-    private const string ToolCallsProperty = "ToolCalls";
-    private const string ToolCallIdProperty = "ToolCallId";
-    private const string ToolNameProperty = "ToolName";
+    private static string GetFinalPrompt(Message message, AIModel model, bool startSession)
+    {
+        var additionalPrompt = (model as IReasoningModel)?.AdditionalPrompt;
+        return startSession && additionalPrompt != null
+            ? $"{message.Content}{additionalPrompt}"
+            : message.Content;
+    }
+
 }
