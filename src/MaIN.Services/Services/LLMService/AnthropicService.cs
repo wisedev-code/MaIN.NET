@@ -529,6 +529,12 @@ public sealed class AnthropicService(
             if (anthParams.TopK.HasValue) requestBody["top_k"] = anthParams.TopK.Value;
         }
 
+        if (chat.BackendParams?.AdditionalParams != null)
+        {
+            foreach (var (key, value) in chat.BackendParams.AdditionalParams)
+                requestBody[key] = value;
+        }
+
         var systemMessage = conversation.FirstOrDefault(m =>
             m.Role.Equals("system", StringComparison.OrdinalIgnoreCase));
 
@@ -715,6 +721,11 @@ public sealed class AnthropicService(
             if (anthParams2.TopP.HasValue) requestBody["top_p"] = anthParams2.TopP.Value;
             if (anthParams2.TopK.HasValue) requestBody["top_k"] = anthParams2.TopK.Value;
         }
+        if (chat.BackendParams?.AdditionalParams != null)
+        {
+            foreach (var (key, value) in chat.BackendParams.AdditionalParams)
+                requestBody[key] = value;
+        }
 
         var requestJson = JsonSerializer.Serialize(requestBody);
         var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
@@ -809,6 +820,11 @@ public sealed class AnthropicService(
             if (anthParams3.Temperature.HasValue) requestBody["temperature"] = anthParams3.Temperature.Value;
             if (anthParams3.TopP.HasValue) requestBody["top_p"] = anthParams3.TopP.Value;
             if (anthParams3.TopK.HasValue) requestBody["top_k"] = anthParams3.TopK.Value;
+        }
+        if (chat.BackendParams?.AdditionalParams != null)
+        {
+            foreach (var (key, value) in chat.BackendParams.AdditionalParams)
+                requestBody[key] = value;
         }
 
         var requestJson = JsonSerializer.Serialize(requestBody);

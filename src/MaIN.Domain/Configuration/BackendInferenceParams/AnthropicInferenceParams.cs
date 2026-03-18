@@ -1,4 +1,3 @@
-using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using Grammar = MaIN.Domain.Models.Grammar;
 
@@ -13,4 +12,5 @@ public class AnthropicInferenceParams : IBackendInferenceParams
     public int? TopK { get; init; }
     public float? TopP { get; init; }
     public Grammar? Grammar { get; set; }
+    public Dictionary<string, object>? AdditionalParams { get; init; }
 }

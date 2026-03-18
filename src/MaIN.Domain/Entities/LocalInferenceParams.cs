@@ -23,4 +23,5 @@ public class LocalInferenceParams : IBackendInferenceParams
     public int TopK { get; init; } = 40;
     public float TopP { get; init; } = 0.9f;
     public Grammar? Grammar { get; set; }
+    public Dictionary<string, object>? AdditionalParams { get; init; }
 }

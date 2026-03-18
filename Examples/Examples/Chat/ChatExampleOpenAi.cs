@@ -1,5 +1,6 @@
 using Examples.Utils;
 using MaIN.Core.Hub;
+using MaIN.Domain.Configuration.BackendInferenceParams;
 using MaIN.Domain.Models.Concrete;
 
 namespace Examples.Chat;
@@ -15,6 +16,14 @@ public class ChatExampleOpenAi : IExample
         await AIHub.Chat()
             .WithModel<Gpt5Nano>()
             .WithMessage("What do you consider to be the greatest invention in history?")
+            .WithInferenceParams(new OpenAiInferenceParams // We could override some inference params
+            {
+                ResponseFormat = "text",
+                AdditionalParams = new Dictionary<string, object>
+                {
+                    ["max_completion_tokens"] = 2137
+                }
+            })
             .CompleteAsync(interactive: true);
     }
 }

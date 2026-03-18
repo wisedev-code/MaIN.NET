@@ -41,7 +41,7 @@ public sealed class OpenAiService(
     protected override void ApplyBackendParams(Dictionary<string, object> requestBody, Chat chat)
     {
         if (chat.BackendParams is not OpenAiInferenceParams p) return;
-        if (p.MaxTokens.HasValue) requestBody["max_completion_tokens"] = p.MaxTokens.Value;
+        if (p.MaxTokens.HasValue) requestBody["max_tokens"] = p.MaxTokens.Value;
         if (p.Temperature.HasValue) requestBody["temperature"] = p.Temperature.Value;
         if (p.TopP.HasValue) requestBody["top_p"] = p.TopP.Value;
         if (p.FrequencyPenalty.HasValue) requestBody["frequency_penalty"] = p.FrequencyPenalty.Value;

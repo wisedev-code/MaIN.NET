@@ -1,4 +1,3 @@
-using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using Grammar = MaIN.Domain.Models.Grammar;
 
@@ -15,4 +14,5 @@ public class OpenAiInferenceParams : IBackendInferenceParams
     public float? PresencePenalty { get; init; }
     public string? ResponseFormat { get; init; }
     public Grammar? Grammar { get; set; }
+    public Dictionary<string, object>? AdditionalParams { get; init; }
 }

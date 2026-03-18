@@ -862,6 +862,7 @@ public abstract class OpenAiCompatibleService(
         };
 
         ApplyBackendParams(requestBody, chat);
+        ApplyAdditionalParams(requestBody, chat);
 
         if (chat.ToolsConfiguration?.Tools != null && chat.ToolsConfiguration.Tools.Any())
         {
@@ -887,6 +888,15 @@ public abstract class OpenAiCompatibleService(
 
     protected virtual void ApplyBackendParams(Dictionary<string, object> requestBody, Chat chat)
     {
+    }
+
+    private static void ApplyAdditionalParams(Dictionary<string, object> requestBody, Chat chat)
+    {
+        if (chat.BackendParams?.AdditionalParams == null) return;
+        foreach (var (key, value) in chat.BackendParams.AdditionalParams)
+        {
+            requestBody[key] = value;
+        }
     }
 
     internal static void MergeMessages(List<ChatMessage> conversation, List<Message> messages)
