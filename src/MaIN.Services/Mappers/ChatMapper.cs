@@ -93,7 +93,7 @@ public static class ChatMapper
             Backend = chat.Backend,
             ToolsConfiguration = chat.ToolsConfiguration,  
             MemoryParams = chat.MemoryParams.ToDocument(),
-            InferenceParams = (chat.ProviderParams as LocalInferenceParams)?.ToDocument(),
+            InferenceParams = (chat.BackendParams as LocalInferenceParams)?.ToDocument(),
             ConvState = chat.ConversationState,
             Properties = chat.Properties,
             Interactive = chat.Interactive,
@@ -114,7 +114,7 @@ public static class ChatMapper
             ToolsConfiguration = chat.ToolsConfiguration,
             ConversationState = chat.ConvState as Conversation.State,
             MemoryParams = chat.MemoryParams!.ToDomain(),
-            ProviderParams = chat.InferenceParams?.ToDomain() ?? new LocalInferenceParams(),
+            BackendParams = chat.InferenceParams?.ToDomain() ?? new LocalInferenceParams(),
             Interactive = chat.Interactive,
             Translate = chat.Translate,
             Type = Enum.Parse<ChatType>(chat.Type.ToString())

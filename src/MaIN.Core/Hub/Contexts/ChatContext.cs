@@ -92,9 +92,9 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
         return this;
     }
 
-    public IChatConfigurationBuilder WithInferenceParams(IProviderInferenceParams inferenceParams)
+    public IChatConfigurationBuilder WithInferenceParams(IBackendInferenceParams inferenceParams)
     {
-        _chat.ProviderParams = inferenceParams;
+        _chat.BackendParams = inferenceParams;
         return this;
     }
 

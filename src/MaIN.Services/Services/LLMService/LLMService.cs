@@ -56,9 +56,9 @@ public class LLMService : ILLMService
         ChatRequestOptions requestOptions,
         CancellationToken cancellationToken = default)
     {
-        if (chat.ProviderParams is not LocalInferenceParams)
+        if (chat.BackendParams is not LocalInferenceParams)
         {
-            throw new InvalidProviderParamsException("Local LLM", nameof(LocalInferenceParams), chat.ProviderParams.GetType().Name);
+            throw new InvalidBackendParamsException("Local LLM", nameof(LocalInferenceParams), chat.BackendParams.GetType().Name);
         }
 
         if (chat.Messages.Count == 0)

@@ -68,7 +68,7 @@ public class FetchDataStepHandler(
             ModelId = context.Chat.ModelId,
             Properties = context.Chat.Properties,
             MemoryParams = context.Chat.MemoryParams,
-            ProviderParams = context.Chat.ProviderParams,
+            BackendParams = context.Chat.BackendParams,
             Backend = context.Chat.Backend,
             Name = "Memory Chat",
             Id = Guid.NewGuid().ToString()

@@ -14,10 +14,10 @@ public interface IChatConfigurationBuilder : IChatActions
     /// responses based on specific parameters. Inference parameters can influence various aspects of the chat, such as response length,
     /// temperature, and other model-specific settings.
     /// </summary>
-    /// <param name="inferenceParams">An <see cref="IProviderInferenceParams"/> object that holds the parameters for inference, such as Temperature,
+    /// <param name="inferenceParams">An <see cref="IBackendInferenceParams"/> object that holds the parameters for inference, such as Temperature,
     /// MaxTokens, TopP, etc. These parameters control the generation behavior of the chat.</param>
     /// <returns>The context instance implementing <see cref="IChatConfigurationBuilder"/> for method chaining.</returns>
-    IChatConfigurationBuilder WithInferenceParams(IProviderInferenceParams inferenceParams);
+    IChatConfigurationBuilder WithInferenceParams(IBackendInferenceParams inferenceParams);
     
     /// <summary>
     /// Attaches external tools/functions that the model can invoke during the conversation.

@@ -11,7 +11,7 @@ public interface IAgentService
     Task<Chat> Process(Chat chat, string agentId, Knowledge? knowledge, bool translatePrompt = false,
         Func<LLMTokenValue, Task>? callbackToken = null, Func<ToolInvocation, Task>? callbackTool = null);
     Task<Agent> CreateAgent(Agent agent, bool flow = false, bool interactiveResponse = false,
-        IProviderInferenceParams? inferenceParams = null, MemoryParams? memoryParams = null, bool disableCache = false);
+        IBackendInferenceParams? inferenceParams = null, MemoryParams? memoryParams = null, bool disableCache = false);
     Task<Chat> GetChatByAgent(string agentId);
     Task<Chat> Restart(string agentId);
     Task<List<Agent>> GetAgents();

@@ -1,7 +1,7 @@
 using System.Text;
 using MaIN.Domain.Configuration;
+using MaIN.Domain.Configuration.BackendInferenceParams;
 using MaIN.Domain.Entities;
-using MaIN.Domain.Entities.ProviderParams;
 using MaIN.Domain.Models.Concrete;
 using MaIN.Services.Constants;
 using MaIN.Services.Services.Abstract;
@@ -27,7 +27,7 @@ public sealed class OllamaService(
     protected override string HttpClientName => HasApiKey ? ServiceConstants.HttpClients.OllamaClient : ServiceConstants.HttpClients.OllamaLocalClient;
     protected override string ChatCompletionsUrl => HasApiKey ? ServiceConstants.ApiUrls.OllamaOpenAiChatCompletions : ServiceConstants.ApiUrls.OllamaLocalOpenAiChatCompletions;
     protected override string ModelsUrl => HasApiKey ? ServiceConstants.ApiUrls.OllamaModels : ServiceConstants.ApiUrls.OllamaLocalModels;
-    protected override Type ExpectedParamsType => typeof(OllamaParams);
+    protected override Type ExpectedParamsType => typeof(OllamaInferenceParams);
 
     protected override string GetApiKey()
     {
@@ -42,9 +42,9 @@ public sealed class OllamaService(
         // Cloud Ollama will fail at runtime if the key is missing
     }
 
-    protected override void ApplyProviderParams(Dictionary<string, object> requestBody, Chat chat)
+    protected override void ApplyBackendParams(Dictionary<string, object> requestBody, Chat chat)
     {
-        if (chat.ProviderParams is not OllamaParams p) return;
+        if (chat.BackendParams is not OllamaInferenceParams p) return;
         requestBody["temperature"] = p.Temperature;
         requestBody["max_tokens"] = p.MaxTokens;
         requestBody["top_p"] = p.TopP;

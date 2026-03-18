@@ -3,7 +3,7 @@ using Grammar = MaIN.Domain.Models.Grammar;
 
 namespace MaIN.Domain.Entities;
 
-public class LocalInferenceParams : IProviderInferenceParams
+public class LocalInferenceParams : IBackendInferenceParams
 {
     public BackendType Backend => BackendType.Self;
 

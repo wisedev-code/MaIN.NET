@@ -1,11 +1,11 @@
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
-using MaIN.Domain.Entities.ProviderParams;
 using MaIN.Domain.Exceptions;
 using MaIN.Domain.Models.Concrete;
 using MaIN.Services.Services.Abstract;
 using Microsoft.Extensions.Logging;
 using MaIN.Services.Services.LLMService.Memory;
+using MaIN.Domain.Configuration.BackendInferenceParams;
 
 namespace MaIN.Services.Services.LLMService;
 
@@ -20,7 +20,7 @@ public sealed class OpenAiService(
 {
     private readonly MaINSettings _settings = settings ?? throw new ArgumentNullException(nameof(settings));
 
-    protected override Type ExpectedParamsType => typeof(OpenAiParams);
+    protected override Type ExpectedParamsType => typeof(OpenAiInferenceParams);
 
     protected override string GetApiKey()
     {
@@ -38,9 +38,9 @@ public sealed class OpenAiService(
         }
     }
 
-    protected override void ApplyProviderParams(Dictionary<string, object> requestBody, Chat chat)
+    protected override void ApplyBackendParams(Dictionary<string, object> requestBody, Chat chat)
     {
-        if (chat.ProviderParams is not OpenAiParams p) return;
+        if (chat.BackendParams is not OpenAiInferenceParams p) return;
         requestBody["temperature"] = p.Temperature;
         requestBody["max_tokens"] = p.MaxTokens;
         requestBody["top_p"] = p.TopP;

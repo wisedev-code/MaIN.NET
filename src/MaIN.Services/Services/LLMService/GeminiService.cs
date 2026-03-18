@@ -9,11 +9,11 @@ using Microsoft.KernelMemory;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using MaIN.Domain.Entities;
-using MaIN.Domain.Entities.ProviderParams;
 using MaIN.Domain.Exceptions;
 using MaIN.Domain.Models;
 using MaIN.Domain.Models.Concrete;
 using MaIN.Services.Utils;
+using MaIN.Domain.Configuration.BackendInferenceParams;
 
 namespace MaIN.Services.Services.LLMService;
 
@@ -36,7 +36,7 @@ public sealed class GeminiService(
 
     protected override string HttpClientName => ServiceConstants.HttpClients.GeminiClient;
     protected override string ChatCompletionsUrl => ServiceConstants.ApiUrls.GeminiOpenAiChatCompletions;
-    protected override Type ExpectedParamsType => typeof(GeminiParams);
+    protected override Type ExpectedParamsType => typeof(GeminiInferenceParams);
 
     public override async Task<string[]> GetCurrentModels()
     {
@@ -75,9 +75,9 @@ public sealed class GeminiService(
         }
     }
 
-    protected override void ApplyProviderParams(Dictionary<string, object> requestBody, Chat chat)
+    protected override void ApplyBackendParams(Dictionary<string, object> requestBody, Chat chat)
     {
-        if (chat.ProviderParams is not GeminiParams p) return;
+        if (chat.BackendParams is not GeminiInferenceParams p) return;
         requestBody["temperature"] = p.Temperature;
         requestBody["max_tokens"] = p.MaxTokens;
         requestBody["top_p"] = p.TopP;

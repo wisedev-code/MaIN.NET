@@ -54,9 +54,9 @@ public abstract class OpenAiCompatibleService(
         ChatRequestOptions options,
         CancellationToken cancellationToken = default)
     {
-        if (chat.ProviderParams.GetType() != ExpectedParamsType)
+        if (chat.BackendParams.GetType() != ExpectedParamsType)
         {
-            throw new InvalidProviderParamsException(GetApiName(), ExpectedParamsType.Name, chat.ProviderParams.GetType().Name);
+            throw new InvalidBackendParamsException(GetApiName(), ExpectedParamsType.Name, chat.BackendParams.GetType().Name);
         }
 
         ValidateApiKey();
@@ -861,7 +861,7 @@ public abstract class OpenAiCompatibleService(
             ["stream"] = stream
         };
 
-        ApplyProviderParams(requestBody, chat);
+        ApplyBackendParams(requestBody, chat);
 
         if (chat.ToolsConfiguration?.Tools != null && chat.ToolsConfiguration.Tools.Any())
         {
@@ -885,7 +885,7 @@ public abstract class OpenAiCompatibleService(
         return requestBody;
     }
 
-    protected virtual void ApplyProviderParams(Dictionary<string, object> requestBody, Chat chat)
+    protected virtual void ApplyBackendParams(Dictionary<string, object> requestBody, Chat chat)
     {
     }
 

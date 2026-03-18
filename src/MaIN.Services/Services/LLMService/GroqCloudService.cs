@@ -1,7 +1,6 @@
 using System.Text;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
-using MaIN.Domain.Entities.ProviderParams;
 using MaIN.Domain.Exceptions;
 using MaIN.Domain.Models.Concrete;
 using MaIN.Services.Services.Abstract;
@@ -9,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using MaIN.Services.Services.LLMService.Memory;
 using MaIN.Services.Constants;
 using MaIN.Services.Services.Models;
+using MaIN.Domain.Configuration.BackendInferenceParams;
 
 namespace MaIN.Services.Services.LLMService;
 
@@ -26,7 +26,7 @@ public sealed class GroqCloudService(
     protected override string HttpClientName => ServiceConstants.HttpClients.GroqCloudClient;
     protected override string ChatCompletionsUrl => ServiceConstants.ApiUrls.GroqCloudOpenAiChatCompletions;
     protected override string ModelsUrl => ServiceConstants.ApiUrls.GroqCloudModels;
-    protected override Type ExpectedParamsType => typeof(GroqCloudParams);
+    protected override Type ExpectedParamsType => typeof(GroqCloudInferenceParams);
 
     protected override string GetApiKey()
     {
@@ -45,9 +45,9 @@ public sealed class GroqCloudService(
         }
     }
 
-    protected override void ApplyProviderParams(Dictionary<string, object> requestBody, Chat chat)
+    protected override void ApplyBackendParams(Dictionary<string, object> requestBody, Chat chat)
     {
-        if (chat.ProviderParams is not GroqCloudParams p) return;
+        if (chat.BackendParams is not GroqCloudInferenceParams p) return;
         requestBody["temperature"] = p.Temperature;
         requestBody["max_tokens"] = p.MaxTokens;
         requestBody["top_p"] = p.TopP;

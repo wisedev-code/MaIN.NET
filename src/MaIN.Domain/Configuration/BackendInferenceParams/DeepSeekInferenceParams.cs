@@ -1,16 +1,18 @@
 using MaIN.Domain.Configuration;
+using MaIN.Domain.Entities;
 using Grammar = MaIN.Domain.Models.Grammar;
 
-namespace MaIN.Domain.Entities.ProviderParams;
+namespace MaIN.Domain.Configuration.BackendInferenceParams;
 
-public class XaiParams : IProviderInferenceParams
+public class DeepSeekInferenceParams : IBackendInferenceParams
 {
-    public BackendType Backend => BackendType.Xai;
+    public BackendType Backend => BackendType.DeepSeek;
 
     public float Temperature { get; init; } = 0.7f;
     public int MaxTokens { get; init; } = 4096;
     public float TopP { get; init; } = 1.0f;
     public float FrequencyPenalty { get; init; }
     public float PresencePenalty { get; init; }
+    public string? ResponseFormat { get; init; }
     public Grammar? Grammar { get; set; }
 }

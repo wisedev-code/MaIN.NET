@@ -2,13 +2,13 @@
 using MaIN.Services.Constants;
 using MaIN.Services.Services.Models;
 using MaIN.Domain.Entities;
-using MaIN.Domain.Entities.ProviderParams;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.LLMService.Memory;
 using Microsoft.Extensions.Logging;
 using System.Text;
 using MaIN.Domain.Exceptions;
 using MaIN.Domain.Models.Concrete;
+using MaIN.Domain.Configuration.BackendInferenceParams;
 
 namespace MaIN.Services.Services.LLMService;
 
@@ -26,7 +26,7 @@ public sealed class XaiService(
     protected override string HttpClientName => ServiceConstants.HttpClients.XaiClient;
     protected override string ChatCompletionsUrl => ServiceConstants.ApiUrls.XaiOpenAiChatCompletions;
     protected override string ModelsUrl => ServiceConstants.ApiUrls.XaiModels;
-    protected override Type ExpectedParamsType => typeof(XaiParams);
+    protected override Type ExpectedParamsType => typeof(XaiInferenceParams);
 
     protected override string GetApiKey()
     {
@@ -44,9 +44,9 @@ public sealed class XaiService(
         }
     }
 
-    protected override void ApplyProviderParams(Dictionary<string, object> requestBody, Chat chat)
+    protected override void ApplyBackendParams(Dictionary<string, object> requestBody, Chat chat)
     {
-        if (chat.ProviderParams is not XaiParams p) return;
+        if (chat.BackendParams is not XaiInferenceParams p) return;
         requestBody["temperature"] = p.Temperature;
         requestBody["max_tokens"] = p.MaxTokens;
         requestBody["top_p"] = p.TopP;

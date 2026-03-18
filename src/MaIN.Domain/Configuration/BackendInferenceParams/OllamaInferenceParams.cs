@@ -1,9 +1,10 @@
 using MaIN.Domain.Configuration;
+using MaIN.Domain.Entities;
 using Grammar = MaIN.Domain.Models.Grammar;
 
-namespace MaIN.Domain.Entities.ProviderParams;
+namespace MaIN.Domain.Configuration.BackendInferenceParams;
 
-public class OllamaParams : IProviderInferenceParams
+public class OllamaInferenceParams : IBackendInferenceParams
 {
     public BackendType Backend => BackendType.Ollama;
 

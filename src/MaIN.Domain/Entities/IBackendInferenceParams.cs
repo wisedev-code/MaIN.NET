@@ -2,7 +2,7 @@ using MaIN.Domain.Configuration;
 
 namespace MaIN.Domain.Entities;
 
-public interface IProviderInferenceParams
+public interface IBackendInferenceParams
 {
     BackendType Backend { get; }
 }

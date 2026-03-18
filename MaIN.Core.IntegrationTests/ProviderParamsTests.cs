@@ -1,13 +1,13 @@
 using MaIN.Core.Hub;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
-using MaIN.Domain.Entities.ProviderParams;
+using MaIN.Domain.Configuration.BackendInferenceParams;
 using MaIN.Domain.Exceptions;
 using MaIN.Domain.Models.Concrete;
 
 namespace MaIN.Core.IntegrationTests;
 
-public class ProviderParamsTests : IntegrationTestBase
+public class BackendParamsTests : IntegrationTestBase
 {
     private const string TestQuestion = "What is 2+2? Answer with just the number.";
 
@@ -19,7 +19,7 @@ public class ProviderParamsTests : IntegrationTestBase
         var result = await AIHub.Chat()
             .WithModel<Gpt4oMini>()
             .WithMessage(TestQuestion)
-            .WithInferenceParams(new OpenAiParams
+            .WithInferenceParams(new OpenAiInferenceParams
             {
                 Temperature = 0.3f,
                 MaxTokens = 100,
@@ -41,7 +41,7 @@ public class ProviderParamsTests : IntegrationTestBase
         var result = await AIHub.Chat()
             .WithModel<ClaudeSonnet4>()
             .WithMessage(TestQuestion)
-            .WithInferenceParams(new AnthropicParams
+            .WithInferenceParams(new AnthropicInferenceParams
             {
                 Temperature = 0.3f,
                 MaxTokens = 100,
@@ -63,7 +63,7 @@ public class ProviderParamsTests : IntegrationTestBase
         var result = await AIHub.Chat()
             .WithModel<Gemini2_0Flash>()
             .WithMessage(TestQuestion)
-            .WithInferenceParams(new GeminiParams
+            .WithInferenceParams(new GeminiInferenceParams
             {
                 Temperature = 0.3f,
                 MaxTokens = 100,
@@ -85,7 +85,7 @@ public class ProviderParamsTests : IntegrationTestBase
         var result = await AIHub.Chat()
             .WithModel<DeepSeekReasoner>()
             .WithMessage(TestQuestion)
-            .WithInferenceParams(new DeepSeekParams
+            .WithInferenceParams(new DeepSeekInferenceParams
             {
                 Temperature = 0.3f,
                 MaxTokens = 100,
@@ -107,7 +107,7 @@ public class ProviderParamsTests : IntegrationTestBase
         var result = await AIHub.Chat()
             .WithModel<Llama3_1_8bInstant>()
             .WithMessage(TestQuestion)
-            .WithInferenceParams(new GroqCloudParams
+            .WithInferenceParams(new GroqCloudInferenceParams
             {
                 Temperature = 0.3f,
                 MaxTokens = 100,
@@ -129,7 +129,7 @@ public class ProviderParamsTests : IntegrationTestBase
         var result = await AIHub.Chat()
             .WithModel<Grok3Beta>()
             .WithMessage(TestQuestion)
-            .WithInferenceParams(new XaiParams
+            .WithInferenceParams(new XaiInferenceParams
             {
                 Temperature = 0.3f,
                 MaxTokens = 100,
@@ -175,7 +175,7 @@ public class ProviderParamsTests : IntegrationTestBase
         var result = await AIHub.Chat()
             .WithModel<OllamaGemma3_4b>()
             .WithMessage(TestQuestion)
-            .WithInferenceParams(new OllamaParams
+            .WithInferenceParams(new OllamaInferenceParams
             {
                 Temperature = 0.3f,
                 MaxTokens = 100,
@@ -199,7 +199,7 @@ public class ProviderParamsTests : IntegrationTestBase
         var result = await AIHub.Chat()
             .WithModel<OllamaGemma3_4b>()
             .WithMessage(TestQuestion)
-            .WithInferenceParams(new OllamaParams
+            .WithInferenceParams(new OllamaInferenceParams
             {
                 Temperature = 0.3f,
                 MaxTokens = 100,
@@ -220,88 +220,88 @@ public class ProviderParamsTests : IntegrationTestBase
     [Fact]
     public async Task Self_Should_ThrowWhenGivenWrongParams()
     {
-        await Assert.ThrowsAsync<InvalidProviderParamsException>(() =>
+        await Assert.ThrowsAsync<InvalidBackendParamsException>(() =>
             AIHub.Chat()
                 .WithModel<Gemma2_2b>()
                 .WithMessage(TestQuestion)
-                .WithInferenceParams(new OpenAiParams())
+                .WithInferenceParams(new OpenAiInferenceParams())
                 .CompleteAsync());
     }
 
     [Fact]
     public async Task OpenAi_Should_ThrowWhenGivenWrongParams()
     {
-        await Assert.ThrowsAsync<InvalidProviderParamsException>(() =>
+        await Assert.ThrowsAsync<InvalidBackendParamsException>(() =>
             AIHub.Chat()
                 .WithModel<Gpt4oMini>()
                 .WithMessage(TestQuestion)
-                .WithInferenceParams(new DeepSeekParams())
+                .WithInferenceParams(new DeepSeekInferenceParams())
                 .CompleteAsync());
     }
 
     [Fact]
     public async Task Anthropic_Should_ThrowWhenGivenWrongParams()
     {
-        await Assert.ThrowsAsync<InvalidProviderParamsException>(() =>
+        await Assert.ThrowsAsync<InvalidBackendParamsException>(() =>
             AIHub.Chat()
                 .WithModel<ClaudeSonnet4>()
                 .WithMessage(TestQuestion)
-                .WithInferenceParams(new OpenAiParams())
+                .WithInferenceParams(new OpenAiInferenceParams())
                 .CompleteAsync());
     }
 
     [Fact]
     public async Task Gemini_Should_ThrowWhenGivenWrongParams()
     {
-        await Assert.ThrowsAsync<InvalidProviderParamsException>(() =>
+        await Assert.ThrowsAsync<InvalidBackendParamsException>(() =>
             AIHub.Chat()
                 .WithModel<Gemini2_0Flash>()
                 .WithMessage(TestQuestion)
-                .WithInferenceParams(new AnthropicParams())
+                .WithInferenceParams(new AnthropicInferenceParams())
                 .CompleteAsync());
     }
 
     [Fact]
     public async Task DeepSeek_Should_ThrowWhenGivenWrongParams()
     {
-        await Assert.ThrowsAsync<InvalidProviderParamsException>(() =>
+        await Assert.ThrowsAsync<InvalidBackendParamsException>(() =>
             AIHub.Chat()
                 .WithModel<DeepSeekReasoner>()
                 .WithMessage(TestQuestion)
-                .WithInferenceParams(new GeminiParams())
+                .WithInferenceParams(new GeminiInferenceParams())
                 .CompleteAsync());
     }
 
     [Fact]
     public async Task GroqCloud_Should_ThrowWhenGivenWrongParams()
     {
-        await Assert.ThrowsAsync<InvalidProviderParamsException>(() =>
+        await Assert.ThrowsAsync<InvalidBackendParamsException>(() =>
             AIHub.Chat()
                 .WithModel<Llama3_1_8bInstant>()
                 .WithMessage(TestQuestion)
-                .WithInferenceParams(new OpenAiParams())
+                .WithInferenceParams(new OpenAiInferenceParams())
                 .CompleteAsync());
     }
 
     [Fact]
     public async Task Xai_Should_ThrowWhenGivenWrongParams()
     {
-        await Assert.ThrowsAsync<InvalidProviderParamsException>(() =>
+        await Assert.ThrowsAsync<InvalidBackendParamsException>(() =>
             AIHub.Chat()
                 .WithModel<Grok3Beta>()
                 .WithMessage(TestQuestion)
-                .WithInferenceParams(new AnthropicParams())
+                .WithInferenceParams(new AnthropicInferenceParams())
                 .CompleteAsync());
     }
 
     [Fact]
     public async Task Ollama_Should_ThrowWhenGivenWrongParams()
     {
-        await Assert.ThrowsAsync<InvalidProviderParamsException>(() =>
+        await Assert.ThrowsAsync<InvalidBackendParamsException>(() =>
             AIHub.Chat()
                 .WithModel<OllamaGemma3_4b>()
                 .WithMessage(TestQuestion)
-                .WithInferenceParams(new DeepSeekParams())
+                .WithInferenceParams(new DeepSeekInferenceParams())
                 .CompleteAsync());
     }
 

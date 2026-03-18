@@ -1,7 +1,6 @@
 using System.Text;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
-using MaIN.Domain.Entities.ProviderParams;
 using MaIN.Services.Services.Abstract;
 using Microsoft.Extensions.Logging;
 using MaIN.Services.Services.LLMService.Memory;
@@ -12,6 +11,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using MaIN.Domain.Exceptions;
 using MaIN.Domain.Models.Concrete;
+using MaIN.Domain.Configuration.BackendInferenceParams;
 
 namespace MaIN.Services.Services.LLMService;
 
@@ -32,7 +32,7 @@ public sealed class DeepSeekService(
     protected override string HttpClientName => ServiceConstants.HttpClients.DeepSeekClient;
     protected override string ChatCompletionsUrl => ServiceConstants.ApiUrls.DeepSeekOpenAiChatCompletions;
     protected override string ModelsUrl => ServiceConstants.ApiUrls.DeepSeekModels;
-    protected override Type ExpectedParamsType => typeof(DeepSeekParams);
+    protected override Type ExpectedParamsType => typeof(DeepSeekInferenceParams);
 
     protected override string GetApiKey()
     {
@@ -51,9 +51,9 @@ public sealed class DeepSeekService(
         }
     }
 
-    protected override void ApplyProviderParams(Dictionary<string, object> requestBody, Chat chat)
+    protected override void ApplyBackendParams(Dictionary<string, object> requestBody, Chat chat)
     {
-        if (chat.ProviderParams is not DeepSeekParams p) return;
+        if (chat.BackendParams is not DeepSeekInferenceParams p) return;
         requestBody["temperature"] = p.Temperature;
         requestBody["max_tokens"] = p.MaxTokens;
         requestBody["top_p"] = p.TopP;

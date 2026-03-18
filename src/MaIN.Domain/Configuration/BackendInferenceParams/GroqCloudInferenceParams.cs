@@ -1,17 +1,17 @@
 using MaIN.Domain.Configuration;
+using MaIN.Domain.Entities;
 using Grammar = MaIN.Domain.Models.Grammar;
 
-namespace MaIN.Domain.Entities.ProviderParams;
+namespace MaIN.Domain.Configuration.BackendInferenceParams;
 
-public class DeepSeekParams : IProviderInferenceParams
+public class GroqCloudInferenceParams : IBackendInferenceParams
 {
-    public BackendType Backend => BackendType.DeepSeek;
+    public BackendType Backend => BackendType.GroqCloud;
 
     public float Temperature { get; init; } = 0.7f;
     public int MaxTokens { get; init; } = 4096;
     public float TopP { get; init; } = 1.0f;
     public float FrequencyPenalty { get; init; }
-    public float PresencePenalty { get; init; }
     public string? ResponseFormat { get; init; }
     public Grammar? Grammar { get; set; }
 }

@@ -1,5 +1,4 @@
 ﻿using MaIN.Domain.Entities;
-using MaIN.Domain.Entities.ProviderParams;
 using MaIN.Domain.Models;
 using MaIN.Services.Constants;
 using MaIN.Services.Services.Abstract;
@@ -15,6 +14,7 @@ using MaIN.Domain.Entities.Tools;
 using MaIN.Domain.Exceptions;
 using MaIN.Domain.Models.Concrete;
 using MaIN.Services.Services.LLMService.Utils;
+using MaIN.Domain.Configuration.BackendInferenceParams;
 
 namespace MaIN.Services.Services.LLMService;
 
@@ -60,9 +60,9 @@ public sealed class AnthropicService(
 
     public async Task<ChatResult?> Send(Chat chat, ChatRequestOptions options, CancellationToken cancellationToken = default)
     {
-        if (chat.ProviderParams is not AnthropicParams)
+        if (chat.BackendParams is not AnthropicInferenceParams)
         {
-            throw new InvalidProviderParamsException(LLMApiRegistry.Anthropic.ApiName, nameof(AnthropicParams), chat.ProviderParams.GetType().Name);
+            throw new InvalidBackendParamsException(LLMApiRegistry.Anthropic.ApiName, nameof(AnthropicInferenceParams), chat.BackendParams.GetType().Name);
         }
 
         ValidateApiKey();
@@ -512,7 +512,7 @@ public sealed class AnthropicService(
 
     private object BuildAnthropicRequestBody(Chat chat, List<ChatMessage> conversation, bool stream)
     {
-        var anthParams = chat.ProviderParams as AnthropicParams;
+        var anthParams = chat.BackendParams as AnthropicInferenceParams;
 
         var requestBody = new Dictionary<string, object>
         {
@@ -698,7 +698,7 @@ public sealed class AnthropicService(
     {
         var httpClient = CreateAnthropicHttpClient();
 
-        var anthParams2 = chat.ProviderParams as AnthropicParams;
+        var anthParams2 = chat.BackendParams as AnthropicInferenceParams;
         var requestBody = new Dictionary<string, object>
         {
             ["model"] = chat.ModelId,
@@ -793,7 +793,7 @@ public sealed class AnthropicService(
     {
         var httpClient = CreateAnthropicHttpClient();
 
-        var anthParams3 = chat.ProviderParams as AnthropicParams;
+        var anthParams3 = chat.BackendParams as AnthropicInferenceParams;
         var requestBody = new Dictionary<string, object>
         {
             ["model"] = chat.ModelId,
