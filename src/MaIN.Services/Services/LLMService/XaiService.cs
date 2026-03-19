@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using System.Text;
 using MaIN.Domain.Exceptions;
 using MaIN.Domain.Models.Concrete;
+using MaIN.Domain.Configuration.BackendInferenceParams;
 
 namespace MaIN.Services.Services.LLMService;
 
@@ -25,6 +26,7 @@ public sealed class XaiService(
     protected override string HttpClientName => ServiceConstants.HttpClients.XaiClient;
     protected override string ChatCompletionsUrl => ServiceConstants.ApiUrls.XaiOpenAiChatCompletions;
     protected override string ModelsUrl => ServiceConstants.ApiUrls.XaiModels;
+    protected override Type ExpectedParamsType => typeof(XaiInferenceParams);
 
     protected override string GetApiKey()
     {
@@ -40,6 +42,16 @@ public sealed class XaiService(
         {
             throw new APIKeyNotConfiguredException(LLMApiRegistry.Xai.ApiName);
         }
+    }
+
+    protected override void ApplyBackendParams(Dictionary<string, object> requestBody, Chat chat)
+    {
+        if (chat.BackendParams is not XaiInferenceParams p) return;
+        if (p.Temperature.HasValue) requestBody["temperature"] = p.Temperature.Value;
+        if (p.MaxTokens.HasValue) requestBody["max_tokens"] = p.MaxTokens.Value;
+        if (p.TopP.HasValue) requestBody["top_p"] = p.TopP.Value;
+        if (p.FrequencyPenalty.HasValue) requestBody["frequency_penalty"] = p.FrequencyPenalty.Value;
+        if (p.PresencePenalty.HasValue) requestBody["presence_penalty"] = p.PresencePenalty.Value;
     }
 
     public override async Task<ChatResult?> AskMemory(

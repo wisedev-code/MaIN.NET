@@ -94,7 +94,7 @@ public class AgentService(
     }
 
     public async Task<Agent> CreateAgent(Agent agent, bool flow = false, bool interactiveResponse = false,
-        InferenceParams? inferenceParams = null, MemoryParams? memoryParams = null, bool disableCache = false)
+        IBackendInferenceParams? inferenceParams = null, MemoryParams? memoryParams = null, bool disableCache = false)
     {
         var chat = new Chat
         {
@@ -103,7 +103,7 @@ public class AgentService(
             Name = agent.Name,
             ImageGen = agent.Model == ImageGenService.LocalImageModels.FLUX,
             ToolsConfiguration = agent.ToolsConfiguration,
-            InterferenceParams = inferenceParams ?? new InferenceParams(),
+            BackendParams = inferenceParams ?? new LocalInferenceParams(),
             MemoryParams = memoryParams ?? new MemoryParams(),
             Messages = [],
             Interactive = interactiveResponse,

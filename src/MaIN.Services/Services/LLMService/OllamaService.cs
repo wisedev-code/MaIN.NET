@@ -1,5 +1,6 @@
 using System.Text;
 using MaIN.Domain.Configuration;
+using MaIN.Domain.Configuration.BackendInferenceParams;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Models.Concrete;
 using MaIN.Services.Constants;
@@ -26,6 +27,7 @@ public sealed class OllamaService(
     protected override string HttpClientName => HasApiKey ? ServiceConstants.HttpClients.OllamaClient : ServiceConstants.HttpClients.OllamaLocalClient;
     protected override string ChatCompletionsUrl => HasApiKey ? ServiceConstants.ApiUrls.OllamaOpenAiChatCompletions : ServiceConstants.ApiUrls.OllamaLocalOpenAiChatCompletions;
     protected override string ModelsUrl => HasApiKey ? ServiceConstants.ApiUrls.OllamaModels : ServiceConstants.ApiUrls.OllamaLocalModels;
+    protected override Type ExpectedParamsType => typeof(OllamaInferenceParams);
 
     protected override string GetApiKey()
     {
@@ -38,6 +40,22 @@ public sealed class OllamaService(
     {
         // No validation required - local Ollama doesn't need an API key
         // Cloud Ollama will fail at runtime if the key is missing
+    }
+
+    protected override void ApplyBackendParams(Dictionary<string, object> requestBody, Chat chat)
+    {
+        if (chat.BackendParams is not OllamaInferenceParams p) return;
+        if (p.Temperature.HasValue) requestBody["temperature"] = p.Temperature.Value;
+        if (p.MaxTokens.HasValue) requestBody["max_tokens"] = p.MaxTokens.Value;
+        if (p.TopP.HasValue) requestBody["top_p"] = p.TopP.Value;
+        if (p.TopK.HasValue) requestBody["top_k"] = p.TopK.Value;
+        if (p.NumCtx.HasValue || p.NumGpu.HasValue)
+        {
+            var options = new Dictionary<string, object>();
+            if (p.NumCtx.HasValue) options["num_ctx"] = p.NumCtx.Value;
+            if (p.NumGpu.HasValue) options["num_gpu"] = p.NumGpu.Value;
+            requestBody["options"] = options;
+        }
     }
 
     public override async Task<ChatResult?> AskMemory(

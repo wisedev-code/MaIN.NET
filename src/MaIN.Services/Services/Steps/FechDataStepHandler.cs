@@ -73,7 +73,7 @@ public class FetchDataStepHandler(
             ModelId = context.Chat.ModelId,
             Properties = context.Chat.Properties,
             MemoryParams = context.Chat.MemoryParams,
-            InterferenceParams = context.Chat.InterferenceParams,
+            BackendParams = context.Chat.BackendParams,
             Name = "Memory Chat",
             Id = Guid.NewGuid().ToString()
         };

@@ -1,4 +1,5 @@
 using MaIN.Domain.Configuration;
+using MaIN.Domain.Configuration.BackendInferenceParams;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Exceptions.Chats;
 using MaIN.Domain.Models;
@@ -44,6 +45,7 @@ public class ChatService(
         }
 
         var backend = model!.Backend;
+        chat.BackendParams ??= BackendParamsFactory.Create(backend);
 
         chat.Messages.Where(x => x.Type == MessageType.NotSet).ToList()
             .ForEach(x => x.Type = backend != BackendType.Self ? MessageType.CloudLLM : MessageType.LocalLLM);

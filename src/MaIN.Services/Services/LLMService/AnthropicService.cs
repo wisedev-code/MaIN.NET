@@ -14,6 +14,7 @@ using MaIN.Domain.Entities.Tools;
 using MaIN.Domain.Exceptions;
 using MaIN.Domain.Models.Concrete;
 using MaIN.Services.Services.LLMService.Utils;
+using MaIN.Domain.Configuration.BackendInferenceParams;
 
 namespace MaIN.Services.Services.LLMService;
 
@@ -26,7 +27,6 @@ public sealed class AnthropicService(
 {
     private readonly MaINSettings _settings = settings ?? throw new ArgumentNullException(nameof(settings));
 
-    private static readonly HashSet<string> AnthropicImageExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
     private static readonly ConcurrentDictionary<string, List<ChatMessage>> SessionCache = new();
 
     private const string CompletionsUrl = ServiceConstants.ApiUrls.AnthropicChatMessages;
@@ -59,21 +59,24 @@ public sealed class AnthropicService(
 
     public async Task<ChatResult?> Send(Chat chat, ChatRequestOptions options, CancellationToken cancellationToken = default)
     {
+        if (chat.BackendParams is not AnthropicInferenceParams)
+        {
+            throw new InvalidBackendParamsException(LLMApiRegistry.Anthropic.ApiName, nameof(AnthropicInferenceParams), chat.BackendParams.GetType().Name);
+        }
+
         ValidateApiKey();
 
         if (!chat.Messages.Any())
             return null;
 
-        var apiKey = GetApiKey();
-
         var lastMessage = chat.Messages.Last();
-        await ExtractImageFromFiles(lastMessage);
+        await ChatHelper.ExtractImageFromFiles(lastMessage);
 
         var conversation = GetOrCreateConversation(chat, options.CreateSession);
         var resultBuilder = new StringBuilder();
         var tokens = new List<LLMTokenValue>();
 
-        if (HasFiles(lastMessage))
+        if (ChatHelper.HasFiles(lastMessage))
         {
             var result = ChatHelper.ExtractMemoryOptions(lastMessage);
             var memoryResult = await AskMemory(chat, result, options, cancellationToken);
@@ -97,7 +100,6 @@ public sealed class AnthropicService(
             return await ProcessWithToolsAsync(
                 chat,
                 conversation,
-                apiKey,
                 tokens,
                 options,
                 cancellationToken);
@@ -108,7 +110,6 @@ public sealed class AnthropicService(
             await ProcessStreamingChatAsync(
                 chat,
                 conversation,
-                apiKey,
                 tokens,
                 resultBuilder,
                 options.TokenCallback,
@@ -120,7 +121,6 @@ public sealed class AnthropicService(
             await ProcessNonStreamingChatAsync(
                 chat,
                 conversation,
-                apiKey,
                 resultBuilder,
                 cancellationToken);
         }
@@ -144,7 +144,6 @@ public sealed class AnthropicService(
     private async Task<ChatResult> ProcessWithToolsAsync(
         Chat chat,
         List<ChatMessage> conversation,
-        string apiKey,
         List<LLMTokenValue> tokens,
         ChatRequestOptions options,
         CancellationToken cancellationToken)
@@ -177,7 +176,6 @@ public sealed class AnthropicService(
                 currentToolUses = await ProcessStreamingChatWithToolsAsync(
                     chat,
                     conversation,
-                    apiKey,
                     tokens,
                     resultBuilder,
                     options,
@@ -188,7 +186,6 @@ public sealed class AnthropicService(
                 currentToolUses = await ProcessNonStreamingChatWithToolsAsync(
                     chat,
                     conversation,
-                    apiKey,
                     resultBuilder,
                     cancellationToken);
             }
@@ -313,7 +310,6 @@ public sealed class AnthropicService(
     private async Task<List<AnthropicToolUse>?> ProcessStreamingChatWithToolsAsync(
         Chat chat,
         List<ChatMessage> conversation,
-        string apiKey,
         List<LLMTokenValue> tokens,
         StringBuilder resultBuilder,
         ChatRequestOptions options,
@@ -321,7 +317,7 @@ public sealed class AnthropicService(
     {
         var httpClient = CreateAnthropicHttpClient();
 
-        var requestBody = BuildAnthropicRequestBody(chat, conversation, true);
+        var requestBody = await BuildAnthropicRequestBody(chat, conversation, true);
         var requestJson = JsonSerializer.Serialize(requestBody);
         var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
 
@@ -458,18 +454,17 @@ public sealed class AnthropicService(
     private async Task<List<AnthropicToolUse>?> ProcessNonStreamingChatWithToolsAsync(
         Chat chat,
         List<ChatMessage> conversation,
-        string apiKey,
         StringBuilder resultBuilder,
         CancellationToken cancellationToken)
     {
         var httpClient = CreateAnthropicHttpClient();
 
-        var requestBody = BuildAnthropicRequestBody(chat, conversation, false);
+        var requestBody = await BuildAnthropicRequestBody(chat, conversation, false);
         var requestJson = JsonSerializer.Serialize(requestBody);
         var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
 
         using var response = await httpClient.PostAsync(CompletionsUrl, content, cancellationToken);
-        
+
         if (!response.IsSuccessStatusCode)
         {
             await HandleApiError(response, cancellationToken);
@@ -504,15 +499,30 @@ public sealed class AnthropicService(
         return toolUses.Any() ? toolUses : null;
     }
 
-    private object BuildAnthropicRequestBody(Chat chat, List<ChatMessage> conversation, bool stream)
+    private async Task<Dictionary<string, object>> BuildAnthropicRequestBody(Chat chat, List<ChatMessage> conversation, bool stream)
     {
+        var anthParams = chat.BackendParams as AnthropicInferenceParams;
+
         var requestBody = new Dictionary<string, object>
         {
             ["model"] = chat.ModelId,
-            ["max_tokens"] = chat.InterferenceParams.MaxTokens < 0 ? 4096 : chat.InterferenceParams.MaxTokens,
+            ["max_tokens"] = anthParams?.MaxTokens ?? 4096,
             ["stream"] = stream,
-            ["messages"] = BuildAnthropicMessages(conversation)
+            ["messages"] = await ChatHelper.BuildMessagesArray(conversation, chat, ImageType.AsBase64)
         };
+
+        if (anthParams != null)
+        {
+            if (anthParams.Temperature.HasValue) requestBody["temperature"] = anthParams.Temperature.Value;
+            if (anthParams.TopP.HasValue) requestBody["top_p"] = anthParams.TopP.Value;
+            if (anthParams.TopK.HasValue) requestBody["top_k"] = anthParams.TopK.Value;
+        }
+
+        if (chat.BackendParams?.AdditionalParams != null)
+        {
+            foreach (var (key, value) in chat.BackendParams.AdditionalParams)
+                requestBody[key] = value;
+        }
 
         var systemMessage = conversation.FirstOrDefault(m =>
             m.Role.Equals("system", StringComparison.OrdinalIgnoreCase));
@@ -522,10 +532,10 @@ public sealed class AnthropicService(
             requestBody["system"] = systemContent;
         }
 
-        if (chat.InterferenceParams.Grammar is not null)
+        if (chat.InferenceGrammar is not null)
         {
             requestBody["system"] =
-                $"Respond only using the following grammar format: \n{chat.InterferenceParams.Grammar.Value}\n. Do not add explanations, code tags, or any extra content.";
+                $"Respond only using the following grammar format: \n{chat.InferenceGrammar.Value}\n. Do not add explanations, code tags, or any extra content.";
         }
 
         if (chat.ToolsConfiguration?.Tools != null && chat.ToolsConfiguration.Tools.Any())
@@ -539,40 +549,6 @@ public sealed class AnthropicService(
         }
 
         return requestBody;
-    }
-
-    private List<object> BuildAnthropicMessages(List<ChatMessage> conversation)
-    {
-        var messages = new List<object>();
-
-        foreach (var msg in conversation)
-        {
-            if (msg.Role.Equals("system", StringComparison.OrdinalIgnoreCase))
-                continue;
-
-            object content;
-
-            if (msg.Content is string textContent)
-            {
-                content = textContent;
-            }
-            else if (msg.Content is List<object> contentBlocks)
-            {
-                content = contentBlocks;
-            }
-            else
-            {
-                content = msg.Content;
-            }
-
-            messages.Add(new
-            {
-                role = msg.Role,
-                content = content
-            });
-        }
-
-        return messages;
     }
 
     public async Task<ChatResult?> AskMemory(Chat chat, ChatMemoryOptions memoryOptions, ChatRequestOptions requestOptions,
@@ -618,7 +594,7 @@ public sealed class AnthropicService(
             conversation = new List<ChatMessage>();
         }
 
-        OpenAiCompatibleService.MergeMessages(conversation, chat.Messages);
+        ChatHelper.MergeMessages(conversation, chat.Messages);
         return conversation;
     }
 
@@ -630,51 +606,9 @@ public sealed class AnthropicService(
         }
     }
 
-    private static bool HasFiles(Message message)
-    {
-        return message.Files != null && message.Files.Count > 0;
-    }
-
-    private static async Task ExtractImageFromFiles(Message message)
-    {
-        if (message.Files == null || message.Files.Count == 0)
-            return;
-
-        var imageFiles = message.Files
-            .Where(f => AnthropicImageExtensions.Contains(f.Extension.ToLowerInvariant()))
-            .ToList();
-
-        if (imageFiles.Count == 0)
-            return;
-
-        var imageBytesList = new List<byte[]>();
-        foreach (var imageFile in imageFiles)
-        {
-            if (imageFile.StreamContent != null)
-            {
-                using var ms = new MemoryStream();
-                imageFile.StreamContent.Position = 0;
-                await imageFile.StreamContent.CopyToAsync(ms);
-                imageBytesList.Add(ms.ToArray());
-            }
-            else if (imageFile.Path != null)
-            {
-                imageBytesList.Add(await File.ReadAllBytesAsync(imageFile.Path));
-            }
-
-            message.Files.Remove(imageFile);
-        }
-
-        message.Images = imageBytesList;
-
-        if (message.Files.Count == 0)
-            message.Files = null;
-    }
-
     private async Task ProcessStreamingChatAsync(
         Chat chat,
         List<ChatMessage> conversation,
-        string apiKey,
         List<LLMTokenValue> tokens,
         StringBuilder resultBuilder,
         Func<LLMTokenValue, Task>? tokenCallback,
@@ -683,17 +617,7 @@ public sealed class AnthropicService(
     {
         var httpClient = CreateAnthropicHttpClient();
 
-        var requestBody = new
-        {
-            model = chat.ModelId,
-            max_tokens = chat.InterferenceParams.MaxTokens < 0 ? 4096 : chat.InterferenceParams.MaxTokens,
-            stream = true,
-            system = chat.InterferenceParams.Grammar is not null
-                ? $"Respond only using the following grammar format: \n{chat.InterferenceParams.Grammar.Value}\n. Do not add explanations, code tags, or any extra content."
-                : "",
-            messages = await OpenAiCompatibleService.BuildMessagesArray(conversation, chat, ImageType.AsBase64)
-        };
-
+        var requestBody = await BuildAnthropicRequestBody(chat, conversation, true);
         var requestJson = JsonSerializer.Serialize(requestBody);
         var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
 
@@ -765,23 +689,12 @@ public sealed class AnthropicService(
     private async Task ProcessNonStreamingChatAsync(
         Chat chat,
         List<ChatMessage> conversation,
-        string apiKey,
         StringBuilder resultBuilder,
         CancellationToken cancellationToken)
     {
         var httpClient = CreateAnthropicHttpClient();
 
-        var requestBody = new
-        {
-            model = chat.ModelId,
-            max_tokens = chat.InterferenceParams.MaxTokens < 0 ? 4096 : chat.InterferenceParams.MaxTokens,
-            stream = false,
-            system = chat.InterferenceParams.Grammar is not null
-                ? $"Respond only using the following grammar format: \n{chat.InterferenceParams.Grammar.Value}\n. Do not add explanations, code tags, or any extra content."
-                : "",
-            messages = await OpenAiCompatibleService.BuildMessagesArray(conversation, chat, ImageType.AsBase64)
-        };
-
+        var requestBody = await BuildAnthropicRequestBody(chat, conversation, false);
         var requestJson = JsonSerializer.Serialize(requestBody);
         var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
 

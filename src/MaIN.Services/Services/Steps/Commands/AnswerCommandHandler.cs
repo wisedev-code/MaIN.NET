@@ -78,7 +78,7 @@ public class AnswerCommandHandler(
         var indexAsKnowledge = knowledge?.Index.Items.ToDictionary(x => x.Name, x => x.Tags);
         var index = JsonSerializer.Serialize(indexAsKnowledge, _jsonOptions);
 
-        chat.InterferenceParams.Grammar = new Grammar(ServiceConstants.Grammars.DecisionGrammar, GrammarFormat.GBNF);
+        chat.InferenceGrammar = new Grammar(ServiceConstants.Grammars.DecisionGrammar, GrammarFormat.GBNF);
         chat.Messages.Last().Content =
             $"""
              KNOWLEDGE:
@@ -98,7 +98,7 @@ public class AnswerCommandHandler(
         });
         var decision = JsonSerializer.Deserialize<JsonElement>(result!.Message.Content, _jsonOptions);
         var decisionValue = decision.GetProperty("decision").GetRawText();
-        chat.InterferenceParams.Grammar = null;
+        chat.InferenceGrammar = null;
         var shouldUseKnowledge = bool.Parse(decisionValue.Trim('"'));
         chat.Messages.Last().Content = originalContent;
         return shouldUseKnowledge;
@@ -110,7 +110,7 @@ public class AnswerCommandHandler(
         var indexAsKnowledge = knowledge?.Index.Items.ToDictionary(x => x.Name, x => x.Tags);
         var index = JsonSerializer.Serialize(indexAsKnowledge, _jsonOptions);
 
-        chat.InterferenceParams.Grammar = new Grammar(ServiceConstants.Grammars.KnowledgeGrammar, GrammarFormat.GBNF);
+        chat.InferenceGrammar = new Grammar(ServiceConstants.Grammars.KnowledgeGrammar, GrammarFormat.GBNF);
         chat.Messages.Last().Content =
             $"""
              KNOWLEDGE:

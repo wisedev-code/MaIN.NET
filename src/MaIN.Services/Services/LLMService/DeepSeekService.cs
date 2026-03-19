@@ -11,6 +11,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using MaIN.Domain.Exceptions;
 using MaIN.Domain.Models.Concrete;
+using MaIN.Domain.Configuration.BackendInferenceParams;
 
 namespace MaIN.Services.Services.LLMService;
 
@@ -31,6 +32,7 @@ public sealed class DeepSeekService(
     protected override string HttpClientName => ServiceConstants.HttpClients.DeepSeekClient;
     protected override string ChatCompletionsUrl => ServiceConstants.ApiUrls.DeepSeekOpenAiChatCompletions;
     protected override string ModelsUrl => ServiceConstants.ApiUrls.DeepSeekModels;
+    protected override Type ExpectedParamsType => typeof(DeepSeekInferenceParams);
 
     protected override string GetApiKey()
     {
@@ -47,6 +49,17 @@ public sealed class DeepSeekService(
         {
             throw new APIKeyNotConfiguredException(LLMApiRegistry.Deepseek.ApiName);
         }
+    }
+
+    protected override void ApplyBackendParams(Dictionary<string, object> requestBody, Chat chat)
+    {
+        if (chat.BackendParams is not DeepSeekInferenceParams p) return;
+        if (p.Temperature.HasValue) requestBody["temperature"] = p.Temperature.Value;
+        if (p.MaxTokens.HasValue) requestBody["max_tokens"] = p.MaxTokens.Value;
+        if (p.TopP.HasValue) requestBody["top_p"] = p.TopP.Value;
+        if (p.FrequencyPenalty.HasValue) requestBody["frequency_penalty"] = p.FrequencyPenalty.Value;
+        if (p.PresencePenalty.HasValue) requestBody["presence_penalty"] = p.PresencePenalty.Value;
+        if (p.ResponseFormat != null) requestBody["response_format"] = new { type = p.ResponseFormat };
     }
 
     public override async Task<ChatResult?> AskMemory(

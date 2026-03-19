@@ -63,6 +63,9 @@ public static class ServiceConstants
         public const string DisableCacheProperty = "DisableCache";
         public const string AgentIdProperty = "AgentId";
         public const string MmProjNameProperty = "MmProjName";
+        public const string ToolCallsProperty = "ToolCalls";
+        public const string ToolCallIdProperty = "ToolCallId";
+        public const string ToolNameProperty = "ToolName";
     }
 
     public static class Defaults
