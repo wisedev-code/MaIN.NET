@@ -30,7 +30,7 @@ public class AgentContextTests
         // Assert
         var agentId = _agentContext.GetAgentId();
         var agent = _agentContext.GetAgent();
-        
+
         Assert.NotNull(agentId);
         Assert.NotEmpty(agentId);
         Assert.NotNull(agent);
@@ -70,14 +70,11 @@ public class AgentContextTests
     [Fact]
     public void WithModel_ShouldSetAgentModel()
     {
-        // Arrange
-        var expectedModel = "gpt-4";
-
         // Act
-        var result = _agentContext.WithModel(expectedModel);
+        var result = _agentContext.WithModel(_testModelId);
 
         // Assert
-        Assert.Equal(expectedModel, _agentContext.GetAgent().Model);
+        Assert.Equal(_testModelId, _agentContext.GetAgent().Model);
         Assert.Equal(result, _agentContext);
     }
 
@@ -131,12 +128,17 @@ public class AgentContextTests
     public async Task CreateAsync_ShouldCallAgentServiceCreateAgent()
     {
         // Arrange
-        var agent = new Agent() {Id = Guid.NewGuid().ToString(), CurrentBehaviour = "Default", Context = new AgentData()};
+        var agent = new Agent()
+        {
+            Id = Guid.NewGuid().ToString(),
+            CurrentBehaviour = "Default",
+            Context = new AgentData()
+        };
         _mockAgentService
             .Setup(s => s.CreateAgent(
-                It.IsAny<Agent>(), 
-                It.IsAny<bool>(), 
-                It.IsAny<bool>(), 
+                It.IsAny<Agent>(),
+                It.IsAny<bool>(),
+                It.IsAny<bool>(),
                 It.IsAny<InferenceParams>(),
                 It.IsAny<MemoryParams>(),
                 It.IsAny<bool>()))
@@ -148,9 +150,9 @@ public class AgentContextTests
         // Assert
         _mockAgentService.Verify(
             s => s.CreateAgent(
-                It.IsAny<Agent>(), 
-                It.Is<bool>(f => f == true), 
-                It.Is<bool>(r => r == false), 
+                It.IsAny<Agent>(),
+                It.Is<bool>(f => f == true),
+                It.Is<bool>(r => r == false),
                 It.IsAny<InferenceParams>(),
                 It.IsAny<MemoryParams>(),
                 It.IsAny<bool>()),
@@ -163,8 +165,18 @@ public class AgentContextTests
     {
         // Arrange
         var message = "Hello, agent!";
-        var chat = new Chat { Id = _agentContext.GetAgentId(), Messages = new List<Message>(), Name = "test", ModelId = _testModelId};
-        var chatResult = new ChatResult { Done = true, Model = "test-model", Message = new Message
+        var chat = new Chat
+        {
+            Id = _agentContext.GetAgentId(),
+            Messages = [],
+            Name = "test",
+            ModelId = _testModelId
+        };
+        var chatResult = new ChatResult
+        {
+            Done = true,
+            Model = "test-model",
+            Message = new Message
             {
                 Role = "Assistant",
                 Content = "Response",
@@ -177,13 +189,20 @@ public class AgentContextTests
             .ReturnsAsync(chat);
 
         _mockAgentService
-            .Setup(s => s.Process(It.IsAny<Chat>(), _agentContext.GetAgentId(), It.IsAny<Knowledge>(), It.IsAny<bool>(), null, null))
-            .ReturnsAsync(new Chat { 
-                ModelId = "test-model", 
+            .Setup(s => s.Process(
+                It.IsAny<Chat>(),
+                _agentContext.GetAgentId(),
+                It.IsAny<Knowledge>(),
+                It.IsAny<bool>(),
+                null,
+                null))
+            .ReturnsAsync(new Chat
+            {
+                ModelId = "test-model",
                 Name = "test",
-                Messages = new List<Message> { 
-                    new Message { Content = "Response", Role = "Assistant", Type = MessageType.LocalLLM} 
-                } 
+                Messages = [
+                    new Message { Content = "Response", Role = "Assistant", Type = MessageType.LocalLLM}
+                ]
             });
 
         // Act
@@ -200,7 +219,13 @@ public class AgentContextTests
     {
         // Arrange
         var existingAgentId = "existing-agent-id";
-        var existingAgent = new Agent { Id = existingAgentId, Name = "Existing Agent", CurrentBehaviour = "Default", Context = new AgentData() };
+        var existingAgent = new Agent
+        {
+            Id = existingAgentId,
+            Name = "Existing Agent",
+            CurrentBehaviour = "Default",
+            Context = new AgentData()
+        };
 
         _mockAgentService
             .Setup(s => s.GetAgentById(existingAgentId))
@@ -225,7 +250,7 @@ public class AgentContextTests
             .ReturnsAsync((Agent)null!);
 
         // Act & Assert
-        await Assert.ThrowsAsync<AgentNotFoundException>(() => 
+        await Assert.ThrowsAsync<AgentNotFoundException>(() =>
             AgentContext.FromExisting(_mockAgentService.Object, nonExistentAgentId));
     }
 }

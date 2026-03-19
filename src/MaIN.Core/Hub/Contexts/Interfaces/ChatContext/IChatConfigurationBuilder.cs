@@ -1,4 +1,3 @@
-﻿using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Tools;
 using MaIN.Domain.Models;
@@ -18,7 +17,7 @@ public interface IChatConfigurationBuilder : IChatActions
     /// MaxTokens, TopP, etc. These parameters control the generation behavior of the chat.</param>
     /// <returns>The context instance implementing <see cref="IChatConfigurationBuilder"/> for method chaining.</returns>
     IChatConfigurationBuilder WithInferenceParams(InferenceParams inferenceParams);
-    
+
     /// <summary>
     /// Attaches external tools/functions that the model can invoke during the conversation.
     /// </summary>
@@ -26,7 +25,7 @@ public interface IChatConfigurationBuilder : IChatActions
     /// and their execution modes.</param>
     /// <returns>The context instance implementing <see cref="IChatConfigurationBuilder"/> for method chaining.</returns>
     IChatConfigurationBuilder WithTools(ToolsConfiguration toolsConfiguration);
-    
+
     /// <summary>
     /// Sets the memory parameters for the chat session, allowing you to customize how the AI accesses and
     /// uses its memory for generating responses. Memory parameters influence aspects such as context size, memory search depth,
@@ -36,21 +35,14 @@ public interface IChatConfigurationBuilder : IChatActions
     /// MaxMatchesCount, AnswerTokens, etc. These parameters control how the chat uses memory for response generation.</param>
     /// <returns>The context instance implementing <see cref="IChatConfigurationBuilder"/> for method chaining.</returns>
     IChatConfigurationBuilder WithMemoryParams(MemoryParams memoryParams);
-    
+
     /// <summary>
     /// Configures the session to use Text-to-Speech for the model's responses.
     /// </summary>
     /// <param name="speechParams">A <see cref="TextToSpeechParams"/> - parameters for the voice synthesis.</param>
     /// <returns>The context instance implementing <see cref="IChatConfigurationBuilder"/> for method chaining.</returns>
     IChatConfigurationBuilder Speak(TextToSpeechParams speechParams);
-    
-    /// <summary>
-    /// Defines backend that will be used for model inference
-    /// </summary>
-    /// <param name="backendType">The <see cref="BackendType"/> - an enum that defines which AI backend to use.</param>
-    /// <returns>The context instance implementing <see cref="IChatConfigurationBuilder"/> for method chaining.</returns>
-    IChatConfigurationBuilder WithBackend(BackendType backendType);
-    
+
     /// <summary>
     /// Inserts a system message at the beginning of the chat. System messages are typically used for setting the context
     /// or providing instructions to the AI.
@@ -58,7 +50,7 @@ public interface IChatConfigurationBuilder : IChatActions
     /// <param name="systemPrompt">The system prompt content that provides instructions to the AI.</param>
     /// <returns>The context instance implementing <see cref="IChatConfigurationBuilder"/> for method chaining.</returns>
     IChatConfigurationBuilder WithSystemPrompt(string systemPrompt);
-    
+
     /// <summary>
     /// Attaches files to the most recent message in the chat. Files are associated with the last message to provide additional context
     /// or media for the AI to process.
@@ -68,7 +60,7 @@ public interface IChatConfigurationBuilder : IChatActions
     /// but can also greatly improve the quality of inference</param>
     /// <returns>The context instance implementing <see cref="IChatConfigurationBuilder"/> for method chaining.</returns>
     IChatConfigurationBuilder WithFiles(List<FileStream> file, bool preProcess = false);
-    
+
     /// <summary>
     /// Attaches files to the most recent message in the chat. Files are associated with the last message to provide additional context
     /// or media for the AI to process.
@@ -78,7 +70,7 @@ public interface IChatConfigurationBuilder : IChatActions
     /// but can also greatly improve the quality of inference</param>
     /// <returns>The context instance implementing <see cref="IChatConfigurationBuilder"/> for method chaining.</returns>
     IChatConfigurationBuilder WithFiles(List<FileInfo> file, bool preProcess = false);
-    
+
     /// <summary>
     /// Attaches a list of files to the most recent message in the chat by specifying their file paths.
     /// This method is an alternative to using FileInfo.
@@ -88,14 +80,14 @@ public interface IChatConfigurationBuilder : IChatActions
     /// but can also greatly improve the quality of inference</param>
     /// <returns>The context instance implementing <see cref="IChatConfigurationBuilder"/> for method chaining.</returns>
     IChatConfigurationBuilder WithFiles(List<string> file, bool preProcess = false);
-    
+
     /// <summary>
     /// Each time we run inference, we need to load the model into memory; this takes time and memory. This method allows us to save some
     /// more of GPU/RAM resources at the cost of time, because model weights are no longer cached
     /// </summary>
     /// <returns>The context instance implementing <see cref="IChatConfigurationBuilder"/> for method chaining.</returns>
     IChatConfigurationBuilder DisableCache();
-    
+
     /// <summary>
     /// Completes the chat session by generating a response based on the messages so far. This method interacts with the underlying
     /// chat service to process the chat and generate a result.

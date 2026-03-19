@@ -1,4 +1,4 @@
-﻿using Examples;
+using Examples;
 using Examples.Agents;
 using Examples.Agents.Flows;
 using Examples.Chat;
@@ -17,7 +17,6 @@ var Banner = @"
                                                                                                 
 ╔══════════════════════════════════════════════════════════════════════════════════════════════════════╗
                                     Interactive Example Runner v1.0                                     ";
-
 
 Console.ForegroundColor = ConsoleColor.Cyan;
 Console.WriteLine(Banner);
@@ -80,6 +79,7 @@ static void RegisterExamples(IServiceCollection services)
     services.AddTransient<ChatExampleAnthropic>();
     services.AddTransient<ChatExampleXai>();
     services.AddTransient<ChatExampleOllama>();
+    services.AddTransient<ChatWithCustomModelIdExample>();
 }
 
 async Task RunSelectedExample(IServiceProvider serviceProvider)
@@ -147,7 +147,6 @@ async Task RunSelectedExample(IServiceProvider serviceProvider)
     }
 }
 
-
 namespace Examples
 {
     public class ExampleRegistry(IServiceProvider serviceProvider)
@@ -195,7 +194,8 @@ namespace Examples
                 ("\u25a0 McpClient example", serviceProvider.GetRequiredService<McpExample>()),
                 ("\u25a0 McpAgent example", serviceProvider.GetRequiredService<McpAgentsExample>()),
                 ("\u25a0 Chat with TTS example", serviceProvider.GetRequiredService<ChatWithTextToSpeechExample>()),
-                ("\u25a0 McpAgent example", serviceProvider.GetRequiredService<McpAgentsExample>())
+                ("\u25a0 McpAgent example", serviceProvider.GetRequiredService<McpAgentsExample>()),
+                ("\u25a0 Chat with custom model ID", serviceProvider.GetRequiredService<ChatWithCustomModelIdExample>())
             ];
         }
     };

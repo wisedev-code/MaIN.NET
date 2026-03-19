@@ -1,5 +1,5 @@
 using MaIN.Core.Hub;
-using MaIN.Domain.Models.Concrete;
+using MaIN.Domain.Models;
 
 namespace Examples.Chat;
 
@@ -13,14 +13,14 @@ public class ChatWithFilesExample : IExample
             Path.Combine(AppContext.BaseDirectory, "Files", "Nicolaus_Copernicus.pdf"),
             Path.Combine(AppContext.BaseDirectory, "Files", "Galileo_Galilei.pdf"),
         ];
-        
+
         var result = await AIHub.Chat()
-            .WithModel<Gemma3_4b>()
+            .WithModel(Models.Local.Gemma3_4b)
             .WithMessage("You have 2 documents in memory. Whats the difference of work between Galileo and Copernicus?. Give answer based on the documents.")
             .WithFiles(files)
             .DisableCache()
             .CompleteAsync();
-        
+
         Console.WriteLine(result.Message.Content);
         Console.ReadKey();
     }

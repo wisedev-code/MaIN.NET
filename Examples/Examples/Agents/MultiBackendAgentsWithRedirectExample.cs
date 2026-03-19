@@ -1,6 +1,6 @@
 using MaIN.Core.Hub;
 using MaIN.Core.Hub.Utils;
-using MaIN.Domain.Configuration;
+using MaIN.Domain.Models;
 
 namespace Examples.Agents;
 
@@ -16,7 +16,7 @@ public class MultiBackendAgentWithRedirectExample : IExample
             evocative, and rich in imagery. Maintain a graceful rhythm, sophisticated vocabulary,
             and a touch of timeless beauty in every poem you compose.
             """;
-        
+
         var systemPromptSecond =
             """
             You are a modern rap lyricist with a sharp, streetwise flow. Take the given poem and transform
@@ -26,20 +26,19 @@ public class MultiBackendAgentWithRedirectExample : IExample
             """;
 
         var contextSecond = await AIHub.Agent()
-            .WithModel("gpt-4o")
+            .WithModel(Models.OpenAi.Gpt4oMini)
             .WithInitialPrompt(systemPromptSecond)
-            .WithBackend(BackendType.OpenAi)
             .CreateAsync(interactiveResponse: true);
-        
+
         var context = await AIHub.Agent()
-            .WithModel("gemma2:2b")
+            .WithModel(Models.Local.Gemma2_2b)
             .WithInitialPrompt(systemPrompt)
             .WithSteps(StepBuilder.Instance
                 .Answer()
                 .Redirect(agentId: contextSecond.GetAgentId())
                 .Build())
             .CreateAsync();
-        
+
         await context
             .ProcessAsync("Write a poem about distant future");
 

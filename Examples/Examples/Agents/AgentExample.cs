@@ -1,4 +1,5 @@
 using MaIN.Core.Hub;
+using MaIN.Domain.Models;
 
 namespace Examples.Agents;
 
@@ -24,10 +25,10 @@ public class AgentExample : IExample
             """;
 
         var context = AIHub.Agent()
-            .WithModel("llama3.2:3b")
+            .WithModel(Models.Local.Llama3_2_3b)
             .WithInitialPrompt(systemPrompt)
             .Create();
-        
+
         var result = await context
             .ProcessAsync("Where is the Iron Throne located? I need this information for Lady Princess");
 

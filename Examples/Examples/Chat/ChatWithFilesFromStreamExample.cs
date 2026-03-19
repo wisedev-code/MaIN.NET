@@ -1,5 +1,5 @@
-﻿using MaIN.Core.Hub;
-using MaIN.Domain.Models.Concrete;
+using MaIN.Core.Hub;
+using MaIN.Domain.Models;
 
 namespace Examples.Chat;
 
@@ -14,20 +14,20 @@ public class ChatWithFilesFromStreamExample : IExample
             Path.Combine(AppContext.BaseDirectory, "Files", "Nicolaus_Copernicus.pdf"),
             Path.Combine(AppContext.BaseDirectory, "Files", "Galileo_Galilei.pdf"),
         ];
-        
+
         var fileStreams = new List<FileStream>();
-        
+
         foreach (var path in files)
         {
             if (File.Exists(path))
             {
                 // Open file with read access
-                FileStream fs = new FileStream(
+                FileStream fs = new(
                     path,
                     FileMode.Open,
                     FileAccess.Read,
                     FileShare.Read);
-                    
+
                 fileStreams.Add(fs);
                 Console.WriteLine($"Loaded: {path}");
             }
@@ -36,13 +36,13 @@ public class ChatWithFilesFromStreamExample : IExample
                 Console.WriteLine($"File not found: {path}");
             }
         }
-        
+
         var result = await AIHub.Chat()
-            .WithModel<Qwen2_5_0_5b>()
+            .WithModel(Models.Local.Qwen2_5_0_5b)
             .WithMessage("You have 2 documents in memory. Whats the difference of work between Galileo and Copernicus?. Give answer based on the documents.")
             .WithFiles(fileStreams)
             .CompleteAsync();
-        
+
         Console.WriteLine(result.Message.Content);
         Console.ReadKey();
     }

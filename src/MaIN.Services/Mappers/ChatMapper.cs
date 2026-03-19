@@ -16,14 +16,14 @@ public static class ChatMapper
             Id = chat.Id,
             Name = chat.Name,
             Model = chat.ModelId,
-            Messages = chat.Messages.Select(m => m.ToDto()).ToList(),
+            Messages = [.. chat.Messages.Select(m => m.ToDto())],
             ImageGen = chat.ImageGen,
             Type = Enum.Parse<ChatTypeDto>(chat.Type.ToString()),
             Properties = chat.Properties
         };
 
     private static MessageDto ToDto(this Message message)
-        => new MessageDto()
+        => new()
         {
             Content = message.Content,
             Role = message.Tool ? "System" : message.Role,
@@ -69,29 +69,28 @@ public static class ChatMapper
         };
 
     private static MessageDocument ToDocument(this Message message)
-        => new MessageDocument()
+        => new()
         {
             Content = message.Content,
             Role = message.Role,
             Time = message.Time,
             MessageType = message.Type.ToString(),
             Images = message.Image,
-            Tokens = message.Tokens.Select(x => x.ToDocument()).ToList(),
+            Tokens = [.. message.Tokens.Select(x => x.ToDocument())],
             Properties = message.Properties,
             Tool = message.Tool,
             Files = (message.Files?.Select(x => x.Content).ToArray() ?? [])!
         };
 
     public static ChatDocument ToDocument(this Chat chat)
-        => new ChatDocument()
+        => new()
         {
             Id = chat.Id,
             Name = chat.Name,
             Model = chat.ModelId,
-            Messages = chat.Messages.Select(m => m.ToDocument()).ToList(),
+            Messages = [.. chat.Messages.Select(m => m.ToDocument())],
             ImageGen = chat.ImageGen,
-            Backend = chat.Backend,
-            ToolsConfiguration = chat.ToolsConfiguration,  
+            ToolsConfiguration = chat.ToolsConfiguration,
             MemoryParams = chat.MemoryParams.ToDocument(),
             InferenceParams = chat.InterferenceParams.ToDocument(),
             ConvState = chat.ConversationState,
@@ -107,9 +106,8 @@ public static class ChatMapper
             Id = chat.Id,
             Name = chat.Name,
             ModelId = chat.Model,
-            Messages = chat.Messages.Select(m => m.ToDomain()).ToList(),
+            Messages = [.. chat.Messages.Select(m => m.ToDomain())],
             ImageGen = chat.ImageGen,
-            Backend = chat.Backend,
             Properties = chat.Properties,
             ToolsConfiguration = chat.ToolsConfiguration,
             ConversationState = chat.ConvState as Conversation.State,
@@ -127,7 +125,7 @@ public static class ChatMapper
             Tool = message.Tool,
             Time = message.Time,
             Type = Enum.Parse<MessageType>(message.MessageType),
-            Tokens = message.Tokens.Select(x => x.ToDomain()).ToList(),
+            Tokens = [.. message.Tokens.Select(x => x.ToDomain())],
             Role = message.Role,
             Image = message.Images,
             Properties = message.Properties,
@@ -141,14 +139,14 @@ public static class ChatMapper
         };
 
     private static LLMTokenValue ToDomain(this LLMTokenValueDocument llmTokenValue)
-        => new LLMTokenValue()
+        => new()
         {
             Text = llmTokenValue.Text,
             Type = llmTokenValue.Type
         };
 
     private static InferenceParams ToDomain(this InferenceParamsDocument inferenceParams)
-        => new InferenceParams
+        => new()
         {
             Temperature = inferenceParams.Temperature,
             ContextSize = inferenceParams.ContextSize,
@@ -165,9 +163,9 @@ public static class ChatMapper
             TopP = inferenceParams.TopP,
             Grammar = inferenceParams.Grammar
         };
-    
+
     private static MemoryParams ToDomain(this MemoryParamsDocument memoryParams)
-        => new MemoryParams
+        => new()
         {
             Temperature = memoryParams.Temperature,
             AnswerTokens = memoryParams.AnswerTokens,
@@ -180,7 +178,7 @@ public static class ChatMapper
         };
 
     private static InferenceParamsDocument ToDocument(this InferenceParams inferenceParams)
-        => new InferenceParamsDocument
+        => new()
         {
             Temperature = inferenceParams.Temperature,
             ContextSize = inferenceParams.ContextSize,
@@ -197,9 +195,9 @@ public static class ChatMapper
             TopP = inferenceParams.TopP,
             Grammar = inferenceParams.Grammar
         };
-    
+
     private static MemoryParamsDocument ToDocument(this MemoryParams memoryParams)
-        => new MemoryParamsDocument
+        => new()
         {
             Temperature = memoryParams.Temperature,
             AnswerTokens = memoryParams.AnswerTokens,

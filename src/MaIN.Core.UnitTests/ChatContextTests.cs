@@ -27,7 +27,7 @@ public class ChatContextTests
     {
         // Act
         var chatId = _chatContext.GetChatId();
-        
+
         // Assert
         Assert.NotNull(chatId);
         Assert.NotEmpty(chatId);
@@ -39,7 +39,7 @@ public class ChatContextTests
         // Act
         _chatContext.WithMessage("Hello, world!");
         var messages = _chatContext.GetChatHistory();
-        
+
         // Assert
         Assert.Single(messages);
         Assert.Equal("Hello, world!", messages[0].Content);
@@ -53,7 +53,7 @@ public class ChatContextTests
         _chatContext.WithMessage("User message");
         _chatContext.WithSystemPrompt("System prompt");
         var messages = _chatContext.GetChatHistory();
-        
+
         // Assert
         Assert.Equal(2, messages.Count);
         Assert.Equal("System", messages[0].Role);
@@ -65,11 +65,14 @@ public class ChatContextTests
     {
         // Arrange
         _chatContext.WithMessage("User message");
-        var files = new List<FileInfo> { new() { Name = "file.txt", Path = "/path/file.txt", Extension = "txt"} };
-        
+        var files = new List<FileInfo>
+        {
+            new() { Name = "file.txt", Path = "/path/file.txt", Extension = "txt" }
+        };
+
         // Act
         _chatContext.WithFiles(files);
-        
+
         // Assert
         var lastMessage = _chatContext.GetChatHistory().Last();
         Assert.NotNull(lastMessage);
@@ -79,26 +82,41 @@ public class ChatContextTests
     public async Task CompleteAsync_ShouldCallChatService()
     {
         // Arrange
-        var chatResult = new ChatResult(){ Model = "test-model", Message = new Message
+        var chatResult = new ChatResult()
+        {
+            Model = "test-model",
+            Message = new Message
             {
                 Role = "Assistant",
                 Content = "test-message",
                 Type = MessageType.LocalLLM
             }
         };
-        
 
-        _mockChatService.Setup(s => s.Completions(It.IsAny<Chat>(), It.IsAny<bool>(), It.IsAny<bool>(), null, It.IsAny<CancellationToken>()))
+        _mockChatService
+            .Setup(s => s.Completions(
+                It.IsAny<Chat>(),
+                It.IsAny<bool>(),
+                It.IsAny<bool>(),
+                null,
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync(chatResult);
-        
+
         _chatContext.WithMessage("User message");
-        _chatContext.WithModel(new GenericLocalModel("test-model"));
+        _chatContext.WithModel(_testModelId);
 
         // Act
         var result = await _chatContext.CompleteAsync();
-        
+
         // Assert
-        _mockChatService.Verify(s => s.Completions(It.IsAny<Chat>(), false, false, null, It.IsAny<CancellationToken>()), Times.Once);
+        _mockChatService.Verify(
+            s => s.Completions(
+                It.IsAny<Chat>(),
+                false,
+                false,
+                null,
+                It.IsAny<CancellationToken>()),
+            Times.Once);
         Assert.Equal(chatResult, result);
     }
 
@@ -106,12 +124,12 @@ public class ChatContextTests
     public async Task GetCurrentChat_ShouldCallChatService()
     {
         // Arrange
-        var chat = new Chat { Id = _chatContext.GetChatId(), ModelId = _testModelId , Name = "test"};
+        var chat = new Chat { Id = _chatContext.GetChatId(), ModelId = _testModelId, Name = "test" };
         _mockChatService.Setup(s => s.GetById(chat.Id)).ReturnsAsync(chat);
-        
+
         // Act
         var result = await _chatContext.GetCurrentChat();
-        
+
         // Assert
         Assert.Equal(chat, result);
     }
@@ -119,15 +137,19 @@ public class ChatContextTests
     [Fact]
     public async Task WithModel_ShouldSetModelIdAndInstance()
     {
-        // Arrange
-        var model = new GenericLocalModel(_testModelId);
-
         // Act
-        await _chatContext.WithModel(model)
+        await _chatContext.WithModel(_testModelId)
             .WithMessage("User message")
             .CompleteAsync();
-        
+
         // Assert
-        _mockChatService.Verify(s => s.Completions(It.Is<Chat>(c => c.ModelId == _testModelId && c.ModelInstance == model), It.IsAny<bool>(), It.IsAny<bool>(), null, It.IsAny<CancellationToken>()), Times.Once);
+        _mockChatService.Verify(s =>
+            s.Completions(
+                It.Is<Chat>(c => c.ModelId == _testModelId),
+                It.IsAny<bool>(),
+                It.IsAny<bool>(),
+                null,
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 }

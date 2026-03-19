@@ -12,8 +12,10 @@ public class ChatWithImageGenGeminiExample : IExample
         Console.WriteLine("ChatExample with image gen is running! (Gemini)");
         GeminiExample.Setup(); // We need to provide Gemini API key
 
+        var imagenModel = new GenericImageGenerationCloudModel("imagen-3", BackendType.Gemini);
+        ModelRegistry.RegisterOrReplace(imagenModel);
         var result = await AIHub.Chat()
-            .WithModel(new GenericCloudModel("imagen-3", BackendType.Gemini), imageGen: true)
+            .WithModel(imagenModel.Id)
             .WithMessage("Generate hamster as a astronaut on the moon")
             .CompleteAsync();
 

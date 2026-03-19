@@ -1,5 +1,4 @@
 using MaIN.Core.Hub.Contexts.Interfaces.ChatContext;
-using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Tools;
 using MaIN.Domain.Exceptions.Chats;
@@ -40,50 +39,16 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
         _chat = existingChat;
     }
 
-    public IChatMessageBuilder WithModel(AIModel model, bool? imageGen = null)
-    {
-        SetModel(model);
-        _chat.ImageGen = imageGen ?? model is IImageGenerationModel;
-        return this;
-    }
-
-    public IChatMessageBuilder WithModel<TModel>() where TModel : AIModel, new()
-    {
-        var model = new TModel();
-        return WithModel(model);
-    }
-
-    [Obsolete("Use WithModel(AIModel model) or WithModel<TModel>() instead.")]
     public IChatMessageBuilder WithModel(string modelId)
     {
-        AIModel model;
-        try
+        if (!ModelRegistry.Exists(modelId))
         {
-            model = ModelRegistry.GetById(modelId);
+            throw new ModelNotRegisteredException(modelId);
         }
-        catch (Exception ex)
-        {
 
-            throw new Exception($"Model with ID '{modelId}' not found in registry. Use WithModel(AIModel model) or WithModel<TModel>() instead.", ex);
-        }
-        SetModel(model);
+        _chat.ModelId = modelId;
+        _chat.ImageGen = ModelRegistry.GetById(modelId).HasImageGeneration;
         return this;
-    }
-
-    [Obsolete("Use WithModel<TModel>() instead.")]
-    public IChatMessageBuilder WithCustomModel(string model, string path, string? mmProject = null)
-    {
-        KnownModels.AddModel(model, path, mmProject);
-        _chat.ModelId = model;
-        return this;
-    }
-
-    private void SetModel(AIModel model)
-    {
-        _chat.ModelId = model.Id;
-        _chat.ModelInstance = model;
-        _chat.Backend = model.Backend;
-        _chat.ImageGen = model.HasImageGeneration;
     }
 
     public IChatMessageBuilder EnsureModelDownloaded()
@@ -117,12 +82,6 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
         return this;
     }
 
-    public IChatConfigurationBuilder WithBackend(BackendType backendType)
-    {
-        _chat.Backend = backendType;
-        return this;
-    }
-
     public IChatConfigurationBuilder WithSystemPrompt(string systemPrompt)
     {
         var message = new Message
@@ -139,7 +98,15 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
 
     public IChatConfigurationBuilder WithMessage(string content)
     {
-        _chat.Messages.Add(new Message { Role = "User", Content = content, Type = MessageType.LocalLLM, Time = DateTime.Now });
+        var message = new Message
+        {
+            Role = "User",
+            Content = content,
+            Type = MessageType.NotSet,
+            Time = DateTime.Now
+        };
+
+        _chat.Messages.Add(message);
         return this;
     }
 
@@ -204,10 +171,11 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
         Func<LLMTokenValue?, Task>? changeOfValue = null,
         CancellationToken cancellationToken = default)
     {
-        if (_chat.ModelInstance is null)
+        if (string.IsNullOrEmpty(_chat.ModelId))
         {
-            throw new MissingModelInstanceException();
+            throw new MissingModelIdException(nameof(_chat.ModelId));
         }
+
         if (_chat.Messages.Count == 0)
         {
             throw new EmptyChatException(_chat.Id);
@@ -215,7 +183,7 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
 
         if (_ensureModelDownloaded)
         {
-            await AIHub.Model().EnsureDownloadedAsync(_chat.ModelId);
+            await AIHub.Model().EnsureDownloadedAsync(_chat.ModelId, cancellationToken);
         }
 
         _chat.Messages.Last().Files = _files;
@@ -228,7 +196,13 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
         {
             await _chatService.Create(_chat);
         }
-        var result = await _chatService.Completions(_chat, translate, interactive, changeOfValue, cancellationToken);
+
+        var result = await _chatService.Completions(
+            _chat,
+            translate,
+            interactive,
+            changeOfValue,
+            cancellationToken);
         _files = [];
         return result;
     }
@@ -236,7 +210,7 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
     public async Task<IChatConfigurationBuilder> FromExisting(string chatId)
     {
         var existing = await _chatService.GetById(chatId);
-        return existing == null
+        return existing is null
             ? throw new ChatNotFoundException(chatId)
             : new ChatContext(_chatService, existing);
     }
@@ -258,19 +232,16 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
 
     public async Task<Chat> GetCurrentChat()
     {
-        if (_chat.Id == null)
-        {
-            throw new ChatNotInitializedException();
-        }
-
-        return await _chatService.GetById(_chat.Id);
+        return _chat.Id is null
+            ? throw new ChatNotInitializedException()
+            : await _chatService.GetById(_chat.Id);
     }
 
     public async Task<List<Chat>> GetAllChats() => await _chatService.GetAll();
 
     public async Task DeleteChat()
     {
-        if (_chat.Id == null)
+        if (_chat.Id is null)
         {
             throw new ChatNotInitializedException();
         }

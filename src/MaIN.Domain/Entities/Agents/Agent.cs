@@ -12,7 +12,7 @@ public class Agent
     public bool Started { get; set; }
     public bool Flow { get; set; }
     public required AgentData Context { get; init; }
-    public string ChatId => string.Empty;
+    public string ChatId { get; set; } = string.Empty;
     public int Order { get; set; }
     public BackendType? Backend { get; set; }
     public Dictionary<string, string> Behaviours { get; set; } = [];

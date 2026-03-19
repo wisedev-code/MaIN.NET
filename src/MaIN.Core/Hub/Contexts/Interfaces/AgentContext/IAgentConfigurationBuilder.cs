@@ -1,5 +1,4 @@
-﻿using MaIN.Core.Hub.Utils;
-using MaIN.Domain.Configuration;
+using MaIN.Core.Hub.Utils;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents.AgentSource;
 using MaIN.Domain.Entities.Agents.Knowledge;
@@ -23,7 +22,7 @@ public interface IAgentConfigurationBuilder : IAgentActions
     /// <param name="prompt"> The initial prompt or instruction for the agent.</param>
     /// <returns>The context instance implementing <see cref="IAgentConfigurationBuilder"/> for method chaining.</returns>
     IAgentConfigurationBuilder WithInitialPrompt(string prompt);
-    
+
     /// <summary>
     /// Assigns a unique identifier to the agent.
     /// </summary>
@@ -59,13 +58,6 @@ public interface IAgentConfigurationBuilder : IAgentActions
     /// <param name="name">The name of the Agent.</param>
     /// <returns>The context instance implementing <see cref="IAgentConfigurationBuilder"/> for method chaining.</returns>
     IAgentConfigurationBuilder WithName(string name);
-
-    /// <summary>
-    /// Defines backend that will be used for model inference.
-    /// </summary>
-    /// <param name="backendType">The <see cref="BackendType"/> - an enum that defines which AI backend to use.</param>
-    /// <returns>The context instance implementing <see cref="IAgentConfigurationBuilder"/> for method chaining.</returns>
-    IAgentConfigurationBuilder WithBackend(BackendType backendType);
 
     /// <summary>
     /// Configures integration with the Model Context Protocol (MCP).

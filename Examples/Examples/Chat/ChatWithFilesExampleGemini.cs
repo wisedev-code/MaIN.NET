@@ -1,6 +1,6 @@
 using Examples.Utils;
 using MaIN.Core.Hub;
-using MaIN.Domain.Models.Concrete;
+using MaIN.Domain.Models;
 
 namespace Examples.Chat;
 
@@ -14,7 +14,7 @@ public class ChatWithFilesExampleGemini : IExample
         List<string> files = ["./Files/Nicolaus_Copernicus.pdf", "./Files/Galileo_Galilei.pdf"];
 
         await AIHub.Chat()
-            .WithModel<Gemini2_5Flash>()
+            .WithModel(Models.Gemini.Gemini2_5Flash)
             .WithMessage("You have 2 documents in memory. Whats the difference of work between Galileo and Copernicus?. Give answer based on the documents.")
             .WithFiles(files)
             .CompleteAsync(interactive: true);

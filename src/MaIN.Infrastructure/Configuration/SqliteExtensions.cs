@@ -1,9 +1,9 @@
-using System.Data;
 using Dapper;
 using MaIN.Infrastructure.Repositories.Abstract;
 using MaIN.Infrastructure.Repositories.Sqlite;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using System.Data;
 
 namespace MaIN.Infrastructure.Configuration;
 
@@ -46,7 +46,6 @@ public static class SqliteRegistrationExtensions
             Type TEXT NOT NULL,      -- Stored as JSON
             Properties TEXT,         -- Stored as JSON
             Visual INTEGER NOT NULL DEFAULT 0,
-            BackendType INTEGER NOT NULL DEFAULT 0,
             ConvState TEXT,         -- Stored as JSON
             InferenceParams TEXT,         -- Stored as JSON
             MemoryParams TEXT,         -- Stored as JSON

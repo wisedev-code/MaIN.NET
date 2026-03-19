@@ -1,6 +1,7 @@
 using MaIN.Core.Hub;
 using MaIN.Core.Hub.Utils;
 using MaIN.Domain.Entities;
+using MaIN.Domain.Models;
 
 namespace Examples.Agents;
 
@@ -12,14 +13,15 @@ public class AgentWithKnowledgeWebExample : IExample
 
         AIHub.Extensions.DisableLLamaLogs();
         var context = await AIHub.Agent()
-            .WithModel("llama3.2:3b")
-            .WithMemoryParams(new MemoryParams(){ContextSize = 4096})
-            .WithInitialPrompt("""
-                               You are an expert piano instructor specializing in teaching specific pieces,
-                               techniques, and solving common playing problems. Help students learn exact
-                               fingerings, chord progressions, and troubleshoot technical issues with
-                               detailed, step-by-step guidance for both classical and popular music.
-                               """)
+            .WithModel(Models.Local.Llama3_2_3b)
+            .WithMemoryParams(new MemoryParams() { ContextSize = 4096 })
+            .WithInitialPrompt(
+                """
+                You are an expert piano instructor specializing in teaching specific pieces,
+                techniques, and solving common playing problems. Help students learn exact
+                fingerings, chord progressions, and troubleshoot technical issues with
+                detailed, step-by-step guidance for both classical and popular music.
+                """)
             .WithKnowledge(KnowledgeBuilder.Instance
                 .AddUrl("piano_scales_major", "https://www.pianoscales.org/major.html",
                     tags: ["scale_fingerings", "c_major_scale", "d_major_scale", "fingering_patterns"])
@@ -43,8 +45,7 @@ public class AgentWithKnowledgeWebExample : IExample
                 .Build())
             .CreateAsync();
 
-        var result = await context
-            .ProcessAsync("I want to learn the C major scale. What's the exact fingering pattern for both hands?" + "I want short and concrete answer");
+        var result = await context.ProcessAsync("I want to learn the C major scale. What's the exact fingering pattern for both hands?" + "I want short and concrete answer");
 
         Console.WriteLine(result.Message.Content);
     }

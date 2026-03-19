@@ -1,6 +1,6 @@
 using Examples.Utils;
 using MaIN.Core.Hub;
-using MaIN.Domain.Models.Concrete;
+using MaIN.Domain.Models;
 
 namespace Examples.Chat;
 
@@ -12,7 +12,7 @@ public class ChatExampleAnthropic : IExample
         Console.WriteLine("(Anthropic) ChatExample is running!");
 
         await AIHub.Chat()
-            .WithModel<ClaudeSonnet4>()
+            .WithModel(Models.Anthropic.ClaudeSonnet4)
             .WithMessage("Write a haiku about programming on Monday morning.")
             .CompleteAsync(interactive: true);
     }
