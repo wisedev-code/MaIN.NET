@@ -1,7 +1,7 @@
 using Examples.Utils;
 using MaIN.Core.Hub;
 using MaIN.Core.Hub.Utils;
-using MaIN.Domain.Models.Concrete;
+using MaIN.Domain.Models;
 
 namespace Examples.Chat;
 
@@ -14,13 +14,13 @@ public class ChatExampleToolsSimple : IExample
         Console.WriteLine("(OpenAi) ChatExample with tools is running!");
 
         await AIHub.Chat()
-            .WithModel<Gpt5Nano>()
+            .WithModel(Models.OpenAi.Gpt5Nano)
             .WithMessage("What time is it right now?")
             .WithTools(new ToolsConfigurationBuilder()
                 .AddTool(
                     name: "get_current_time",
                     description: "Get the current date and time",
-                    execute: Tools.GetCurrentTime) 
+                    execute: Tools.GetCurrentTime)
                 .WithToolChoice("auto")
                 .Build())
             .CompleteAsync(interactive: true);

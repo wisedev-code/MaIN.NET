@@ -1,7 +1,7 @@
-using System.Text.Json;
 using MaIN.Core.Hub;
 using MaIN.Domain.Exceptions.Chats;
-using MaIN.Domain.Models.Concrete;
+using MaIN.Domain.Models;
+using System.Text.Json;
 
 namespace Examples.Chat;
 
@@ -12,11 +12,11 @@ public class ChatFromExistingExample : IExample
         Console.WriteLine("ChatExample with files is running!");
 
         var result = AIHub.Chat()
-            .WithModel<Qwen2_5_0_5b>();
-        
+            .WithModel(Models.Local.Qwen2_5_0_5b);
+
         await result.WithMessage("What do you think about math theories?")
             .CompleteAsync();
-        
+
         await result.WithMessage("And about physics?")
             .CompleteAsync();
 
@@ -30,6 +30,5 @@ public class ChatFromExistingExample : IExample
         {
             Console.WriteLine(ex.PublicErrorMessage);
         }
-
     }
 }

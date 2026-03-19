@@ -1,5 +1,6 @@
 using MaIN.Core.Hub;
 using MaIN.Core.Hub.Utils;
+using MaIN.Domain.Models;
 
 namespace Examples.Agents.Flows;
 
@@ -18,7 +19,7 @@ public class AgentsComposedAsFlowExample : IExample
             evocative, and rich in imagery. Maintain a graceful rhythm, sophisticated vocabulary,
             and a touch of timeless beauty in every poem you compose.
             """;
-        
+
         var systemPromptSecond =
             """
             You are a modern rap lyricist with a sharp, streetwise flow. Take the given poem and transform
@@ -28,12 +29,12 @@ public class AgentsComposedAsFlowExample : IExample
             """;
 
         var contextSecond = AIHub.Agent()
-            .WithModel("gemma2:2b")
+            .WithModel(Models.Local.Gemma2_2b)
             .WithInitialPrompt(systemPromptSecond)
             .Create(interactiveResponse: true);
-        
+
         var contextFirst = AIHub.Agent()
-            .WithModel("llama3.2:3b")
+            .WithModel(Models.Local.Llama3_2_3b)
             .WithInitialPrompt(systemPrompt)
             .WithSteps(StepBuilder.Instance
                 .Answer()
@@ -49,7 +50,7 @@ public class AgentsComposedAsFlowExample : IExample
                 contextSecond.GetAgent()
             ])
             .Save("./poetry.zip");
-        
+
         await flowContext
             .ProcessAsync("Write a poem about distant future");
 

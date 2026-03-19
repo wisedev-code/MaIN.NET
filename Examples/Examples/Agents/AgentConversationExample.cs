@@ -4,21 +4,21 @@ namespace Examples.Agents;
 
 public class AgentConversationExample : IExample
 {
-    private static readonly ConsoleColor UserColor = ConsoleColor.Magenta;
-    private static readonly ConsoleColor AgentColor = ConsoleColor.Green;
-    private static readonly ConsoleColor SystemColor = ConsoleColor.Yellow;
+    private static readonly ConsoleColor _userColor = ConsoleColor.Magenta;
+    private static readonly ConsoleColor _agentColor = ConsoleColor.Green;
+    private static readonly ConsoleColor _systemColor = ConsoleColor.Yellow;
 
     public async Task Start()
     {
-        PrintColored("Agent conversation example is running!", SystemColor);
-        
-        PrintColored("Enter agent name: ", SystemColor, false);
+        PrintColored("Agent conversation example is running!", _systemColor);
+
+        PrintColored("Enter agent name: ", _systemColor, false);
         var agentName = Console.ReadLine();
-        
-        PrintColored("Enter agent profile (example: 'Gentle and helpful assistant'): ", SystemColor, false);
+
+        PrintColored("Enter agent profile (example: 'Gentle and helpful assistant'): ", _systemColor, false);
         var agentProfile = Console.ReadLine();
-        
-        PrintColored("Enter LLM model (ex: gemma3:4b, llama3.2:3b, yi:6b): ", SystemColor, false);
+
+        PrintColored("Enter LLM model (ex: gemma3:4b, llama3.2:3b, yi:6b): ", _systemColor, false);
         var model = Console.ReadLine()!;
         var systemPrompt =
             $"""
@@ -27,35 +27,35 @@ public class AgentConversationExample : IExample
              Always stay in your role.
              """;
 
-        PrintColored($"Creating agent '{agentName}' with profile: '{agentProfile}' using model: '{model}'", SystemColor);
+        PrintColored($"Creating agent '{agentName}' with profile: '{agentProfile}' using model: '{model}'", _systemColor);
         AIHub.Extensions.DisableLLamaLogs();
         AIHub.Extensions.DisableNotificationsLogs();
         var context = await AIHub.Agent()
             .WithModel(model)
             .WithInitialPrompt(systemPrompt)
             .CreateAsync(interactiveResponse: true);
-        
+
         bool conversationActive = true;
         while (conversationActive)
         {
-            PrintColored("You > ", UserColor, false);
+            PrintColored("You > ", _userColor, false);
             string userMessage = Console.ReadLine()!;
-            
-            if (userMessage.ToLower() == "exit" || userMessage.ToLower() == "quit")
+
+            if (userMessage.ToLower() is "exit" or "quit")
             {
                 conversationActive = false;
                 continue;
             }
-            
-            PrintColored($"{agentName} > ", AgentColor, false);
+
+            PrintColored($"{agentName} > ", _agentColor, false);
             await context.ProcessAsync(userMessage);
-            
-            Console.WriteLine(); 
+
+            Console.WriteLine();
         }
-        
-        PrintColored("Conversation ended. Goodbye!", SystemColor);
+
+        PrintColored("Conversation ended. Goodbye!", _systemColor);
     }
-    
+
     private static void PrintColored(string message, ConsoleColor color, bool newLine = true)
     {
         Console.ForegroundColor = color;
@@ -67,6 +67,7 @@ public class AgentConversationExample : IExample
         {
             Console.Write(message);
         }
+
         Console.ResetColor();
     }
 }

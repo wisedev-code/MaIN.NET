@@ -1,6 +1,3 @@
-﻿using System.Collections.Concurrent;
-using System.Text;
-using System.Text.Json;
 using LLama;
 using LLama.Batched;
 using LLama.Common;
@@ -8,8 +5,8 @@ using LLama.Native;
 using LLama.Sampling;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
-using MaIN.Domain.Exceptions.Models;
 using MaIN.Domain.Entities.Tools;
+using MaIN.Domain.Exceptions.Models;
 using MaIN.Domain.Models;
 using MaIN.Domain.Models.Abstract;
 using MaIN.Services.Constants;
@@ -19,6 +16,9 @@ using MaIN.Services.Services.LLMService.Utils;
 using MaIN.Services.Services.Models;
 using MaIN.Services.Utils;
 using Microsoft.KernelMemory;
+using System.Collections.Concurrent;
+using System.Text;
+using System.Text.Json;
 using Grammar = LLama.Sampling.Grammar;
 using InferenceParams = MaIN.Domain.Entities.InferenceParams;
 #pragma warning disable KMEXP00
@@ -70,7 +70,7 @@ public class LLMService : ILLMService
             return await AskMemory(chat, memoryOptions, requestOptions, cancellationToken);
         }
 
-        if (chat.ToolsConfiguration?.Tools != null && chat.ToolsConfiguration.Tools.Count != 0)
+        if (chat.ToolsConfiguration?.Tools is not null && chat.ToolsConfiguration.Tools.Count != 0)
         {
             return await ProcessWithToolsAsync(chat, requestOptions, cancellationToken);
         }
@@ -85,7 +85,7 @@ public class LLMService : ILLMService
     {
         var models = Directory.GetFiles(modelsPath, "*.gguf", SearchOption.AllDirectories)
             .Select(Path.GetFileName)
-            .Where(fileName => ModelRegistry.GetByFileName(fileName!) != null)
+            .Where(fileName => ModelRegistry.GetByFileName(fileName!) is not null)
             .Select(fileName => ModelRegistry.GetByFileName(fileName!)!.Name)
             .ToArray();
 
@@ -102,7 +102,6 @@ public class LLMService : ILLMService
         session.Executor.Context.Dispose();
         return Task.CompletedTask;
     }
-
 
     public async Task<ChatResult?> AskMemory(
         Chat chat,
@@ -160,6 +159,7 @@ public class LLMService : ILLMService
             return chatResult;
         }
 
+
         MemoryAnswer result;
 
         var tokens = new List<LLMTokenValue>();
@@ -197,8 +197,10 @@ public class LLMService : ILLMService
                             ServiceConstants.Notifications.ReceiveMessageUpdate);
                     }
 
-                    if (requestOptions.TokenCallback != null)
+                    if (requestOptions.TokenCallback is not null)
+                    {
                         await requestOptions.TokenCallback(tokenValue);
+                    }
                 }
             }
 
@@ -230,6 +232,7 @@ public class LLMService : ILLMService
             ModelLoader.RemoveModel(model.FileName);
             textGenerator.Dispose();
         }
+
         generator._embedder.Dispose();
         generator._embedder._weights.Dispose();
         generator.Dispose();
@@ -330,8 +333,8 @@ public class LLMService : ILLMService
         };
     }
 
-
-    private static async Task<(Conversation Conversation, bool IsComplete, bool HasFailed)> InitializeConversation(Chat chat,
+    private static async Task<(Conversation Conversation, bool IsComplete, bool HasFailed)> InitializeConversation(
+        Chat chat,
         Message lastMsg,
         LocalModel model,
         LLamaWeights llmModel,
@@ -339,7 +342,7 @@ public class LLMService : ILLMService
         BatchedExecutor executor,
         CancellationToken cancellationToken)
     {
-        var isNewConversation = chat.ConversationState == null;
+        var isNewConversation = chat.ConversationState is null;
         var conversation = isNewConversation
             ? executor.Create()
             : executor.Load(chat.ConversationState!);
@@ -387,7 +390,7 @@ public class LLMService : ILLMService
         var template = new LLamaTemplate(llmModel);
         var finalPrompt = ChatHelper.GetFinalPrompt(lastMsg, model, isNewConversation);
 
-        var hasTools = chat.ToolsConfiguration?.Tools != null && chat.ToolsConfiguration.Tools.Count != 0;
+        var hasTools = chat.ToolsConfiguration?.Tools is not null && chat.ToolsConfiguration.Tools.Count != 0;
 
         if (isNewConversation)
         {
@@ -521,38 +524,33 @@ public class LLMService : ILLMService
                 requestOptions.TokenCallback?.Invoke(tokenValue);
             }
         }
-        
-        
 
         return (tokens, isComplete, hasFailed);
     }
 
     private static BaseSamplingPipeline CreateSampler(InferenceParams interferenceParams)
     {
-        if (interferenceParams.Temperature == 0)
-        {
-            return new GreedySamplingPipeline()
+        return interferenceParams.Temperature == 0
+            ? new GreedySamplingPipeline()
             {
-                Grammar = interferenceParams.Grammar != null ? new Grammar(interferenceParams.Grammar.Value, "root") : null
+                Grammar = interferenceParams.Grammar is not null
+                    ? new Grammar(interferenceParams.Grammar.Value, "root")
+                    : null
+            }
+            : new DefaultSamplingPipeline()
+            {
+                Temperature = interferenceParams.Temperature,
+                TopP = interferenceParams.TopP,
+                TopK = interferenceParams.TopK,
+                Grammar = interferenceParams.Grammar is not null
+                    ? new Grammar(interferenceParams.Grammar.Value, "root")
+                    : null
             };
-        }
-
-        return new DefaultSamplingPipeline()
-        {
-            Temperature = interferenceParams.Temperature,
-            TopP = interferenceParams.TopP,
-            TopK = interferenceParams.TopK,
-            Grammar = interferenceParams.Grammar != null ? new Grammar(interferenceParams.Grammar.Value, "root") : null
-        };
     }
 
     private static LocalModel GetLocalModel(Chat chat)
     {
-        // 1. Use stored model instance if available
-        if (chat.ModelInstance is LocalModel storedLocal)
-            return storedLocal;
-
-        // 2. Try registry lookup (TryGetById to avoid throwing for unregistered models)
+        // Try registry lookup (TryGetById to avoid throwing for unregistered models)
         if (ModelRegistry.TryGetById(chat.ModelId, out var model) && model is LocalModel localModel)
             return localModel;
 
@@ -638,7 +636,7 @@ public class LLMService : ILLMService
         ChatRequestOptions requestOptions,
         CancellationToken cancellationToken)
     {
-        var model = chat.ModelInstance ?? throw new MissingModelInstanceException();
+        var model = ModelRegistry.GetById(chat.ModelId);
         if (model is not LocalModel localModel)
         {
             throw new InvalidModelTypeException(nameof(LocalModel));
@@ -688,11 +686,14 @@ public class LLMService : ILLMService
                 {
                     requestOptions.InteractiveUpdates = true;
                     requestOptions.TokenCallback = tokenCallbackOrg;
-                    await SendNotification(chat.Id, new LLMTokenValue
-                    {
-                        Type = TokenType.FullAnswer,
-                        Text = lastResponse
-                    }, false);
+                    await SendNotification(
+                        chat.Id,
+                        new LLMTokenValue
+                        {
+                            Type = TokenType.FullAnswer,
+                            Text = lastResponse
+                        },
+                        false);
                     break;
                 }
             }
@@ -701,7 +702,7 @@ public class LLMService : ILLMService
             responseMessage.Properties[ToolCallsProperty] = JsonSerializer.Serialize(toolCalls);
 
             foreach (var toolCall in toolCalls)
-            {                
+            {
                 if (chat.Properties.CheckProperty(ServiceConstants.Properties.AgentIdProperty))
                 {
                     await notificationService.DispatchNotification(
@@ -714,12 +715,11 @@ public class LLMService : ILLMService
 
                 var executor = chat.ToolsConfiguration?.GetExecutor(toolCall.Function.Name);
 
-                if (executor == null)
+                if (executor is null)
                 {
                     var errorMessage = $"No executor found for tool: {toolCall.Function.Name}";
                     throw new InvalidOperationException(errorMessage);
                 }
-
 
                 try
                 {
@@ -786,11 +786,14 @@ public class LLMService : ILLMService
             };
             chat.Messages.Add(iterationMessage.MarkProcessed());
 
-            await SendNotification(chat.Id, new LLMTokenValue
-            {
-                Type = TokenType.FullAnswer,
-                Text = errorMessage
-            }, false);
+            await SendNotification(
+                chat.Id,
+                new LLMTokenValue
+                {
+                    Type = TokenType.FullAnswer,
+                    Text = errorMessage
+                },
+                false);
         }
 
         return new ChatResult
