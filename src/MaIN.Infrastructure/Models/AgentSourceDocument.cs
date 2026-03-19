@@ -1,6 +1,6 @@
 namespace MaIN.Infrastructure.Models;
 
-public class AgentSourceDocument
+internal class AgentSourceDocument
 {
     public string? DetailsSerialized { get; init; }
     public AgentSourceTypeDocument Type { get; init; }

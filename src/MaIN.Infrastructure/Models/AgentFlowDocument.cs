@@ -2,7 +2,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace MaIN.Infrastructure.Models;
 
-public class AgentFlowDocument
+internal class AgentFlowDocument
 {
     [BsonId]
     public required string Id { get; init; }

@@ -1,14 +1,13 @@
-using System.Text.RegularExpressions;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
 using MaIN.Domain.Entities.Agents.Knowledge;
 using MaIN.Domain.Entities.Tools;
-using MaIN.Domain.Models;
 using MaIN.Domain.Exceptions.Agents;
-using MaIN.Infrastructure.Repositories.Abstract;
+using MaIN.Domain.Models;
+using MaIN.Domain.Models.Abstract;
+using MaIN.Domain.Repositories;
 using MaIN.Services.Constants;
-using MaIN.Services.Mappers;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.ImageGenServices;
 using MaIN.Services.Services.LLMService.Factory;
@@ -16,6 +15,7 @@ using MaIN.Services.Services.Models.Commands;
 using MaIN.Services.Services.Steps.Commands.Abstract;
 using MaIN.Services.Utils;
 using Microsoft.Extensions.Logging;
+using System.Text.RegularExpressions;
 using static System.Text.RegularExpressions.Regex;
 
 namespace MaIN.Services.Services;
@@ -39,24 +39,19 @@ public class AgentService(
         Func<LLMTokenValue, Task>? callbackToken = null,
         Func<ToolInvocation, Task>? callbackTool = null)
     {
-        var agent = await agentRepository.GetAgentById(agentId);
-        if (agent == null)
-        {
-            throw new AgentNotFoundException(agentId);
-        } 
-        
-        if (agent.Context == null)
-        {
-            throw new AgentContextNotFoundException(agentId);
-        } 
+        var agent = await agentRepository.GetAgentById(agentId) ?? throw new AgentNotFoundException(agentId);
 
         await notificationService.DispatchNotification(
-            NotificationMessageBuilder.ProcessingStarted(agentId, agent.CurrentBehaviour, "STARTED"), "ReceiveAgentUpdate");
+            NotificationMessageBuilder.ProcessingStarted(
+                agentId,
+                agent.CurrentBehaviour,
+                "STARTED"),
+            "ReceiveAgentUpdate");
 
         try
         {
             chat = await stepProcessor.ProcessSteps(
-                agent.Context,
+                agent.Config,
                 agent,
                 knowledge,
                 chat,
@@ -65,30 +60,35 @@ public class AgentService(
                 async (status, id, progress, behaviour, details) =>
                 {
                     await notificationService.DispatchNotification(
-                        NotificationMessageBuilder.CreateActorProgress(id, status, progress, behaviour, details), "ReceiveAgentUpdate"); //TODO prepare static lookup for magic string :) 
+                        NotificationMessageBuilder.CreateActorProgress(id, status, progress, behaviour, details),
+                        "ReceiveAgentUpdate"); //TODO prepare static lookup for magic string :) 
                 },
-                async c => await chatRepository.UpdateChat(c.Id, c.ToDocument()),
+                async c => await chatRepository.UpdateChat(c.Id, c),
                 logger
             );
 
             await agentRepository.UpdateAgent(agent.Id, agent);
 
             await notificationService.DispatchNotification(
-                NotificationMessageBuilder.ProcessingComplete(agentId, agent.CurrentBehaviour, "COMPLETED"), "ReceiveAgentUpdate");
+                NotificationMessageBuilder.ProcessingComplete(
+                    agentId,
+                    agent.CurrentBehaviour,
+                    "COMPLETED"), "ReceiveAgentUpdate");
 
             //normalize message before returning it to user
             chat.Messages.Last().Content = Replace(
-                chat.Messages.Last().Content, 
-                @"<source>.*?</source>", 
-                string.Empty, 
-                RegexOptions.Singleline);           
-            
+                chat.Messages.Last().Content,
+                @"<source>.*?</source>",
+                string.Empty,
+                RegexOptions.Singleline);
+
             return chat;
         }
         catch (Exception ex)
         {
             await notificationService.DispatchNotification(
-                NotificationMessageBuilder.ProcessingFailed(agentId, agent.CurrentBehaviour, ex.Message), "ReceiveAgentUpdate");
+                NotificationMessageBuilder.ProcessingFailed(agentId, agent.CurrentBehaviour, ex.Message),
+                "ReceiveAgentUpdate");
             throw;
         }
     }
@@ -105,9 +105,8 @@ public class AgentService(
             ToolsConfiguration = agent.ToolsConfiguration,
             BackendParams = inferenceParams ?? new LocalInferenceParams(),
             MemoryParams = memoryParams ?? new MemoryParams(),
-            Messages = new List<Message>(),
+            Messages = [],
             Interactive = interactiveResponse,
-            Backend = agent.Backend,
             Type = flow ? ChatType.Flow : ChatType.Rag,
         };
 
@@ -120,74 +119,65 @@ public class AgentService(
         var startCommand = new StartCommand
         {
             Chat = chat,
-            InitialPrompt = agent.Context.Instruction
+            InitialPrompt = agent.Config.Instruction
         };
 
         await commandDispatcher.DispatchAsync(startCommand);
 
         agent.Started = true;
         agent.Flow = flow;
-        agent.Behaviours ??= new Dictionary<string, string>();
-        agent.Behaviours.Add("Default", agent.Context.Instruction!);
+        agent.ChatId = chat.Id;
+        agent.Behaviours ??= [];
+        agent.Behaviours.Add("Default", agent.Config.Instruction!);
         agent.CurrentBehaviour = "Default";
 
-        var agentDocument = agent.ToDocument();
-        agentDocument.ChatId = chat.Id;
-
-        await chatRepository.AddChat(chat.ToDocument());
-        await agentRepository.AddAgent(agentDocument);
+        await chatRepository.AddChat(chat);
+        await agentRepository.AddAgent(agent);
 
         return agent;
     }
 
     public async Task<Chat> GetChatByAgent(string agentId)
     {
-        var agent = await agentRepository.GetAgentById(agentId);
-        if (agent == null)
-        {
-            throw new AgentNotFoundException(agentId);
-        }
-        
+        var agent = await agentRepository.GetAgentById(agentId) ?? throw new AgentNotFoundException(agentId);
+
         var chat = await chatRepository.GetChatById(agent.ChatId);
-        return chat!.ToDomain();
+        return chat!;
     }
 
     public async Task<Chat> Restart(string agentId)
     {
-        var agent = await agentRepository.GetAgentById(agentId);
-        if (agent == null)
-        {
-            throw new AgentNotFoundException(agentId);
-        }
-        
-        var chat = (await chatRepository.GetChatById(agent.ChatId))!.ToDomain();
-        var llmService = llmServiceFactory.CreateService(agent.Backend ?? maInSettings.BackendType);
+        var agent = await agentRepository.GetAgentById(agentId) ?? throw new AgentNotFoundException(agentId);
+
+        var chat = (await chatRepository.GetChatById(agent.ChatId))!;
+        var backend = ModelRegistry.TryGetById(chat.ModelId, out var model)
+            ? model!.Backend
+            : maInSettings.BackendType;
+        var llmService = llmServiceFactory.CreateService(backend);
         await llmService.CleanSessionCache(chat.Id!);
         AgentStateManager.ClearState(agent, chat);
 
-        await chatRepository.UpdateChat(chat.Id!, chat.ToDocument());
+        await chatRepository.UpdateChat(chat.Id!, chat);
         await agentRepository.UpdateAgent(agent.Id, agent);
 
         return chat;
     }
 
-    public async Task<List<Agent>> GetAgents() =>
-        (await agentRepository.GetAllAgents())
-        .Select(x => x.ToDomain())
-        .ToList();
+    public async Task<List<Agent>> GetAgents() => [.. await agentRepository.GetAllAgents()];
 
-    public async Task<Agent?> GetAgentById(string id) =>
-        (await agentRepository.GetAgentById(id))?.ToDomain();
+    public async Task<Agent?> GetAgentById(string id) => await agentRepository.GetAgentById(id);
 
     public async Task DeleteAgent(string id)
     {
         var chat = await GetChatByAgent(id);
-        var llmService = llmServiceFactory.CreateService(chat.Backend ?? maInSettings.BackendType);
+        var backend = ModelRegistry.TryGetById(chat.ModelId, out var model)
+            ? model!.Backend
+            : maInSettings.BackendType;
+        var llmService = llmServiceFactory.CreateService(backend);
         await llmService.CleanSessionCache(chat.Id);
         await chatRepository.DeleteChat(chat.Id);
         await agentRepository.DeleteAgent(id);
     }
 
-    public Task<bool> AgentExists(string id) =>
-        agentRepository.Exists(id);
+    public Task<bool> AgentExists(string id) => agentRepository.Exists(id);
 }

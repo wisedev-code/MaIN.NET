@@ -1,7 +1,8 @@
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Exceptions;
-using MaIN.Services.Mappers;
+using MaIN.Domain.Exceptions.Agents;
+using MaIN.Domain.Models.Abstract;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
 using MaIN.Services.Services.Models.Commands;
@@ -14,7 +15,7 @@ public class FetchDataStepHandler(
 {
     public string StepName => "FETCH_DATA";
     public string[] SupportedSteps => ["FETCH_DATA", "FETCH_DATA*"];
-    
+
     public async Task<StepResult> Handle(StepContext context)
     {
         var respondAsSystem = context.Arguments.Contains("AS_SYSTEM");
@@ -28,48 +29,51 @@ public class FetchDataStepHandler(
         {
             Chat = context.Chat,
             Filter = filter ?? string.Empty,
-            Context = context.Agent.Context!.ToDomain(),
+            Context = context.Agent.Config!,
             ResponseType = respondAsSystem ? FetchResponseType.AS_System : FetchResponseType.AS_Answer,
             MemoryChat = CreateMemoryChat(context, filter)
         };
 
-        var response = await commandDispatcher.DispatchAsync(fetchCommand);
-        if (response == null)
-        {
-            throw new CommandFailedException(fetchCommand.CommandName);
-        }
+        var response = await commandDispatcher.DispatchAsync(fetchCommand)
+            ?? throw new CommandFailedException(fetchCommand.CommandName);
 
         if (context.StepName == "FETCH_DATA*")
         {
             context.Chat.Properties["FETCH_DATA*"] = string.Empty;
         }
-        
+
         context.Chat.Messages.Add(response);
-        
-        return new StepResult { 
-            Chat = context.Chat, 
-            RedirectMessage = context.Chat.Messages.Last() 
+
+        return new StepResult
+        {
+            Chat = context.Chat,
+            RedirectMessage = context.Chat.Messages.Last()
         };
     }
-    
+
     private static Chat CreateMemoryChat(StepContext context, string? filterVal)
     {
+        if (!ModelRegistry.TryGetById(context.Chat.ModelId, out var model))
+        {
+            throw new AgentModelNotAvailableException(context.Agent.Id, context.Chat.ModelId);
+        }
+
+        var backend = model!.Backend;
         return new Chat
         {
-            Messages = new List<Message>
-            {
+            Messages =
+            [
                 new()
                 {
                     Content = context.Agent.Behaviours[context.Agent.CurrentBehaviour].Replace("@filter@", filterVal ?? string.Empty),
-                    Type = context.Chat.Backend != BackendType.Self ? MessageType.CloudLLM : MessageType.LocalLLM,
+                    Type = backend != BackendType.Self ? MessageType.CloudLLM : MessageType.LocalLLM,
                     Role = "User"
                 }
-            },
+            ],
             ModelId = context.Chat.ModelId,
             Properties = context.Chat.Properties,
             MemoryParams = context.Chat.MemoryParams,
             BackendParams = context.Chat.BackendParams,
-            Backend = context.Chat.Backend,
             Name = "Memory Chat",
             Id = Guid.NewGuid().ToString()
         };

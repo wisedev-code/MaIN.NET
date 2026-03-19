@@ -1,5 +1,5 @@
 using MaIN.Core.Hub;
-using MaIN.Domain.Models.Concrete;
+using MaIN.Domain.Models;
 
 namespace Examples.Chat;
 
@@ -14,7 +14,7 @@ public class ChatWithVisionExample : IExample
             Path.Combine(AppContext.BaseDirectory, "Files", "gamex.jpg"));
 
         await AIHub.Chat()
-            .WithModel<Llava16Mistral_7b>()
+            .WithModel(Models.Local.Llava16Mistral_7b)
             .WithMessage("What can you see on the image?", image)
             .CompleteAsync(interactive: true);
     }

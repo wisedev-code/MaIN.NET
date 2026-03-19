@@ -1,5 +1,6 @@
 using MaIN.Core.Hub;
 using MaIN.Core.Hub.Utils;
+using MaIN.Domain.Models;
 
 namespace Examples.Agents;
 
@@ -15,7 +16,7 @@ public class AgentTalkingToEachOtherExample : IExample
              You prioritize kindness, patience, and understanding in every interaction. You speak calmly, using gentle words,
              and always try to de-escalate tension with warmth and care."
             """;
-        
+
         var systemPromptSecond =
             """
             You are intense, blunt, and always on edge. Your tone is sharp, impatient, and confrontational.
@@ -24,18 +25,18 @@ public class AgentTalkingToEachOtherExample : IExample
             """;
 
         var idFirst = Guid.NewGuid().ToString();
-        
+
         var contextSecond = AIHub.Agent()
-            .WithModel("gemma2:2b")
+            .WithModel(Models.Local.Gemma2_2b)
             .WithInitialPrompt(systemPromptSecond)
             .WithSteps(StepBuilder.Instance
                 .Answer()
                 .Redirect(agentId: idFirst, mode: "USER")
                 .Build())
             .Create(interactiveResponse: true);
-        
+
         var context = AIHub.Agent()
-            .WithModel("llama3.2:3b")
+            .WithModel(Models.Local.Llama3_2_3b)
             .WithId(idFirst)
             .WithInitialPrompt(systemPrompt)
             .WithSteps(StepBuilder.Instance
@@ -43,7 +44,7 @@ public class AgentTalkingToEachOtherExample : IExample
                 .Redirect(agentId: contextSecond.GetAgentId(), mode: "USER")
                 .Build())
             .Create(interactiveResponse: true);
-        
+
         await context
             .ProcessAsync("Introduce yourself, and start conversation!");
 

@@ -1,6 +1,7 @@
 using MaIN.Core.Hub;
 using MaIN.Core.Hub.Utils;
 using MaIN.Domain.Configuration;
+using MaIN.Domain.Models;
 
 namespace Examples.Mcp;
 
@@ -14,17 +15,16 @@ public class AgentWithKnowledgeMcpExample : IExample
 
         AIHub.Extensions.DisableLLamaLogs();
         var context = await AIHub.Agent()
-            .WithModel("gpt-4.1-mini")
-            .WithBackend(BackendType.OpenAi)
+            .WithModel(Models.OpenAi.Gpt4_1Mini)
             .WithKnowledge(KnowledgeBuilder.Instance
                 .AddMcp(new MaIN.Domain.Entities.Mcp
                 {
                     Name = "ExaDeepSearch",
                     Arguments = ["-y", "exa-mcp-server"],
                     Command = "npx",
-                    EnvironmentVariables = {{"EXA_API_KEY","<raw_key>"}},
+                    EnvironmentVariables = { { "EXA_API_KEY", "<raw_key>" } },
                     Backend = BackendType.Gemini,
-                    Model = "gemini-2.0-flash"
+                    Model = Models.Gemini.Gemini2_0Flash
                 }, ["search", "browser", "web access", "research"])
                 .AddMcp(new MaIN.Domain.Entities.Mcp
                 {
@@ -36,7 +36,7 @@ public class AgentWithKnowledgeMcpExample : IExample
                         "C:\\WiseDev" //Align paths to fit your system
                         ], //Align paths to fit your system
                     Backend = BackendType.GroqCloud,
-                    Model = "openai/gpt-oss-20b"
+                    Model = Models.Groq.GptOss20b
                 }, ["filesystem", "file operations", "read write", "disk search"])
                 .AddMcp(new MaIN.Domain.Entities.Mcp
                 {
@@ -44,7 +44,7 @@ public class AgentWithKnowledgeMcpExample : IExample
                     Command = "npx",
                     Arguments = ["octocode-mcp"],
                     Backend = BackendType.OpenAi,
-                    Model = "gpt-5-nano"
+                    Model = Models.OpenAi.Gpt5Nano
                 }, ["code", "github", "repository", "packages", "npm"]))
             .WithSteps(StepBuilder.Instance
                 .AnswerUseKnowledge()
@@ -58,15 +58,22 @@ public class AgentWithKnowledgeMcpExample : IExample
             Console.ForegroundColor = ConsoleColor.Blue;
             Console.Write("You: ");
             Console.ResetColor();
-            
+
             var input = Console.ReadLine();
-            
-            if (input?.ToLower() == "exit") break;
-            if (string.IsNullOrWhiteSpace(input)) continue;
+
+            if (input?.ToLower() == "exit")
+            {
+                break;
+            }
+
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                continue;
+            }
 
             Console.ForegroundColor = ConsoleColor.Green;
             Console.Write("Agent: ");
-            
+
             var result = await context.ProcessAsync(input);
             Console.WriteLine(result.Message.Content);
             Console.ResetColor();

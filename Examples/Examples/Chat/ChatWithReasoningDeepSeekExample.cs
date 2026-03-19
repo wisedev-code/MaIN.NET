@@ -1,6 +1,6 @@
 using Examples.Utils;
 using MaIN.Core.Hub;
-using MaIN.Domain.Models.Concrete;
+using MaIN.Domain.Models;
 
 namespace Examples.Chat;
 
@@ -12,7 +12,7 @@ public class ChatWithReasoningDeepSeekExample : IExample
         Console.WriteLine("(DeepSeek) ChatExample with reasoning is running!");
 
         await AIHub.Chat()
-            .WithModel<DeepSeekReasoner>() // a model that supports reasoning
+            .WithModel(Models.DeepSeek.Reasoner) // a model that supports reasoning
             .WithMessage("What chill pc game do you recommend?")
             .CompleteAsync(interactive: true);
     }

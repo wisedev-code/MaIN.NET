@@ -1,4 +1,4 @@
-﻿@page "/"
+@page "/"
 @rendermode @(new InteractiveServerRenderMode(prerender: true))
 @inject IJSRuntime JS
 @inject SettingsService SettingsStorage
@@ -309,11 +309,11 @@
             var model = ResolveModel();
             if (model != null)
             {
-                var newCtx = AIHub.Chat().WithModel(model, imageGen: Utils.ImageGen);
-                // Set backend and provider params before adding messages.
+                ModelRegistry.RegisterOrReplace(model);
+                var newCtx = AIHub.Chat().WithModel(model.Id);
+                // Set backend params before adding messages.
                 // Cast is safe — ChatContext implements both IChatMessageBuilder and IChatConfigurationBuilder.
                 ((IChatConfigurationBuilder)newCtx)
-                    .WithBackend(Utils.BackendType)
                     .WithInferenceParams(BackendParamsFactory.Create(Utils.BackendType));
                 // Preserve history on model switch.
                 ctx = Chat.Messages.Count > 0
@@ -391,6 +391,7 @@
         // Cloud model — pick the right generic type based on capabilities
         bool vision = Utils.Vision;
         bool reasoning = Utils.Reason;
+        bool imageGen = Utils.ImageGen;
 
         if (vision && reasoning)
             return new GenericCloudVisionReasoningModel(Id: Utils.Model, Backend: Utils.BackendType);
@@ -398,6 +399,8 @@
             return new GenericCloudVisionModel(Id: Utils.Model, Backend: Utils.BackendType);
         if (reasoning)
             return new GenericCloudReasoningModel(Id: Utils.Model, Backend: Utils.BackendType);
+        if (imageGen)
+            return new GenericImageGenerationCloudModel(Id: Utils.Model, Backend: Utils.BackendType);
 
         return new GenericCloudModel(Id: Utils.Model, Backend: Utils.BackendType);
     }

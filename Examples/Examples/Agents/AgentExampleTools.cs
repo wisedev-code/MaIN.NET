@@ -1,6 +1,7 @@
 using Examples.Utils;
 using MaIN.Core.Hub;
 using MaIN.Core.Hub.Utils;
+using MaIN.Domain.Models;
 
 namespace Examples.Agents;
 
@@ -12,7 +13,7 @@ public class AgentExampleTools : IExample
         Console.WriteLine("(Anthropic) Tool example is running!");
 
         var context = await AIHub.Agent()
-            .WithModel("claude-sonnet-4-5-20250929")
+            .WithModel(Models.Anthropic.ClaudeSonnet4_5)
             .WithSteps(StepBuilder.Instance
                 .Answer()
                 .Build())

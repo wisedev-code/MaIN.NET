@@ -11,8 +11,8 @@ public class Agent
     public string? Description { get; init; }
     public bool Started { get; set; }
     public bool Flow { get; set; }
-    public required AgentData Context { get; init; }
-    public string ChatId => string.Empty;
+    public required AgentConfig Config { get; init; }
+    public string ChatId { get; set; } = string.Empty;
     public int Order { get; set; }
     public BackendType? Backend { get; set; }
     public Dictionary<string, string> Behaviours { get; set; } = [];
