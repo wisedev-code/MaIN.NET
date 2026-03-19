@@ -8,7 +8,7 @@ namespace MaIN.Services.Services.Models.Commands;
 public class FetchCommand : BaseCommand, ICommand<Message?>
 {
     public string? Filter { get; init; }
-    public required AgentData Context { get; init; }
+    public required AgentConfig Context { get; init; }
     public string CommandName => "FETCH_DATA";
     public Chat? MemoryChat { get; set; }
     public FetchResponseType ResponseType { get; set; }

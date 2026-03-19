@@ -1,9 +1,9 @@
-using System.Text.Json.Serialization;
 using MaIN.Services.Dtos.Rag.AgentSource;
+using System.Text.Json.Serialization;
 
 namespace MaIN.Services.Dtos.Rag;
 
-public class AgentContextDto
+public class AgentConfigDto
 {
     [JsonPropertyName("instruction")]
     public string Instruction { get; init; } = null!;
@@ -16,5 +16,4 @@ public class AgentContextDto
 
     [JsonPropertyName("relations")]
     public List<string>? Relations { get; init; }
-
 }
