@@ -3,7 +3,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace MaIN.Infrastructure.Models;
 
-public class ChatDocument
+internal class ChatDocument
 {
     [BsonId]
     public required string Id { get; init; }

@@ -20,8 +20,8 @@ public class BecomeStepHandler : IStepHandler
         }
 
         var newBehaviour = context.Arguments[0];
-        var messageFilter = context.Agent.Behaviours.GetValueOrDefault(newBehaviour) ??
-                            context.Agent.Context!.Instruction;
+        var messageFilter = context.Agent.Behaviours.GetValueOrDefault(newBehaviour)
+            ?? context.Agent.Config!.Instruction;
 
         if (context.Chat.Properties.TryGetValue("data_filter", out var filterQuery))
         {
@@ -31,7 +31,7 @@ public class BecomeStepHandler : IStepHandler
         }
 
         context.Agent.CurrentBehaviour = newBehaviour;
-        context.Chat.Messages[0].Content = messageFilter ?? context.Agent.Context!.Instruction!;
+        context.Chat.Messages[0].Content = messageFilter ?? context.Agent.Config!.Instruction!;
 
         await context.NotifyProgress("true", context.Agent.Id, null, context.Agent.CurrentBehaviour, StepName);
 

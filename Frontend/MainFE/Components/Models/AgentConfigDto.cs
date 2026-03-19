@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace MaIN.Models.Rag;
 
-public class AgentContextDto
+public class AgentConfigDto
 {
     [JsonPropertyName("instruction")]
     public string Instruction { get; set; }

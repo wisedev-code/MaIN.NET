@@ -1,6 +1,6 @@
 namespace MaIN.Infrastructure.Models;
 
-public class MessageDocument
+internal class MessageDocument
 {
     public required string Role { get; init; }
     public required string Content { get; init; }

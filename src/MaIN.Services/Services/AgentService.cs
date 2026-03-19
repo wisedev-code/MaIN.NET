@@ -6,9 +6,8 @@ using MaIN.Domain.Entities.Tools;
 using MaIN.Domain.Exceptions.Agents;
 using MaIN.Domain.Models;
 using MaIN.Domain.Models.Abstract;
-using MaIN.Infrastructure.Repositories.Abstract;
+using MaIN.Domain.Repositories;
 using MaIN.Services.Constants;
-using MaIN.Services.Mappers;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.ImageGenServices;
 using MaIN.Services.Services.LLMService.Factory;
@@ -42,11 +41,6 @@ public class AgentService(
     {
         var agent = await agentRepository.GetAgentById(agentId) ?? throw new AgentNotFoundException(agentId);
 
-        if (agent.Context is null)
-        {
-            throw new AgentContextNotFoundException(agentId);
-        }
-
         await notificationService.DispatchNotification(
             NotificationMessageBuilder.ProcessingStarted(
                 agentId,
@@ -57,7 +51,7 @@ public class AgentService(
         try
         {
             chat = await stepProcessor.ProcessSteps(
-                agent.Context,
+                agent.Config,
                 agent,
                 knowledge,
                 chat,
@@ -69,7 +63,7 @@ public class AgentService(
                         NotificationMessageBuilder.CreateActorProgress(id, status, progress, behaviour, details),
                         "ReceiveAgentUpdate"); //TODO prepare static lookup for magic string :) 
                 },
-                async c => await chatRepository.UpdateChat(c.Id, c.ToDocument()),
+                async c => await chatRepository.UpdateChat(c.Id, c),
                 logger
             );
 
@@ -125,7 +119,7 @@ public class AgentService(
         var startCommand = new StartCommand
         {
             Chat = chat,
-            InitialPrompt = agent.Context.Instruction
+            InitialPrompt = agent.Config.Instruction
         };
 
         await commandDispatcher.DispatchAsync(startCommand);
@@ -134,11 +128,11 @@ public class AgentService(
         agent.Flow = flow;
         agent.ChatId = chat.Id;
         agent.Behaviours ??= [];
-        agent.Behaviours.Add("Default", agent.Context.Instruction!);
+        agent.Behaviours.Add("Default", agent.Config.Instruction!);
         agent.CurrentBehaviour = "Default";
 
-        await chatRepository.AddChat(chat.ToDocument());
-        await agentRepository.AddAgent(agent.ToDocument());
+        await chatRepository.AddChat(chat);
+        await agentRepository.AddAgent(agent);
 
         return agent;
     }
@@ -148,14 +142,14 @@ public class AgentService(
         var agent = await agentRepository.GetAgentById(agentId) ?? throw new AgentNotFoundException(agentId);
 
         var chat = await chatRepository.GetChatById(agent.ChatId);
-        return chat!.ToDomain();
+        return chat!;
     }
 
     public async Task<Chat> Restart(string agentId)
     {
         var agent = await agentRepository.GetAgentById(agentId) ?? throw new AgentNotFoundException(agentId);
 
-        var chat = (await chatRepository.GetChatById(agent.ChatId))!.ToDomain();
+        var chat = (await chatRepository.GetChatById(agent.ChatId))!;
         var backend = ModelRegistry.TryGetById(chat.ModelId, out var model)
             ? model!.Backend
             : maInSettings.BackendType;
@@ -163,15 +157,15 @@ public class AgentService(
         await llmService.CleanSessionCache(chat.Id!);
         AgentStateManager.ClearState(agent, chat);
 
-        await chatRepository.UpdateChat(chat.Id!, chat.ToDocument());
+        await chatRepository.UpdateChat(chat.Id!, chat);
         await agentRepository.UpdateAgent(agent.Id, agent);
 
         return chat;
     }
 
-    public async Task<List<Agent>> GetAgents() => [.. (await agentRepository.GetAllAgents()).Select(x => x.ToDomain())];
+    public async Task<List<Agent>> GetAgents() => [.. await agentRepository.GetAllAgents()];
 
-    public async Task<Agent?> GetAgentById(string id) => (await agentRepository.GetAgentById(id))?.ToDomain();
+    public async Task<Agent?> GetAgentById(string id) => await agentRepository.GetAgentById(id);
 
     public async Task DeleteAgent(string id)
     {

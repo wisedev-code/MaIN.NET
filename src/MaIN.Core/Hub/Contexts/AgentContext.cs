@@ -35,7 +35,7 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
             Description = "Agent created by MaIN",
             CurrentBehaviour = "Default",
             Flow = false,
-            Context = new AgentData()
+            Config = new AgentConfig()
             {
                 Instruction = "Hello, I'm your personal assistant. How can I assist you today?",
                 Relations = [],
@@ -84,7 +84,7 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
 
     public IAgentConfigurationBuilder WithInitialPrompt(string prompt)
     {
-        _agent.Context.Instruction = prompt;
+        _agent.Config.Instruction = prompt;
         return this;
     }
 
@@ -114,7 +114,7 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
 
     public IAgentConfigurationBuilder WithSource(IAgentSource source, AgentSourceType type)
     {
-        _agent.Context.Source = new AgentSource()
+        _agent.Config.Source = new AgentSource()
         {
             Details = source,
             Type = type
@@ -134,8 +134,7 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
         {
             mcpConfig.Backend = ModelRegistry.GetById(_agent.Model).Backend;
         }
-
-        _agent.Context.McpConfig = mcpConfig;
+        _agent.Config.McpConfig = mcpConfig;
         return this;
     }
 
@@ -153,7 +152,7 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
 
     public IAgentConfigurationBuilder WithSteps(List<string>? steps)
     {
-        _agent.Context.Steps = steps;
+        _agent.Config.Steps = steps;
         return this;
     }
 

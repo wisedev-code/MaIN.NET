@@ -25,7 +25,7 @@ public class FlowContextTests
         var testModel = new GenericLocalModel(_testModelId);
         ModelRegistry.RegisterOrReplace(testModel);
     }
-    
+
     [Fact]
     public async Task WithId_ShouldSetFlowId()
     {
@@ -34,7 +34,7 @@ public class FlowContextTests
 
         // Act
         var result = _flowContext.WithId(expectedId);
-        
+
         // Setup mock to return flow with the set ID
         _mockFlowService
             .Setup(s => s.GetFlowById(expectedId))
@@ -55,13 +55,14 @@ public class FlowContextTests
 
         // Act
         var result = _flowContext.WithName(expectedName);
-        
+
         // Setup mock to return flow with the set name
         _mockFlowService
             .Setup(s => s.GetFlowById(It.IsAny<string>()))
-            .ReturnsAsync(new AgentFlow { 
-                Id = It.IsAny<string>(), 
-                Name = expectedName 
+            .ReturnsAsync(new AgentFlow
+            {
+                Id = It.IsAny<string>(),
+                Name = expectedName
             });
 
         var flow = await _flowContext.GetCurrentFlow();
@@ -92,11 +93,17 @@ public class FlowContextTests
     public async Task ProcessAsync_WithStringMessage_ShouldReturnChatResult()
     {
         // Arrange
-        var firstAgent = new Agent { Id = "first-agent", Order = 0, CurrentBehaviour = It.IsAny<string>(), Context = new AgentData()};
+        var firstAgent = new Agent
+        {
+            Id = "first-agent",
+            Order = 0,
+            CurrentBehaviour = It.IsAny<string>(),
+            Config = new AgentConfig()
+        };
         _flowContext.AddAgent(firstAgent);
 
         var message = "Hello, flow!";
-        var chat = new Chat { Id = firstAgent.Id, Messages = new List<Message>(), ModelId = _testModelId, Name = "test"};
+        var chat = new Chat { Id = firstAgent.Id, Messages = [], ModelId = _testModelId, Name = "test" };
 
         _mockAgentService
             .Setup(s => s.GetChatByAgent(firstAgent.Id))
@@ -104,12 +111,14 @@ public class FlowContextTests
 
         _mockAgentService
             .Setup(s => s.Process(It.IsAny<Chat>(), firstAgent.Id, It.IsAny<Knowledge>(), It.IsAny<bool>(), null, null))
-            .ReturnsAsync(new Chat { 
-                ModelId = _testModelId, 
+            .ReturnsAsync(new Chat
+            {
+                ModelId = _testModelId,
                 Name = "test",
-                Messages = new List<Message> { 
-                    new() { Content = "Response", Role = "Assistant", Type = MessageType.LocalLLM} 
-                } 
+                Messages =
+                [
+                    new() { Content = "Response", Role = "Assistant", Type = MessageType.LocalLLM}
+                ]
             });
 
         // Act
@@ -165,9 +174,9 @@ public class FlowContextTests
     {
         // Arrange
         var existingFlowId = "existing-flow-id";
-        var existingFlow = new AgentFlow 
-        { 
-            Id = existingFlowId, 
+        var existingFlow = new AgentFlow
+        {
+            Id = existingFlowId,
             Name = "Existing Flow",
             Agents =
             [
@@ -175,7 +184,7 @@ public class FlowContextTests
                 {
                     Id = "agent1",
                     CurrentBehaviour = It.IsAny<string>(),
-                    Context = new AgentData()
+                    Config = new AgentConfig()
                 }
             ]
         };
