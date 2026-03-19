@@ -3,6 +3,7 @@ using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Configuration.BackendInferenceParams;
 using MaIN.Domain.Exceptions;
+using MaIN.Domain.Models;
 using MaIN.Domain.Models.Concrete;
 
 namespace MaIN.Core.IntegrationTests;
@@ -17,7 +18,7 @@ public class BackendParamsTests : IntegrationTestBase
         SkipIfMissingKey(LLMApiRegistry.GetEntry(BackendType.OpenAi)?.ApiKeyEnvName!);
 
         var result = await AIHub.Chat()
-            .WithModel<Gpt4oMini>()
+            .WithModel(Models.OpenAi.Gpt4oMini)
             .WithMessage(TestQuestion)
             .WithInferenceParams(new OpenAiInferenceParams
             {
@@ -39,7 +40,7 @@ public class BackendParamsTests : IntegrationTestBase
         SkipIfMissingKey(LLMApiRegistry.GetEntry(BackendType.Anthropic)?.ApiKeyEnvName!);
 
         var result = await AIHub.Chat()
-            .WithModel<ClaudeSonnet4>()
+            .WithModel(Models.Anthropic.ClaudeSonnet4)
             .WithMessage(TestQuestion)
             .WithInferenceParams(new AnthropicInferenceParams
             {
@@ -61,7 +62,7 @@ public class BackendParamsTests : IntegrationTestBase
         SkipIfMissingKey(LLMApiRegistry.GetEntry(BackendType.Gemini)?.ApiKeyEnvName!);
 
         var result = await AIHub.Chat()
-            .WithModel<Gemini2_0Flash>()
+            .WithModel(Models.Gemini.Gemini2_0Flash)
             .WithMessage(TestQuestion)
             .WithInferenceParams(new GeminiInferenceParams
             {
@@ -83,7 +84,7 @@ public class BackendParamsTests : IntegrationTestBase
         SkipIfMissingKey(LLMApiRegistry.GetEntry(BackendType.DeepSeek)?.ApiKeyEnvName!);
 
         var result = await AIHub.Chat()
-            .WithModel<DeepSeekReasoner>()
+            .WithModel(Models.DeepSeek.Reasoner)
             .WithMessage(TestQuestion)
             .WithInferenceParams(new DeepSeekInferenceParams
             {
@@ -105,7 +106,7 @@ public class BackendParamsTests : IntegrationTestBase
         SkipIfMissingKey(LLMApiRegistry.GetEntry(BackendType.GroqCloud)?.ApiKeyEnvName!);
 
         var result = await AIHub.Chat()
-            .WithModel<Llama3_1_8bInstant>()
+            .WithModel(Models.Groq.Llama3_1_8bInstant)
             .WithMessage(TestQuestion)
             .WithInferenceParams(new GroqCloudInferenceParams
             {
@@ -127,7 +128,7 @@ public class BackendParamsTests : IntegrationTestBase
         SkipIfMissingKey(LLMApiRegistry.GetEntry(BackendType.Xai)?.ApiKeyEnvName!);
 
         var result = await AIHub.Chat()
-            .WithModel<Grok3Beta>()
+            .WithModel(Models.Xai.Grok3Beta)
             .WithMessage(TestQuestion)
             .WithInferenceParams(new XaiInferenceParams
             {
@@ -149,7 +150,7 @@ public class BackendParamsTests : IntegrationTestBase
         Skip.If(!File.Exists("C:/Models/gemma2-2b.gguf"), "Local model not found at C:/Models/gemma2-2b.gguf");
 
         var result = await AIHub.Chat()
-            .WithModel<Gemma2_2b>()
+            .WithModel(Models.Local.Gemma2_2b)
             .WithMessage(TestQuestion)
             .WithInferenceParams(new LocalInferenceParams
             {
@@ -173,7 +174,7 @@ public class BackendParamsTests : IntegrationTestBase
         SkipIfOllamaNotRunning();
 
         var result = await AIHub.Chat()
-            .WithModel<OllamaGemma3_4b>()
+            .WithModel(Models.Ollama.Gemma3_4b)
             .WithMessage(TestQuestion)
             .WithInferenceParams(new OllamaInferenceParams
             {
@@ -197,7 +198,7 @@ public class BackendParamsTests : IntegrationTestBase
         SkipIfMissingKey(LLMApiRegistry.GetEntry(BackendType.Ollama)?.ApiKeyEnvName!);
 
         var result = await AIHub.Chat()
-            .WithModel<OllamaGemma3_4b>()
+            .WithModel(Models.Ollama.Gemma3_4b)
             .WithMessage(TestQuestion)
             .WithInferenceParams(new OllamaInferenceParams
             {
@@ -222,7 +223,7 @@ public class BackendParamsTests : IntegrationTestBase
     {
         await Assert.ThrowsAsync<InvalidBackendParamsException>(() =>
             AIHub.Chat()
-                .WithModel<Gemma2_2b>()
+                .WithModel(Models.Local.Gemma2_2b)
                 .WithMessage(TestQuestion)
                 .WithInferenceParams(new OpenAiInferenceParams())
                 .CompleteAsync());
@@ -233,7 +234,7 @@ public class BackendParamsTests : IntegrationTestBase
     {
         await Assert.ThrowsAsync<InvalidBackendParamsException>(() =>
             AIHub.Chat()
-                .WithModel<Gpt4oMini>()
+                .WithModel(Models.OpenAi.Gpt4oMini)
                 .WithMessage(TestQuestion)
                 .WithInferenceParams(new DeepSeekInferenceParams())
                 .CompleteAsync());
@@ -244,7 +245,7 @@ public class BackendParamsTests : IntegrationTestBase
     {
         await Assert.ThrowsAsync<InvalidBackendParamsException>(() =>
             AIHub.Chat()
-                .WithModel<ClaudeSonnet4>()
+                .WithModel(Models.Anthropic.ClaudeSonnet4)
                 .WithMessage(TestQuestion)
                 .WithInferenceParams(new OpenAiInferenceParams())
                 .CompleteAsync());
@@ -255,7 +256,7 @@ public class BackendParamsTests : IntegrationTestBase
     {
         await Assert.ThrowsAsync<InvalidBackendParamsException>(() =>
             AIHub.Chat()
-                .WithModel<Gemini2_0Flash>()
+                .WithModel(Models.Gemini.Gemini2_0Flash)
                 .WithMessage(TestQuestion)
                 .WithInferenceParams(new AnthropicInferenceParams())
                 .CompleteAsync());
@@ -266,7 +267,7 @@ public class BackendParamsTests : IntegrationTestBase
     {
         await Assert.ThrowsAsync<InvalidBackendParamsException>(() =>
             AIHub.Chat()
-                .WithModel<DeepSeekReasoner>()
+                .WithModel(Models.DeepSeek.Reasoner)
                 .WithMessage(TestQuestion)
                 .WithInferenceParams(new GeminiInferenceParams())
                 .CompleteAsync());
@@ -277,7 +278,7 @@ public class BackendParamsTests : IntegrationTestBase
     {
         await Assert.ThrowsAsync<InvalidBackendParamsException>(() =>
             AIHub.Chat()
-                .WithModel<Llama3_1_8bInstant>()
+                .WithModel(Models.Groq.Llama3_1_8bInstant)
                 .WithMessage(TestQuestion)
                 .WithInferenceParams(new OpenAiInferenceParams())
                 .CompleteAsync());
@@ -288,7 +289,7 @@ public class BackendParamsTests : IntegrationTestBase
     {
         await Assert.ThrowsAsync<InvalidBackendParamsException>(() =>
             AIHub.Chat()
-                .WithModel<Grok3Beta>()
+                .WithModel(Models.Xai.Grok3Beta)
                 .WithMessage(TestQuestion)
                 .WithInferenceParams(new AnthropicInferenceParams())
                 .CompleteAsync());
@@ -299,7 +300,7 @@ public class BackendParamsTests : IntegrationTestBase
     {
         await Assert.ThrowsAsync<InvalidBackendParamsException>(() =>
             AIHub.Chat()
-                .WithModel<OllamaGemma3_4b>()
+                .WithModel(Models.Ollama.Gemma3_4b)
                 .WithMessage(TestQuestion)
                 .WithInferenceParams(new DeepSeekInferenceParams())
                 .CompleteAsync());

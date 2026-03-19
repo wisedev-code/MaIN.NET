@@ -546,22 +546,22 @@ public class LLMService : ILLMService
         return (tokens, isComplete, hasFailed);
     }
 
-    private static BaseSamplingPipeline CreateSampler(LocalInferenceParams interferenceParams)
+    private static BaseSamplingPipeline CreateSampler(LocalInferenceParams inferenceParams)
     {
-        return interferenceParams.Temperature == 0
+        return inferenceParams.Temperature == 0
             ? new GreedySamplingPipeline()
             {
-                Grammar = interferenceParams.Grammar is not null
-                    ? new Grammar(interferenceParams.Grammar.Value, "root")
+                Grammar = inferenceParams.Grammar is not null
+                    ? new Grammar(inferenceParams.Grammar.Value, "root")
                     : null
             }
             : new DefaultSamplingPipeline()
             {
-                Temperature = interferenceParams.Temperature,
-                TopP = interferenceParams.TopP,
-                TopK = interferenceParams.TopK,
-                Grammar = interferenceParams.Grammar is not null
-                    ? new Grammar(interferenceParams.Grammar.Value, "root")
+                Temperature = inferenceParams.Temperature,
+                TopP = inferenceParams.TopP,
+                TopK = inferenceParams.TopK,
+                Grammar = inferenceParams.Grammar is not null
+                    ? new Grammar(inferenceParams.Grammar.Value, "root")
                     : null
             };
     }
