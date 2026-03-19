@@ -36,13 +36,11 @@ public abstract class OpenAiCompatibleService(
 
     private static readonly JsonSerializerOptions DefaultJsonSerializerOptions = new() { PropertyNameCaseInsensitive = true };
 
-    private const string ToolCallsProperty = "ToolCalls";
-    private const string ToolCallIdProperty = "ToolCallId";
-    private const string ToolNameProperty = "ToolName";
 
     protected abstract string GetApiKey();
     protected abstract string GetApiName();
     protected abstract void ValidateApiKey();
+    protected abstract Type ExpectedParamsType { get; }
     protected virtual string HttpClientName => ServiceConstants.HttpClients.OpenAiClient;
     protected virtual string ChatCompletionsUrl => ServiceConstants.ApiUrls.OpenAiChatCompletions;
     protected virtual string ModelsUrl => ServiceConstants.ApiUrls.OpenAiModels;
@@ -53,6 +51,11 @@ public abstract class OpenAiCompatibleService(
         ChatRequestOptions options,
         CancellationToken cancellationToken = default)
     {
+        if (chat.BackendParams.GetType() != ExpectedParamsType)
+        {
+            throw new InvalidBackendParamsException(GetApiName(), ExpectedParamsType.Name, chat.BackendParams.GetType().Name);
+        }
+
         ValidateApiKey();
         if (!chat.Messages.Any())
             return null;
@@ -457,7 +460,7 @@ public abstract class OpenAiCompatibleService(
         }
 
         // If there are images, use SearchAsync + regular chat with images
-        if (HasImages(lastMessage))
+        if (ChatHelper.HasImages(lastMessage))
         {
             var searchResult = await kernel.SearchAsync(userQuery, cancellationToken: cancellationToken);
             await kernel.DeleteIndexAsync(cancellationToken: cancellationToken);
@@ -622,7 +625,7 @@ public abstract class OpenAiCompatibleService(
             conversation = new List<ChatMessage>();
         }
 
-        MergeMessages(conversation, chat.Messages);
+        ChatHelper.MergeMessages(conversation, chat.Messages);
         return conversation;
     }
 
@@ -682,7 +685,6 @@ public abstract class OpenAiCompatibleService(
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
         }
     }
-
     private async Task ProcessStreamingChatAsync(
         Chat chat,
         List<ChatMessage> conversation,
@@ -852,9 +854,12 @@ public abstract class OpenAiCompatibleService(
         var requestBody = new Dictionary<string, object>
         {
             ["model"] = chat.ModelId,
-            ["messages"] = BuildMessagesArray(conversation, chat, ImageType.AsUrl).Result,
+            ["messages"] = ChatHelper.BuildMessagesArray(conversation, chat, ImageType.AsUrl).Result,
             ["stream"] = stream
         };
+
+        ApplyBackendParams(requestBody, chat);
+        ApplyAdditionalParams(requestBody, chat);
 
         if (chat.ToolsConfiguration?.Tools != null && chat.ToolsConfiguration.Tools.Any())
         {
@@ -868,7 +873,7 @@ public abstract class OpenAiCompatibleService(
                     parameters = t.Function.Parameters
                 } : null
             }).ToList();
-            
+
             if (!string.IsNullOrEmpty(chat.ToolsConfiguration.ToolChoice))
             {
                 requestBody["tool_choice"] = chat.ToolsConfiguration.ToolChoice;
@@ -878,53 +883,19 @@ public abstract class OpenAiCompatibleService(
         return requestBody;
     }
 
-    internal static void MergeMessages(List<ChatMessage> conversation, List<Message> messages)
+    protected virtual void ApplyBackendParams(Dictionary<string, object> requestBody, Chat chat)
     {
-        var existing = new HashSet<(string, object)>(conversation.Select(m => (m.Role, m.Content)));
-        foreach (var msg in messages)
+    }
+
+    private static void ApplyAdditionalParams(Dictionary<string, object> requestBody, Chat chat)
+    {
+        if (chat.BackendParams?.AdditionalParams == null) return;
+        foreach (var (key, value) in chat.BackendParams.AdditionalParams)
         {
-            var role = msg.Role.ToLowerInvariant();
-        
-            if (HasImages(msg))
-            {
-                var simplifiedContent = $"{msg.Content} [Contains image]";
-                if (!existing.Contains((role, simplifiedContent)))
-                {
-                    var chatMessage = new ChatMessage(role, msg.Content);
-                    chatMessage.OriginalMessage = msg;
-                    conversation.Add(chatMessage);
-                    existing.Add((role, simplifiedContent));
-                }
-            }
-            else
-            {
-                if (!existing.Contains((role, msg.Content)))
-                {
-                    var chatMessage = new ChatMessage(role, msg.Content);
-                    
-                    // Extract tool-related data from Properties
-                    if (msg.Tool && msg.Properties.ContainsKey(ToolCallsProperty))
-                    {
-                        var toolCallsJson = msg.Properties[ToolCallsProperty];
-                        chatMessage.ToolCalls = JsonSerializer.Deserialize<List<ToolCall>>(toolCallsJson);
-                    }
-                    
-                    if (msg.Properties.ContainsKey(ToolCallIdProperty))
-                    {
-                        chatMessage.ToolCallId = msg.Properties[ToolCallIdProperty];
-                    }
-                    
-                    if (msg.Properties.ContainsKey(ToolNameProperty))
-                    {
-                        chatMessage.Name = msg.Properties[ToolNameProperty];
-                    }
-                    
-                    conversation.Add(chatMessage);
-                    existing.Add((role, msg.Content));
-                }
-            }
+            requestBody[key] = value;
         }
     }
+
 
     protected static ChatResult CreateChatResult(Chat chat, string content, List<LLMTokenValue> tokens)
     {
@@ -943,171 +914,12 @@ public abstract class OpenAiCompatibleService(
         };
     }
 
-    internal static async Task<object[]> BuildMessagesArray(List<ChatMessage> conversation, Chat chat, ImageType imageType)
-    {
-        var messages = new List<object>();
-    
-        foreach (var msg in conversation)
-        {
-            var content = msg.OriginalMessage != null ? BuildMessageContent(msg.OriginalMessage, imageType) : msg.Content;            
-            if (chat.InterferenceParams.Grammar != null && msg.Role == "user")
-            {
-                var jsonGrammarConverter = new GrammarToJsonConverter();
-                string jsonGrammar = jsonGrammarConverter.ConvertToJson(chat.InterferenceParams.Grammar);
-                
-                var grammarInstruction = $" | Respond only using the following JSON format: \n{jsonGrammar}\n. Do not add explanations, code tags, or any extra content.";
-            
-                if (content is string textContent)
-                {
-                    content = textContent + grammarInstruction;
-                }
-                else if (content is List<object> contentParts)
-                {
-                    var modifiedParts = contentParts.ToList();
-                    modifiedParts.Add(new { type = "text", text = grammarInstruction });
-                    content = modifiedParts;
-                }
-            }
-
-            var messageObj = new Dictionary<string, object>
-            {
-                ["role"] = msg.Role,
-                ["content"] = content ?? string.Empty
-            };
-
-            if (msg.ToolCalls != null && msg.ToolCalls.Any())
-            {
-                messageObj["tool_calls"] = msg.ToolCalls;
-            }
-
-            if (!string.IsNullOrEmpty(msg.ToolCallId))
-            {
-                messageObj["tool_call_id"] = msg.ToolCallId;
-                
-                if (!string.IsNullOrEmpty(msg.Name))
-                {
-                    messageObj["name"] = msg.Name;
-                }
-            }
-
-            messages.Add(messageObj);
-        }
-    
-        return messages.ToArray();
-    }
-    
     private static async Task InvokeTokenCallbackAsync(Func<LLMTokenValue, Task>? callback, LLMTokenValue token)
     {
         if (callback != null)
         {
             await callback.Invoke(token);
         }
-    }
-    
-    private static bool HasImages(Message message)
-    {
-        return message.Images?.Count > 0;
-    }
-
-    private static object BuildMessageContent(Message message, ImageType imageType)
-    {
-        if (!HasImages(message))
-        {
-            return message.Content;
-        }
-
-        var contentParts = new List<object>();
-
-        if (!string.IsNullOrEmpty(message.Content))
-        {
-            contentParts.Add(new
-            {
-                type = "text",
-                text = message.Content
-            });
-        }
-
-        foreach (var imageBytes in message.Images!)
-        {
-            var base64Data = Convert.ToBase64String(imageBytes);
-            var mimeType = DetectImageMimeType(imageBytes);
-
-            switch (imageType)
-            {
-                case ImageType.AsUrl:
-                    contentParts.Add(new
-                    {
-                        type = "image_url",
-                        image_url = new
-                        {
-                            url = $"data:{mimeType};base64,{base64Data}",
-                            detail = "auto"
-                        }
-                    });
-                    break;
-                case ImageType.AsBase64:
-                    contentParts.Add(new
-                    {
-                        type = "image",
-                        source = new
-                        {
-                            data = base64Data,
-                            media_type = mimeType,
-                            type = "base64"
-                        }
-                    });
-                    break;
-            }
-        }
-
-        return contentParts;
-    }
-
-    private static string DetectImageMimeType(byte[] imageBytes)
-    {
-        if (imageBytes.Length < 4)
-            return "image/jpeg";
-
-        if (imageBytes[0] == 0xFF && imageBytes[1] == 0xD8)
-            return "image/jpeg";
-
-        if (imageBytes.Length >= 8 && 
-            imageBytes[0] == 0x89 && imageBytes[1] == 0x50 && 
-            imageBytes[2] == 0x4E && imageBytes[3] == 0x47)
-            return "image/png";
-
-        if (imageBytes.Length >= 6 && 
-            imageBytes[0] == 0x47 && imageBytes[1] == 0x49 && 
-            imageBytes[2] == 0x46 && imageBytes[3] == 0x38)
-            return "image/gif";
-
-        if (imageBytes.Length >= 12 && 
-            imageBytes[0] == 0x52 && imageBytes[1] == 0x49 && 
-            imageBytes[2] == 0x46 && imageBytes[3] == 0x46 &&
-            imageBytes[8] == 0x57 && imageBytes[9] == 0x45 && 
-            imageBytes[10] == 0x42 && imageBytes[11] == 0x50)
-            return "image/webp";
-
-        // HEIC/HEIF format (iPhone photos)
-        if (imageBytes.Length >= 12 &&
-            imageBytes[4] == 0x66 && imageBytes[5] == 0x74 && 
-            imageBytes[6] == 0x79 && imageBytes[7] == 0x70)
-        {
-            // Check for heic/heif brands
-            if ((imageBytes[8] == 0x68 && imageBytes[9] == 0x65 && imageBytes[10] == 0x69 && imageBytes[11] == 0x63) ||
-                (imageBytes[8] == 0x68 && imageBytes[9] == 0x65 && imageBytes[10] == 0x69 && imageBytes[11] == 0x66))
-                return "image/heic";
-        }
-
-        // AVIF format
-        if (imageBytes.Length >= 12 &&
-            imageBytes[4] == 0x66 && imageBytes[5] == 0x74 && 
-            imageBytes[6] == 0x79 && imageBytes[7] == 0x70 &&
-            imageBytes[8] == 0x61 && imageBytes[9] == 0x76 && 
-            imageBytes[10] == 0x69 && imageBytes[11] == 0x66)
-            return "image/avif";
-
-        return "image/jpeg";
     }
 }
 

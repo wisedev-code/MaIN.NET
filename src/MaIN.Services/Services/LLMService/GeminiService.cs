@@ -13,6 +13,7 @@ using MaIN.Domain.Exceptions;
 using MaIN.Domain.Models;
 using MaIN.Domain.Models.Concrete;
 using MaIN.Services.Utils;
+using MaIN.Domain.Configuration.BackendInferenceParams;
 
 namespace MaIN.Services.Services.LLMService;
 
@@ -23,9 +24,7 @@ public sealed class GeminiService(
     IMemoryFactory memoryFactory,
     IMemoryService memoryService,
     ILogger<GeminiService>? logger = null)
-#pragma warning disable CS9107 // Parameter is captured into the state of the enclosing type and its value is also passed to the base constructor. The value might be captured by the base class as well.
     : OpenAiCompatibleService(notificationService, httpClientFactory, memoryFactory, memoryService, logger)
-#pragma warning restore CS9107 // Parameter is captured into the state of the enclosing type and its value is also passed to the base constructor. The value might be captured by the base class as well.
 {
     private readonly MaINSettings _settings = settings ?? throw new ArgumentNullException(nameof(settings));
 
@@ -37,6 +36,7 @@ public sealed class GeminiService(
 
     protected override string HttpClientName => ServiceConstants.HttpClients.GeminiClient;
     protected override string ChatCompletionsUrl => ServiceConstants.ApiUrls.GeminiOpenAiChatCompletions;
+    protected override Type ExpectedParamsType => typeof(GeminiInferenceParams);
 
     public override async Task<string[]> GetCurrentModels()
     {
@@ -73,6 +73,15 @@ public sealed class GeminiService(
         {
             throw new APIKeyNotConfiguredException(LLMApiRegistry.Gemini.ApiName);
         }
+    }
+
+    protected override void ApplyBackendParams(Dictionary<string, object> requestBody, Chat chat)
+    {
+        if (chat.BackendParams is not GeminiInferenceParams p) return;
+        if (p.Temperature.HasValue) requestBody["temperature"] = p.Temperature.Value;
+        if (p.MaxTokens.HasValue) requestBody["max_tokens"] = p.MaxTokens.Value;
+        if (p.TopP.HasValue) requestBody["top_p"] = p.TopP.Value;
+        if (p.StopSequences is { Length: > 0 }) requestBody["stop"] = p.StopSequences;
     }
 
     public override async Task<ChatResult?> AskMemory(

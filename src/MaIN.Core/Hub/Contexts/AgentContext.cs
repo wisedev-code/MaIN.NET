@@ -17,7 +17,7 @@ namespace MaIN.Core.Hub.Contexts;
 public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationBuilder, IAgentContextExecutor
 {
     private readonly IAgentService _agentService;
-    private InferenceParams? _inferenceParams;
+    private IBackendInferenceParams? _inferenceParams;
     private MemoryParams? _memoryParams;
     private bool _disableCache;
     private bool _ensureModelDownloaded;
@@ -138,7 +138,7 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
         return this;
     }
 
-    public IAgentConfigurationBuilder WithInferenceParams(InferenceParams inferenceParams)
+    public IAgentConfigurationBuilder WithInferenceParams(IBackendInferenceParams inferenceParams)
     {
         _inferenceParams = inferenceParams;
         return this;

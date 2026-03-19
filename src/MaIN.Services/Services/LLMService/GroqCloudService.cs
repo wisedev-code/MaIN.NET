@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using MaIN.Services.Services.LLMService.Memory;
 using MaIN.Services.Constants;
 using MaIN.Services.Services.Models;
+using MaIN.Domain.Configuration.BackendInferenceParams;
 
 namespace MaIN.Services.Services.LLMService;
 
@@ -25,6 +26,7 @@ public sealed class GroqCloudService(
     protected override string HttpClientName => ServiceConstants.HttpClients.GroqCloudClient;
     protected override string ChatCompletionsUrl => ServiceConstants.ApiUrls.GroqCloudOpenAiChatCompletions;
     protected override string ModelsUrl => ServiceConstants.ApiUrls.GroqCloudModels;
+    protected override Type ExpectedParamsType => typeof(GroqCloudInferenceParams);
 
     protected override string GetApiKey()
     {
@@ -41,6 +43,16 @@ public sealed class GroqCloudService(
         {
             throw new APIKeyNotConfiguredException(LLMApiRegistry.Groq.ApiName);
         }
+    }
+
+    protected override void ApplyBackendParams(Dictionary<string, object> requestBody, Chat chat)
+    {
+        if (chat.BackendParams is not GroqCloudInferenceParams p) return;
+        if (p.Temperature.HasValue) requestBody["temperature"] = p.Temperature.Value;
+        if (p.MaxTokens.HasValue) requestBody["max_tokens"] = p.MaxTokens.Value;
+        if (p.TopP.HasValue) requestBody["top_p"] = p.TopP.Value;
+        if (p.FrequencyPenalty.HasValue) requestBody["frequency_penalty"] = p.FrequencyPenalty.Value;
+        if (p.ResponseFormat != null) requestBody["response_format"] = new { type = p.ResponseFormat };
     }
 
     public override async Task<ChatResult?> AskMemory(

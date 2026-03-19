@@ -1,5 +1,9 @@
 using LLama.Batched;
+using MaIN.Domain.Configuration;
+using MaIN.Domain.Configuration.BackendInferenceParams;
 using MaIN.Domain.Entities.Tools;
+using MaIN.Domain.Models.Abstract;
+using Grammar = MaIN.Domain.Models.Grammar;
 
 namespace MaIN.Domain.Entities;
 
@@ -11,7 +15,38 @@ public class Chat
     public List<Message> Messages { get; set; } = [];
     public ChatType Type { get; set; } = ChatType.Conversation;
     public bool ImageGen { get; set; }
-    public InferenceParams InterferenceParams { get; set; } = new();
+    public IBackendInferenceParams? BackendParams { get; set; }
+    public LocalInferenceParams? LocalParams => BackendParams as LocalInferenceParams;
+
+    public Grammar? InferenceGrammar
+    {
+        get => BackendParams switch
+        {
+            LocalInferenceParams p => p.Grammar,
+            OpenAiInferenceParams p => p.Grammar,
+            DeepSeekInferenceParams p => p.Grammar,
+            GroqCloudInferenceParams p => p.Grammar,
+            XaiInferenceParams p => p.Grammar,
+            GeminiInferenceParams p => p.Grammar,
+            AnthropicInferenceParams p => p.Grammar,
+            OllamaInferenceParams p => p.Grammar,
+            _ => null
+        };
+        set
+        {
+            switch (BackendParams)
+            {
+                case LocalInferenceParams p: p.Grammar = value; break;
+                case OpenAiInferenceParams p: p.Grammar = value; break;
+                case DeepSeekInferenceParams p: p.Grammar = value; break;
+                case GroqCloudInferenceParams p: p.Grammar = value; break;
+                case XaiInferenceParams p: p.Grammar = value; break;
+                case GeminiInferenceParams p: p.Grammar = value; break;
+                case AnthropicInferenceParams p: p.Grammar = value; break;
+                case OllamaInferenceParams p: p.Grammar = value; break;
+            }
+        }
+    }
     public MemoryParams MemoryParams { get; set; } = new();
     public ToolsConfiguration? ToolsConfiguration { get; set; }
     public TextToSpeechParams? TextToSpeechParams { get; set; }

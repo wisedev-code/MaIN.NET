@@ -5,8 +5,9 @@ using LLama.Native;
 using LLama.Sampling;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
-using MaIN.Domain.Entities.Tools;
+using MaIN.Domain.Exceptions;
 using MaIN.Domain.Exceptions.Models;
+using MaIN.Domain.Entities.Tools;
 using MaIN.Domain.Models;
 using MaIN.Domain.Models.Abstract;
 using MaIN.Services.Constants;
@@ -20,7 +21,7 @@ using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json;
 using Grammar = LLama.Sampling.Grammar;
-using InferenceParams = MaIN.Domain.Entities.InferenceParams;
+using LocalInferenceParams = MaIN.Domain.Entities.LocalInferenceParams;
 #pragma warning disable KMEXP00
 
 namespace MaIN.Services.Services.LLMService;
@@ -55,6 +56,11 @@ public class LLMService : ILLMService
         ChatRequestOptions requestOptions,
         CancellationToken cancellationToken = default)
     {
+        if (chat.BackendParams is not LocalInferenceParams)
+        {
+            throw new InvalidBackendParamsException("Local LLM", nameof(LocalInferenceParams), chat.BackendParams.GetType().Name);
+        }
+
         if (chat.Messages.Count == 0)
         {
             return null;
@@ -322,14 +328,14 @@ public class LLMService : ILLMService
     {
         return new ModelParams(ResolvePath(customPath, modelKey))
         {
-            ContextSize = (uint?)chat.InterferenceParams.ContextSize,
-            GpuLayerCount = chat.InterferenceParams.GpuLayerCount,
-            SeqMax = chat.InterferenceParams.SeqMax,
-            BatchSize = chat.InterferenceParams.BatchSize,
-            UBatchSize = chat.InterferenceParams.UBatchSize,
-            Embeddings = chat.InterferenceParams.Embeddings,
-            TypeK = (GGMLType)chat.InterferenceParams.TypeK,
-            TypeV = (GGMLType)chat.InterferenceParams.TypeV,
+            ContextSize = (uint?)chat.LocalParams!.ContextSize,
+            GpuLayerCount = chat.LocalParams!.GpuLayerCount,
+            SeqMax = chat.LocalParams!.SeqMax,
+            BatchSize = chat.LocalParams!.BatchSize,
+            UBatchSize = chat.LocalParams!.UBatchSize,
+            Embeddings = chat.LocalParams!.Embeddings,
+            TypeK = (GGMLType)chat.LocalParams!.TypeK,
+            TypeV = (GGMLType)chat.LocalParams!.TypeV,
         };
     }
 
@@ -388,7 +394,7 @@ public class LLMService : ILLMService
         bool isNewConversation)
     {
         var template = new LLamaTemplate(llmModel);
-        var finalPrompt = ChatHelper.GetFinalPrompt(lastMsg, model, isNewConversation);
+        var finalPrompt = GetFinalPrompt(lastMsg, model, isNewConversation);
 
         var hasTools = chat.ToolsConfiguration?.Tools is not null && chat.ToolsConfiguration.Tools.Count != 0;
 
@@ -464,10 +470,22 @@ public class LLMService : ILLMService
         var isComplete = false;
         var hasFailed = false;
 
-        using var sampler = LLMService.CreateSampler(chat.InterferenceParams);
+        using var sampler = LLMService.CreateSampler(chat.LocalParams!);
         var decoder = new StreamingTokenDecoder(executor.Context);
 
-        var inferenceParams = ChatHelper.CreateInferenceParams(chat, llmModel);
+        var inferenceParams = new InferenceParams
+        {
+            SamplingPipeline = new DefaultSamplingPipeline
+            {
+                Temperature = chat.LocalParams!.Temperature,
+                TopK = chat.LocalParams!.TopK,
+                TopP = chat.LocalParams!.TopP
+            },
+            AntiPrompts = [llmModel.Vocab.EOT?.ToString() ?? "User:"],
+            TokensKeep = chat.LocalParams!.TokensKeep,
+            MaxTokens = chat.LocalParams!.MaxTokens
+        };
+
         var maxTokens = inferenceParams.MaxTokens == -1 ? int.MaxValue : inferenceParams.MaxTokens;
         var reasoningModel = model as IReasoningModel;
 
@@ -528,22 +546,22 @@ public class LLMService : ILLMService
         return (tokens, isComplete, hasFailed);
     }
 
-    private static BaseSamplingPipeline CreateSampler(InferenceParams interferenceParams)
+    private static BaseSamplingPipeline CreateSampler(LocalInferenceParams inferenceParams)
     {
-        return interferenceParams.Temperature == 0
+        return inferenceParams.Temperature == 0
             ? new GreedySamplingPipeline()
             {
-                Grammar = interferenceParams.Grammar is not null
-                    ? new Grammar(interferenceParams.Grammar.Value, "root")
+                Grammar = inferenceParams.Grammar is not null
+                    ? new Grammar(inferenceParams.Grammar.Value, "root")
                     : null
             }
             : new DefaultSamplingPipeline()
             {
-                Temperature = interferenceParams.Temperature,
-                TopP = interferenceParams.TopP,
-                TopK = interferenceParams.TopK,
-                Grammar = interferenceParams.Grammar is not null
-                    ? new Grammar(interferenceParams.Grammar.Value, "root")
+                Temperature = inferenceParams.Temperature,
+                TopP = inferenceParams.TopP,
+                TopK = inferenceParams.TopK,
+                Grammar = inferenceParams.Grammar is not null
+                    ? new Grammar(inferenceParams.Grammar.Value, "root")
                     : null
             };
     }
@@ -699,7 +717,7 @@ public class LLMService : ILLMService
             }
 
             var toolCalls = parseResult.ToolCalls!;
-            responseMessage.Properties[ToolCallsProperty] = JsonSerializer.Serialize(toolCalls);
+            responseMessage.Properties[ServiceConstants.Properties.ToolCallsProperty] = JsonSerializer.Serialize(toolCalls);
 
             foreach (var toolCall in toolCalls)
             {
@@ -752,8 +770,8 @@ public class LLMService : ILLMService
                         Type = MessageType.LocalLLM,
                         Tool = true
                     };
-                    toolMessage.Properties[ToolCallIdProperty] = toolCall.Id;
-                    toolMessage.Properties[ToolNameProperty] = toolCall.Function.Name;
+                    toolMessage.Properties[ServiceConstants.Properties.ToolCallIdProperty] = toolCall.Id;
+                    toolMessage.Properties[ServiceConstants.Properties.ToolNameProperty] = toolCall.Function.Name;
                     chat.Messages.Add(toolMessage.MarkProcessed());
                 }
                 catch (Exception ex)
@@ -766,8 +784,8 @@ public class LLMService : ILLMService
                         Type = MessageType.LocalLLM,
                         Tool = true
                     };
-                    toolMessage.Properties[ToolCallIdProperty] = toolCall.Id;
-                    toolMessage.Properties[ToolNameProperty] = toolCall.Function.Name;
+                    toolMessage.Properties[ServiceConstants.Properties.ToolCallIdProperty] = toolCall.Id;
+                    toolMessage.Properties[ServiceConstants.Properties.ToolNameProperty] = toolCall.Function.Name;
                     chat.Messages.Add(toolMessage.MarkProcessed());
                 }
             }
@@ -805,7 +823,12 @@ public class LLMService : ILLMService
         };
     }
 
-    private const string ToolCallsProperty = "ToolCalls";
-    private const string ToolCallIdProperty = "ToolCallId";
-    private const string ToolNameProperty = "ToolName";
+    private static string GetFinalPrompt(Message message, AIModel model, bool startSession)
+    {
+        var additionalPrompt = (model as IReasoningModel)?.AdditionalPrompt;
+        return startSession && additionalPrompt != null
+            ? $"{message.Content}{additionalPrompt}"
+            : message.Content;
+    }
+
 }
