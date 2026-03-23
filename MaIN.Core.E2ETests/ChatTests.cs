@@ -1,12 +1,13 @@
 using FuzzySharp;
+using MaIN.Core.E2ETests.Helpers;
 using MaIN.Core.Hub;
-using MaIN.Core.IntegrationTests.Helpers;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Models;
 using MaIN.Domain.Models.Abstract;
 
-namespace MaIN.Core.IntegrationTests;
+namespace MaIN.Core.E2ETests;
 
+[Collection("E2ETests")]
 public class ChatTests : IntegrationTestBase
 {
     public ChatTests() : base()
@@ -62,13 +63,14 @@ public class ChatTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task Should_AnswerGameFromImage_ChatWithVision()
+    public async Task Should_AnswerGameFromImage_ChatWithImagesWithText()
     {
         List<string> images = ["./Files/gamex.jpg"];
+        var expectedAnswer = "call of duty";
 
         var result = await AIHub.Chat()
             .WithModel(Models.Local.Llama3_2_3b)
-            .WithMessage("What is the title of the game? Answer only this question.")
+            .WithMessage("What is the title of the game? Answer in 3 words.")
             .WithMemoryParams(new MemoryParams
             {
                 AnswerTokens = 1000
@@ -79,12 +81,41 @@ public class ChatTests : IntegrationTestBase
         Assert.True(result.Done);
         Assert.NotNull(result.Message);
         Assert.NotEmpty(result.Message.Content);
-        var ratio = Fuzz.PartialRatio("call of duty", result.Message.Content.ToLowerInvariant());
+        var ratio = Fuzz.PartialRatio(expectedAnswer, result.Message.Content.ToLowerInvariant());
         Assert.True(ratio > 50,
             $"""
             Fuzzy match failed!
             Expected > 50, but got {ratio}.
-            Expexted: 'call of duty'
+            Expexted: '{expectedAnswer}'
+            Actual: '{result.Message.Content}'
+            """);
+    }
+
+    [Fact]
+    public async Task Should_AnswerAppleFromImage_ChatWithImagesWithVision()
+    {
+        List<string> images = ["./Files/apple.jpg"];
+        var expectedAnswer = "apple";
+
+        var result = await AIHub.Chat()
+            .WithModel(Models.Local.Gemma3_4b)
+            .WithMessage("What is this fruit? Answer in one word.")
+            .WithMemoryParams(new MemoryParams
+            {
+                AnswerTokens = 1000
+            })
+            .WithFiles(images)
+            .CompleteAsync();
+
+        Assert.True(result.Done);
+        Assert.NotNull(result.Message);
+        Assert.NotEmpty(result.Message.Content);
+        var ratio = Fuzz.PartialRatio(expectedAnswer, result.Message.Content.ToLowerInvariant());
+        Assert.True(ratio > 50,
+            $"""
+            Fuzzy match failed!
+            Expected > 50, but got {ratio}.
+            Expexted: '{expectedAnswer}'
             Actual: '{result.Message.Content}'
             """);
     }

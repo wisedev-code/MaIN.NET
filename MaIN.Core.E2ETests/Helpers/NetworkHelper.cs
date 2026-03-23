@@ -1,7 +1,6 @@
-﻿using System;
 using System.Net.Sockets;
 
-namespace MaIN.Core.IntegrationTests.Helpers;
+namespace MaIN.Core.E2ETests.Helpers;
 
 public static class NetworkHelper
 {
