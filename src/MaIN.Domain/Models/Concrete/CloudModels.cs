@@ -93,6 +93,35 @@ public sealed record Gemini2_0Flash() : CloudModel(
     public string? MMProjectName => null;
 }
 
+public sealed record Gemini2_5Pro() : CloudModel(
+    Models.Vertex.Gemini2_5Pro,
+    BackendType.Gemini,
+    "Gemini 2.5 Pro",
+    1000000,
+    "Google's most capable Gemini model"), IVisionModel
+{
+    public string? MMProjectName => null;
+}
+
+// ===== Vertex AI Models =====
+
+public sealed record VertexGemini2_5Flash() : CloudModel(
+    Models.Vertex.Gemini2_5Flash,
+    BackendType.Vertex,
+    "Gemini 2.5 Flash (Vertex)",
+    1000000,
+    "Fast and efficient Gemini model served via Vertex AI"), IVisionModel
+{
+    public string? MMProjectName => null;
+}
+
+public sealed record VertexVeo2_0Generate() : CloudModel(
+    Models.Vertex.Veo2_0_Generate,
+    BackendType.Vertex,
+    "Veo 2.0 Generate",
+    4000,
+    "Google's video generation model available through Vertex AI"), IImageGenerationModel;
+
 // ===== xAI Models =====
 
 public sealed record Grok3Beta() : CloudModel(

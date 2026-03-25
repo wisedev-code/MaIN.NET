@@ -58,6 +58,13 @@ public class LLMServiceFactory(IServiceProvider serviceProvider) : ILLMServiceFa
                 serviceProvider.GetRequiredService<INotificationService>(),
                 serviceProvider.GetRequiredService<IHttpClientFactory>()),
 
+            BackendType.Vertex => new VertexService(
+                serviceProvider.GetRequiredService<MaINSettings>(),
+                serviceProvider.GetRequiredService<INotificationService>(),
+                serviceProvider.GetRequiredService<IHttpClientFactory>(),
+                serviceProvider.GetRequiredService<IMemoryFactory>(),
+                serviceProvider.GetRequiredService<IMemoryService>()),
+
             BackendType.Self => new LLMService(
                 serviceProvider.GetRequiredService<MaINSettings>(),
                 serviceProvider.GetRequiredService<INotificationService>(),

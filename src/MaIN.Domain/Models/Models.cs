@@ -49,6 +49,13 @@ public static class Models
         public const string Gemma3_4b = "gemma3:4b";
     }
 
+    public static class Vertex
+    {
+        public const string Gemini2_5Pro = "google/gemini-2.5-pro";
+        public const string Gemini2_5Flash = "google/gemini-2.5-flash";
+        public const string Veo2_0_Generate = "google/veo-2.0-generate-001";
+    }
+
     public static class Local
     {
         // Gemma

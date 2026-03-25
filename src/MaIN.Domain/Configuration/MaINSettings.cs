@@ -1,3 +1,4 @@
+using MaIN.Domain.Configuration.Vertex;
 
 namespace MaIN.Domain.Configuration;
 
@@ -18,6 +19,7 @@ public class MaINSettings
     public SqliteSettings? SqliteSettings { get; set; }
     public SqlSettings? SqlSettings { get; set; }
     public string? VoicesPath { get; set; }
+    public GoogleServiceAccountAuth? GoogleServiceAccountAuth { get; set; }
 }
 
 public enum BackendType
@@ -30,4 +32,5 @@ public enum BackendType
     Anthropic = 5,
     Xai = 6,
     Ollama = 7,
+    Vertex = 8,
 }
