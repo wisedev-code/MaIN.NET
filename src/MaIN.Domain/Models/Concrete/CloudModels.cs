@@ -105,6 +105,16 @@ public sealed record Gemini2_5Pro() : CloudModel(
 
 // ===== Vertex AI Models =====
 
+public sealed record VertexGemini2_5Pro() : CloudModel(
+    Models.Vertex.Gemini2_5Pro,
+    BackendType.Vertex,
+    "Gemini 2.5 Pro (Vertex)",
+    1000000,
+    "Fast and efficient Gemini model served via Vertex AI"), IVisionModel
+{
+    public string? MMProjectName => null;
+}
+
 public sealed record VertexGemini2_5Flash() : CloudModel(
     Models.Vertex.Gemini2_5Flash,
     BackendType.Vertex,

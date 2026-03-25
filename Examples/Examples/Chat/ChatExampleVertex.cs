@@ -14,7 +14,7 @@ public class ChatExampleVertex : IExample
         MaINBootstrapper.Initialize(configureSettings: options =>
         {
             options.BackendType = BackendType.Vertex;
-            options.GoogleServiceAccountAuth = new GoogleServiceAccountAuth
+            options.GoogleServiceAccountAuth = new GoogleServiceAccountConfig
             {
                 ProjectId   = "<YOUR_GCP_PROJECT_ID>",
                 ClientEmail = "<YOUR_SERVICE_ACCOUNT_EMAIL>",

@@ -6,19 +6,20 @@ using MaIN.Domain.Configuration.Vertex;
 
 namespace MaIN.Services.Services.LLMService.Auth;
 
-internal sealed class VertexTokenProvider
+internal sealed class GoogleServiceAccountTokenProvider
 {
     private const string Scope = "https://www.googleapis.com/auth/cloud-platform";
     private const int TokenLifetimeSeconds = 3600;
     private const int RefreshBufferMinutes = 5;
 
-    private readonly GoogleServiceAccountAuth _config;
+    private readonly GoogleServiceAccountConfig _config;
     private readonly RSA _rsa;
 
-    private string? _cachedToken;
-    private DateTime _tokenExpiry = DateTime.MinValue;
+    // Static cache shared across all VertexService instances (keyed by ClientEmail)
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, CachedToken> _tokenCache = new();
+    private static readonly SemaphoreSlim _refreshLock = new(1, 1);
 
-    public VertexTokenProvider(GoogleServiceAccountAuth config)
+    public GoogleServiceAccountTokenProvider(GoogleServiceAccountConfig config)
     {
         _config = config;
         _rsa = RSA.Create();
@@ -27,18 +28,33 @@ internal sealed class VertexTokenProvider
 
     public async Task<string> GetAccessTokenAsync(HttpClient httpClient)
     {
-        if (_cachedToken != null && DateTime.UtcNow < _tokenExpiry)
-            return _cachedToken;
+        if (_tokenCache.TryGetValue(_config.ClientEmail, out var cached) && DateTime.UtcNow < cached.Expiry)
+            return cached.Token;
 
-        var jwt = BuildSignedJwt();
-        var token = await ExchangeJwtForTokenAsync(httpClient, jwt);
+        await _refreshLock.WaitAsync();
+        try
+        {
+            // Double-check after acquiring lock
+            if (_tokenCache.TryGetValue(_config.ClientEmail, out cached) && DateTime.UtcNow < cached.Expiry)
+                return cached.Token;
 
-        _cachedToken = token.AccessToken
-                       ?? throw new InvalidOperationException("Token response missing access_token.");
-        _tokenExpiry = DateTime.UtcNow.AddSeconds(token.ExpiresIn).AddMinutes(-RefreshBufferMinutes);
+            var jwt = BuildSignedJwt();
+            var token = await ExchangeJwtForTokenAsync(httpClient, jwt);
 
-        return _cachedToken;
+            var accessToken = token.AccessToken
+                              ?? throw new InvalidOperationException("Token response missing access_token.");
+            var expiry = DateTime.UtcNow.AddSeconds(token.ExpiresIn).AddMinutes(-RefreshBufferMinutes);
+
+            _tokenCache[_config.ClientEmail] = new CachedToken(accessToken, expiry);
+            return accessToken;
+        }
+        finally
+        {
+            _refreshLock.Release();
+        }
     }
+
+    private sealed record CachedToken(string Token, DateTime Expiry);
 
     private string BuildSignedJwt()
     {

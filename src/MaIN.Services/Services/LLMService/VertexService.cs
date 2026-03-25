@@ -23,7 +23,7 @@ public sealed class VertexService(
     private readonly MaINSettings _settings = settings ?? throw new ArgumentNullException(nameof(settings));
     private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
 
-    private VertexTokenProvider? _tokenProvider;
+    private GoogleServiceAccountTokenProvider? _tokenProvider;
     private string _location = "us-central1";
 
     protected override string HttpClientName => ServiceConstants.HttpClients.VertexClient;
@@ -32,8 +32,7 @@ public sealed class VertexService(
     {
         get
         {
-            var auth = _settings.GoogleServiceAccountAuth
-                       ?? throw new InvalidOperationException("MaINSettings.GoogleServiceAccountAuth is not configured.");
+            var auth = _settings.GoogleServiceAccountAuth ?? throw new InvalidOperationException("MaINSettings.GoogleServiceAccountConfig is not configured.");
             return $"https://{_location}-aiplatform.googleapis.com/v1beta1/projects/{auth.ProjectId}/locations/{_location}/endpoints/openapi/chat/completions";
         }
     }
@@ -42,8 +41,7 @@ public sealed class VertexService(
     {
         get
         {
-            var auth = _settings.GoogleServiceAccountAuth
-                       ?? throw new InvalidOperationException("MaINSettings.GoogleServiceAccountAuth is not configured.");
+            var auth = _settings.GoogleServiceAccountAuth ?? throw new InvalidOperationException("MaINSettings.GoogleServiceAccountConfig is not configured.");
             return $"https://{_location}-aiplatform.googleapis.com/v1beta1/projects/{auth.ProjectId}/locations/{_location}/endpoints/openapi/models";
         }
     }
@@ -52,10 +50,9 @@ public sealed class VertexService(
 
     protected override string GetApiKey()
     {
-        var auth = _settings.GoogleServiceAccountAuth
-                   ?? throw new InvalidOperationException("MaINSettings.VertexAuth is not configured.");
+        var auth = _settings.GoogleServiceAccountAuth ?? throw new InvalidOperationException("MaINSettings.VertexAuth is not configured.");
 
-        _tokenProvider ??= new VertexTokenProvider(auth);
+        _tokenProvider ??= new GoogleServiceAccountTokenProvider(auth);
 
         var httpClient = _httpClientFactory.CreateClient(HttpClientName);
         return _tokenProvider.GetAccessTokenAsync(httpClient).GetAwaiter().GetResult();
@@ -67,13 +64,13 @@ public sealed class VertexService(
     {
         var auth = _settings.GoogleServiceAccountAuth;
         if (auth == null)
-            throw new InvalidOperationException("MaINSettings.GoogleServiceAccountAuth is not configured.");
+            throw new InvalidOperationException("MaINSettings.GoogleServiceAccountConfig is not configured.");
         if (string.IsNullOrEmpty(auth.ProjectId))
-            throw new InvalidOperationException("GoogleServiceAccountAuth.ProjectId is required.");
+            throw new InvalidOperationException("GoogleServiceAccountConfig.ProjectId is required.");
         if (string.IsNullOrEmpty(auth.ClientEmail))
-            throw new InvalidOperationException("GoogleServiceAccountAuth.ClientEmail is required.");
+            throw new InvalidOperationException("GoogleServiceAccountConfig.ClientEmail is required.");
         if (string.IsNullOrEmpty(auth.PrivateKey))
-            throw new InvalidOperationException("GoogleServiceAccountAuth.PrivateKey is required.");
+            throw new InvalidOperationException("GoogleServiceAccountConfig.PrivateKey is required.");
     }
 
     protected override void ApplyBackendParams(Dictionary<string, object> requestBody, Chat chat)

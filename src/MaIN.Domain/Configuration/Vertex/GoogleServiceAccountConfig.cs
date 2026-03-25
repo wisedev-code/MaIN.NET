@@ -1,6 +1,6 @@
 namespace MaIN.Domain.Configuration.Vertex;
 
-public class GoogleServiceAccountAuth
+public class GoogleServiceAccountConfig
 {
     public required string ProjectId { get; init; }
     public required string ClientEmail { get; init; }

@@ -19,7 +19,7 @@ public class MaINSettings
     public SqliteSettings? SqliteSettings { get; set; }
     public SqlSettings? SqlSettings { get; set; }
     public string? VoicesPath { get; set; }
-    public GoogleServiceAccountAuth? GoogleServiceAccountAuth { get; set; }
+    public GoogleServiceAccountConfig? GoogleServiceAccountAuth { get; set; }
 }
 
 public enum BackendType
