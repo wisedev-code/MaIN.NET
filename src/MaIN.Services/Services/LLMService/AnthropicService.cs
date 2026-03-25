@@ -59,7 +59,7 @@ public sealed class AnthropicService(
 
     public async Task<ChatResult?> Send(Chat chat, ChatRequestOptions options, CancellationToken cancellationToken = default)
     {
-        if (chat.BackendParams is not AnthropicInferenceParams)
+        if (chat.BackendParams != null && chat.BackendParams is not AnthropicInferenceParams)
         {
             throw new InvalidBackendParamsException(LLMApiRegistry.Anthropic.ApiName, nameof(AnthropicInferenceParams), chat.BackendParams.GetType().Name);
         }
