@@ -51,9 +51,9 @@ public abstract class OpenAiCompatibleService(
         ChatRequestOptions options,
         CancellationToken cancellationToken = default)
     {
-        if (chat.BackendParams.GetType() != ExpectedParamsType)
+        if (chat.BackendParams != null && chat.BackendParams?.GetType() != ExpectedParamsType)
         {
-            throw new InvalidBackendParamsException(GetApiName(), ExpectedParamsType.Name, chat.BackendParams.GetType().Name);
+            throw new InvalidBackendParamsException(GetApiName(), ExpectedParamsType.Name, chat.BackendParams!.GetType().Name);
         }
 
         ValidateApiKey();

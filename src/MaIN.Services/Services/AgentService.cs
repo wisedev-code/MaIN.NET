@@ -103,7 +103,7 @@ public class AgentService(
             Name = agent.Name,
             ImageGen = agent.Model == ImageGenService.LocalImageModels.FLUX,
             ToolsConfiguration = agent.ToolsConfiguration,
-            BackendParams = inferenceParams ?? new LocalInferenceParams(),
+            BackendParams = inferenceParams,
             MemoryParams = memoryParams ?? new MemoryParams(),
             Messages = [],
             Interactive = interactiveResponse,
