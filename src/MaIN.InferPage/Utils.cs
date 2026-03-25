@@ -1,4 +1,5 @@
 using MaIN.Domain.Configuration;
+using MaIN.Domain.Configuration.Vertex;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Models.Abstract;
 using MaIN.Domain.Models.Concrete;
@@ -45,7 +46,8 @@ public static class Utils
         bool hasImageGen,
         string? mmProjName,
         MaINSettings mainSettings,
-        string? apiKey)
+        string? apiKey,
+        GoogleServiceAccountConfig? vertexAuth = null)
     {
         BackendType = backendType;
         Model = model;
@@ -89,6 +91,10 @@ public static class Utils
             case BackendType.GroqCloud: mainSettings.GroqCloudKey = apiKey; break;
             case BackendType.Ollama: mainSettings.OllamaKey = apiKey; break;
             case BackendType.Xai: mainSettings.XaiKey = apiKey; break;
+            case BackendType.Vertex:
+                if (vertexAuth != null)
+                    mainSettings.GoogleServiceAccountAuth = vertexAuth;
+                break;
         }
     }
 

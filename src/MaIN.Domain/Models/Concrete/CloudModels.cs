@@ -94,7 +94,7 @@ public sealed record Gemini2_0Flash() : CloudModel(
 }
 
 public sealed record Gemini2_5Pro() : CloudModel(
-    Models.Vertex.Gemini2_5Pro,
+    Models.Gemini.Gemini2_5Pro,
     BackendType.Gemini,
     "Gemini 2.5 Pro",
     1000000,

@@ -23,6 +23,7 @@ public static class Models
 
     public static class Gemini
     {
+        public const string Gemini2_5Pro = "gemini-2.5-pro";
         public const string Gemini2_5Flash = "gemini-2.5-flash";
         public const string Gemini2_0Flash = "gemini-2.0-flash";
     }

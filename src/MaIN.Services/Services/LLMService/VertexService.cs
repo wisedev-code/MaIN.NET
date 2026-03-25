@@ -54,8 +54,12 @@ public sealed class VertexService(
 
         _tokenProvider ??= new GoogleServiceAccountTokenProvider(auth);
 
+        logger?.LogInformation("Vertex: Requesting access token for {ClientEmail}...", auth.ClientEmail);
         var httpClient = _httpClientFactory.CreateClient(HttpClientName);
-        return _tokenProvider.GetAccessTokenAsync(httpClient).GetAwaiter().GetResult();
+        // Use Task.Run to avoid deadlocking on Blazor Server's SynchronizationContext
+        var token = Task.Run(() => _tokenProvider.GetAccessTokenAsync(httpClient)).GetAwaiter().GetResult();
+        logger?.LogInformation("Vertex: Access token obtained (length={Length})", token?.Length ?? 0);
+        return token;
     }
 
     protected override string GetApiName() => LLMApiRegistry.Vertex.ApiName;
@@ -88,6 +92,8 @@ public sealed class VertexService(
         CancellationToken cancellationToken = default)
     {
         ExtractLocation(chat);
+        logger?.LogInformation("Vertex: Send called, model={Model}, location={Location}, url={Url}",
+            chat.ModelId, _location, ChatCompletionsUrl);
         return await base.Send(chat, options, cancellationToken);
     }
 
