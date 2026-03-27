@@ -26,6 +26,7 @@ public static class Models
         public const string Gemini2_5Pro = "gemini-2.5-pro";
         public const string Gemini2_5Flash = "gemini-2.5-flash";
         public const string Gemini2_0Flash = "gemini-2.0-flash";
+        public const string Imagen4_0_FastGenerate = "imagen-4.0-fast-generate-001";
     }
 
     public static class Xai

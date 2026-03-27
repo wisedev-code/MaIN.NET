@@ -293,6 +293,16 @@ public sealed record Olmo2_7b() : LocalModel(
     8192,
     "Open-source 7B model for research, benchmarking, and academic studies");
 
+// ===== Image Generation =====
+
+public sealed record Flux1Shnell() : LocalModel(
+    Models.Local.Flux1Shnell,
+    "FLUX.1_Shnell",
+    null,
+    "FLUX.1 Schnell",
+    4096,
+    "Fast local image generation model"), IImageGenerationModel;
+
 // ===== Embedding Model =====
 
 public sealed record Mxbai_Embedding() : LocalModel(

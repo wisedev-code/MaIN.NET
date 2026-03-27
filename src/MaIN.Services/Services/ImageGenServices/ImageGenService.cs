@@ -3,6 +3,7 @@ using MaIN.Domain.Entities;
 using MaIN.Services.Constants;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
+using ModelIds = MaIN.Domain.Models.Models;
 
 namespace MaIN.Services.Services.ImageGenServices;
 
@@ -48,13 +49,8 @@ public class ImageGenService(
                 Image = imageBytes,
                 Type = MessageType.Image
             },
-            Model = LocalImageModels.FLUX,
+            Model = ModelIds.Local.Flux1Shnell,
             CreatedAt = DateTime.UtcNow
         };
-    }
-    
-    internal struct LocalImageModels
-    {
-        public const string FLUX = "FLUX.1_Shnell";
     }
 }

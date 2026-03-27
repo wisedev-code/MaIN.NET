@@ -103,6 +103,13 @@ public sealed record Gemini2_5Pro() : CloudModel(
     public string? MMProjectName => null;
 }
 
+public sealed record GeminiImagen4_0FastGenerate() : CloudModel(
+    Models.Gemini.Imagen4_0_FastGenerate,
+    BackendType.Gemini,
+    "Imagen 4.0 Fast (Gemini)",
+    4000,
+    "Google's fast image generation model via Gemini API"), IImageGenerationModel;
+
 // ===== Vertex AI Models =====
 
 public sealed record VertexGemini2_5Pro() : CloudModel(

@@ -5,6 +5,7 @@ using MaIN.Services.Constants;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.LLMService.Auth;
 using MaIN.Services.Services.Models;
+using ModelIds = MaIN.Domain.Models.Models;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
@@ -13,7 +14,6 @@ namespace MaIN.Services.Services.ImageGenServices;
 
 internal class VertexImageGenService(IHttpClientFactory httpClientFactory, MaINSettings settings) : IImageGenService
 {
-    private const string DefaultModel = "imagen-4.0-generate-001";
     private const string DefaultLocation = "us-central1";
 
     public async Task<ChatResult?> Send(Chat chat)
@@ -76,7 +76,7 @@ internal class VertexImageGenService(IHttpClientFactory httpClientFactory, MaINS
                 Image = imageBytes,
                 Type = MessageType.Image
             },
-            Model = chat.ModelId ?? $"google/{DefaultModel}",
+            Model = string.IsNullOrEmpty(chat.ModelId) ? ModelIds.Vertex.Imagen4_0_Generate : chat.ModelId,
             CreatedAt = DateTime.UtcNow
         };
     }
@@ -93,12 +93,11 @@ internal class VertexImageGenService(IHttpClientFactory httpClientFactory, MaINS
     /// </summary>
     private static string ExtractModelName(string? modelId)
     {
-        if (string.IsNullOrEmpty(modelId))
-            return DefaultModel;
+        var resolved = string.IsNullOrEmpty(modelId) ? ModelIds.Vertex.Imagen4_0_Generate : modelId;
 
-        return modelId.StartsWith("google/", StringComparison.OrdinalIgnoreCase)
-            ? modelId["google/".Length..]
-            : modelId;
+        return resolved.StartsWith("google/", StringComparison.OrdinalIgnoreCase)
+            ? resolved["google/".Length..]
+            : resolved;
     }
 }
 
