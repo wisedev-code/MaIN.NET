@@ -1,8 +1,6 @@
-using MaIN.Core;
+using Examples.Utils;
 using MaIN.Core.Hub;
-using MaIN.Domain.Configuration;
 using MaIN.Domain.Configuration.BackendInferenceParams;
-using MaIN.Domain.Configuration.Vertex;
 using MaIN.Domain.Models;
 
 namespace Examples.Chat;
@@ -11,17 +9,7 @@ public class ChatExampleVertex : IExample
 {
     public async Task Start()
     {
-        MaINBootstrapper.Initialize(configureSettings: options =>
-        {
-            options.BackendType = BackendType.Vertex;
-            options.GoogleServiceAccountAuth = new GoogleServiceAccountConfig
-            {
-                ProjectId   = "<YOUR_GCP_PROJECT_ID>",
-                ClientEmail = "<YOUR_SERVICE_ACCOUNT_EMAIL>",
-                PrivateKey  = "<YOUR_PRIVATE_KEY>"
-            };
-        });
-
+        VertexExample.Setup(); //We need to provide Google service account config 
         Console.WriteLine("(Vertex AI) ChatExample is running!");
 
         await AIHub.Chat()

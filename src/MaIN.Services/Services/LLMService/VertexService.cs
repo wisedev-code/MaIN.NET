@@ -1,6 +1,7 @@
 using System.Text;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Configuration.BackendInferenceParams;
+using MaIN.Domain.Configuration.Vertex;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Models;
 using MaIN.Domain.Models.Concrete;
@@ -23,55 +24,38 @@ public sealed class VertexService(
     ILogger<VertexService>? logger = null)
     : OpenAiCompatibleService(notificationService, httpClientFactory, memoryFactory, memoryService, logger), ILLMService
 {
-    private readonly MaINSettings _settings = settings ?? throw new ArgumentNullException(nameof(settings));
-    private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
-
     private GoogleServiceAccountTokenProvider? _tokenProvider;
     private string _location = "us-central1";
+
+    private GoogleServiceAccountConfig Auth
+        => settings.GoogleServiceAccountAuth
+           ?? throw new InvalidOperationException("Vertex AI service account is not configured.");
 
     protected override string HttpClientName => ServiceConstants.HttpClients.VertexClient;
 
     protected override string ChatCompletionsUrl
-    {
-        get
-        {
-            var auth = _settings.GoogleServiceAccountAuth ?? throw new InvalidOperationException("MaINSettings.GoogleServiceAccountConfig is not configured.");
-            return $"https://{_location}-aiplatform.googleapis.com/v1beta1/projects/{auth.ProjectId}/locations/{_location}/endpoints/openapi/chat/completions";
-        }
-    }
+        => $"https://{_location}-aiplatform.googleapis.com/v1beta1/projects/{Auth.ProjectId}/locations/{_location}/endpoints/openapi/chat/completions";
 
     protected override string ModelsUrl
-    {
-        get
-        {
-            var auth = _settings.GoogleServiceAccountAuth ?? throw new InvalidOperationException("MaINSettings.GoogleServiceAccountConfig is not configured.");
-            return $"https://{_location}-aiplatform.googleapis.com/v1beta1/projects/{auth.ProjectId}/locations/{_location}/endpoints/openapi/models";
-        }
-    }
+        => $"https://{_location}-aiplatform.googleapis.com/v1beta1/projects/{Auth.ProjectId}/locations/{_location}/endpoints/openapi/models";
 
     protected override Type ExpectedParamsType => typeof(VertexInferenceParams);
 
     protected override string GetApiKey()
     {
-        var auth = _settings.GoogleServiceAccountAuth ?? throw new InvalidOperationException("MaINSettings.VertexAuth is not configured.");
-
+        var auth = Auth;
         _tokenProvider ??= new GoogleServiceAccountTokenProvider(auth);
 
-        logger?.LogInformation("Vertex: Requesting access token for {ClientEmail}...", auth.ClientEmail);
-        var httpClient = _httpClientFactory.CreateClient(HttpClientName);
-        // Use Task.Run to avoid deadlocking on Blazor Server's SynchronizationContext
-        var token = Task.Run(() => _tokenProvider.GetAccessTokenAsync(httpClient)).GetAwaiter().GetResult();
-        logger?.LogInformation("Vertex: Access token obtained (length={Length})", token?.Length ?? 0);
-        return token;
+        var httpClient = httpClientFactory.CreateClient(HttpClientName);
+        // Task.Run avoids deadlocking on Blazor Server's single-threaded SynchronizationContext
+        return Task.Run(() => _tokenProvider.GetAccessTokenAsync(httpClient)).GetAwaiter().GetResult();
     }
 
     protected override string GetApiName() => LLMApiRegistry.Vertex.ApiName;
 
     protected override void ValidateApiKey()
     {
-        var auth = _settings.GoogleServiceAccountAuth;
-        if (auth == null)
-            throw new InvalidOperationException("MaINSettings.GoogleServiceAccountConfig is not configured.");
+        var auth = Auth;
         if (string.IsNullOrEmpty(auth.ProjectId))
             throw new InvalidOperationException("GoogleServiceAccountConfig.ProjectId is required.");
         if (string.IsNullOrEmpty(auth.ClientEmail))
@@ -95,13 +79,11 @@ public sealed class VertexService(
         CancellationToken cancellationToken = default)
     {
         ExtractLocation(chat);
-        logger?.LogInformation("Vertex: Send called, model={Model}, location={Location}, url={Url}",
-            chat.ModelId, _location, ChatCompletionsUrl);
         return await base.Send(chat, options, cancellationToken);
     }
 
     /// <summary>
-    /// Bypasses KernelMemory and sends files directly to Gemini via multimodal API.
+    /// Sends files directly to Gemini via multimodal API (bypasses KernelMemory).
     /// PDFs and images are sent inline (Gemini handles OCR natively),
     /// other formats are pre-processed to text via DocumentProcessor.
     /// </summary>
@@ -131,29 +113,9 @@ public sealed class VertexService(
             await CollectStreamData(memoryOptions, inlineBytes, textContext, cancellationToken);
             CollectMemoryItems(memoryOptions, textContext);
 
-            var queryBuilder = new StringBuilder();
-            if (textContext.Length > 0)
-            {
-                queryBuilder.AppendLine("Use the following document content to answer the question:\n");
-                queryBuilder.Append(textContext);
-                queryBuilder.AppendLine();
-            }
-            queryBuilder.Append(originalContent);
-
-            if (chat.MemoryParams.Grammar != null)
-            {
-                var jsonGrammar = new GrammarToJsonConverter().ConvertToJson(chat.MemoryParams.Grammar);
-                queryBuilder.Append(
-                    $" | For your next response only, please respond using exactly the following JSON format: \n{jsonGrammar}\n. Do not include any explanations, code blocks, or additional content. After this single JSON response, resume your normal conversational style.");
-            }
-
-            lastMessage.Content = queryBuilder.ToString();
+            lastMessage.Content = BuildQuery(originalContent, textContext, chat.MemoryParams.Grammar);
             lastMessage.Files = null;
-
-            // Merge existing images with inline file bytes (PDFs sent as native multimodal content)
-            var allInline = new List<byte[]>(originalImages ?? []);
-            allInline.AddRange(inlineBytes);
-            lastMessage.Images = allInline.Count > 0 ? allInline : null;
+            lastMessage.Images = MergeInlineContent(originalImages, inlineBytes);
 
             return await Send(chat, requestOptions, cancellationToken);
         }
@@ -167,20 +129,16 @@ public sealed class VertexService(
 
     #region Multimodal File Processing
 
-    private static readonly HashSet<string> GeminiNativeExtensions =
+    private static readonly HashSet<string> NativeMultimodalExtensions =
         [".pdf", ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".tiff", ".tif", ".heic", ".heif", ".avif"];
 
-    private static bool IsGeminiNativeFile(string fileName)
-        => GeminiNativeExtensions.Contains(Path.GetExtension(fileName).ToLowerInvariant());
+    private static bool IsNativeMultimodalFile(string fileName)
+        => NativeMultimodalExtensions.Contains(Path.GetExtension(fileName).ToLowerInvariant());
 
     private static void CollectTextData(ChatMemoryOptions options, StringBuilder textContext)
     {
         foreach (var (name, content) in options.TextData)
-        {
-            textContext.AppendLine($"[Document: {name}]");
-            textContext.AppendLine(content);
-            textContext.AppendLine();
-        }
+            AppendDocument(textContext, name, content);
     }
 
     private static async Task CollectFilesData(
@@ -189,16 +147,10 @@ public sealed class VertexService(
     {
         foreach (var (name, path) in options.FilesData)
         {
-            if (IsGeminiNativeFile(name))
-            {
+            if (IsNativeMultimodalFile(name))
                 inlineBytes.Add(await File.ReadAllBytesAsync(path, cancellationToken));
-            }
             else
-            {
-                textContext.AppendLine($"[Document: {name}]");
-                textContext.AppendLine(DocumentProcessor.ProcessDocument(path));
-                textContext.AppendLine();
-            }
+                AppendDocument(textContext, name, DocumentProcessor.ProcessDocument(path));
         }
     }
 
@@ -208,24 +160,22 @@ public sealed class VertexService(
     {
         foreach (var (name, stream) in options.StreamData)
         {
-            using var ms = new MemoryStream();
             if (stream.CanSeek) stream.Position = 0;
+            using var ms = new MemoryStream();
             await stream.CopyToAsync(ms, cancellationToken);
             var bytes = ms.ToArray();
 
-            if (IsGeminiNativeFile(name))
+            if (IsNativeMultimodalFile(name))
             {
                 inlineBytes.Add(bytes);
             }
             else
             {
-                var tempPath = Path.Combine(Path.GetTempPath(), $"vertex_tmp_{Guid.NewGuid()}{Path.GetExtension(name)}");
+                var tempPath = Path.Combine(Path.GetTempPath(), $"vertex_{Guid.NewGuid()}{Path.GetExtension(name)}");
                 try
                 {
                     await File.WriteAllBytesAsync(tempPath, bytes, cancellationToken);
-                    textContext.AppendLine($"[Document: {name}]");
-                    textContext.AppendLine(DocumentProcessor.ProcessDocument(tempPath));
-                    textContext.AppendLine();
+                    AppendDocument(textContext, name, DocumentProcessor.ProcessDocument(tempPath));
                 }
                 finally
                 {
@@ -243,6 +193,44 @@ public sealed class VertexService(
             textContext.AppendLine(item);
             textContext.AppendLine();
         }
+    }
+
+    private static void AppendDocument(StringBuilder sb, string name, string content)
+    {
+        sb.AppendLine($"[Document: {name}]");
+        sb.AppendLine(content);
+        sb.AppendLine();
+    }
+
+    private static string BuildQuery(string userQuestion, StringBuilder documentContext, Grammar? grammar)
+    {
+        var query = new StringBuilder();
+        if (documentContext.Length > 0)
+        {
+            query.AppendLine("Use the following document content to answer the question:\n");
+            query.Append(documentContext);
+            query.AppendLine();
+        }
+        query.Append(userQuestion);
+
+        if (grammar != null)
+        {
+            var jsonGrammar = new GrammarToJsonConverter().ConvertToJson(grammar);
+            query.Append(
+                $" | For your next response only, please respond using exactly the following JSON format: \n{jsonGrammar}\n. Do not include any explanations, code blocks, or additional content. After this single JSON response, resume your normal conversational style.");
+        }
+
+        return query.ToString();
+    }
+
+    private static List<byte[]>? MergeInlineContent(List<byte[]>? existingImages, List<byte[]> newBytes)
+    {
+        if ((existingImages == null || existingImages.Count == 0) && newBytes.Count == 0)
+            return null;
+
+        var merged = new List<byte[]>(existingImages ?? []);
+        merged.AddRange(newBytes);
+        return merged;
     }
 
     #endregion
