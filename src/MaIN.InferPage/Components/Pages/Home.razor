@@ -3,7 +3,7 @@
 @inject IJSRuntime JS
 @inject SettingsService SettingsStorage
 @inject SettingsStateService SettingsState
-@inject MaIN.Domain.Configuration.MaINSettings MaINSettings
+@inject MaINSettings MaINSettings
 @implements IDisposable
 @using MaIN.Core.Hub
 @using MaIN.Core.Hub.Contexts.Interfaces.ChatContext
@@ -427,9 +427,12 @@
         if (backendType != BackendType.Self)
         {
             var backendKey = backendType == BackendType.Ollama
-                ? (settings.IsOllamaCloud ? "OllamaCloud" : "OllamaLocal")
-                : backendType == BackendType.Vertex ? "Vertex"
-                : backendType.ToString();
+                ? (settings.IsOllamaCloud 
+                    ? "OllamaCloud" 
+                    : "OllamaLocal")
+                : backendType == BackendType.Vertex 
+                    ? "Vertex"
+                    : backendType.ToString();
 
             apiKey = await SettingsStorage.GetApiKeyForBackendAsync(backendKey);
         }

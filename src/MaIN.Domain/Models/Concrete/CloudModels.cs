@@ -132,6 +132,13 @@ public sealed record VertexVeo2_0Generate() : CloudModel(
     4000,
     "Google's video generation model available through Vertex AI"), IImageGenerationModel;
 
+public sealed record VertexImagen4_0Generate() : CloudModel(
+    Models.Vertex.Imagen4_0_Generate,
+    BackendType.Vertex,
+    "Imagen 4.0 (Vertex)",
+    4000,
+    "Google's latest image generation model available through Vertex AI"), IImageGenerationModel;
+
 // ===== xAI Models =====
 
 public sealed record Grok3Beta() : CloudModel(

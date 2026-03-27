@@ -20,11 +20,11 @@ public class ImageGenServiceFactory(IServiceProvider serviceProvider) : IImageGe
             BackendType.Anthropic => null,
             BackendType.Xai => new XaiImageGenService(serviceProvider.GetRequiredService<IHttpClientFactory>(),
                 serviceProvider.GetRequiredService<MaINSettings>()),
+            BackendType.Vertex => new VertexImageGenService(serviceProvider.GetRequiredService<IHttpClientFactory>(),
+                serviceProvider.GetRequiredService<MaINSettings>()),
             BackendType.Ollama => null,
             BackendType.Self => new ImageGenService(serviceProvider.GetRequiredService<IHttpClientFactory>(),
                 serviceProvider.GetRequiredService<MaINSettings>()),
-            
-            // Add other backends as needed
             _ => throw new NotSupportedException("Not support image generation."),
         };
     }
