@@ -1,13 +1,14 @@
 using MaIN.Core.Hub;
 using MaIN.Domain.Configuration;
-using MaIN.Domain.Entities;
 using MaIN.Domain.Configuration.BackendInferenceParams;
+using MaIN.Domain.Entities;
 using MaIN.Domain.Exceptions;
 using MaIN.Domain.Models;
 using MaIN.Domain.Models.Concrete;
 
-namespace MaIN.Core.IntegrationTests;
+namespace MaIN.Core.E2ETests;
 
+[Collection("E2ETests")]
 public class BackendParamsTests : IntegrationTestBase
 {
     private const string TestQuestion = "What is 2+2? Answer with just the number.";

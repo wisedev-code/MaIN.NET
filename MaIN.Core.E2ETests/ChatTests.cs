@@ -1,12 +1,13 @@
 using FuzzySharp;
+using MaIN.Core.E2ETests.Helpers;
 using MaIN.Core.Hub;
-using MaIN.Core.IntegrationTests.Helpers;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Models;
 using MaIN.Domain.Models.Abstract;
 
-namespace MaIN.Core.IntegrationTests;
+namespace MaIN.Core.E2ETests;
 
+[Collection("E2ETests")]
 public class ChatTests : IntegrationTestBase
 {
     public ChatTests() : base()
@@ -16,7 +17,7 @@ public class ChatTests : IntegrationTestBase
     [Fact]
     public async Task Should_AnswerQuestion_BasicChat()
     {
-        var context = AIHub.Chat().WithModel(Models.Local.Gemma2_2b);
+        var context = AIHub.Chat().WithModel(Models.Local.Qwen2_5_0_5b);
 
         var result = await context
             .WithMessage("Where the hedgehog goes at night?")
@@ -28,28 +29,38 @@ public class ChatTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task Should_AnswerDifferences_BetweenDocuments_ChatWithFiles()
+    public async Task Should_AnswerFileSubject_ChatWithFiles()
     {
-        List<string> files = ["./Files/Nicolaus_Copernicus.pdf", "./Files/Galileo_Galilei.pdf"];
+        List<string> files = ["./Files/Nicolaus_Copernicus.pdf"];
 
         var result = await AIHub.Chat()
-            .WithModel(Models.Local.Gemma2_2b)
-            .WithMessage("You have 2 documents in memory. Whats the difference of work between Galileo and Copernicus?. Give answer based on the documents.")
+            .WithModel(Models.Local.Qwen2_5_0_5b)
+            .WithMessage("Who is described in the file? Reply with ONLY their full name. No explanation, no punctuation. Example: Isaak Newton")
+            .WithMemoryParams(new MemoryParams { AnswerTokens = 10 })
             .WithFiles(files)
             .CompleteAsync();
 
         Assert.True(result.Done);
         Assert.NotNull(result.Message);
         Assert.NotEmpty(result.Message.Content);
+        var ratio = Fuzz.PartialRatio("nicolaus copernicus", result.Message.Content.ToLowerInvariant());
+        Assert.True(ratio > 50,
+            $"""
+            Fuzzy match failed!
+            Expected > 50, but got {ratio}.
+            Expected: 'nicolaus copernicus'
+            Actual: '{result.Message.Content}'
+            """);
     }
 
     [Fact]
     public async Task Should_AnswerQuestion_FromExistingChat()
     {
         var result = AIHub.Chat()
-            .WithModel(Models.Local.Gemma2_2b);
+            .WithModel(Models.Local.Qwen2_5_0_5b);
 
         await result.WithMessage("What do you think about math theories?")
+            .WithMemoryParams(new MemoryParams { AnswerTokens = 10 })
             .CompleteAsync();
 
         await result.WithMessage("And about physics?")
@@ -62,29 +73,53 @@ public class ChatTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task Should_AnswerGameFromImage_ChatWithVision()
+    public async Task Should_AnswerGameFromImage_ChatWithImagesWithText()
     {
         List<string> images = ["./Files/gamex.jpg"];
+        var expectedAnswer = "call of duty";
 
         var result = await AIHub.Chat()
             .WithModel(Models.Local.Llama3_2_3b)
-            .WithMessage("What is the title of the game? Answer only this question.")
-            .WithMemoryParams(new MemoryParams
-            {
-                AnswerTokens = 1000
-            })
+            .WithMessage("What is the title of the game? Answer in 3 words.")
+            .WithMemoryParams(new MemoryParams { AnswerTokens = 10 })
             .WithFiles(images)
             .CompleteAsync();
 
         Assert.True(result.Done);
         Assert.NotNull(result.Message);
         Assert.NotEmpty(result.Message.Content);
-        var ratio = Fuzz.PartialRatio("call of duty", result.Message.Content.ToLowerInvariant());
+        var ratio = Fuzz.PartialRatio(expectedAnswer, result.Message.Content.ToLowerInvariant());
         Assert.True(ratio > 50,
             $"""
             Fuzzy match failed!
             Expected > 50, but got {ratio}.
-            Expexted: 'call of duty'
+            Expexted: '{expectedAnswer}'
+            Actual: '{result.Message.Content}'
+            """);
+    }
+
+    [Fact]
+    public async Task Should_AnswerAppleFromImage_ChatWithImagesWithVision()
+    {
+        List<string> images = ["./Files/apple.jpg"];
+        var expectedAnswer = "apple";
+
+        var result = await AIHub.Chat()
+            .WithModel(Models.Local.Gemma3_4b)
+            .WithMessage("What is this fruit? Answer in one word.")
+            .WithMemoryParams(new MemoryParams { AnswerTokens = 10 })
+            .WithFiles(images)
+            .CompleteAsync();
+
+        Assert.True(result.Done);
+        Assert.NotNull(result.Message);
+        Assert.NotEmpty(result.Message.Content);
+        var ratio = Fuzz.PartialRatio(expectedAnswer, result.Message.Content.ToLowerInvariant());
+        Assert.True(ratio > 50,
+            $"""
+            Fuzzy match failed!
+            Expected > 50, but got {ratio}.
+            Expexted: '{expectedAnswer}'
             Actual: '{result.Message.Content}'
             """);
     }
@@ -113,9 +148,9 @@ public class ChatTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task Should_AnswerDifferences_BetweenDocuments_ChatWithFiles_UsingStreams()
+    public async Task Should_AnswerFileSubject_ChatWithFiles_UsingStreams()
     {
-        List<string> files = ["./Files/Nicolaus_Copernicus.pdf", "./Files/Galileo_Galilei.pdf"];
+        List<string> files = ["./Files/Nicolaus_Copernicus.pdf"];
 
         var fileStreams = new List<FileStream>();
 
@@ -135,14 +170,25 @@ public class ChatTests : IntegrationTestBase
             fileStreams.Add(fs);
         }
 
+        var expectedAnswer = "nicolaus copernicus";
+
         var result = await AIHub.Chat()
-            .WithModel(Models.Local.Gemma2_2b)
-            .WithMessage("You have 2 documents in memory. Whats the difference of work between Galileo and Copernicus?. Give answer based on the documents.")
+            .WithModel(Models.Local.Qwen2_5_0_5b)
+            .WithMessage("Who is described in the file? Reply with ONLY their full name. No explanation, no punctuation. Example: Isaak Newton")
+            .WithMemoryParams(new MemoryParams { AnswerTokens = 10 })
             .WithFiles(fileStreams)
             .CompleteAsync();
 
         Assert.True(result.Done);
         Assert.NotNull(result.Message);
         Assert.NotEmpty(result.Message.Content);
+        var ratio = Fuzz.PartialRatio(expectedAnswer, result.Message.Content.ToLowerInvariant());
+        Assert.True(ratio > 50,
+            $"""
+            Fuzzy match failed!
+            Expected > 50, but got {ratio}.
+            Expected: '{expectedAnswer}'
+            Actual: '{result.Message.Content}'
+            """);
     }
 }
