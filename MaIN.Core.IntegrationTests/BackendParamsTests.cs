@@ -106,7 +106,7 @@ public class BackendParamsTests : IntegrationTestBase
         SkipIfMissingKey(LLMApiRegistry.GetEntry(BackendType.GroqCloud)?.ApiKeyEnvName!);
 
         var result = await AIHub.Chat()
-            .WithModel(Models.Groq.Llama3_1_8bInstant)
+            .WithModel(Models.Groq.Llama3_1_8b)
             .WithMessage(TestQuestion)
             .WithInferenceParams(new GroqCloudInferenceParams
             {
@@ -278,7 +278,7 @@ public class BackendParamsTests : IntegrationTestBase
     {
         await Assert.ThrowsAsync<InvalidBackendParamsException>(() =>
             AIHub.Chat()
-                .WithModel(Models.Groq.Llama3_1_8bInstant)
+                .WithModel(Models.Groq.Llama3_1_8b)
                 .WithMessage(TestQuestion)
                 .WithInferenceParams(new OpenAiInferenceParams())
                 .CompleteAsync());
