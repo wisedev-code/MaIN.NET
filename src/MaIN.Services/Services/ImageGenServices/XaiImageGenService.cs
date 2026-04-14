@@ -3,6 +3,7 @@ using MaIN.Domain.Entities;
 using MaIN.Services.Constants;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
+using ModelIds = MaIN.Domain.Models.Models;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -25,10 +26,11 @@ public class XaiImageGenService(
         string apiKey = _settings.XaiKey ?? Environment.GetEnvironmentVariable(LLMApiRegistry.Xai.ApiKeyEnvName) ??
             throw new APIKeyNotConfiguredException(LLMApiRegistry.Xai.ApiName);
 
+        var model = string.IsNullOrWhiteSpace(chat.ModelId) ? ModelIds.Xai.GrokImage : chat.ModelId;
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
         var requestBody = new
         {
-            model = string.IsNullOrWhiteSpace(chat.ModelId) ? Models.GROK_IMAGE : chat.ModelId,
+            model,
             prompt = BuildPromptFromChat(chat),
             n = 1,
             response_format = "b64_json" //or "url"
@@ -36,7 +38,7 @@ public class XaiImageGenService(
 
         using var response = await client.PostAsJsonAsync(ServiceConstants.ApiUrls.XaiImageGenerations, requestBody);
         var imageBytes = await ProcessXaiResponse(response);
-        return CreateChatResult(imageBytes);
+        return CreateChatResult(imageBytes, model);
     }
 
     private static string BuildPromptFromChat(Chat chat)
@@ -77,7 +79,7 @@ public class XaiImageGenService(
         return await imageResponse.Content.ReadAsByteArrayAsync();
     }
 
-    private static ChatResult CreateChatResult(byte[] imageBytes)
+    private static ChatResult CreateChatResult(byte[] imageBytes, string model)
     {
         return new ChatResult
         {
@@ -89,14 +91,9 @@ public class XaiImageGenService(
                 Image = imageBytes,
                 Type = MessageType.Image
             },
-            Model = Models.GROK_IMAGE,
+            Model = model,
             CreatedAt = DateTime.UtcNow
         };
-    }
-
-    private struct Models
-    {
-        public const string GROK_IMAGE = "grok-2-image";
     }
 }
 

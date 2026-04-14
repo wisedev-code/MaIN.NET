@@ -14,4 +14,5 @@ public interface IMemoryFactory
             MemoryParams memoryParams);
     IKernelMemory CreateMemoryWithOpenAi(string openAiKey, MemoryParams memoryParams);
     IKernelMemory CreateMemoryWithGemini(string geminiKey, MemoryParams memoryParams);
+    IKernelMemory CreateMemoryWithVertex(Func<ValueTask<string>> bearerTokenProvider, string location, string projectId, MemoryParams memoryParams);
 }

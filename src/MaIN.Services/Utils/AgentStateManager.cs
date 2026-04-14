@@ -1,6 +1,6 @@
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
-using MaIN.Services.Services.ImageGenServices;
+using MaIN.Domain.Models.Abstract;
 
 namespace MaIN.Services.Utils;
 
@@ -11,7 +11,7 @@ public static class AgentStateManager
         agent.CurrentBehaviour = "Default";
         chat.Properties.Clear();
 
-        if (chat.ModelId == ImageGenService.LocalImageModels.FLUX)
+        if (ModelRegistry.TryGetById(chat.ModelId, out var model) && model!.HasImageGeneration)
         {
             chat.Messages = [];
         }

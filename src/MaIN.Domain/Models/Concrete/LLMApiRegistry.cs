@@ -11,6 +11,7 @@ public static class LLMApiRegistry
     public static readonly LLMApiRegistryEntry Anthropic = new("Anthropic", "ANTHROPIC_API_KEY");
     public static readonly LLMApiRegistryEntry Xai = new("Xai", "XAI_API_KEY");
     public static readonly LLMApiRegistryEntry Ollama = new("Ollama", "OLLAMA_API_KEY");
+    public static readonly LLMApiRegistryEntry Vertex = new("Vertex", "GOOGLE_APPLICATION_CREDENTIALS");
 
     public static LLMApiRegistryEntry? GetEntry(BackendType backendType) => backendType switch
     {
@@ -21,6 +22,7 @@ public static class LLMApiRegistry
         BackendType.Anthropic => Anthropic,
         BackendType.Xai => Xai,
         BackendType.Ollama => Ollama,
+        BackendType.Vertex => Vertex,
         _ => null
     };
 }

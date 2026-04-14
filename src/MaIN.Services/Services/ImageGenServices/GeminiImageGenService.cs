@@ -3,6 +3,7 @@ using MaIN.Domain.Entities;
 using MaIN.Services.Constants;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
+using ModelIds = MaIN.Domain.Models.Models;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
@@ -22,14 +23,11 @@ internal class GeminiImageGenService(IHttpClientFactory httpClientFactory, MaINS
         string apiKey = _settings.GeminiKey ?? Environment.GetEnvironmentVariable(LLMApiRegistry.Gemini.ApiKeyEnvName)
             ?? throw new APIKeyNotConfiguredException(LLMApiRegistry.Gemini.ApiName);
 
-        if (string.IsNullOrEmpty(chat.ModelId))
-        {
-            chat.ModelId = Models.IMAGEN_GENERATE;
-        }
+        var model = string.IsNullOrEmpty(chat.ModelId) ? ModelIds.Gemini.Imagen4_0_FastGenerate : chat.ModelId;
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
         var requestBody = new
         {
-            model = chat.ModelId,
+            model,
             prompt = BuildPromptFromChat(chat),
             response_format = "b64_json", // necessary for gemini api
             size = ServiceConstants.Defaults.ImageSize,
@@ -37,7 +35,7 @@ internal class GeminiImageGenService(IHttpClientFactory httpClientFactory, MaINS
 
         using var response = await client.PostAsJsonAsync(ServiceConstants.ApiUrls.GeminiImageGenerations, requestBody);
         var imageBytes = await ProcessGeminiResponse(response);
-        return CreateChatResult(imageBytes);
+        return CreateChatResult(imageBytes, model);
     }
 
     private static string BuildPromptFromChat(Chat chat)
@@ -61,7 +59,7 @@ internal class GeminiImageGenService(IHttpClientFactory httpClientFactory, MaINS
         return Convert.FromBase64String(base64Image);
     }
 
-    private static ChatResult CreateChatResult(byte[] imageBytes)
+    private static ChatResult CreateChatResult(byte[] imageBytes, string model)
     {
         return new ChatResult
         {
@@ -73,14 +71,9 @@ internal class GeminiImageGenService(IHttpClientFactory httpClientFactory, MaINS
                 Image = imageBytes,
                 Type = MessageType.Image
             },
-            Model = Models.IMAGEN_GENERATE,
+            Model = model,
             CreatedAt = DateTime.UtcNow
         };
-    }
-
-    private struct Models
-    {
-        public const string IMAGEN_GENERATE = "imagen-4.0-fast-generate-001";
     }
 }
 

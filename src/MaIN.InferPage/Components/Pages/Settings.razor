@@ -1,4 +1,5 @@
 @using MaIN.Domain.Configuration
+@using MaIN.Domain.Configuration.Vertex
 @using MaIN.Domain.Models.Abstract
 @inject SettingsService SettingsStorage
 @inject MaINSettings MaINSettings
@@ -61,6 +62,49 @@
                     {
                         <span class="api-key-hint">Saved: @_savedKeyPreview</span>
                     }
+                </div>
+            }
+
+            @if (_selectedBackend?.BackendType == BackendType.Vertex)
+            {
+                <div class="settings-field">
+                    <label class="settings-label">Project ID</label>
+                    <FluentTextField @bind-Value="_vertexProjectId"
+                                     Placeholder="my-google-cloud-project"
+                                     Style="width: 100%;" />
+                </div>
+
+                <div class="settings-field">
+                    <label class="settings-label">Client Email</label>
+                    <FluentTextField @bind-Value="_vertexClientEmail"
+                                     Placeholder="name@project.iam.gserviceaccount.com"
+                                     Style="width: 100%;" />
+                </div>
+
+                <div class="settings-field">
+                    <label class="settings-label">Private Key</label>
+                    <div class="api-key-row">
+                        <FluentTextField @bind-Value="_vertexPrivateKey"
+                                         Placeholder="Private key from service account JSON"
+                                         TextFieldType="@(_showVertexKey ? TextFieldType.Text : TextFieldType.Password)"
+                                         Style="flex: 1;" />
+                        <FluentButton Appearance="Appearance.Lightweight"
+                                      Style="--neutral-fill-stealth-rest: transparent; --neutral-fill-stealth-hover: rgba(128,128,128,0.15); --neutral-fill-stealth-active: rgba(128,128,128,0.25);"
+                                      OnClick="@(() => _showVertexKey = !_showVertexKey)"
+                                      IconStart="@(_showVertexKey
+                                          ? new Icons.Regular.Size20.EyeOff()
+                                          : (Icon)new Icons.Regular.Size20.Eye())">
+                        </FluentButton>
+                    </div>
+                    <span class="api-key-hint">private_key field from the service account JSON file</span>
+                </div>
+
+                <div class="settings-field">
+                    <label class="settings-label">Location</label>
+                    <FluentTextField @bind-Value="_vertexLocation"
+                                     Placeholder="us-central1"
+                                     Style="width: 100%;" />
+                    <span class="api-key-hint">Optional — defaults to us-central1</span>
                 </div>
             }
 
@@ -155,6 +199,13 @@
     private string? _savedKeyPreview;
     private bool _showApiKey;
 
+    // Vertex AI auth fields
+    private string? _vertexProjectId;
+    private string? _vertexClientEmail;
+    private string? _vertexPrivateKey;
+    private string? _vertexLocation;
+    private bool _showVertexKey;
+
     // "Will load:" path preview shown below the model path field (Self backend only)
     private string? ResolvedModelPathPreview
     {
@@ -236,9 +287,14 @@
     private string? _mmProjName;
 
     private bool RequiresApiKey => _selectedBackend?.RequiresApiKey == true;
+    private bool IsVertexBackend => _selectedBackend?.BackendType == BackendType.Vertex;
+    private bool HasVertexRequiredFields => !string.IsNullOrWhiteSpace(_vertexProjectId)
+        && !string.IsNullOrWhiteSpace(_vertexClientEmail)
+        && !string.IsNullOrWhiteSpace(_vertexPrivateKey);
     private bool CanSave => !string.IsNullOrWhiteSpace(_modelName)
                             && _selectedBackend != null
-                            && (!RequiresApiKey || !string.IsNullOrEmpty(_apiKeyInput) || !string.IsNullOrEmpty(_savedKeyPreview));
+                            && (!RequiresApiKey || !string.IsNullOrEmpty(_apiKeyInput) || !string.IsNullOrEmpty(_savedKeyPreview))
+                            && (!IsVertexBackend || HasVertexRequiredFields);
 
     protected override async Task OnInitializedAsync()
     {
@@ -251,7 +307,8 @@
             new(5, "Anthropic", BackendType.Anthropic, true),
             new(6, "xAI", BackendType.Xai, true),
             new(7, "Ollama (Local)", BackendType.Ollama, false),
-            new(8, "Ollama (Cloud)", BackendType.Ollama, true)
+            new(8, "Ollama (Cloud)", BackendType.Ollama, true),
+            new(9, "Vertex AI", BackendType.Vertex, false)
         }.OrderBy(x => x.DisplayName)
          .Prepend(new BackendOption(0, "Local", BackendType.Self, false))
          .ToList();
@@ -281,6 +338,10 @@
                     ? _backendOptions.First(o => o.Id == 8)
                     : _backendOptions.First(o => o.Id == 7);
             }
+            else if (backendType == BackendType.Vertex)
+            {
+                _selectedBackend = _backendOptions.First(o => o.Id == 9);
+            }
             else
             {
                 _selectedBackend = _backendOptions.FirstOrDefault(o => o.BackendType == backendType && o.Id < 7);
@@ -293,6 +354,18 @@
             _manualImageGen = settings.HasImageGen;
             _mmProjName = settings.MmProjName;
 
+            if (backendType == BackendType.Vertex)
+            {
+                var vertexAuth = await SettingsStorage.GetVertexAuthAsync();
+                if (vertexAuth != null)
+                {
+                    _vertexProjectId = vertexAuth.ProjectId;
+                    _vertexClientEmail = vertexAuth.ClientEmail;
+                    _vertexPrivateKey = vertexAuth.PrivateKey;
+                }
+                _vertexLocation = settings.VertexLocation;
+            }
+
             OnModelNameChanged();
         }
         else if (!Utils.NeedsConfiguration)
@@ -302,7 +375,9 @@
                 ? (Utils.HasApiKey
                     ? _backendOptions.First(o => o.Id == 8)
                     : _backendOptions.First(o => o.Id == 7))
-                : _backendOptions.FirstOrDefault(o => o.BackendType == Utils.BackendType && o.Id < 7);
+                : Utils.BackendType == BackendType.Vertex
+                    ? _backendOptions.First(o => o.Id == 9)
+                    : _backendOptions.FirstOrDefault(o => o.BackendType == Utils.BackendType && o.Id < 7);
 
             _modelName = Utils.Model;
             _modelPath = Utils.Path;
@@ -341,6 +416,26 @@
                 _modelName = lastModel;
                 OnModelNameChanged();
             }
+        }
+
+        if (IsVertexBackend)
+        {
+            var vertexAuth = await SettingsStorage.GetVertexAuthAsync();
+            if (vertexAuth != null)
+            {
+                _vertexProjectId = vertexAuth.ProjectId;
+                _vertexClientEmail = vertexAuth.ClientEmail;
+                _vertexPrivateKey = vertexAuth.PrivateKey;
+            }
+            else
+            {
+                _vertexProjectId = null;
+                _vertexClientEmail = null;
+                _vertexPrivateKey = null;
+            }
+
+            var settings = await SettingsStorage.LoadSettingsAsync();
+            _vertexLocation = settings?.VertexLocation;
         }
 
         await LoadApiKeyPreview();
@@ -425,7 +520,8 @@
             HasReasoning = hasReasoning,
             HasImageGen = hasImageGen,
             ModelPath = _modelPath,
-            MmProjName = _mmProjName
+            MmProjName = _mmProjName,
+            VertexLocation = IsVertexBackend ? _vertexLocation : null
         };
         await SettingsStorage.SaveSettingsAsync(settings);
 
@@ -447,6 +543,19 @@
             }
         }
 
+        // Vertex AI: persist auth and build config
+        GoogleServiceAccountConfig? vertexAuth = null;
+        if (IsVertexBackend && HasVertexRequiredFields)
+        {
+            await SettingsStorage.SaveVertexAuthAsync(_vertexProjectId!, _vertexClientEmail!, _vertexPrivateKey!);
+            vertexAuth = new GoogleServiceAccountConfig
+            {
+                ProjectId = _vertexProjectId!,
+                ClientEmail = _vertexClientEmail!,
+                PrivateKey = _vertexPrivateKey!
+            };
+        }
+
         Utils.ApplySettings(
             _selectedBackend.BackendType,
             _modelName,
@@ -456,7 +565,8 @@
             hasImageGen,
             _mmProjName,
             MaINSettings,
-            apiKey);
+            apiKey,
+            vertexAuth);
 
         await OnSettingsApplied.InvokeAsync();
     }
@@ -466,6 +576,7 @@
         if (_selectedBackend == null) return "Self";
         if (_selectedBackend.Id == 7) return "OllamaLocal";
         if (_selectedBackend.Id == 8) return "OllamaCloud";
+        if (_selectedBackend.Id == 9) return "Vertex";
         return _selectedBackend.BackendType.ToString();
     }
 

@@ -3,7 +3,7 @@
 @inject IJSRuntime JS
 @inject SettingsService SettingsStorage
 @inject SettingsStateService SettingsState
-@inject MaIN.Domain.Configuration.MaINSettings MaINSettings
+@inject MaINSettings MaINSettings
 @implements IDisposable
 @using MaIN.Core.Hub
 @using MaIN.Core.Hub.Contexts.Interfaces.ChatContext
@@ -427,10 +427,30 @@
         if (backendType != BackendType.Self)
         {
             var backendKey = backendType == BackendType.Ollama
-                ? (settings.IsOllamaCloud ? "OllamaCloud" : "OllamaLocal")
-                : backendType.ToString();
+                ? (settings.IsOllamaCloud 
+                    ? "OllamaCloud" 
+                    : "OllamaLocal")
+                : backendType == BackendType.Vertex 
+                    ? "Vertex"
+                    : backendType.ToString();
 
             apiKey = await SettingsStorage.GetApiKeyForBackendAsync(backendKey);
+        }
+
+        // Load Vertex auth from localStorage if applicable
+        Domain.Configuration.Vertex.GoogleServiceAccountConfig? vertexAuth = null;
+        if (backendType == BackendType.Vertex)
+        {
+            var stored = await SettingsStorage.GetVertexAuthAsync();
+            if (stored != null)
+            {
+                vertexAuth = new Domain.Configuration.Vertex.GoogleServiceAccountConfig
+                {
+                    ProjectId = stored.ProjectId,
+                    ClientEmail = stored.ClientEmail,
+                    PrivateKey = stored.PrivateKey
+                };
+            }
         }
 
         Utils.ApplySettings(
@@ -442,7 +462,8 @@
             settings.HasImageGen,
             settings.MmProjName,
             MaINSettings,
-            apiKey);
+            apiKey,
+            vertexAuth);
     }
 
     private void ShowSettingsFromGear()

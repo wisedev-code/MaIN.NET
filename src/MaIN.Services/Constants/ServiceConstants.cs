@@ -13,6 +13,7 @@ public static class ServiceConstants
         public const string XaiClient = "XaiClient";
         public const string OllamaClient = "OllamaClient";
         public const string OllamaLocalClient = "OllamaLocalClient";
+        public const string VertexClient = "VertexClient";
         public const string ImageDownloadClient = "ImageDownloadClient";
         public const string ModelContextDownloadClient = "ModelContextDownloadClient";
     }

@@ -14,6 +14,7 @@ public static class BackendParamsFactory
         BackendType.Gemini => new GeminiInferenceParams(),
         BackendType.Anthropic => new AnthropicInferenceParams(),
         BackendType.Ollama => new OllamaInferenceParams(),
+        BackendType.Vertex => new VertexInferenceParams(),
         _ => new LocalInferenceParams()
     };
 }

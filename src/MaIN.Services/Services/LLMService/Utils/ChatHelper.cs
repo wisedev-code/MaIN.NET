@@ -259,6 +259,11 @@ public static class ChatHelper
         if (imageBytes.Length < 4)
             return "image/jpeg";
 
+        // PDF: %PDF (0x25 0x50 0x44 0x46)
+        if (imageBytes[0] == 0x25 && imageBytes[1] == 0x50 &&
+            imageBytes[2] == 0x44 && imageBytes[3] == 0x46)
+            return "application/pdf";
+
         if (imageBytes[0] == 0xFF && imageBytes[1] == 0xD8)
             return "image/jpeg";
 

@@ -5,6 +5,7 @@ using MaIN.Domain.Models.Concrete;
 using MaIN.Services.Constants;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
+using ModelIds = MaIN.Domain.Models.Models;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
@@ -22,13 +23,14 @@ public class OpenAiImageGenService(
     public async Task<ChatResult?> Send(Chat chat)
     {
         var client = _httpClientFactory.CreateClient(ServiceConstants.HttpClients.OpenAiClient);
-        string apiKey = _settings.OpenAiKey ?? Environment.GetEnvironmentVariable(LLMApiRegistry.OpenAi.ApiKeyEnvName) 
+        string apiKey = _settings.OpenAiKey ?? Environment.GetEnvironmentVariable(LLMApiRegistry.OpenAi.ApiKeyEnvName)
             ?? throw new APIKeyNotConfiguredException(LLMApiRegistry.OpenAi.ApiName);
-        
+
+        var model = string.IsNullOrEmpty(chat.ModelId) ? ModelIds.OpenAi.DallE3 : chat.ModelId;
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
         var requestBody = new
         {
-            model = chat.ModelId,
+            model,
             prompt = BuildPromptFromChat(chat),
             size = ServiceConstants.Defaults.ImageSize
         };
@@ -36,7 +38,7 @@ public class OpenAiImageGenService(
         using var response = await client.PostAsJsonAsync(ServiceConstants.ApiUrls.OpenAiImageGenerations, requestBody);
 
         byte[] imageBytes = await ProcessOpenAiResponse(response);
-        return CreateChatResult(imageBytes);
+        return CreateChatResult(imageBytes, model);
     }
     
     private static string BuildPromptFromChat(Chat chat)
@@ -73,7 +75,7 @@ public class OpenAiImageGenService(
         throw new InvalidOperationException("No image URL or base64 data returned from OpenAI");
     }
     
-    private static ChatResult CreateChatResult(byte[] imageBytes)
+    private static ChatResult CreateChatResult(byte[] imageBytes, string model)
     {
         return new ChatResult
         {
@@ -85,14 +87,9 @@ public class OpenAiImageGenService(
                 Image = imageBytes,
                 Type = MessageType.Image
             },
-            Model = Models.DALLE,
+            Model = model,
             CreatedAt = DateTime.UtcNow
         };
-    }
-    
-    private struct Models
-    {
-        public const string DALLE = "dall-e-3";
     }
 }
 

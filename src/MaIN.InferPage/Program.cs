@@ -39,10 +39,15 @@ try
                 "anthropic" => BackendType.Anthropic,
                 "xai" => BackendType.Xai,
                 "ollama" => BackendType.Ollama,
+                "vertex" => BackendType.Vertex,
                 _ => BackendType.Self
             };
 
-            if (Utils.BackendType != BackendType.Self)
+            if (Utils.BackendType == BackendType.Vertex)
+            {
+                Console.WriteLine("Vertex AI requires service account credentials. Configure them via the Settings page.");
+            }
+            else if (Utils.BackendType != BackendType.Self)
             {
                 var apiKeyVariable = LLMApiRegistry.GetEntry(Utils.BackendType)?.ApiKeyEnvName ?? string.Empty;
                 var key = Environment.GetEnvironmentVariable(apiKeyVariable);

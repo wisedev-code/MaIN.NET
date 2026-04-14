@@ -6,7 +6,6 @@ using MaIN.Domain.Models;
 using MaIN.Domain.Models.Abstract;
 using MaIN.Domain.Repositories;
 using MaIN.Services.Services.Abstract;
-using MaIN.Services.Services.ImageGenServices;
 using MaIN.Services.Services.LLMService;
 using MaIN.Services.Services.LLMService.Factory;
 using MaIN.Services.Services.Models;
@@ -34,14 +33,14 @@ public class ChatService(
         Func<LLMTokenValue?, Task>? changeOfValue = null,
         CancellationToken cancellationToken = default)
     {
-        if (chat.ModelId == ImageGenService.LocalImageModels.FLUX)
-        {
-            chat.ImageGen = true;
-        }
-
         if (!ModelRegistry.TryGetById(chat.ModelId, out var model))
         {
             throw new ChatModelNotAvailableException(chat.Id, chat.ModelId);
+        }
+
+        if (model!.HasImageGeneration)
+        {
+            chat.ImageGen = true;
         }
 
         var backend = model!.Backend;

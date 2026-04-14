@@ -9,7 +9,6 @@ using MaIN.Domain.Models.Abstract;
 using MaIN.Domain.Repositories;
 using MaIN.Services.Constants;
 using MaIN.Services.Services.Abstract;
-using MaIN.Services.Services.ImageGenServices;
 using MaIN.Services.Services.LLMService.Factory;
 using MaIN.Services.Services.Models.Commands;
 using MaIN.Services.Services.Steps.Commands.Abstract;
@@ -101,7 +100,7 @@ public class AgentService(
             Id = Guid.NewGuid().ToString(),
             ModelId = agent.Model,
             Name = agent.Name,
-            ImageGen = agent.Model == ImageGenService.LocalImageModels.FLUX,
+            ImageGen = ModelRegistry.TryGetById(agent.Model, out var agentModel) && agentModel!.HasImageGeneration,
             ToolsConfiguration = agent.ToolsConfiguration,
             BackendParams = inferenceParams,
             MemoryParams = memoryParams ?? new MemoryParams(),

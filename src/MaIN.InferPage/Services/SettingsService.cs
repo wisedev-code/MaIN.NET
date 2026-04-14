@@ -41,6 +41,18 @@ public class SettingsService(IJSRuntime js)
         return profiles?.GetValueOrDefault(backend);
     }
 
+    // Vertex AI auth (stored separately — PrivateKey should not be in general settings)
+    private const string VertexAuthKey = "inferpage-vertex-auth";
+
+    public async Task SaveVertexAuthAsync(string projectId, string clientEmail, string privateKey)
+    {
+        var auth = new VertexAuthStorage(projectId, clientEmail, privateKey);
+        await js.InvokeVoidAsync("settingsManager.save", VertexAuthKey, auth);
+    }
+
+    public async Task<VertexAuthStorage?> GetVertexAuthAsync()
+        => await js.InvokeAsync<VertexAuthStorage?>("settingsManager.load", VertexAuthKey);
+
     private async Task SetInDictAsync(string storageKey, string key, string value)
     {
         var dict = await LoadDictAsync(storageKey);
@@ -56,3 +68,5 @@ public class SettingsService(IJSRuntime js)
 }
 
 public record BackendProfile(string Model, bool Vision, bool Reasoning, bool ImageGen, string? MmProjName = null);
+
+public record VertexAuthStorage(string ProjectId, string ClientEmail, string PrivateKey);
