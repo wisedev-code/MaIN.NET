@@ -69,8 +69,12 @@ public class LLMService : ILLMService
         }
 
         var lastMsg = chat.Messages.Last();
+        var model = GetLocalModel(chat);
 
-        await ChatHelper.ExtractImageFromFiles(lastMsg);
+        if (model is IVisionModel)
+        {
+            await ChatHelper.ExtractImageFromFiles(lastMsg);
+        }
 
         if (ChatHelper.HasFiles(lastMsg))
         {
@@ -82,8 +86,6 @@ public class LLMService : ILLMService
         {
             return await ProcessWithToolsAsync(chat, requestOptions, cancellationToken);
         }
-
-        var model = GetLocalModel(chat);
         var tokens = await ProcessChatRequest(chat, model, lastMsg, requestOptions, cancellationToken);
         lastMsg.MarkProcessed();
         return await CreateChatResult(chat, tokens, requestOptions);

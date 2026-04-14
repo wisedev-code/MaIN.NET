@@ -1,7 +1,8 @@
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace MaIN.Core.IntegrationTests;
+namespace MaIN.Core.E2ETests;
 
 public class IntegrationTestBase : IDisposable
 {
@@ -29,13 +30,11 @@ public class IntegrationTestBase : IDisposable
     {
     }
 
-    protected T GetService<T>() where T : notnull
-    {
-        return _services.GetRequiredService<T>();
-    }
+    protected T GetService<T>() where T : notnull => _services.GetRequiredService<T>();
 
     public void Dispose()
     {
-        _host?.Dispose();
+        _host.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

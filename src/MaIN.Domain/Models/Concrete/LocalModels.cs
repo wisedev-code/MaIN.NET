@@ -20,6 +20,7 @@ public sealed record Gemma3_4b() : LocalModel(
     8192,
     "Balanced 4B model for writing, analysis, and mathematical reasoning"), IVisionModel
 {
+    // https://huggingface.co/ggml-org/gemma-3-4b-it-GGUF/blob/main/mmproj-model-f16.gguf
     public string MMProjectName => "mmproj-model-gemma3-4b.gguf";
 }
 
