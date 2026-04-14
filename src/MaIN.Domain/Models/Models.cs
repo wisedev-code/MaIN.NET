@@ -23,30 +23,50 @@ public static class Models
 
     public static class Gemini
     {
+        public const string Gemini2_5Pro = "gemini-2.5-pro";
         public const string Gemini2_5Flash = "gemini-2.5-flash";
         public const string Gemini2_0Flash = "gemini-2.0-flash";
+        public const string Imagen4_0_FastGenerate = "imagen-4.0-fast-generate-001";
+        public const string NanoBanana = "gemini-2.5-flash-image";
     }
 
     public static class Xai
     {
+        public const string Grok4_20Reasoning = "grok-4.20-reasoning";
+        public const string Grok4_20NonReasoning = "grok-4.20-non-reasoning";
+        public const string Grok4_1FastReasoning = "grok-4-1-fast-reasoning";
+        public const string Grok4_1FastNonReasoning = "grok-4-1-fast-non-reasoning";
+        public const string GrokImagineImage = "grok-imagine-image";
+        public const string GrokImagineImagePro = "grok-imagine-image-pro";
         public const string Grok3Beta = "grok-3-beta";
         public const string GrokImage = "grok-2-image";
     }
 
     public static class Groq
     {
-        public const string Llama3_1_8bInstant = "llama-3.1-8b-instant";
+        public const string Llama3_1_8b = "llama-3.1-8b-instant";
+        public const string Llama3_3_70b = "llama-3.3-70b-versatile";
         public const string GptOss20b = "openai/gpt-oss-20b";
+        public const string GptOss120b = "openai/gpt-oss-120b";
     }
 
     public static class DeepSeek
     {
+        public const string Chat = "deepseek-chat";
         public const string Reasoner = "deepseek-reasoner";
     }
 
     public static class Ollama
     {
         public const string Gemma3_4b = "gemma3:4b";
+    }
+
+    public static class Vertex
+    {
+        public const string Gemini2_5Pro = "google/gemini-2.5-pro";
+        public const string Gemini2_5Flash = "google/gemini-2.5-flash";
+        public const string Veo2_0_Generate = "google/veo-2.0-generate-001";
+        public const string Imagen4_0_Generate = "google/imagen-4.0-generate-001";
     }
 
     public static class Local

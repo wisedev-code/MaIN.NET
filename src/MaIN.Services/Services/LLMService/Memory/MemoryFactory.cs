@@ -74,6 +74,29 @@ public class MemoryFactory() : IMemoryFactory
             .WithSemanticKernelTextEmbeddingGenerationService(
                 new GoogleAITextEmbeddingGenerationService("gemini-embedding-001", geminiKey), new SemanticKernelConfig())
 #pragma warning restore SKEXP0070
+            .WithCustomImageOcr(new OcrWrapper())
+            .WithSimpleVectorDb()
+            .Build();
+
+        return kernelMemory;
+    }
+
+    public IKernelMemory CreateMemoryWithVertex(Func<ValueTask<string>> bearerTokenProvider, string location, string projectId, MemoryParams memoryParams)
+    {
+        var searchOptions = ConfigureSearchOptions(memoryParams);
+
+        var kernelMemory = new KernelMemoryBuilder()
+            .WithSearchClientConfig(searchOptions)
+#pragma warning disable SKEXP0070
+            .WithSemanticKernelTextGenerationService(
+                new GeminiTextGeneratorAdapter(
+                    new VertexAIGeminiChatCompletionService("gemini-2.5-flash", bearerTokenProvider, location, projectId)),
+                new SemanticKernelConfig())
+            .WithSemanticKernelTextEmbeddingGenerationService(
+                new VertexAITextEmbeddingGenerationService("text-embedding-005", bearerTokenProvider, location, projectId),
+                new SemanticKernelConfig())
+#pragma warning restore SKEXP0070
+            .WithCustomImageOcr(new OcrWrapper())
             .WithSimpleVectorDb()
             .Build();
 

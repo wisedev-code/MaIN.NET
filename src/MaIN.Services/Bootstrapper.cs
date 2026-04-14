@@ -111,6 +111,7 @@ public static class Bootstrapper
         services.AddHttpClient(ServiceConstants.HttpClients.GroqCloudClient);
         services.AddHttpClient(ServiceConstants.HttpClients.OllamaClient);
         services.AddHttpClient(ServiceConstants.HttpClients.OllamaLocalClient);
+        services.AddHttpClient(ServiceConstants.HttpClients.VertexClient);
         services.AddHttpClient(ServiceConstants.HttpClients.ImageDownloadClient);
         services.AddHttpClient(ServiceConstants.HttpClients.ModelContextDownloadClient, client =>
         {

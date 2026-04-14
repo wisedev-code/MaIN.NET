@@ -6,7 +6,11 @@ using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.LLMService.Memory;
 using Microsoft.Extensions.Logging;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using MaIN.Domain.Exceptions;
+using MaIN.Domain.Models;
+using MaIN.Domain.Models.Abstract;
 using MaIN.Domain.Models.Concrete;
 using MaIN.Domain.Configuration.BackendInferenceParams;
 
@@ -54,6 +58,30 @@ public sealed class XaiService(
         if (p.PresencePenalty.HasValue) requestBody["presence_penalty"] = p.PresencePenalty.Value;
     }
 
+    protected override LLMTokenValue? ProcessChatCompletionChunk(string data)
+    {
+        var chunk = JsonSerializer.Deserialize<XaiCompletionChunk>(data,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+        // Streaming delta — regular content
+        var content = chunk?.Choices?.FirstOrDefault()?.Delta?.Content;
+        if (!string.IsNullOrEmpty(content))
+            return new LLMTokenValue { Text = content, Type = TokenType.Message };
+
+        // Streaming delta — incremental reasoning (grok-4.20-reasoning style)
+        var deltaReasoning = chunk?.Choices?.FirstOrDefault()?.Delta?.ReasoningContent;
+        if (!string.IsNullOrEmpty(deltaReasoning))
+            return new LLMTokenValue { Text = deltaReasoning, Type = TokenType.Reason };
+
+        // Final completion event — encrypted reasoning blob (grok-4-1-fast-reasoning style)
+        // message.content is intentionally ignored (already assembled from streaming chunks above)
+        var encryptedReasoning = chunk?.Reasoning?.EncryptedContent;
+        if (!string.IsNullOrEmpty(encryptedReasoning))
+            return new LLMTokenValue { Text = encryptedReasoning, Type = TokenType.Reason };
+
+        return null;
+    }
+
     public override async Task<ChatResult?> AskMemory(
         Chat chat,
         ChatMemoryOptions memoryOptions,
@@ -91,4 +119,29 @@ public sealed class XaiService(
         stringBuilder.Append(lastMsg.Content);
         return stringBuilder.ToString();
     }
+}
+
+file class XaiCompletionChunk
+{
+    public List<XaiChoiceChunk>? Choices { get; set; }
+    public XaiReasoning? Reasoning { get; set; }
+}
+
+file class XaiChoiceChunk
+{
+    public XaiDelta? Delta { get; set; }
+}
+
+file class XaiDelta
+{
+    public string? Content { get; set; }
+
+    [JsonPropertyName("reasoning_content")]
+    public string? ReasoningContent { get; set; }
+}
+
+file class XaiReasoning
+{
+    [JsonPropertyName("encrypted_content")]
+    public string? EncryptedContent { get; set; }
 }

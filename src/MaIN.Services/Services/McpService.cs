@@ -2,6 +2,7 @@ using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Models.Concrete;
 using MaIN.Services.Services.Abstract;
+using MaIN.Services.Services.LLMService.Auth;
 using MaIN.Services.Services.LLMService.Utils;
 using MaIN.Services.Services.Models;
 using Microsoft.SemanticKernel;
@@ -30,7 +31,7 @@ public class McpService(MaINSettings settings, IServiceProvider serviceProvider)
         );
 
         var builder = Kernel.CreateBuilder();
-        var promptSettings = InitializeChatCompletions(builder, config.Backend ?? settings.BackendType, config.Model);
+        var promptSettings = InitializeChatCompletions(builder, config);
         var kernel = builder.Build();
         var tools = await mcpClient.ListToolsAsync();
         kernel.Plugins.AddFromFunctions("Tools", tools.Select(x => x.AsKernelFunction()));
@@ -49,10 +50,10 @@ public class McpService(MaINSettings settings, IServiceProvider serviceProvider)
         }
 
         var chatService = kernel.GetRequiredService<IChatCompletionService>();
-    
+
         var result = await chatService.GetChatMessageContentsAsync(
-            chatHistory, 
-            promptSettings, 
+            chatHistory,
+            promptSettings,
             kernel);
 
         return new McpResult
@@ -68,8 +69,11 @@ public class McpService(MaINSettings settings, IServiceProvider serviceProvider)
         };
     }
 
-    private PromptExecutionSettings InitializeChatCompletions(IKernelBuilder kernelBuilder, BackendType backendType, string model)
+    private PromptExecutionSettings InitializeChatCompletions(IKernelBuilder kernelBuilder, Mcp config)
     {
+        var backendType = config.Backend ?? settings.BackendType;
+        var model = config.Model;
+
         switch (backendType)
         {
             case BackendType.OpenAi:
@@ -114,6 +118,24 @@ public class McpService(MaINSettings settings, IServiceProvider serviceProvider)
                     apiKey: GetXaiKey() ?? throw new ArgumentNullException(nameof(GetXaiKey)),
                     endpoint: new Uri("https://api.x.ai/v1"));
                 return new OpenAIPromptExecutionSettings()
+                {
+                    FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(options: new() { RetainArgumentTypes = true })
+                };
+
+            case BackendType.Vertex:
+                var auth = settings.GoogleServiceAccountAuth
+                           ?? throw new InvalidOperationException("Vertex AI service account is not configured.");
+                var tokenProvider = new GoogleServiceAccountTokenProvider(auth);
+                var httpClient = new HttpClient();
+                Func<ValueTask<string>> bearerTokenProvider = async ()
+                    => await tokenProvider.GetAccessTokenAsync(httpClient);
+
+                var modelName = model.StartsWith("google/", StringComparison.OrdinalIgnoreCase)
+                    ? model["google/".Length..]
+                    : model;
+
+                kernelBuilder.Services.AddVertexAIGeminiChatCompletion(modelName, bearerTokenProvider, config.Location, auth.ProjectId);
+                return new GeminiPromptExecutionSettings
                 {
                     FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(options: new() { RetainArgumentTypes = true })
                 };

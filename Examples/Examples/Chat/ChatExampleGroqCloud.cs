@@ -12,7 +12,7 @@ public class ChatExampleGroqCloud : IExample
         Console.WriteLine("(GroqCloud) ChatExample is running!");
 
         await AIHub.Chat()
-            .WithModel(Models.Groq.Llama3_1_8bInstant)
+            .WithModel(Models.Groq.Llama3_1_8b)
             .WithMessage("Which color do people like the most?")
             .CompleteAsync(interactive: true);
     }

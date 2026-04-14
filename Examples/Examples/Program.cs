@@ -73,6 +73,7 @@ static void RegisterExamples(IServiceCollection services)
     services.AddTransient<ChatGrammarExampleGemini>();
     services.AddTransient<ChatWithImageGenGeminiExample>();
     services.AddTransient<ChatWithFilesExampleGemini>();
+    services.AddTransient<ChatExampleVertex>();
     services.AddTransient<ChatWithReasoningDeepSeekExample>();
     services.AddTransient<ChatWithTextToSpeechExample>();
     services.AddTransient<ChatExampleGroqCloud>();
@@ -186,6 +187,7 @@ namespace Examples
                 ("\u25a0 Gemini Chat with grammar", serviceProvider.GetRequiredService<ChatGrammarExampleGemini>()),
                 ("\u25a0 Gemini Chat with image", serviceProvider.GetRequiredService<ChatWithImageGenGeminiExample>()),
                 ("\u25a0 Gemini Chat with files", serviceProvider.GetRequiredService<ChatWithFilesExampleGemini>()),
+                ("\u25a0 Vertex Chat", serviceProvider.GetRequiredService<ChatExampleVertex>()),
                 ("\u25a0 DeepSeek Chat with reasoning", serviceProvider.GetRequiredService<ChatWithReasoningDeepSeekExample>()),
                 ("\u25a0 GroqCloud Chat", serviceProvider.GetRequiredService<ChatExampleGroqCloud>()),
                 ("\u25a0 Anthropic Chat", serviceProvider.GetRequiredService<ChatExampleAnthropic>()),
