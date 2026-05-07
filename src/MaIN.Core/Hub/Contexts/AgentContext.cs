@@ -4,6 +4,7 @@ using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
 using MaIN.Domain.Entities.Agents.AgentSource;
 using MaIN.Domain.Entities.Agents.Knowledge;
+using MaIN.Domain.Entities.Skills;
 using MaIN.Domain.Entities.Tools;
 using MaIN.Domain.Exceptions.Agents;
 using MaIN.Domain.Models;
@@ -17,6 +18,10 @@ namespace MaIN.Core.Hub.Contexts;
 public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationBuilder, IAgentContextExecutor
 {
     private readonly IAgentService _agentService;
+    private readonly ISkillRegistry? _skillRegistry;
+    private readonly ISkillComposer? _skillComposer;
+    private readonly List<string> _pendingSkillNames = [];
+    private readonly List<AgentSkill> _pendingInlineSkills = [];
     private IBackendInferenceParams? _inferenceParams;
     private MemoryParams? _memoryParams;
     private bool _disableCache;
@@ -24,9 +29,11 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
     private readonly Agent _agent;
     internal Knowledge? _knowledge;
 
-    internal AgentContext(IAgentService agentService)
+    internal AgentContext(IAgentService agentService, ISkillRegistry skillRegistry, ISkillComposer skillComposer)
     {
         _agentService = agentService;
+        _skillRegistry = skillRegistry;
+        _skillComposer = skillComposer;
         _agent = new Agent
         {
             Id = Guid.NewGuid().ToString(),
@@ -49,6 +56,24 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
     {
         _agentService = agentService;
         _agent = existingAgent;
+    }
+
+    public IAgentConfigurationBuilder WithSkill(string skillName)
+    {
+        _pendingSkillNames.Add(skillName);
+        return this;
+    }
+
+    public IAgentConfigurationBuilder WithSkills(params string[] skillNames)
+    {
+        _pendingSkillNames.AddRange(skillNames);
+        return this;
+    }
+
+    public IAgentConfigurationBuilder WithSkill(AgentSkill skill)
+    {
+        _pendingInlineSkills.Add(skill);
+        return this;
     }
 
     // --- IAgentActions ---
@@ -194,6 +219,8 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
 
     public async Task<IAgentContextExecutor> CreateAsync(bool flow = false, bool interactiveResponse = false)
     {
+        ApplyPendingSkills();
+
         if (_ensureModelDownloaded && !string.IsNullOrWhiteSpace(_agent.Model))
         {
             await AIHub.Model().EnsureDownloadedAsync(_agent.Model);
@@ -205,8 +232,21 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
 
     public IAgentContextExecutor Create(bool flow = false, bool interactiveResponse = false)
     {
+        ApplyPendingSkills();
         _ = _agentService.CreateAgent(_agent, flow, interactiveResponse, _inferenceParams, _memoryParams, _disableCache).Result;
         return this;
+    }
+
+    private void ApplyPendingSkills()
+    {
+        if (_skillComposer is null || _skillRegistry is null) return;
+        if (_pendingSkillNames.Count == 0 && _pendingInlineSkills.Count == 0) return;
+
+        var namedSkills = _pendingSkillNames.Select(name => _skillRegistry.GetSkill(name));
+        var allSkills = namedSkills.Concat(_pendingInlineSkills).ToList();
+
+        _skillComposer.Apply(_agent, allSkills, _knowledge);
+        _agent.Skills.AddRange(_pendingSkillNames);
     }
 
     public IAgentConfigurationBuilder WithTools(ToolsConfiguration toolsConfiguration)

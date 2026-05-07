@@ -8,4 +8,6 @@ public interface IAIHubServices
     IAgentService AgentService { get; }
     IAgentFlowService FlowService { get; }
     IMcpService McpService { get; }
+    ISkillRegistry SkillRegistry { get; }
+    ISkillComposer SkillComposer { get; }
 }

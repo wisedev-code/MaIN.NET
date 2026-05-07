@@ -1,5 +1,6 @@
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
+using MaIN.Domain.Entities.Skills;
 using MaIN.Services.Constants;
 using MaIN.Services.Services;
 using MaIN.Services.Services.Abstract;
@@ -8,6 +9,7 @@ using MaIN.Services.Services.LLMService;
 using MaIN.Services.Services.LLMService.Factory;
 using MaIN.Services.Services.LLMService.Memory;
 using MaIN.Services.Services.Models.Commands;
+using MaIN.Services.Services.Skills;
 using MaIN.Services.Services.Steps;
 using MaIN.Services.Services.Steps.Commands;
 using MaIN.Services.Services.Steps.Commands.Abstract;
@@ -63,6 +65,26 @@ public static class Bootstrapper
         // Register the step processor
         serviceCollection.AddSingleton<IStepProcessor, StepProcessor>();
 
+        // Register skill infrastructure
+        serviceCollection.AddSingleton<ISkillRegistry>(sp => new SkillRegistry(
+            sp.GetServices<IAgentSkillProvider>(),
+            sp.GetServices<ISkillLoader>()));
+        serviceCollection.AddSingleton<ISkillComposer, SkillComposer>();
+
+        // Register skills directory loader if configured
+        if (!string.IsNullOrWhiteSpace(settings.SkillsDirectory))
+        {
+            serviceCollection.AddSingleton<ISkillLoader>(
+                new FileSystemSkillLoader(settings.SkillsDirectory));
+        }
+
+        return serviceCollection;
+    }
+
+    public static IServiceCollection AddSkillsFromDirectory(
+        this IServiceCollection serviceCollection, string directoryPath)
+    {
+        serviceCollection.AddSingleton<ISkillLoader>(new FileSystemSkillLoader(directoryPath));
         return serviceCollection;
     }
 

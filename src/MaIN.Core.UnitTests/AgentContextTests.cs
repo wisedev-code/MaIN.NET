@@ -2,6 +2,7 @@ using MaIN.Core.Hub.Contexts;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
 using MaIN.Domain.Entities.Agents.Knowledge;
+using MaIN.Domain.Entities.Skills;
 using MaIN.Domain.Exceptions.Agents;
 using MaIN.Domain.Models.Abstract;
 using MaIN.Services.Services.Abstract;
@@ -19,7 +20,9 @@ public class AgentContextTests
     public AgentContextTests()
     {
         _mockAgentService = new Mock<IAgentService>();
-        _agentContext = new AgentContext(_mockAgentService.Object);
+        var mockSkillRegistry = new Mock<ISkillRegistry>();
+        var mockSkillComposer = new Mock<ISkillComposer>();
+        _agentContext = new AgentContext(_mockAgentService.Object, mockSkillRegistry.Object, mockSkillComposer.Object);
         var testModel = new GenericLocalModel(_testModelId);
         ModelRegistry.RegisterOrReplace(testModel);
     }

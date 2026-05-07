@@ -7,7 +7,7 @@ public class Mcp
     public required string Name { get; init; }
     public required List<string> Arguments { get; init; }
     public required string Command { get; init; }
-    public required string Model { get; init; }
+    public string Model { get; init; } = string.Empty;
     public string Location { get; set; } = "us-central1";
     public Dictionary<string, string> Properties { get; set; } = [];
     public BackendType? Backend { get; set; }

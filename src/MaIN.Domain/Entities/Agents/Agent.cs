@@ -18,4 +18,5 @@ public class Agent
     public Dictionary<string, string> Behaviours { get; set; } = [];
     public required string CurrentBehaviour { get; set; }
     public ToolsConfiguration? ToolsConfiguration { get; set; }
+    public List<string> Skills { get; set; } = [];
 }

@@ -4,6 +4,7 @@ using Examples.Agents.Flows;
 using Examples.Chat;
 using Examples.Mcp;
 using MaIN.Core;
+using MaIN.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -29,6 +30,7 @@ var configuration = new ConfigurationBuilder()
 var services = new ServiceCollection();
 services.AddSingleton<IConfiguration>(configuration);
 services.AddMaIN(configuration);
+services.AddSkillsFromDirectory("./skills");
 
 RegisterExamples(services);
 
@@ -68,6 +70,8 @@ static void RegisterExamples(IServiceCollection services)
     services.AddTransient<AgentsFlowLoadedExample>();
     services.AddTransient<ChatExampleOpenAi>();
     services.AddTransient<AgentWithWebDataSourceOpenAiExample>();
+    services.AddTransient<AgentWithSkillsExample>();
+    services.AddTransient<AgentWithFileSkillExample>();
     services.AddTransient<ChatWithImageGenOpenAiExample>();
     services.AddTransient<ChatExampleGemini>();
     services.AddTransient<ChatGrammarExampleGemini>();
@@ -183,6 +187,8 @@ namespace Examples
                 ("\u25a0 OpenAi Chat", serviceProvider.GetRequiredService<ChatExampleOpenAi>()),
                 ("\u25a0 OpenAi Chat with image", serviceProvider.GetRequiredService<ChatWithImageGenOpenAiExample>()),
                 ("\u25a0 OpenAi Agent with Web Data Source", serviceProvider.GetRequiredService<AgentWithWebDataSourceOpenAiExample>()),
+                ("\u25a0 Agent with Skills (code-based)", serviceProvider.GetRequiredService<AgentWithSkillsExample>()),
+                ("\u25a0 Agent with Skills (file-based .md)", serviceProvider.GetRequiredService<AgentWithFileSkillExample>()),
                 ("\u25a0 Gemini Chat", serviceProvider.GetRequiredService<ChatExampleGemini>()),
                 ("\u25a0 Gemini Chat with grammar", serviceProvider.GetRequiredService<ChatGrammarExampleGemini>()),
                 ("\u25a0 Gemini Chat with image", serviceProvider.GetRequiredService<ChatWithImageGenGeminiExample>()),

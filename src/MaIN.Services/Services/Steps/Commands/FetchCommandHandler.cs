@@ -85,12 +85,19 @@ public class FetchCommandHandler(
         return response;
     }
 
+    private static string GetDetailsJson(object? details) => details switch
+    {
+        string s => s,
+        null => "{}",
+        var obj => JsonSerializer.Serialize(obj)
+    };
+
     private async Task<Message> HandleFileSource(
         FetchCommand command,
         Dictionary<string, string> properties,
         BackendType backend)
     {
-        var fileData = JsonSerializer.Deserialize<AgentFileSourceDetails>(command.Context.Source!.Details?.ToString()!);
+        var fileData = JsonSerializer.Deserialize<AgentFileSourceDetails>(GetDetailsJson(command.Context.Source!.Details));
         var filesDictionary = fileData!.Files.ToDictionary(path => Path.GetFileName(path), path => path);
 
         if (command.Chat.Messages.Count > 0)
@@ -118,7 +125,7 @@ public class FetchCommandHandler(
         Dictionary<string, string> properties,
         BackendType backend)
     {
-        var webData = JsonSerializer.Deserialize<AgentWebSourceDetails>(command.Context.Source!.Details?.ToString()!);
+        var webData = JsonSerializer.Deserialize<AgentWebSourceDetails>(GetDetailsJson(command.Context.Source!.Details));
 
         if (command.Chat.Messages.Count > 0)
         {

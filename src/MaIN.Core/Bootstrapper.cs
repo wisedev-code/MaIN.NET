@@ -1,7 +1,9 @@
 using MaIN.Core.Hub;
+using MaIN.Core.Hub.Skills;
 using MaIN.Core.Interfaces;
 using MaIN.Core.Services;
 using MaIN.Domain.Configuration;
+using MaIN.Domain.Entities.Skills;
 using MaIN.Infrastructure;
 using MaIN.Services;
 using MaIN.Services.Services;
@@ -38,6 +40,13 @@ public static class Bootstrapper
         services.AddSingleton<IAgentFlowService, AgentFlowService>();
         services.AddSingleton<IMcpService, McpService>();
 
+        // Register built-in skill providers
+        services.AddSingleton<IAgentSkillProvider, WebSearchSkillProvider>();
+        services.AddSingleton<IAgentSkillProvider, RagExpertSkillProvider>();
+        services.AddSingleton<IAgentSkillProvider, JournalistSkillProvider>();
+        services.AddSingleton<IAgentSkillProvider, SummarizerSkillProvider>();
+        services.AddSingleton<IAgentSkillProvider, McpToolCallerSkillProvider>();
+
         // Register service provider for AIHub
         services.AddSingleton<IAIHubServices>(sp =>
             {
@@ -45,7 +54,9 @@ public static class Bootstrapper
                     sp.GetRequiredService<IChatService>(),
                     sp.GetRequiredService<IAgentService>(),
                     sp.GetRequiredService<IAgentFlowService>(),
-                    sp.GetRequiredService<IMcpService>()
+                    sp.GetRequiredService<IMcpService>(),
+                    sp.GetRequiredService<ISkillRegistry>(),
+                    sp.GetRequiredService<ISkillComposer>()
                 );
 
                 var settings = sp.GetRequiredService<MaINSettings>();
@@ -77,10 +88,12 @@ public static class MaINBootstrapper
     /// <param name="configureSettings">Optional settings configuration.</param>
     public static void Initialize(IConfiguration? configuration = null, Action<MaINSettings>? configureSettings = null)
     {
-        // Create a new ServiceCollection
+        // Snapshot any externally-loaded skills (e.g. from AddSkillsFromDirectory) so they
+        // survive re-initialization with new settings (e.g. switching backend to OpenAI).
+        var previousSkills = AIHub.GetCurrentSkills()?.ToList();
+
         var services = new ServiceCollection();
 
-        // Build configuration if not provided
         if (configuration == null)
         {
             var basePath = Directory.GetCurrentDirectory();
@@ -89,15 +102,19 @@ public static class MaINBootstrapper
                 .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
                 .AddEnvironmentVariables()
                 .Build();
-            
-            // Use your existing extension method to register the MaIN services
+
             services.AddMaIN(configuration, configureSettings);
 
-            // Build the service provider
             _serviceProvider = services.BuildServiceProvider();
-
-            // This call ensures that any initialization steps are performed (e.g. initializing agents)
             _serviceProvider.UseMaIN();
+
+            // Re-register skills that existed before re-init (file-based, user-defined, etc.)
+            if (previousSkills is { Count: > 0 })
+            {
+                var registry = _serviceProvider.GetRequiredService<ISkillRegistry>();
+                foreach (var skill in previousSkills)
+                    registry.Register(skill);
+            }
 
             Console.WriteLine("AIHub Initialized Successfully");
         }

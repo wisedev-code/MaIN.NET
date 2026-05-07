@@ -20,6 +20,7 @@ public class MaINSettings
     public SqlSettings? SqlSettings { get; set; }
     public string? VoicesPath { get; set; }
     public GoogleServiceAccountConfig? GoogleServiceAccountAuth { get; set; }
+    public string? SkillsDirectory { get; set; }
 }
 
 public enum BackendType
