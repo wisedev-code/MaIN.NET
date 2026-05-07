@@ -41,21 +41,45 @@ public class AgentWithFileSkillExample : IExample
 
         // Skills from ./skills/*.md are auto-loaded if SkillsDirectory is configured,
         // OR you can call AddSkillsFromDirectory() in startup.
-        // This example assumes ./skills/journalist.md exists (created alongside examples).
-        //var context = await AIHub.Agent()
-        //    .WithModel(Models.OpenAi.Gpt4oMini)
-        //    .WithSkill("web-search")
-        //    .WithSkill("file-journalist")  // loaded from ./skills/file-journalist.md
-        //    .CreateAsync(interactiveResponse: true);
+        var context = await AIHub.Agent()
+            .WithModel(Models.OpenAi.Gpt4oMini)
+            .WithSkill("web-search")
+            .WithSkill("file-journalist")  // loaded from ./skills/file-journalist.md
+            .CreateAsync(interactiveResponse: true);
 
-        //await context.ProcessAsync("Provide today's newsletter");
+        await context.ProcessAsync("Provide today's newsletter for poland");
+    }
+}
+
+/// <summary>
+/// Demonstrates a folder-based skill: skills/code-review/SKILL.md is the entrypoint,
+/// prompts/ and examples/ subdirectories are loaded via the "includes" frontmatter key.
+/// </summary>
+public class AgentWithFolderSkillExample : IExample
+{
+    public async Task Start()
+    {
+        Console.WriteLine("Agent with folder-based skill (code-review, OpenAi)");
+        Console.WriteLine("Skill loaded from: ./skills/code-review/SKILL.md");
+
+        OpenAiExample.Setup();
 
         var context = await AIHub.Agent()
             .WithModel(Models.OpenAi.Gpt4oMini)
-            .WithSkill("caveman")
+            .WithSkill("code-review")
             .CreateAsync(interactiveResponse: true);
 
-        await context.ProcessAsync("Tell me facts about killer whale.");
-
+        await context.ProcessAsync("""
+                                   Review this code:
+                                   public List<string> GetNames(List<User> users) 
+                                   {
+                                        List<string> names = new List<string>();
+                                        for (int i = 0; i < users.Count; i++) 
+                                        {
+                                            names.Add(users[i].Name);
+                                        }
+                                        return names;
+                                   }
+                                   """);
     }
 }

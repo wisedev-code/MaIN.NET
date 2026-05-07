@@ -8,6 +8,8 @@ namespace MaIN.Services.Services.Skills;
 
 public class FileSystemSkillLoader(string directoryPath) : ISkillLoader
 {
+    private const string FolderEntrypoint = "SKILL.md";
+
     private static readonly IDeserializer Deserializer = new DeserializerBuilder()
         .WithNamingConvention(LowerCaseNamingConvention.Instance)
         .IgnoreUnmatchedProperties()
@@ -22,8 +24,20 @@ public class FileSystemSkillLoader(string directoryPath) : ISkillLoader
         if (!Directory.Exists(resolvedPath))
             return [];
 
-        return Directory
-            .GetFiles(resolvedPath, "*.md", SearchOption.AllDirectories)
+        var allMdFiles = Directory.GetFiles(resolvedPath, "*.md", SearchOption.AllDirectories);
+
+        // Directories that contain SKILL.md are "skill packages".
+        // Only SKILL.md is loaded from them — sibling files are includes, not standalone skills.
+        var skillPackageDirs = allMdFiles
+            .Where(f => Path.GetFileName(f).Equals(FolderEntrypoint, StringComparison.OrdinalIgnoreCase))
+            .Select(f => Path.GetDirectoryName(f)!)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var filesToLoad = allMdFiles.Where(f =>
+            Path.GetFileName(f).Equals(FolderEntrypoint, StringComparison.OrdinalIgnoreCase) ||
+            !skillPackageDirs.Contains(Path.GetDirectoryName(f)!));
+
+        return filesToLoad
             .Select(TryParseSkillFile)
             .OfType<AgentSkill>()
             .ToList()
@@ -61,6 +75,17 @@ public class FileSystemSkillLoader(string directoryPath) : ISkillLoader
         if (string.IsNullOrWhiteSpace(dto?.name))
             return null;
 
+        var skillDir = Path.GetDirectoryName(filePath)!;
+        var includesContent = LoadIncludes(dto.includes, skillDir);
+
+        var fullFragment = (body, includesContent) switch
+        {
+            ({ Length: > 0 }, { Length: > 0 }) => body + "\n\n" + includesContent,
+            ({ Length: > 0 }, _) => body,
+            (_, { Length: > 0 }) => includesContent,
+            _ => null
+        };
+
         return new AgentSkill
         {
             Name = dto.name,
@@ -73,8 +98,45 @@ public class FileSystemSkillLoader(string directoryPath) : ISkillLoader
             Behaviours = dto.behaviours ?? [],
             Source = BuildSource(dto.source),
             Mcp = BuildMcp(dto.mcp),
-            InstructionFragment = string.IsNullOrWhiteSpace(body) ? null : body
+            InstructionFragment = fullFragment
         };
+    }
+
+    private static string LoadIncludes(List<string>? includes, string baseDir)
+    {
+        if (includes is null || includes.Count == 0)
+            return string.Empty;
+
+        var parts = new List<string>();
+        foreach (var include in includes)
+        {
+            foreach (var file in ResolveIncludePattern(include, baseDir))
+            {
+                var text = File.ReadAllText(file).Trim();
+                if (!string.IsNullOrWhiteSpace(text))
+                    parts.Add(text);
+            }
+        }
+
+        return string.Join("\n\n", parts);
+    }
+
+    // Supports:
+    //   "prompts/review.md"     — exact relative path
+    //   "prompts/*.md"          — wildcard in last segment
+    //   "examples/**"           — not supported, treated as literal (no recursion)
+    private static IEnumerable<string> ResolveIncludePattern(string pattern, string baseDir)
+    {
+        var fullPattern = Path.GetFullPath(Path.Combine(baseDir, pattern));
+        var dir = Path.GetDirectoryName(fullPattern) ?? baseDir;
+        var filePattern = Path.GetFileName(fullPattern);
+
+        if (!Directory.Exists(dir))
+            yield break;
+
+        foreach (var file in Directory.GetFiles(dir, filePattern, SearchOption.TopDirectoryOnly)
+                     .OrderBy(f => f))
+            yield return file;
     }
 
     private static SkillStepPlacement ParsePlacement(string? placement) =>
@@ -133,6 +195,7 @@ internal class SkillFileDto
     public Dictionary<string, string>? behaviours { get; set; }
     public SkillFileSourceDto? source { get; set; }
     public SkillFileMcpDto? mcp { get; set; }
+    public List<string>? includes { get; set; }
 }
 
 internal class SkillFileSourceDto

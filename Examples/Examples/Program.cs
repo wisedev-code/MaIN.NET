@@ -72,6 +72,7 @@ static void RegisterExamples(IServiceCollection services)
     services.AddTransient<AgentWithWebDataSourceOpenAiExample>();
     services.AddTransient<AgentWithSkillsExample>();
     services.AddTransient<AgentWithFileSkillExample>();
+    services.AddTransient<AgentWithFolderSkillExample>();
     services.AddTransient<ChatWithImageGenOpenAiExample>();
     services.AddTransient<ChatExampleGemini>();
     services.AddTransient<ChatGrammarExampleGemini>();
@@ -189,6 +190,7 @@ namespace Examples
                 ("\u25a0 OpenAi Agent with Web Data Source", serviceProvider.GetRequiredService<AgentWithWebDataSourceOpenAiExample>()),
                 ("\u25a0 Agent with Skills (code-based)", serviceProvider.GetRequiredService<AgentWithSkillsExample>()),
                 ("\u25a0 Agent with Skills (file-based .md)", serviceProvider.GetRequiredService<AgentWithFileSkillExample>()),
+                ("\u25a0 Agent with Skills (folder-based SKILL.md)", serviceProvider.GetRequiredService<AgentWithFolderSkillExample>()),
                 ("\u25a0 Gemini Chat", serviceProvider.GetRequiredService<ChatExampleGemini>()),
                 ("\u25a0 Gemini Chat with grammar", serviceProvider.GetRequiredService<ChatGrammarExampleGemini>()),
                 ("\u25a0 Gemini Chat with image", serviceProvider.GetRequiredService<ChatWithImageGenGeminiExample>()),
