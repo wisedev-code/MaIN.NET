@@ -16,6 +16,7 @@ using MaIN.Services.Services.Steps.Commands.Abstract;
 using MaIN.Services.Services.TTSService;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace MaIN.Services;
 
@@ -68,7 +69,8 @@ public static class Bootstrapper
         // Register skill infrastructure
         serviceCollection.AddSingleton<ISkillRegistry>(sp => new SkillRegistry(
             sp.GetServices<IAgentSkillProvider>(),
-            sp.GetServices<ISkillLoader>()));
+            sp.GetServices<ISkillLoader>(),
+            sp.GetRequiredService<ILogger<SkillRegistry>>()));
         serviceCollection.AddSingleton<ISkillComposer, SkillComposer>();
 
         // Register skills directory loader if configured

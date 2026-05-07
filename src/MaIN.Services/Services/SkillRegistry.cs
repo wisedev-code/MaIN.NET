@@ -1,6 +1,7 @@
 using MaIN.Domain.Entities.Skills;
 using MaIN.Domain.Exceptions.Skills;
 using MaIN.Services.Services.Abstract;
+using Microsoft.Extensions.Logging;
 
 namespace MaIN.Services.Services;
 
@@ -9,10 +10,15 @@ public class SkillRegistry : ISkillRegistry
     private readonly Dictionary<string, AgentSkill> _skills =
         new(StringComparer.OrdinalIgnoreCase);
 
+    private readonly ILogger<SkillRegistry> _logger;
+
     public SkillRegistry(
         IEnumerable<IAgentSkillProvider> providers,
-        IEnumerable<ISkillLoader> loaders)
+        IEnumerable<ISkillLoader> loaders,
+        ILogger<SkillRegistry> logger)
     {
+        _logger = logger;
+
         foreach (var p in providers)
             Register(p.GetSkill());
 
@@ -21,7 +27,13 @@ public class SkillRegistry : ISkillRegistry
                 Register(s);
     }
 
-    public void Register(AgentSkill skill) => _skills[skill.Name] = skill;
+    public void Register(AgentSkill skill)
+    {
+        if (_skills.ContainsKey(skill.Name))
+            _logger.LogWarning("Skill '{Name}' already registered — overwriting.", skill.Name);
+
+        _skills[skill.Name] = skill;
+    }
 
     public AgentSkill GetSkill(string name) =>
         _skills.TryGetValue(name, out var skill)

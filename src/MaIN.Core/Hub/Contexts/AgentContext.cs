@@ -52,10 +52,12 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
         };
     }
 
-    internal AgentContext(IAgentService agentService, Agent existingAgent)
+    internal AgentContext(IAgentService agentService, Agent existingAgent, ISkillRegistry? skillRegistry, ISkillComposer? skillComposer)
     {
         _agentService = agentService;
         _agent = existingAgent;
+        _skillRegistry = skillRegistry;
+        _skillComposer = skillComposer;
     }
 
     public IAgentConfigurationBuilder WithSkill(string skillName)
@@ -102,7 +104,7 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
     {
         var existingAgent = await _agentService.GetAgentById(agentId) ?? throw new AgentNotFoundException(agentId);
 
-        var context = new AgentContext(_agentService, existingAgent);
+        var context = new AgentContext(_agentService, existingAgent, _skillRegistry, _skillComposer);
         context.LoadExistingKnowledgeIfExists();
         return context;
     }
@@ -373,7 +375,11 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
         };
     }
 
-    public static async Task<AgentContext> FromExisting(IAgentService agentService, string agentId)
+    public static async Task<AgentContext> FromExisting(
+        IAgentService agentService,
+        string agentId,
+        ISkillRegistry? skillRegistry = null,
+        ISkillComposer? skillComposer = null)
     {
         var existingAgent = await agentService.GetAgentById(agentId);
         if (existingAgent is null)
@@ -381,7 +387,7 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
             throw new AgentNotFoundException(agentId);
         }
 
-        var context = new AgentContext(agentService, existingAgent);
+        var context = new AgentContext(agentService, existingAgent, skillRegistry, skillComposer);
         context.LoadExistingKnowledgeIfExists();
         return context;
     }

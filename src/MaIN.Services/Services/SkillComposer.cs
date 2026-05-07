@@ -91,23 +91,20 @@ public class SkillComposer(ILogger<SkillComposer> logger) : ISkillComposer
         var sourcedSkills = skills.Where(s => s.Source is not null).ToList();
         if (sourcedSkills.Count == 0) return;
 
-        if (sourcedSkills.Count > 1 && agent.Config.Source is not null)
-            throw new SkillConflictException(
-                "Multiple skills provide a source configuration. Only one source is allowed per agent.");
-
         if (sourcedSkills.Count > 1)
             throw new SkillConflictException(
                 $"Skills '{sourcedSkills[0].Name}' and '{sourcedSkills[1].Name}' both provide a source. Only one source skill is allowed.");
 
-        if (agent.Config.Source is null)
+        if (agent.Config.Source is not null)
+            throw new SkillConflictException(
+                $"Skill '{sourcedSkills[0].Name}' provides a source but the agent already has one configured.");
+
+        var def = sourcedSkills[0].Source!;
+        agent.Config.Source = new AgentSource
         {
-            var def = sourcedSkills[0].Source!;
-            agent.Config.Source = new AgentSource
-            {
-                Details = def.Details,
-                Type = def.Type
-            };
-        }
+            Details = def.Details,
+            Type = def.Type
+        };
     }
 
     private static void MergeMcp(Agent agent, List<AgentSkill> skills)
