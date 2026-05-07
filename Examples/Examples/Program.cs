@@ -1,9 +1,11 @@
 using Examples;
 using Examples.Agents;
 using Examples.Agents.Flows;
+using Examples.Agents.Skills;
 using Examples.Chat;
 using Examples.Mcp;
 using MaIN.Core;
+using MaIN.Domain.Entities.Skills;
 using MaIN.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,7 +32,9 @@ var configuration = new ConfigurationBuilder()
 var services = new ServiceCollection();
 services.AddSingleton<IConfiguration>(configuration);
 services.AddMaIN(configuration);
+
 services.AddSkillsFromDirectory("./skills");
+services.AddSingleton<IAgentSkillProvider, CalculatorSkill>();
 
 RegisterExamples(services);
 
@@ -73,6 +77,7 @@ static void RegisterExamples(IServiceCollection services)
     services.AddTransient<AgentWithSkillsExample>();
     services.AddTransient<AgentWithFileSkillExample>();
     services.AddTransient<AgentWithFolderSkillExample>();
+    services.AddTransient<AgentWithCustomCodeSkillExample>();
     services.AddTransient<ChatWithImageGenOpenAiExample>();
     services.AddTransient<ChatExampleGemini>();
     services.AddTransient<ChatGrammarExampleGemini>();
@@ -191,6 +196,7 @@ namespace Examples
                 ("\u25a0 Agent with Skills (code-based)", serviceProvider.GetRequiredService<AgentWithSkillsExample>()),
                 ("\u25a0 Agent with Skills (file-based .md)", serviceProvider.GetRequiredService<AgentWithFileSkillExample>()),
                 ("\u25a0 Agent with Skills (folder-based SKILL.md)", serviceProvider.GetRequiredService<AgentWithFolderSkillExample>()),
+                ("\u25a0 Agent with Skills (custom C# skill)", serviceProvider.GetRequiredService<AgentWithCustomCodeSkillExample>()),
                 ("\u25a0 Gemini Chat", serviceProvider.GetRequiredService<ChatExampleGemini>()),
                 ("\u25a0 Gemini Chat with grammar", serviceProvider.GetRequiredService<ChatGrammarExampleGemini>()),
                 ("\u25a0 Gemini Chat with image", serviceProvider.GetRequiredService<ChatWithImageGenGeminiExample>()),
