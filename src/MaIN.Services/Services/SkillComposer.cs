@@ -1,3 +1,4 @@
+using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
 using MaIN.Domain.Entities.Agents.AgentSource;
@@ -5,6 +6,7 @@ using MaIN.Domain.Entities.Agents.Knowledge;
 using MaIN.Domain.Entities.Skills;
 using MaIN.Domain.Entities.Tools;
 using MaIN.Domain.Exceptions.Skills;
+using MaIN.Domain.Models.Abstract;
 using MaIN.Services.Services.Abstract;
 using Microsoft.Extensions.Logging;
 
@@ -119,6 +121,10 @@ public class SkillComposer(ILogger<SkillComposer> logger) : ISkillComposer
         if (agent.Config.McpConfig is null)
         {
             var def = mcpSkills[0].Mcp!;
+            var backend = !string.IsNullOrEmpty(agent.Model) && ModelRegistry.Exists(agent.Model)
+                ? ModelRegistry.GetById(agent.Model).Backend
+                : (BackendType?)null;
+
             agent.Config.McpConfig = new Mcp
             {
                 Name = mcpSkills[0].Name,
@@ -126,7 +132,8 @@ public class SkillComposer(ILogger<SkillComposer> logger) : ISkillComposer
                 Arguments = def.Arguments,
                 EnvironmentVariables = def.Environment,
                 Properties = def.Properties,
-                Model = agent.Model
+                Model = agent.Model,
+                Backend = backend
             };
         }
     }
