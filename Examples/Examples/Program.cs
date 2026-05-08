@@ -63,7 +63,6 @@ static void RegisterExamples(IServiceCollection services)
     services.AddTransient<AgentWithRedirectExample>();
     services.AddTransient<MultiBackendAgentWithRedirectExample>();
     services.AddTransient<McpAgentsExample>();
-    services.AddTransient<McpAnthropicExample>();
     services.AddTransient<AgentWithRedirectImageExample>();
     services.AddTransient<AgentWithBecomeExample>();
     services.AddTransient<AgentWithApiDataSourceExample>();
@@ -195,7 +194,6 @@ namespace Examples
                 ("\u25a0 OpenAi Chat", serviceProvider.GetRequiredService<ChatExampleOpenAi>()),
                 ("\u25a0 OpenAi Chat with image", serviceProvider.GetRequiredService<ChatWithImageGenOpenAiExample>()),
                 ("\u25a0 OpenAi Agent with Web Data Source", serviceProvider.GetRequiredService<AgentWithWebDataSourceOpenAiExample>()),
-                ("\u25a0 Agent with Skills (code-based)", serviceProvider.GetRequiredService<AgentWithSkillsExample>()),
                 ("\u25a0 Agent with Skills (file-based .md)", serviceProvider.GetRequiredService<AgentWithFileSkillExample>()),
                 ("\u25a0 Agent with Skills (folder-based SKILL.md)", serviceProvider.GetRequiredService<AgentWithFolderSkillExample>()),
                 ("\u25a0 Agent with Skills (custom C# skill)", serviceProvider.GetRequiredService<AgentWithCustomCodeSkillExample>()),

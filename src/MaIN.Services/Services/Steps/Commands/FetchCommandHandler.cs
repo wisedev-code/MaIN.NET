@@ -9,6 +9,8 @@ using MaIN.Services.Services.Models.Commands;
 using MaIN.Services.Services.Steps.Commands.Abstract;
 using MaIN.Services.Utils;
 using System.Text.Json;
+using System.Text.RegularExpressions;
+using System.Xml.Linq;
 
 namespace MaIN.Services.Services.Steps.Commands;
 
@@ -130,8 +132,11 @@ public class FetchCommandHandler(
         if (command.Chat.Messages.Count > 0)
         {
             var memoryChat = command.MemoryChat;
+            var client = httpClientFactory.CreateClient();
+            var rawContent = await client.GetStringAsync(webData!.Url);
+            var cleanText = ExtractCleanWebText(rawContent, webData.Url);
             var result = await llmServiceFactory.CreateService(backend)
-                .AskMemory(memoryChat!, new ChatMemoryOptions { WebUrls = [webData!.Url] }, new ChatRequestOptions());
+                .AskMemory(memoryChat!, new ChatMemoryOptions { TextData = new Dictionary<string, string> { ["web-content"] = cleanText } }, new ChatRequestOptions());
             result!.Message.Role = command.ResponseType == FetchResponseType.AS_System ? "System" : "Assistant";
             return result!.Message;
         }
@@ -165,6 +170,58 @@ public class FetchCommandHandler(
             { Message.UnprocessedMessageProperty, string.Empty }
         };
         return newMessage;
+    }
+
+    private static string ExtractCleanWebText(string rawContent, string url)
+    {
+        var trimmed = rawContent.TrimStart();
+        if (trimmed.StartsWith("<?xml", StringComparison.OrdinalIgnoreCase)
+            || trimmed.Contains("<rss", StringComparison.OrdinalIgnoreCase)
+            || trimmed.Contains("<feed", StringComparison.OrdinalIgnoreCase))
+        {
+            return ExtractRssText(rawContent);
+        }
+
+        return StripHtmlTags(rawContent);
+    }
+
+    private static string ExtractRssText(string xml)
+    {
+        try
+        {
+            var doc = XDocument.Parse(xml);
+            var items = doc.Descendants()
+                .Where(e => e.Name.LocalName is "item" or "entry")
+                .Take(30)
+                .Select(item =>
+                {
+                    var title = item.Descendants()
+                        .FirstOrDefault(e => e.Name.LocalName == "title")?.Value?.Trim();
+                    var desc = item.Descendants()
+                        .FirstOrDefault(e => e.Name.LocalName is "description" or "summary")?.Value?.Trim();
+                    var pubDate = item.Descendants()
+                        .FirstOrDefault(e => e.Name.LocalName is "pubDate" or "published" or "updated")?.Value?.Trim();
+                    var parts = new[] { title, pubDate, desc }
+                        .Where(p => !string.IsNullOrWhiteSpace(p));
+                    return string.Join(" | ", parts);
+                })
+                .Where(s => !string.IsNullOrWhiteSpace(s));
+
+            return string.Join("\n", items);
+        }
+        catch
+        {
+            return StripHtmlTags(xml);
+        }
+    }
+
+    private static string StripHtmlTags(string html)
+    {
+        var noScript = Regex.Replace(html, @"<script[^>]*>.*?</script>", " ", RegexOptions.Singleline | RegexOptions.IgnoreCase);
+        var noStyle = Regex.Replace(noScript, @"<style[^>]*>.*?</style>", " ", RegexOptions.Singleline | RegexOptions.IgnoreCase);
+        var noTags = Regex.Replace(noStyle, @"<[^>]+>", " ");
+        var clean = Regex.Replace(noTags, @"\s{2,}", " ").Trim();
+        return clean.Length > 8000 ? clean[..8000] : clean;
     }
 
     private static Message CreateMessage(string content,
