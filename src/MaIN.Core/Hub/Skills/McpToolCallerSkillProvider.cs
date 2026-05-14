@@ -2,7 +2,7 @@ using MaIN.Domain.Entities.Skills;
 
 namespace MaIN.Core.Hub.Skills;
 
-public class McpToolCallerSkillProvider : IAgentSkillProvider
+public class McpToolCallerSkillProvider : IBuiltInAgentSkillProvider
 {
     public AgentSkill GetSkill() => new()
     {

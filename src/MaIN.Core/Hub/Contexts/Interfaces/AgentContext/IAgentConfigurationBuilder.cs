@@ -154,6 +154,14 @@ public interface IAgentConfigurationBuilder : IAgentActions
     IAgentConfigurationBuilder WithSkill(AgentSkill skill);
 
     /// <summary>
+    /// Applies every skill currently in the registry except MaIN's built-in skills
+    /// (web-search, journalist, rag-expert, summarizer, mcp-tool-caller).
+    /// Includes user-registered providers and folder-loaded skills.
+    /// Compose with <see cref="WithSkill(string)"/> to opt a bundled skill back in.
+    /// </summary>
+    IAgentConfigurationBuilder WithAllSkills();
+
+    /// <summary>
     /// Synchronously creates the agent in the system.
     /// </summary>
     /// <param name="flow">A flag indicating whether the agent should be part of an agent flow.</param>

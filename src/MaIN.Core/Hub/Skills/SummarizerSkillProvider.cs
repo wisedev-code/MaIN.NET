@@ -2,7 +2,7 @@ using MaIN.Domain.Entities.Skills;
 
 namespace MaIN.Core.Hub.Skills;
 
-public class SummarizerSkillProvider : IAgentSkillProvider
+public class SummarizerSkillProvider : IBuiltInAgentSkillProvider
 {
     public AgentSkill GetSkill() => new()
     {

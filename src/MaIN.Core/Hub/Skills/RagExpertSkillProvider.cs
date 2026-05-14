@@ -2,7 +2,7 @@ using MaIN.Domain.Entities.Skills;
 
 namespace MaIN.Core.Hub.Skills;
 
-public class RagExpertSkillProvider : IAgentSkillProvider
+public class RagExpertSkillProvider : IBuiltInAgentSkillProvider
 {
     public AgentSkill GetSkill() => new()
     {

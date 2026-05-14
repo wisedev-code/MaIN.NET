@@ -152,6 +152,48 @@ public class SkillRegistryTests
     }
 
     [Fact]
+    public void GetAllExcludingBuiltIn_FiltersOnlyBuiltInProviders()
+    {
+        var builtIn = MakeSkill("web-search");
+        var userProvider = MakeSkill("user-provider-skill");
+        var folderSkill = MakeSkill("folder-skill");
+
+        var builtInProvider = new Mock<IBuiltInAgentSkillProvider>();
+        builtInProvider.Setup(p => p.GetSkill()).Returns(builtIn);
+
+        var customProvider = new Mock<IAgentSkillProvider>();
+        customProvider.Setup(p => p.GetSkill()).Returns(userProvider);
+
+        var loader = new Mock<ISkillLoader>();
+        loader.Setup(l => l.LoadAll()).Returns([folderSkill]);
+
+        var registry = new SkillRegistry(
+            [builtInProvider.Object, customProvider.Object],
+            [loader.Object],
+            Mock.Of<ILogger<SkillRegistry>>());
+
+        Assert.Equal(3, registry.GetAll().Count);
+
+        var filtered = registry.GetAllExcludingBuiltIn();
+        Assert.Equal(2, filtered.Count);
+        Assert.Contains(filtered, s => s.Name == "user-provider-skill");
+        Assert.Contains(filtered, s => s.Name == "folder-skill");
+        Assert.DoesNotContain(filtered, s => s.Name == "web-search");
+    }
+
+    [Fact]
+    public void GetAllExcludingBuiltIn_DirectRegisterCallsAreNotTreatedAsBuiltIn()
+    {
+        var registry = new SkillRegistry([], [], Mock.Of<ILogger<SkillRegistry>>());
+        registry.Register(MakeSkill("manually-registered"));
+
+        var filtered = registry.GetAllExcludingBuiltIn();
+
+        Assert.Single(filtered);
+        Assert.Equal("manually-registered", filtered[0].Name);
+    }
+
+    [Fact]
     public void Constructor_LoadsFromLoaders()
     {
         var skill = MakeSkill("loaded-skill");

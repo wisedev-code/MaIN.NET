@@ -2,7 +2,7 @@ using MaIN.Domain.Entities.Skills;
 
 namespace MaIN.Core.Hub.Skills;
 
-public class JournalistSkillProvider : IAgentSkillProvider
+public class JournalistSkillProvider : IBuiltInAgentSkillProvider
 {
     public AgentSkill GetSkill() => new()
     {

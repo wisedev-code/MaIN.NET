@@ -10,6 +10,9 @@ public class SkillRegistry : ISkillRegistry
     private readonly Dictionary<string, AgentSkill> _skills =
         new(StringComparer.OrdinalIgnoreCase);
 
+    private readonly HashSet<string> _builtInNames =
+        new(StringComparer.OrdinalIgnoreCase);
+
     private readonly ILogger<SkillRegistry> _logger;
 
     public SkillRegistry(
@@ -20,7 +23,12 @@ public class SkillRegistry : ISkillRegistry
         _logger = logger;
 
         foreach (var p in providers)
-            Register(p.GetSkill());
+        {
+            var skill = p.GetSkill();
+            if (p is IBuiltInAgentSkillProvider)
+                _builtInNames.Add(skill.Name);
+            Register(skill);
+        }
 
         foreach (var l in loaders)
             foreach (var s in l.LoadAll())
@@ -45,6 +53,12 @@ public class SkillRegistry : ISkillRegistry
 
     public IReadOnlyList<AgentSkill> GetAll() =>
         _skills.Values.ToList().AsReadOnly();
+
+    public IReadOnlyList<AgentSkill> GetAllExcludingBuiltIn() =>
+        _skills.Values
+            .Where(s => !_builtInNames.Contains(s.Name))
+            .ToList()
+            .AsReadOnly();
 
     public IReadOnlyList<AgentSkill> GetByTag(params string[] tags) =>
         _skills.Values

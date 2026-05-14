@@ -3,7 +3,7 @@ using MaIN.Domain.Entities.Skills;
 
 namespace MaIN.Core.Hub.Skills;
 
-public class WebSearchSkillProvider(string url = "https://feeds.bbci.co.uk/news/rss.xml") : IAgentSkillProvider
+public class WebSearchSkillProvider(string url = "https://feeds.bbci.co.uk/news/rss.xml") : IBuiltInAgentSkillProvider
 {
     public AgentSkill GetSkill() => new()
     {

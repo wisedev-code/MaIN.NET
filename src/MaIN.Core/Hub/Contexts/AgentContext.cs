@@ -78,6 +78,16 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
         return this;
     }
 
+    public IAgentConfigurationBuilder WithAllSkills()
+    {
+        if (_skillRegistry is null) return this;
+
+        foreach (var skill in _skillRegistry.GetAllExcludingBuiltIn())
+            _pendingInlineSkills.Add(skill);
+
+        return this;
+    }
+
     // --- IAgentActions ---
     public string GetAgentId() => _agent.Id;
     public Agent GetAgent() => _agent;
