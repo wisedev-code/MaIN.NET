@@ -83,7 +83,12 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
         if (_skillRegistry is null) return this;
 
         foreach (var skill in _skillRegistry.GetAllExcludingBuiltIn())
+        {
+            if (skill.StepPlacement == SkillStepPlacement.Replace)
+                continue;
+
             _pendingInlineSkills.Add(skill);
+        }
 
         return this;
     }

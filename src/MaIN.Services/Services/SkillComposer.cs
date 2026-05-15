@@ -29,12 +29,31 @@ public class SkillComposer(ILogger<SkillComposer> logger) : ISkillComposer
         MergeKnowledgeSeed(knowledge, sorted);
     }
 
-    private static void MergeSteps(Agent agent, List<AgentSkill> skills)
+    private void MergeSteps(Agent agent, List<AgentSkill> skills)
     {
-        var replaceSkill = skills.LastOrDefault(s => s.StepPlacement == SkillStepPlacement.Replace);
-        if (replaceSkill is not null)
+        var replaceSkills = skills.Where(s => s.StepPlacement == SkillStepPlacement.Replace).ToList();
+
+        if (replaceSkills.Count > 1)
+            throw new SkillConflictException(
+                $"Skills '{replaceSkills[0].Name}' and '{replaceSkills[1].Name}' both use Replace placement. " +
+                "Replace skills are exclusive — only one may be applied per agent.");
+
+        if (replaceSkills.Count == 1)
         {
+            var replaceSkill = replaceSkills[0];
+
+            var siblings = skills
+                .Where(s => s != replaceSkill && s.Steps.Count > 0)
+                .Select(s => s.Name)
+                .ToList();
+
+            if (siblings.Count > 0)
+                logger.LogWarning(
+                    "Replace skill '{Replace}' overrides the step pipeline; steps from '{Siblings}' will be ignored.",
+                    replaceSkill.Name, string.Join("', '", siblings));
+
             agent.Config.Steps = replaceSkill.Steps.Distinct().ToList();
+            LogFinalPipeline(agent, skills);
             return;
         }
 
@@ -53,6 +72,20 @@ public class SkillComposer(ILogger<SkillComposer> logger) : ISkillComposer
             .Concat(after)
             .Distinct()
             .ToList();
+
+        LogFinalPipeline(agent, skills);
+    }
+
+    private void LogFinalPipeline(Agent agent, List<AgentSkill> skills)
+    {
+        if (!logger.IsEnabled(LogLevel.Debug)) return;
+
+        var pipeline = string.Join(" → ", agent.Config.Steps ?? []);
+        var contributors = string.Join(", ", skills.Select(s => $"{s.Name}[{s.StepPlacement}:{string.Join(",", s.Steps)}]"));
+
+        logger.LogDebug(
+            "Agent '{AgentId}' step pipeline composed: [{Pipeline}] from skills: {Contributors}",
+            agent.Id, pipeline, contributors);
     }
 
     private static void MergeTools(Agent agent, List<AgentSkill> skills)

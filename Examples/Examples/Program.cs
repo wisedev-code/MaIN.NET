@@ -78,6 +78,7 @@ static void RegisterExamples(IServiceCollection services)
     services.AddTransient<AgentWithFileSkillExample>();
     services.AddTransient<AgentWithFolderSkillExample>();
     services.AddTransient<AgentWithCustomCodeSkillExample>();
+    services.AddTransient<AgentWithAllSkillsExample>();
     services.AddTransient<AgentWithMcpFileWriterSkillExample>();
     services.AddTransient<ChatWithImageGenOpenAiExample>();
     services.AddTransient<ChatExampleGemini>();
@@ -197,6 +198,7 @@ namespace Examples
                 ("\u25a0 Agent with Skills (file-based .md)", serviceProvider.GetRequiredService<AgentWithFileSkillExample>()),
                 ("\u25a0 Agent with Skills (folder-based SKILL.md)", serviceProvider.GetRequiredService<AgentWithFolderSkillExample>()),
                 ("\u25a0 Agent with Skills (custom C# skill)", serviceProvider.GetRequiredService<AgentWithCustomCodeSkillExample>()),
+                ("\u25a0 Agent with Skills (.WithAllSkills)", serviceProvider.GetRequiredService<AgentWithAllSkillsExample>()),
                 ("\u25a0 Agent with Skills (MCP file writer)", serviceProvider.GetRequiredService<AgentWithMcpFileWriterSkillExample>()),
                 ("\u25a0 Gemini Chat", serviceProvider.GetRequiredService<ChatExampleGemini>()),
                 ("\u25a0 Gemini Chat with grammar", serviceProvider.GetRequiredService<ChatGrammarExampleGemini>()),
@@ -210,7 +212,6 @@ namespace Examples
                 ("\u25a0 Ollama Chat", serviceProvider.GetRequiredService<ChatExampleOllama>()),
                 ("\u25a0 McpClient example", serviceProvider.GetRequiredService<McpExample>()),
                 ("\u25a0 McpAgent example", serviceProvider.GetRequiredService<McpAgentsExample>()),
-                ("\u25a0 Mcp Anthropic example", serviceProvider.GetRequiredService<McpAnthropicExample>()),
                 ("\u25a0 Chat with TTS example", serviceProvider.GetRequiredService<ChatWithTextToSpeechExample>()),
                 ("\u25a0 McpAgent example", serviceProvider.GetRequiredService<McpAgentsExample>()),
                 ("\u25a0 Chat with custom model ID", serviceProvider.GetRequiredService<ChatWithCustomModelIdExample>())

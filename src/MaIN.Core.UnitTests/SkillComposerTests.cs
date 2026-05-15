@@ -59,6 +59,42 @@ public class SkillComposerTests
     }
 
     [Fact]
+    public void MergeSteps_TwoReplaceSkills_ThrowsConflict()
+    {
+        var agent = MakeAgent();
+        var first = MakeSkill(name: "rag-expert", steps: ["ANSWER+USE_KNOWLEDGE"], placement: SkillStepPlacement.Replace);
+        var second = MakeSkill(name: "funfact-writer", steps: ["MCP"], placement: SkillStepPlacement.Replace);
+
+        var ex = Assert.Throws<SkillConflictException>(() => _composer.Apply(agent, [first, second]));
+        Assert.Contains("rag-expert", ex.Message);
+        Assert.Contains("funfact-writer", ex.Message);
+    }
+
+    [Fact]
+    public void MergeSteps_ReplaceMixedWithBeforeAfter_WarnsAndDiscardsSiblingSteps()
+    {
+        var agent = MakeAgent(steps: ["ANSWER"]);
+        var loggerMock = new Mock<ILogger<SkillComposer>>();
+        var composer = new SkillComposer(loggerMock.Object);
+
+        var replaceSkill = MakeSkill(name: "funfact-writer", steps: ["MCP"], placement: SkillStepPlacement.Replace);
+        var beforeSkill = MakeSkill(name: "code-review", steps: ["ANSWER"], placement: SkillStepPlacement.Before);
+
+        composer.Apply(agent, [replaceSkill, beforeSkill]);
+
+        Assert.Equal(["MCP"], agent.Config.Steps);
+
+        loggerMock.Verify(
+            l => l.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("funfact-writer") && v.ToString()!.Contains("code-review")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
     public void MergeSteps_Before_PrependsAndDeduplicates()
     {
         var agent = MakeAgent(steps: ["ANSWER"]);

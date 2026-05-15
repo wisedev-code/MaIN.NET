@@ -154,10 +154,11 @@ public interface IAgentConfigurationBuilder : IAgentActions
     IAgentConfigurationBuilder WithSkill(AgentSkill skill);
 
     /// <summary>
-    /// Applies every skill currently in the registry except MaIN's built-in skills
-    /// (web-search, journalist, rag-expert, summarizer, mcp-tool-caller).
+    /// Applies every skill currently in the registry except:
+    ///   - MaIN's built-in skills (web-search, journalist, rag-expert, summarizer, mcp-tool-caller)
+    ///   - skills with <see cref="SkillStepPlacement.Replace"/> placement (they replace the whole
+    ///     step pipeline and are exclusive by design — opt them in explicitly via <see cref="WithSkill(string)"/>)
     /// Includes user-registered providers and folder-loaded skills.
-    /// Compose with <see cref="WithSkill(string)"/> to opt a bundled skill back in.
     /// </summary>
     IAgentConfigurationBuilder WithAllSkills();
 
