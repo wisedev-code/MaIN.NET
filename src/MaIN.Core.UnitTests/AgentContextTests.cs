@@ -291,6 +291,77 @@ public class AgentContextTests
     }
 
     [Fact]
+    public async Task WithAllSkills_CalledTwice_DoesNotDuplicate()
+    {
+        var skill = new AgentSkill
+        {
+            Name = "code-review",
+            Steps = ["ANSWER"],
+            StepPlacement = SkillStepPlacement.Before,
+            Tags = [],
+            Priority = 30
+        };
+
+        _mockSkillRegistry
+            .Setup(r => r.GetAllExcludingBuiltIn())
+            .Returns(new List<AgentSkill> { skill });
+
+        IReadOnlyList<AgentSkill>? composed = null;
+        _mockSkillComposer
+            .Setup(c => c.Apply(It.IsAny<Agent>(), It.IsAny<IReadOnlyList<AgentSkill>>(), It.IsAny<Knowledge?>()))
+            .Callback<Agent, IReadOnlyList<AgentSkill>, Knowledge?>((_, skills, _) => composed = skills);
+
+        _mockAgentService
+            .Setup(s => s.CreateAgent(
+                It.IsAny<Agent>(),
+                It.IsAny<bool>(),
+                It.IsAny<bool>(),
+                It.IsAny<IBackendInferenceParams>(),
+                It.IsAny<MemoryParams>(),
+                It.IsAny<bool>()))
+            .ReturnsAsync(new Agent { Id = "x", CurrentBehaviour = "Default", Config = new AgentConfig() });
+
+        await _agentContext
+            .WithAllSkills()
+            .WithAllSkills()
+            .CreateAsync();
+
+        Assert.NotNull(composed);
+        Assert.Single(composed!);
+    }
+
+    [Fact]
+    public async Task WithAllSkills_PopulatesAgentSkillsList()
+    {
+        var folderSkill = new AgentSkill
+        {
+            Name = "folder-skill",
+            Steps = ["ANSWER"],
+            StepPlacement = SkillStepPlacement.Before,
+            Tags = [],
+            Priority = 30
+        };
+
+        _mockSkillRegistry
+            .Setup(r => r.GetAllExcludingBuiltIn())
+            .Returns(new List<AgentSkill> { folderSkill });
+
+        _mockAgentService
+            .Setup(s => s.CreateAgent(
+                It.IsAny<Agent>(),
+                It.IsAny<bool>(),
+                It.IsAny<bool>(),
+                It.IsAny<IBackendInferenceParams>(),
+                It.IsAny<MemoryParams>(),
+                It.IsAny<bool>()))
+            .ReturnsAsync(new Agent { Id = "x", CurrentBehaviour = "Default", Config = new AgentConfig() });
+
+        await _agentContext.WithAllSkills().CreateAsync();
+
+        Assert.Contains("folder-skill", _agentContext.GetAgent().Skills);
+    }
+
+    [Fact]
     public async Task FromExisting_ShouldThrowArgumentExceptionWhenAgentNotFound()
     {
         // Arrange

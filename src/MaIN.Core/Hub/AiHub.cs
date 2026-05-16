@@ -16,8 +16,13 @@ public static class AIHub
 
     internal static bool IsInitialized => _services is not null;
 
+    /// <summary>
+    /// Returns skills that should survive a re-initialization: folder-loaded skills and
+    /// user-registered skills (via direct Register() or non-built-in IAgentSkillProvider).
+    /// Bundled built-in skills are excluded because the fresh DI container re-provides them.
+    /// </summary>
     internal static IReadOnlyList<AgentSkill>? GetCurrentSkills() =>
-        _services?.SkillRegistry.GetAll();
+        _services?.SkillRegistry.GetAllExcludingBuiltIn();
 
     internal static void Initialize(IAIHubServices services,
         MaINSettings settings,

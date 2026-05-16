@@ -22,6 +22,7 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
     private readonly ISkillComposer? _skillComposer;
     private readonly List<string> _pendingSkillNames = [];
     private readonly List<AgentSkill> _pendingInlineSkills = [];
+    private bool _allSkillsApplied;
     private IBackendInferenceParams? _inferenceParams;
     private MemoryParams? _memoryParams;
     private bool _disableCache;
@@ -81,6 +82,8 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
     public IAgentConfigurationBuilder WithAllSkills()
     {
         if (_skillRegistry is null) return this;
+        if (_allSkillsApplied) return this;
+        _allSkillsApplied = true;
 
         foreach (var skill in _skillRegistry.GetAllExcludingBuiltIn())
         {
@@ -264,6 +267,7 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
 
         _skillComposer.Apply(_agent, allSkills, _knowledge);
         _agent.Skills.AddRange(_pendingSkillNames);
+        _agent.Skills.AddRange(_pendingInlineSkills.Select(s => s.Name));
     }
 
     public IAgentConfigurationBuilder WithTools(ToolsConfiguration toolsConfiguration)
