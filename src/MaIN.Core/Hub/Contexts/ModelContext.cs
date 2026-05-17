@@ -8,6 +8,7 @@ using MaIN.Domain.Models.Concrete;
 using MaIN.Services.Constants;
 using MaIN.Services.Services.LLMService.Utils;
 using System.Diagnostics;
+using MaIN.Infrastructure.Models;
 
 namespace MaIN.Core.Hub.Contexts;
 
@@ -22,6 +23,8 @@ public sealed class ModelContext : IModelContext
     private const int FileStreamBufferSize = 65536;
     private const int ProgressUpdateIntervalMilliseconds = 1000;
     private static readonly TimeSpan DefaultHttpTimeout = TimeSpan.FromMinutes(30);
+    private const int MaxRetryAttempts = 5;
+    private static readonly TimeSpan ReadStallTimeout = TimeSpan.FromSeconds(30);
 
     internal ModelContext(MaINSettings settings, IHttpClientFactory httpClientFactory)
     {
@@ -53,7 +56,10 @@ public sealed class ModelContext : IModelContext
         return localModel.IsDownloaded(_defaultModelsPath);
     }
 
-    public async Task<IModelContext> EnsureDownloadedAsync(string modelId, CancellationToken cancellationToken = default)
+    public Task<IModelContext> EnsureDownloadedAsync(string modelId, CancellationToken cancellationToken = default)
+        => EnsureDownloadedAsync(modelId, null, cancellationToken);
+
+    public async Task<IModelContext> EnsureDownloadedAsync(string modelId, IProgress<DownloadProgress>? progress, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(modelId))
         {
@@ -77,7 +83,7 @@ public sealed class ModelContext : IModelContext
             // Double-check
             if (!localModel.IsDownloaded(_defaultModelsPath))
             {
-                await DownloadModelAsync(localModel, cancellationToken);
+                await DownloadModelAsync(localModel, progress, cancellationToken);
             }
         }
 
@@ -90,7 +96,10 @@ public sealed class ModelContext : IModelContext
         return await EnsureDownloadedAsync(model.Id, cancellationToken);
     }
 
-    public async Task<IModelContext> DownloadAsync(string modelId, CancellationToken cancellationToken = default)
+    public Task<IModelContext> DownloadAsync(string modelId, CancellationToken cancellationToken = default)
+        => DownloadAsync(modelId, null, cancellationToken);
+
+    public async Task<IModelContext> DownloadAsync(string modelId, IProgress<DownloadProgress>? progress, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(modelId))
         {
@@ -106,7 +115,7 @@ public sealed class ModelContext : IModelContext
 
         using (await _downloadLocks.LockAsync(modelId, cancellationToken))
         {
-            await DownloadModelAsync(localModel, cancellationToken);
+            await DownloadModelAsync(localModel, progress, cancellationToken);
         }
 
         return this;
@@ -131,72 +140,123 @@ public sealed class ModelContext : IModelContext
         return this;
     }
 
-    private async Task DownloadModelAsync(LocalModel localModel, CancellationToken cancellationToken)
+    private async Task DownloadModelAsync(LocalModel localModel, IProgress<DownloadProgress>? progress, CancellationToken cancellationToken)
     {
-        using var httpClient = CreateConfiguredHttpClient();
+        if (localModel.DownloadUrl is null) throw new DownloadUrlNullOrEmptyException();
+
         var filePath = GetModelFilePath(localModel);
-
-        if (localModel.DownloadUrl is null)
-        {
-            throw new DownloadUrlNullOrEmptyException();
-        }
-
         Console.WriteLine($"Starting download of {localModel.FileName}...");
 
-        try
+        for (int attempt = 0; attempt <= MaxRetryAttempts; attempt++)
         {
-            using var response = await httpClient.GetAsync(localModel.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-            response.EnsureSuccessStatusCode();
-
-            await DownloadWithProgressAsync(response, filePath, localModel.FileName, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Download failed: {ex.Message}");
-
-            if (File.Exists(filePath))
+            if (attempt > 0)
             {
-                File.Delete(filePath);
+                var delay = TimeSpan.FromSeconds(Math.Min(2 * Math.Pow(2, attempt - 1), 60));
+                Console.WriteLine($"\nRetrying ({attempt}/{MaxRetryAttempts}) in {delay.TotalSeconds:F0}s...");
+                await Task.Delay(delay, cancellationToken);
             }
-            throw;
+
+            try
+            {
+                await TryDownloadWithResumeAsync(localModel.DownloadUrl, filePath, localModel.FileName, progress, cancellationToken);
+                return;
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                if (File.Exists(filePath)) File.Delete(filePath);
+                throw;
+            }
+            catch (Exception ex) when (attempt < MaxRetryAttempts)
+            {
+                Console.WriteLine($"\nDownload error: {ex.Message}");
+            }
         }
+
+        if (File.Exists(filePath)) File.Delete(filePath);
+        throw new IOException($"Download of {localModel.FileName} failed after {MaxRetryAttempts} retries.");
     }
 
-    private static async Task DownloadWithProgressAsync(HttpResponseMessage response, string filePath, string fileName, CancellationToken cancellationToken)
+    private async Task TryDownloadWithResumeAsync(Uri url, string filePath, string fileName, IProgress<DownloadProgress>? progress, CancellationToken cancellationToken)
     {
-        var totalBytes = response.Content.Headers.ContentLength;
-        var totalBytesRead = 0L;
+        var resumeFrom = File.Exists(filePath) ? new FileInfo(filePath).Length : 0L;
+
+        using var httpClient = CreateConfiguredHttpClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        if (resumeFrom > 0)
+            request.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(resumeFrom, null);
+
+        using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+
+        if (response.StatusCode == System.Net.HttpStatusCode.RequestedRangeNotSatisfiable)
+        {
+            Console.WriteLine("\nFile already fully downloaded.");
+            return;
+        }
+
+        var isResume = response.StatusCode == System.Net.HttpStatusCode.PartialContent;
+        if (!isResume) resumeFrom = 0;
+
+        response.EnsureSuccessStatusCode();
+
+        long? totalBytes = response.Content.Headers.ContentLength is { } cl
+            ? cl + (isResume ? resumeFrom : 0)
+            : null;
+
+        if (isResume)
+            Console.WriteLine($"Resuming from {FormatBytes(resumeFrom)}...");
+        else if (totalBytes.HasValue)
+            Console.WriteLine($"File size: {FormatBytes(totalBytes.Value)}");
+
+        var fileMode = isResume ? FileMode.Append : FileMode.Create;
+        await using var fileStream = new FileStream(filePath, fileMode, FileAccess.Write, FileShare.None, FileStreamBufferSize);
+        await using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken);
+
+        await ReadChunksAsync(contentStream, fileStream, resumeFrom, totalBytes, fileName, progress, cancellationToken);
+    }
+
+    private static async Task ReadChunksAsync(Stream content, FileStream file, long startOffset, long? totalBytes, string fileName, IProgress<DownloadProgress>? progress, CancellationToken cancellationToken)
+    {
+        var totalBytesRead = startOffset;
         var buffer = new byte[DefaultBufferSize];
         var progressStopwatch = Stopwatch.StartNew();
         var totalStopwatch = Stopwatch.StartNew();
 
-        if (totalBytes.HasValue)
-        {
-            Console.WriteLine($"File size: {FormatBytes(totalBytes.Value)}");
-        }
-
-        await using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, FileStreamBufferSize);
-        await using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken);
-
         while (true)
         {
-            var bytesRead = await contentStream.ReadAsync(buffer, cancellationToken);
-            if (bytesRead == 0)
+            int bytesRead;
+            using (var stallCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
             {
-                break;
+                stallCts.CancelAfter(ReadStallTimeout);
+                try
+                {
+                    bytesRead = await content.ReadAsync(buffer, stallCts.Token);
+                }
+                catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+                {
+                    throw new IOException($"Download stalled: no data received for {ReadStallTimeout.TotalSeconds:F0}s.");
+                }
             }
 
-            await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
+            if (bytesRead == 0) break;
+
+            await file.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
             totalBytesRead += bytesRead;
 
             if (ShouldUpdateProgress(progressStopwatch))
             {
+                var elapsed = totalStopwatch.Elapsed.TotalSeconds;
+                var speed = elapsed > 0 ? totalBytesRead / elapsed : 0;
                 ShowProgress(totalBytesRead, totalBytes, totalStopwatch);
+                progress?.Report(new DownloadProgress(totalBytesRead, totalBytes, speed));
                 progressStopwatch.Restart();
             }
         }
 
-        ShowFinalProgress(totalBytesRead, totalStopwatch, fileName);
+        var totalTime = totalStopwatch.Elapsed;
+        var avgSpeed = totalTime.TotalSeconds > 0 ? totalBytesRead / totalTime.TotalSeconds : 0;
+        Console.WriteLine($"\nDownload completed: {fileName}. " +
+                          $"Total: {FormatBytes(totalBytesRead)}, Time: {totalTime:hh\\:mm\\:ss}, Speed: {FormatBytes((long)avgSpeed)}/s");
+        progress?.Report(new DownloadProgress(totalBytesRead, totalBytes, 0));
     }
 
     private HttpClient CreateConfiguredHttpClient()
@@ -239,18 +299,6 @@ public sealed class ModelContext : IModelContext
         {
             Console.Write($"\rDownloaded: {FormatBytes(totalBytesRead)} Speed: {FormatBytes((long)speed)}/s");
         }
-    }
-
-    private static void ShowFinalProgress(long totalBytesRead, Stopwatch totalStopwatch, string fileName)
-    {
-        totalStopwatch.Stop();
-        var totalTime = totalStopwatch.Elapsed;
-        var avgSpeed = totalTime.TotalSeconds > 0 ? totalBytesRead / totalTime.TotalSeconds : 0;
-
-        Console.WriteLine($"\nDownload completed: {fileName}. " +
-                         $"Total size: {FormatBytes(totalBytesRead)}, " +
-                         $"Time: {totalTime:hh\\:mm\\:ss}, " +
-                         $"Average speed: {FormatBytes((long)avgSpeed)}/s");
     }
 
     private static string FormatBytes(long bytes)

@@ -1,4 +1,6 @@
-﻿using MaIN.Domain.Models.Abstract;
+﻿using MaIN.Core.Hub.Contexts;
+using MaIN.Domain.Models.Abstract;
+using MaIN.Infrastructure.Models;
 
 namespace MaIN.Core.Hub.Contexts.Interfaces.ModelContext;
 
@@ -51,6 +53,8 @@ public interface IModelContext
     /// returning the context instance implementing <see cref="IModelContext"/> for method chaining.</returns>
     Task<IModelContext> DownloadAsync(string modelId, CancellationToken cancellationToken = default);
 
+    Task<IModelContext> DownloadAsync(string modelId, IProgress<DownloadProgress>? progress, CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Ensures a known local model is downloaded before use. If the model is already present on disk the call
     /// returns immediately; if not, the model is downloaded. Cloud models are silently skipped.
@@ -61,6 +65,8 @@ public interface IModelContext
     /// <returns>A task that represents the asynchronous operation, returning the context instance implementing
     /// <see cref="IModelContext"/> for method chaining.</returns>
     Task<IModelContext> EnsureDownloadedAsync(string modelId, CancellationToken cancellationToken = default);
+
+    Task<IModelContext> EnsureDownloadedAsync(string modelId, IProgress<DownloadProgress>? progress, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Ensures a known local model is downloaded before use using a strongly-typed model reference.

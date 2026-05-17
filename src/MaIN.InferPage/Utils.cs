@@ -16,6 +16,8 @@ public static class Utils
 
     public static bool NeedsConfiguration { get; set; }
 
+    public static string DefaultModelsPath => System.IO.Path.Combine(Directory.GetCurrentDirectory(), "models");
+
     // Manual capability overrides for unregistered models (set from Settings UI)
     public static bool? ManualVision { get; set; }
     public static bool? ManualReasoning { get; set; }
@@ -67,6 +69,16 @@ public static class Utils
         {
             Path = null;
         }
+
+        if (backendType == BackendType.Self && Path == null)
+        {
+            var defaultPath = DefaultModelsPath;
+            Directory.CreateDirectory(defaultPath);
+            Path = defaultPath;
+            mainSettings.ModelsPath = defaultPath;
+            Environment.SetEnvironmentVariable("MaIN_ModelsPath", defaultPath);
+        }
+
         HasApiKey = !string.IsNullOrEmpty(apiKey);
         NeedsConfiguration = false;
 
