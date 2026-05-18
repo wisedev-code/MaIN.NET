@@ -90,8 +90,10 @@ public class FetchCommandHandler(
         Dictionary<string, string> properties,
         BackendType backend)
     {
-        var fileData = JsonSerializer.Deserialize<AgentFileSourceDetails>(command.Context.Source!.Details?.ToString()!);
-        var filesDictionary = fileData!.Files.ToDictionary(path => Path.GetFileName(path), path => path);
+        var fileData = command.Context.Source!.Details as AgentFileSourceDetails;
+#pragma warning disable CS8714 // The type cannot be used as type parameter in the generic type or method. Nullability of type argument doesn't match 'notnull' constraint.
+        var filesDictionary = fileData!.Files.ToDictionary(Path.GetFileName, path => path);
+#pragma warning restore CS8714 // The type cannot be used as type parameter in the generic type or method. Nullability of type argument doesn't match 'notnull' constraint.
 
         if (command.Chat.Messages.Count > 0)
         {
@@ -118,7 +120,7 @@ public class FetchCommandHandler(
         Dictionary<string, string> properties,
         BackendType backend)
     {
-        var webData = JsonSerializer.Deserialize<AgentWebSourceDetails>(command.Context.Source!.Details?.ToString()!);
+        var webData = command.Context.Source!.Details as AgentWebSourceDetails;
 
         if (command.Chat.Messages.Count > 0)
         {

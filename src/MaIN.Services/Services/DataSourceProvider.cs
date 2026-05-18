@@ -52,11 +52,7 @@ public class DataSourceProvider : IDataSourceProvider
     public async Task<string> FetchApiData(object? details, string? filter,
         IHttpClientFactory httpClientFactory, Dictionary<string, string> properties)
     {
-        var apiDetails = JsonSerializer.Deserialize<AgentApiSourceDetails>(details!.ToString()!,
-            new JsonSerializerOptions()
-            {
-                PropertyNameCaseInsensitive = true,
-            });
+        var apiDetails = details as AgentApiSourceDetails;
 
         var httpClient = httpClientFactory.CreateClient();
 

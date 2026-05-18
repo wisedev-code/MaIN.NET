@@ -74,7 +74,7 @@ public sealed class LLamaEmbedderMaINClone
     {
         // Create a fresh context for each embedding call (0.26.0 pattern)
         using var context = _weights.CreateContext(_params, _logger);
-        NativeApi.llama_set_embeddings(context.NativeHandle, true);
+        //NativeApi.em.llama_set_embeddings(context.NativeHandle, true);
 
         var tokens = context.Tokenize(input, special: true);
         if (tokens.Length > context.ContextSize)
