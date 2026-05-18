@@ -1,19 +1,22 @@
 using MaIN.Domain.Entities.Agents.AgentSource;
 using MaIN.Domain.Entities.Skills;
 using MaIN.Services.Services.Abstract;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
 namespace MaIN.Services.Services.Skills;
 
-public class FileSystemSkillLoader(string directoryPath) : ISkillLoader
+public class FileSystemSkillLoader(string directoryPath, ILogger<FileSystemSkillLoader>? logger = null) : ISkillLoader
 {
     private const string FolderEntrypoint = "SKILL.md";
 
     private static readonly IDeserializer Deserializer = new DeserializerBuilder()
         .WithNamingConvention(LowerCaseNamingConvention.Instance)
-        .IgnoreUnmatchedProperties()
         .Build();
+
+    private readonly ILogger _logger = logger ?? NullLogger<FileSystemSkillLoader>.Instance;
 
     public IReadOnlyList<AgentSkill> LoadAll()
     {
@@ -44,7 +47,7 @@ public class FileSystemSkillLoader(string directoryPath) : ISkillLoader
             .AsReadOnly();
     }
 
-    private static AgentSkill? TryParseSkillFile(string filePath)
+    private AgentSkill? TryParseSkillFile(string filePath)
     {
         try
         {
@@ -52,7 +55,10 @@ public class FileSystemSkillLoader(string directoryPath) : ISkillLoader
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Skills] Failed to load '{Path.GetFileName(filePath)}': {ex.Message}");
+            _logger.LogWarning(
+                ex,
+                "Failed to load skill file '{File}'. YAML frontmatter must use lowercase keys (name, priority, placement, etc.).",
+                Path.GetFileName(filePath));
             return null;
         }
     }

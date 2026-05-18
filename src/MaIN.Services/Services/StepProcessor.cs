@@ -43,7 +43,7 @@ public class StepProcessor : IStepProcessor
         {
             stepCount++;
             var lastStep = stepCount.Equals(context.Steps.Count);
-            logger.LogInformation("Processing step: {Step} on agent {agent}", step, agent.Name);
+            logger.LogDebug("Processing step: {Step} on agent {agent}", step, agent.Name);
 
             var (stepName, arguments) = ParseStep(step);
             var handler = GetStepHandler(stepName);

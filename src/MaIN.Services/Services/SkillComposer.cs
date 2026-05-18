@@ -78,14 +78,52 @@ public class SkillComposer(ILogger<SkillComposer> logger) : ISkillComposer
 
     private void LogFinalPipeline(Agent agent, List<AgentSkill> skills)
     {
-        if (!logger.IsEnabled(LogLevel.Debug)) return;
+        if (!logger.IsEnabled(LogLevel.Information)) return;
 
-        var pipeline = string.Join(" → ", agent.Config.Steps ?? []);
-        var contributors = string.Join(", ", skills.Select(s => $"{s.Name}[{s.StepPlacement}:{string.Join(",", s.Steps)}]"));
+        var pipeline = string.Join(" → ", (agent.Config.Steps ?? []).Select(RedactStep));
+        var contributors = string.Join(", ",
+            skills.Select(s => $"{s.Name}[{s.StepPlacement}:{string.Join(",", s.Steps.Select(RedactStep))}]"));
 
-        logger.LogDebug(
+        logger.LogInformation(
             "Agent '{AgentId}' step pipeline composed: [{Pipeline}] from skills: {Contributors}",
             agent.Id, pipeline, contributors);
+    }
+
+    // Redact step argument only when it looks like a URL or a long opaque token.
+    // Keeps legit qualifiers like BECOME+Journalist or ANSWER+USE_KNOWLEDGE visible.
+    private static string RedactStep(string step)
+    {
+        var sep = step.IndexOf('+');
+        if (sep < 0) return step;
+
+        var head = step[..sep];
+        var tail = step[(sep + 1)..];
+
+        return LooksSensitive(tail) ? $"{head}+…" : step;
+    }
+
+    private const int OpaqueTokenLengthThreshold = 32;
+
+    private static bool LooksSensitive(string fragment)
+    {
+        if (string.IsNullOrEmpty(fragment)) return false;
+        if (fragment.Contains("://", StringComparison.Ordinal)) return true;
+        if (fragment.StartsWith("sk-", StringComparison.OrdinalIgnoreCase)) return true;
+        if (fragment.StartsWith("bearer", StringComparison.OrdinalIgnoreCase)) return true;
+        if (fragment.Length >= OpaqueTokenLengthThreshold && !fragment.Contains(' ')) return true;
+        return false;
+    }
+
+    private const int MaxNamesInError = 5;
+
+    private static string FormatConflictingNames(IEnumerable<AgentSkill> skills)
+    {
+        var names = skills.Select(s => s.Name).ToList();
+        if (names.Count <= MaxNamesInError)
+            return string.Join("', '", names);
+
+        var shown = string.Join("', '", names.Take(MaxNamesInError));
+        return $"{shown}' and {names.Count - MaxNamesInError} more";
     }
 
     private static void MergeTools(Agent agent, List<AgentSkill> skills)
@@ -128,13 +166,14 @@ public class SkillComposer(ILogger<SkillComposer> logger) : ISkillComposer
 
         if (sourcedSkills.Count > 1)
             throw new SkillConflictException(
-                $"Skills '{sourcedSkills[0].Name}' and '{sourcedSkills[1].Name}' both provide a source. Only one source skill is allowed.");
+                $"Skills '{FormatConflictingNames(sourcedSkills)}' all provide a source. Only one source skill is allowed.");
 
+        var sole = sourcedSkills[0];
         if (agent.Config.Source is not null)
             throw new SkillConflictException(
-                $"Skill '{sourcedSkills[0].Name}' provides a source but the agent already has one configured.");
+                $"Skill '{sole.Name}' provides a source but the agent already has one configured.");
 
-        var def = sourcedSkills[0].Source!;
+        var def = sole.Source!;
         agent.Config.Source = new AgentSource
         {
             Details = def.Details,
@@ -149,18 +188,19 @@ public class SkillComposer(ILogger<SkillComposer> logger) : ISkillComposer
 
         if (mcpSkills.Count > 1)
             throw new SkillConflictException(
-                $"Skills '{mcpSkills[0].Name}' and '{mcpSkills[1].Name}' both provide MCP configuration. Only one MCP skill is allowed.");
+                $"Skills '{FormatConflictingNames(mcpSkills)}' all provide MCP configuration. Only one MCP skill is allowed.");
 
+        var sole = mcpSkills[0];
         if (agent.Config.McpConfig is null)
         {
-            var def = mcpSkills[0].Mcp!;
+            var def = sole.Mcp!;
             var backend = !string.IsNullOrEmpty(agent.Model) && ModelRegistry.Exists(agent.Model)
                 ? ModelRegistry.GetById(agent.Model).Backend
                 : (BackendType?)null;
 
             agent.Config.McpConfig = new Mcp
             {
-                Name = mcpSkills[0].Name,
+                Name = sole.Name,
                 Command = def.Command,
                 Arguments = def.Arguments,
                 EnvironmentVariables = def.Environment,

@@ -18,7 +18,8 @@ public class FetchCommandHandler(
     IHttpClientFactory httpClientFactory,
     IDataSourceProvider dataSourceService,
     ILLMServiceFactory llmServiceFactory,
-    MaINSettings settings) : ICommandHandler<FetchCommand, Message?>
+    MaINSettings settings,
+    INotificationService notificationService) : ICommandHandler<FetchCommand, Message?>
 {
     public async Task<Message?> HandleAsync(FetchCommand command)
     {
@@ -135,14 +136,48 @@ public class FetchCommandHandler(
             var client = httpClientFactory.CreateClient();
             var rawContent = await client.GetStringAsync(webData!.Url);
             var cleanText = ExtractCleanWebText(rawContent, webData.Url);
+
+            var agentId = command.Chat.Properties.TryGetValue("AgentId", out var aid) ? aid : command.Chat.Id;
+
+            await notificationService.DispatchNotification(
+                NotificationMessageBuilder.CreateActorProgress(
+                    agentId, "true", "FETCH",
+                    "Default",
+                    $"URL={webData.Url} rawBytes={rawContent?.Length ?? 0} cleanLen={cleanText?.Length ?? 0}"),
+                "ReceiveAgentUpdate");
+
+            await notificationService.DispatchNotification(
+                NotificationMessageBuilder.CreateActorProgress(
+                    agentId, "true", "FETCH",
+                    "Default",
+                    $"cleanPreview={Truncate(cleanText, 300)}"),
+                "ReceiveAgentUpdate");
+
             var result = await llmServiceFactory.CreateService(backend)
                 .AskMemory(memoryChat!, new ChatMemoryOptions { TextData = new Dictionary<string, string> { ["web-content"] = cleanText } }, new ChatRequestOptions());
+
+            await notificationService.DispatchNotification(
+                NotificationMessageBuilder.CreateActorProgress(
+                    agentId, "true", "FETCH",
+                    "Default",
+                    $"AskMemory.len={result?.Message?.Content?.Length ?? 0} preview={Truncate(result?.Message?.Content, 300)}"),
+                "ReceiveAgentUpdate");
+
             result!.Message.Role = command.ResponseType == FetchResponseType.AS_System ? "System" : "Assistant";
             return result!.Message;
         }
 
+        await notificationService.DispatchNotification(
+            NotificationMessageBuilder.CreateActorProgress(
+                command.Chat.Id, "true", "FETCH",
+                "Default",
+                $"chat empty, placeholder for URL={webData!.Url}"),
+            "ReceiveAgentUpdate");
         return CreateMessage($"Web data from {webData!.Url}", properties, backend);
     }
+
+    private static string Truncate(string? s, int max) =>
+        string.IsNullOrEmpty(s) ? "<empty>" : (s.Length <= max ? s : s[..max] + "…");
 
     private async Task<Message> ProcessJsonResponse(Message response, FetchCommand command, BackendType backend)
     {

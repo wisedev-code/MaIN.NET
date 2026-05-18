@@ -266,8 +266,13 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
         var allSkills = namedSkills.Concat(_pendingInlineSkills).ToList();
 
         _skillComposer.Apply(_agent, allSkills, _knowledge);
-        _agent.Skills.AddRange(_pendingSkillNames);
-        _agent.Skills.AddRange(_pendingInlineSkills.Select(s => s.Name));
+
+        var newNames = _pendingSkillNames
+            .Concat(_pendingInlineSkills.Select(s => s.Name))
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Except(_agent.Skills, StringComparer.OrdinalIgnoreCase);
+
+        _agent.Skills.AddRange(newNames);
     }
 
     public IAgentConfigurationBuilder WithTools(ToolsConfiguration toolsConfiguration)

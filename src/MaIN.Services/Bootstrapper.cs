@@ -76,8 +76,10 @@ public static class Bootstrapper
         // Register skills directory loader if configured
         if (!string.IsNullOrWhiteSpace(settings.SkillsDirectory))
         {
-            serviceCollection.AddSingleton<ISkillLoader>(
-                new FileSystemSkillLoader(settings.SkillsDirectory));
+            serviceCollection.AddSingleton<ISkillLoader>(sp =>
+                new FileSystemSkillLoader(
+                    settings.SkillsDirectory,
+                    sp.GetRequiredService<ILogger<FileSystemSkillLoader>>()));
         }
 
         return serviceCollection;
@@ -86,7 +88,10 @@ public static class Bootstrapper
     public static IServiceCollection AddSkillsFromDirectory(
         this IServiceCollection serviceCollection, string directoryPath)
     {
-        serviceCollection.AddSingleton<ISkillLoader>(new FileSystemSkillLoader(directoryPath));
+        serviceCollection.AddSingleton<ISkillLoader>(sp =>
+            new FileSystemSkillLoader(
+                directoryPath,
+                sp.GetRequiredService<ILogger<FileSystemSkillLoader>>()));
         return serviceCollection;
     }
 

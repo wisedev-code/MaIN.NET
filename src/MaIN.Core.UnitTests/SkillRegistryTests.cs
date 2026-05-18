@@ -182,6 +182,30 @@ public class SkillRegistryTests
     }
 
     [Fact]
+    public void AllBundledSkillProvidersInMaINCoreImplementBuiltInMarker()
+    {
+        // Guard: every IAgentSkillProvider shipped in MaIN.Core must also implement
+        // IBuiltInAgentSkillProvider so .WithAllSkills() filters it out by default.
+        var assembly = typeof(MaIN.Core.Hub.Skills.WebSearchSkillProvider).Assembly;
+
+        var bundledProviders = assembly.GetTypes()
+            .Where(t => t is { IsClass: true, IsAbstract: false })
+            .Where(t => typeof(IAgentSkillProvider).IsAssignableFrom(t))
+            .ToList();
+
+        Assert.NotEmpty(bundledProviders);
+
+        var missing = bundledProviders
+            .Where(t => !typeof(IBuiltInAgentSkillProvider).IsAssignableFrom(t))
+            .Select(t => t.FullName)
+            .ToList();
+
+        Assert.True(
+            missing.Count == 0,
+            $"Bundled IAgentSkillProvider(s) missing IBuiltInAgentSkillProvider marker: {string.Join(", ", missing)}");
+    }
+
+    [Fact]
     public void GetAllExcludingBuiltIn_DirectRegisterCallsAreNotTreatedAsBuiltIn()
     {
         var registry = new SkillRegistry([], [], Mock.Of<ILogger<SkillRegistry>>());

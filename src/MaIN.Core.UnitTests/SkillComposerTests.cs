@@ -59,6 +59,60 @@ public class SkillComposerTests
     }
 
     [Fact]
+    public void LogFinalPipeline_KeepsLegitStepQualifiersVisible()
+    {
+        var loggerMock = new Mock<ILogger<SkillComposer>>();
+        loggerMock.Setup(l => l.IsEnabled(LogLevel.Information)).Returns(true);
+        var composer = new SkillComposer(loggerMock.Object);
+
+        var agent = MakeAgent(steps: ["BECOME+Journalist", "ANSWER+USE_KNOWLEDGE"]);
+        var skill = MakeSkill(name: "journalist", steps: ["BECOME+Journalist"], placement: SkillStepPlacement.Before);
+
+        composer.Apply(agent, [skill]);
+
+        loggerMock.Verify(
+            l => l.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) =>
+                    v.ToString()!.Contains("BECOME+Journalist") &&
+                    v.ToString()!.Contains("ANSWER+USE_KNOWLEDGE")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public void LogFinalPipeline_RedactsUrlAndTokenStepArgs()
+    {
+        var loggerMock = new Mock<ILogger<SkillComposer>>();
+        loggerMock.Setup(l => l.IsEnabled(LogLevel.Information)).Returns(true);
+        var composer = new SkillComposer(loggerMock.Object);
+
+        var agent = MakeAgent(steps: [
+            "FETCH+https://api.example.com/secret",
+            "AUTH+sk-abc123def456",
+            "BECOME+Journalist"
+        ]);
+
+        composer.Apply(agent, [MakeSkill(steps: ["NOOP"], placement: SkillStepPlacement.Before)]);
+
+        loggerMock.Verify(
+            l => l.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) =>
+                    !v.ToString()!.Contains("https://api.example.com") &&
+                    !v.ToString()!.Contains("sk-abc123def456") &&
+                    v.ToString()!.Contains("BECOME+Journalist") &&
+                    v.ToString()!.Contains("FETCH+…") &&
+                    v.ToString()!.Contains("AUTH+…")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.AtLeastOnce);
+    }
+
+    [Fact]
     public void MergeSteps_TwoReplaceSkills_ThrowsConflict()
     {
         var agent = MakeAgent();

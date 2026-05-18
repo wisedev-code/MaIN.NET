@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using MaIN.Domain.Entities.Skills;
 using MaIN.Domain.Exceptions.Skills;
 using MaIN.Services.Services.Abstract;
@@ -7,10 +8,10 @@ namespace MaIN.Services.Services;
 
 public class SkillRegistry : ISkillRegistry
 {
-    private readonly Dictionary<string, AgentSkill> _skills =
+    private readonly ConcurrentDictionary<string, AgentSkill> _skills =
         new(StringComparer.OrdinalIgnoreCase);
 
-    private readonly HashSet<string> _builtInNames =
+    private readonly ConcurrentDictionary<string, byte> _builtInNames =
         new(StringComparer.OrdinalIgnoreCase);
 
     private readonly ILogger<SkillRegistry> _logger;
@@ -26,7 +27,7 @@ public class SkillRegistry : ISkillRegistry
         {
             var skill = p.GetSkill();
             if (p is IBuiltInAgentSkillProvider)
-                _builtInNames.Add(skill.Name);
+                _builtInNames.TryAdd(skill.Name, 0);
             Register(skill);
         }
 
@@ -37,10 +38,14 @@ public class SkillRegistry : ISkillRegistry
 
     public void Register(AgentSkill skill)
     {
-        if (_skills.ContainsKey(skill.Name))
-            _logger.LogWarning("Skill '{Name}' already registered — overwriting.", skill.Name);
-
-        _skills[skill.Name] = skill;
+        _skills.AddOrUpdate(
+            skill.Name,
+            _ => skill,
+            (_, _) =>
+            {
+                _logger.LogWarning("Skill '{Name}' already registered — overwriting.", skill.Name);
+                return skill;
+            });
     }
 
     public AgentSkill GetSkill(string name) =>
@@ -54,11 +59,14 @@ public class SkillRegistry : ISkillRegistry
     public IReadOnlyList<AgentSkill> GetAll() =>
         _skills.Values.ToList().AsReadOnly();
 
-    public IReadOnlyList<AgentSkill> GetAllExcludingBuiltIn() =>
-        _skills.Values
-            .Where(s => !_builtInNames.Contains(s.Name))
+    public IReadOnlyList<AgentSkill> GetAllExcludingBuiltIn()
+    {
+        var builtInSnapshot = new HashSet<string>(_builtInNames.Keys, StringComparer.OrdinalIgnoreCase);
+        return _skills.Values
+            .Where(s => !builtInSnapshot.Contains(s.Name))
             .ToList()
             .AsReadOnly();
+    }
 
     public IReadOnlyList<AgentSkill> GetByTag(params string[] tags) =>
         _skills.Values

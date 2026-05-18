@@ -25,6 +25,6 @@ public class AgentWithFileSkillExample : IExample
             .WithSkill("file-journalist")  // loaded from ./skills/file-journalist.md
             .CreateAsync(interactiveResponse: true);
 
-        await context.ProcessAsync("Provide today's newsletter for poland");
+        await context.ProcessAsync("Provide today's newsletter.");
     }
 }

@@ -10,6 +10,7 @@ using MaIN.Services.Services;
 using MaIN.Services.Services.Abstract;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace MaIN.Core;
 
@@ -102,6 +103,10 @@ public static class MaINBootstrapper
                 .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
                 .AddEnvironmentVariables()
                 .Build();
+
+            services.AddLogging(b => b
+                .AddConfiguration(configuration.GetSection("Logging"))
+                .AddSimpleConsole(o => { o.SingleLine = true; o.TimestampFormat = "HH:mm:ss "; }));
 
             services.AddMaIN(configuration, configureSettings);
 
