@@ -1,0 +1,81 @@
+# ============================================================
+# Stage 1 – restore (NuGet layer cache, invalidated only on .csproj changes)
+# ============================================================
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS restore
+WORKDIR /src
+
+COPY MaIN.Domain/MaIN.Domain.csproj                 MaIN.Domain/
+COPY MaIN.Infrastructure/MaIN.Infrastructure.csproj MaIN.Infrastructure/
+COPY MaIN.Services/MaIN.Services.csproj              MaIN.Services/
+COPY MaIN.Core/MaIN.Core.csproj                      MaIN.Core/
+COPY MaIN.InferPage/MaIN.InferPage.csproj            MaIN.InferPage/
+
+RUN dotnet restore MaIN.InferPage/MaIN.InferPage.csproj
+
+# ============================================================
+# Stage 2 – publish (shared output used by both runtime targets)
+# ============================================================
+FROM restore AS publish
+
+COPY MaIN.Domain/        MaIN.Domain/
+COPY MaIN.Infrastructure/ MaIN.Infrastructure/
+COPY MaIN.Services/      MaIN.Services/
+COPY MaIN.Core/          MaIN.Core/
+COPY MaIN.InferPage/     MaIN.InferPage/
+
+RUN dotnet publish MaIN.InferPage/MaIN.InferPage.csproj \
+    --framework net10.0 \
+    --configuration Release \
+    --no-restore \
+    --output /app/out
+
+# ============================================================
+# Stage 3a – CPU runtime (linux/amd64 + linux/arm64)
+#   macOS Docker Desktop (Apple Silicon) uses this via linux/arm64
+# ============================================================
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime-cpu
+WORKDIR /app
+
+ENV ASPNETCORE_URLS=http://+:5555
+ENV ASPNETCORE_ENVIRONMENT=Production
+ENV MaIN__ModelsPath=/app/Models
+
+VOLUME /app/Models
+EXPOSE 5555
+
+COPY --from=publish /app/out .
+
+ENTRYPOINT ["dotnet", "MaIN.InferPage.dll"]
+
+# ============================================================
+# Stage 3b – CUDA runtime (linux/amd64 only)
+#   GPU is auto-exposed via NVIDIA_VISIBLE_DEVICES — no --gpus flag needed at docker run
+# ============================================================
+FROM nvidia/cuda:12.2.0-runtime-ubuntu22.04 AS runtime-cuda
+
+# aspnetcore-runtime-10.0 (not dotnet-runtime) — Blazor Server requires ASP.NET Core stack
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends wget apt-transport-https ca-certificates \
+    && wget -q https://packages.microsoft.com/config/ubuntu/22.04/packages-microsoft-prod.deb \
+       -O /tmp/ms-prod.deb \
+    && dpkg -i /tmp/ms-prod.deb \
+    && rm /tmp/ms-prod.deb \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends aspnetcore-runtime-10.0 \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+ENV ASPNETCORE_URLS=http://+:5555
+ENV ASPNETCORE_ENVIRONMENT=Production
+ENV MaIN__ModelsPath=/app/Models
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
+
+VOLUME /app/Models
+EXPOSE 5555
+
+COPY --from=publish /app/out .
+
+ENTRYPOINT ["dotnet", "MaIN.InferPage.dll"]
