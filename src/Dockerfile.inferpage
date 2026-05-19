@@ -30,15 +30,31 @@ RUN dotnet publish MaIN.InferPage/MaIN.InferPage.csproj \
     --output /app/out
 
 # ============================================================
-# Stage 3a – CPU runtime (linux/amd64 + linux/arm64)
-#   macOS Docker Desktop (Apple Silicon) uses this via linux/arm64
+# Stage 3a – CUDA runtime (linux/amd64 only)
+#   Build explicitly: docker build --target runtime-cuda ...
+#   GPU is auto-exposed via NVIDIA_VISIBLE_DEVICES — no --gpus flag needed at docker run
 # ============================================================
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime-cpu
+# Ubuntu 24.04 matches the base OS of mcr.microsoft.com/dotnet/aspnet:10.0
+FROM nvidia/cuda:12.6.0-runtime-ubuntu24.04 AS runtime-cuda
+
+# .NET native dependencies not already present in the CUDA image
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates libicu74 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy ASP.NET Core runtime from Microsoft's official image — avoids apt package availability issues
+COPY --from=mcr.microsoft.com/dotnet/aspnet:10.0 /usr/share/dotnet /usr/share/dotnet
+RUN ln -sf /usr/share/dotnet/dotnet /usr/local/bin/dotnet
+
+ENV DOTNET_ROOT=/usr/share/dotnet
+
 WORKDIR /app
 
 ENV ASPNETCORE_URLS=http://+:5555
 ENV ASPNETCORE_ENVIRONMENT=Production
 ENV MaIN__ModelsPath=/app/Models
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
 
 VOLUME /app/Models
 EXPOSE 5555
@@ -48,30 +64,15 @@ COPY --from=publish /app/out .
 ENTRYPOINT ["dotnet", "MaIN.InferPage.dll"]
 
 # ============================================================
-# Stage 3b – CUDA runtime (linux/amd64 only)
-#   GPU is auto-exposed via NVIDIA_VISIBLE_DEVICES — no --gpus flag needed at docker run
+# Stage 3b – CPU runtime (linux/amd64 + linux/arm64) — DEFAULT
+#   macOS/Windows/Linux without GPU: docker build -f Dockerfile.inferpage .
 # ============================================================
-FROM nvidia/cuda:12.2.0-runtime-ubuntu22.04 AS runtime-cuda
-
-# aspnetcore-runtime-10.0 (not dotnet-runtime) — Blazor Server requires ASP.NET Core stack
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends wget apt-transport-https ca-certificates \
-    && wget -q https://packages.microsoft.com/config/ubuntu/22.04/packages-microsoft-prod.deb \
-       -O /tmp/ms-prod.deb \
-    && dpkg -i /tmp/ms-prod.deb \
-    && rm /tmp/ms-prod.deb \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends aspnetcore-runtime-10.0 \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime-cpu
 WORKDIR /app
 
 ENV ASPNETCORE_URLS=http://+:5555
 ENV ASPNETCORE_ENVIRONMENT=Production
 ENV MaIN__ModelsPath=/app/Models
-ENV NVIDIA_VISIBLE_DEVICES=all
-ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
 
 VOLUME /app/Models
 EXPOSE 5555
