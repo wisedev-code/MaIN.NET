@@ -50,7 +50,6 @@ ENV DOTNET_ROOT=/usr/share/dotnet
 
 WORKDIR /app
 
-ENV ASPNETCORE_URLS=http://+:5555
 ENV ASPNETCORE_ENVIRONMENT=Production
 ENV MaIN__ModelsPath=/app/Models
 ENV NVIDIA_VISIBLE_DEVICES=all
@@ -70,7 +69,6 @@ ENTRYPOINT ["dotnet", "MaIN.InferPage.dll"]
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime-cpu
 WORKDIR /app
 
-ENV ASPNETCORE_URLS=http://+:5555
 ENV ASPNETCORE_ENVIRONMENT=Production
 ENV MaIN__ModelsPath=/app/Models
 
