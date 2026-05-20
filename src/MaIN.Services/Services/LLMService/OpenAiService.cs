@@ -11,6 +11,7 @@ using MaIN.Services.Constants;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.LLMService.Utils;
 using MaIN.Services.Services.Models;
+using MaIN.Services.Utils;
 using Microsoft.Extensions.Logging;
 using MaIN.Services.Services.LLMService.Memory;
 using MaIN.Domain.Configuration.BackendInferenceParams;
@@ -74,6 +75,17 @@ public sealed class OpenAiService(
             .Where(r => r.Backend == BackendType.OpenAi)
             .ToList();
 
+        // Defense in depth: if a provider skill reference somehow reached a model that doesn't
+        // accept the shell tool (e.g. gpt-4o-mini), the Responses call will 400 server-side.
+        // Drop the refs and fall through to the regular Chat Completions path instead.
+        if (providerSkills.Count > 0 && !BackendType.OpenAi.SupportsSkillsApi(chat.ModelId))
+        {
+            _logger?.LogWarning(
+                "Model '{Model}' does not accept the OpenAI Skills shell tool; ignoring {Count} provider skill reference(s) for this call.",
+                chat.ModelId, providerSkills.Count);
+            providerSkills.Clear();
+        }
+
         if (providerSkills.Count == 0)
             return await base.Send(chat, options, cancellationToken);
 
@@ -103,6 +115,26 @@ public sealed class OpenAiService(
         var conversation = GetOrCreateConversation(chat, options.CreateSession);
         var result = await SendViaResponsesApi(chat, conversation, providerSkills, cancellationToken);
 
+        // Mirror base.Send notification protocol. NotificationService.DispatchNotification only
+        // prints Content when `done=false`; the `done=true` notification just emits a newline
+        // terminator. Base streams many done=false chunks then one done=true; we're batch-only
+        // so we issue one done=false carrying the full content followed by one done=true.
+        var contentToken = new LLMTokenValue { Text = result.Message.Content, Type = TokenType.Message };
+        var terminatorToken = new LLMTokenValue { Text = string.Empty, Type = TokenType.FullAnswer };
+
+        if (options.TokenCallback != null)
+            await options.TokenCallback(contentToken);
+
+        if (options.InteractiveUpdates)
+        {
+            await _notificationService.DispatchNotification(
+                NotificationMessageBuilder.CreateChatCompletion(chat.Id, contentToken, done: false),
+                ServiceConstants.Notifications.ReceiveMessageUpdate);
+            await _notificationService.DispatchNotification(
+                NotificationMessageBuilder.CreateChatCompletion(chat.Id, terminatorToken, done: true),
+                ServiceConstants.Notifications.ReceiveMessageUpdate);
+        }
+
         lastMessage.MarkProcessed();
         UpdateSessionCache(chat.Id, result.Message.Content, options.CreateSession);
         return result;
@@ -124,12 +156,7 @@ public sealed class OpenAiService(
         var requestBody = BuildResponsesRequestBody(chat, skills, input, systemMessage);
 
         var responseJson = await RunResponsesToolLoopAsync(client, requestBody, input, chat, apiKey, cancellationToken);
-
         var text = ExtractResponsesOutputText(responseJson);
-        _logger?.LogInformation(
-            "OpenAI Responses API returned {Chars} chars with provider skills [{Skills}].",
-            text.Length, string.Join(", ", skills.Select(s => s.Name)));
-
         return BuildBatchChatResult(chat, text);
     }
 
@@ -189,23 +216,30 @@ public sealed class OpenAiService(
         return requestBody;
     }
 
+    private static bool ShouldRetry(HttpResponseMessage response, string responseJson)
+    {
+        // 404 only when the body indicates the eventual-consistency case for a fresh skill upload.
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            return responseJson.Contains("Skill version", StringComparison.OrdinalIgnoreCase);
+
+        // 5xx server errors are transient by spec and OpenAI's own error message recommends retry.
+        var status = (int)response.StatusCode;
+        return status >= 500 && status < 600;
+    }
+
     private static object BuildSkillReference(MaIN.Domain.Entities.Skills.ProviderSkillReference s)
     {
-        var dict = new Dictionary<string, object>
+        // Server-observed contract: `version` MUST be a string. Even pinned version numbers go on
+        // the wire as their string repr ("1", "2", ...) — sending an int yields HTTP 400
+        // "expected a string, but got an integer instead". Empty/null version → "latest" alias.
+        var version = string.IsNullOrEmpty(s.Version) ? "latest" : s.Version;
+
+        return new Dictionary<string, object>
         {
             ["type"] = ServiceConstants.OpenAiResponses.SkillReferenceType,
-            ["skill_id"] = s.SkillId
+            ["skill_id"] = s.SkillId,
+            ["version"] = version
         };
-
-        // Per OpenAI Skills spec `version` is an integer when pinned. Strings like "latest" are
-        // conveyed by omitting the field entirely (server resolves to default_version).
-        if (!string.IsNullOrEmpty(s.Version) &&
-            int.TryParse(s.Version, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var versionInt))
-        {
-            dict["version"] = versionInt;
-        }
-
-        return dict;
     }
 
     private async Task<string> RunResponsesToolLoopAsync(
@@ -229,12 +263,50 @@ public sealed class OpenAiService(
             };
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
 
-            using var response = await client.SendAsync(request, cancellationToken);
+            HttpResponseMessage response = await client.SendAsync(request, cancellationToken);
             responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
 
-            if (!response.IsSuccessStatusCode)
-                throw new InvalidOperationException(
-                    $"OpenAI Responses API call failed ({(int)response.StatusCode}): {responseJson}");
+            // Retry conditions:
+            //  - HTTP 404 "Skill version 'N' ... not found" → OpenAI Skills ingestion is eventually
+            //    consistent, version content propagates a few seconds after POST /v1/skills returns.
+            //  - HTTP 5xx (500/502/503/504) → transient server errors; OpenAI's own error message
+            //    on 500 literally says "You can retry your request".
+            const int maxRetries = 3;
+            for (var retry = 0; retry < maxRetries && ShouldRetry(response, responseJson); retry++)
+            {
+                var delayMs = 1000 * (int)Math.Pow(2, retry); // 1s, 2s, 4s
+                _logger?.LogWarning(
+                    "OpenAI Responses returned HTTP {Status} (attempt {Retry}/{Max}); waiting {Delay}ms before retry. Body: {Body}",
+                    (int)response.StatusCode, retry + 1, maxRetries, delayMs,
+                    responseJson.Length > 200 ? responseJson[..200] + "…" : responseJson);
+                response.Dispose();
+                await Task.Delay(delayMs, cancellationToken);
+
+                using var retryContent = new StringContent(json, Encoding.UTF8, MediaTypeNames.Application.Json);
+                using var retryRequest = new HttpRequestMessage(HttpMethod.Post, ServiceConstants.ApiUrls.OpenAiResponses)
+                {
+                    Content = retryContent
+                };
+                retryRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+                response = await client.SendAsync(retryRequest, cancellationToken);
+                responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
+            }
+
+            try
+            {
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger?.LogError(
+                        "[Responses POST {Url}] HTTP {Status} — request body was: {RequestBody}",
+                        ServiceConstants.ApiUrls.OpenAiResponses, (int)response.StatusCode, json);
+                    throw new InvalidOperationException(
+                        $"OpenAI Responses API call failed ({(int)response.StatusCode}): {responseJson}");
+                }
+            }
+            finally
+            {
+                response.Dispose();
+            }
 
             var pending = ExtractPendingFunctionCalls(responseJson);
             if (pending.Count == 0)

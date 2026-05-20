@@ -29,7 +29,7 @@ public class AgentWithAllSkillsExample : IExample
         OpenAiExample.Setup();
 
         var context = await AIHub.Agent()
-            .WithModel(Models.OpenAi.Gpt4oMini)
+            .WithModel(Models.OpenAi.Gpt5_5)
             .WithAllSkills()
             .CreateAsync(interactiveResponse: true);
 

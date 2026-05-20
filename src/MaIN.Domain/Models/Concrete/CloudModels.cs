@@ -35,6 +35,16 @@ public sealed record Gpt5Nano() : CloudModel(
     public string? MMProjectName => null;
 }
 
+public sealed record Gpt5_5() : CloudModel(
+    Models.OpenAi.Gpt5_5,
+    BackendType.OpenAi,
+    "GPT-5.5",
+    ModelDefaults.DefaultMaxContextWindow,
+    "OpenAI model required for native Skills API (shell tool + container.skills)"), IVisionModel
+{
+    public string? MMProjectName => null;
+}
+
 public sealed record DallE3() : CloudModel(
     Models.OpenAi.DallE3,
     BackendType.OpenAi,
@@ -67,6 +77,26 @@ public sealed record ClaudeSonnet4_5() : CloudModel(
     "Claude Sonnet 4.5",
     200000,
     "Advanced Claude model with superior performance and extended context"), IVisionModel
+{
+    public string? MMProjectName => null;
+}
+
+public sealed record ClaudeOpus4_6() : CloudModel(
+    Models.Anthropic.ClaudeOpus4_6,
+    BackendType.Anthropic,
+    "Claude Opus 4.6",
+    200000,
+    "Anthropic flagship reasoning model — supports native Skills API (container.skills + code_execution beta)"), IVisionModel
+{
+    public string? MMProjectName => null;
+}
+
+public sealed record ClaudeOpus4_7() : CloudModel(
+    Models.Anthropic.ClaudeOpus4_7,
+    BackendType.Anthropic,
+    "Claude Opus 4.7",
+    200000,
+    "Latest Opus revision — recommended for stable Anthropic Skills API usage"), IVisionModel
 {
     public string? MMProjectName => null;
 }

@@ -12,13 +12,13 @@ public class AgentWithFolderSkillExample : IExample
 {
     public async Task Start()
     {
-        Console.WriteLine("Agent with folder-based skill (code-review, OpenAi)");
+        Console.WriteLine("Agent with folder-based skill (code-review, Anthropic)");
         Console.WriteLine("Skill loaded from: ./skills/code-review/SKILL.md");
 
-        OpenAiExample.Setup();
+        AnthropicExample.Setup();
 
         var context = await AIHub.Agent()
-            .WithModel(Models.OpenAi.Gpt4oMini)
+            .WithModel(Models.Anthropic.ClaudeOpus4_7)
             .WithSkill("code-review") // name provided in name section in SKILL.md file
             .CreateAsync(interactiveResponse: true);
 

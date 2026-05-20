@@ -28,7 +28,7 @@ public abstract class OpenAiCompatibleService(
     ILogger<OpenAiCompatibleService>? logger = null)
     : ILLMService
 {
-    private readonly INotificationService _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
+    protected readonly INotificationService _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
     private readonly IHttpClientFactory _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
 
     private static readonly ConcurrentDictionary<string, List<ChatMessage>> SessionCache = new();
@@ -576,6 +576,41 @@ public abstract class OpenAiCompatibleService(
                 userQuery,
                 options: searchOptions,
                 cancellationToken: cancellationToken);
+
+            // KM's default prompt template emits the literal "INFO NOT FOUND" string when the
+            // answer-generation model decides it can't answer the question from retrieved chunks.
+            // That's fine for strict QA but breaks creative use (e.g. "synthesise a newsletter
+            // from these news items"). When retrieval did surface chunks, fall back to returning
+            // them raw so the downstream step (which carries the real skill instructions) can do
+            // its own synthesis.
+            if (retrievedContext.NoResult)
+            {
+                var searchProbe = await kernel.SearchAsync(userQuery, cancellationToken: cancellationToken);
+                var retrievedChunks = searchProbe.Results.SelectMany(r => r.Partitions).ToList();
+
+                if (retrievedChunks.Count > 0)
+                {
+                    var contextBuilder = new StringBuilder();
+                    foreach (var partition in retrievedChunks.OrderByDescending(p => p.Relevance))
+                    {
+                        if (string.IsNullOrWhiteSpace(partition.Text)) continue;
+                        contextBuilder.AppendLine(partition.Text);
+                        contextBuilder.AppendLine();
+                    }
+                    var fallback = contextBuilder.ToString().TrimEnd();
+
+                    logger?.LogInformation(
+                        "AskMemory: KernelMemory returned INFO NOT FOUND but {Count} relevant chunk(s) were retrieved; falling back to raw context ({Len} chars).",
+                        retrievedChunks.Count, fallback.Length);
+
+                    retrievedContext = new MemoryAnswer
+                    {
+                        Question = userQuery,
+                        Result = fallback,
+                        NoResult = false
+                    };
+                }
+            }
         }
 
         await kernel.DeleteIndexAsync(cancellationToken: cancellationToken);

@@ -21,7 +21,7 @@ public class AgentWithMcpFileWriterSkillExample : IExample
         OpenAiExample.Setup();
 
         var context = await AIHub.Agent()
-            .WithModel(Models.OpenAi.Gpt4oMini)
+            .WithModel(Models.OpenAi.Gpt5_5)
             .WithSkill("funfact-writer")  // loaded from ./skills/funfact-writer/SKILL.md
             .CreateAsync();
 

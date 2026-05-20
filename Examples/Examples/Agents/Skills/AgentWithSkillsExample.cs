@@ -17,7 +17,7 @@ public class AgentWithSkillsExample : IExample
         OpenAiExample.Setup();
 
         var context = await AIHub.Agent()
-            .WithModel(Models.OpenAi.Gpt4oMini)
+            .WithModel(Models.OpenAi.Gpt5_5)
             .WithSkill("web-search")   // FETCH_DATA step + BBC source
             .WithSkill("journalist")   // BECOME+Journalist + ANSWER steps + behaviour
             .CreateAsync(interactiveResponse: true);

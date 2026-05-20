@@ -363,7 +363,8 @@ public class SkillComposerTests
 
         var composer = new SkillComposer(Mock.Of<ILogger<SkillComposer>>(), cacheMock.Object);
 
-        var agent = MakeAgent();
+        // gpt-5.5 is the minimum OpenAI model that accepts the Skills shell tool.
+        var agent = MakeAgent(modelId: "gpt-5.5");
         var skill = MakeSkill("report-writer", instructionFragment: "Draft reports.");
         // Simulate a bundle on disk to make it uploadable.
         skill = new AgentSkill

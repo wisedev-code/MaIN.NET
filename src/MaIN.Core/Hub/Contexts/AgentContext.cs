@@ -275,7 +275,12 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
         // Lazy upload — when the target backend supports a native Skills API and the user opted
         // into lazy mode (default), push each uploadable skill now so SkillComposer can route it
         // as a provider skill_reference instead of inlining it.
-        if (backend.HasValue && backend.Value.HasNativeSkillsApi() && _uploadCoordinator is not null)
+        // Skip lazy upload entirely when the chosen model can't actually consume provider skills.
+        // E.g. gpt-4o-mini rejects the shell tool — uploading bundles to OpenAI is wasted I/O.
+        if (backend.HasValue &&
+            backend.Value.HasNativeSkillsApi() &&
+            backend.Value.SupportsSkillsApi(_agent.Model) &&
+            _uploadCoordinator is not null)
         {
             foreach (var skill in allSkills)
                 await _uploadCoordinator.EnsureUploadedAsync(skill, backend.Value);

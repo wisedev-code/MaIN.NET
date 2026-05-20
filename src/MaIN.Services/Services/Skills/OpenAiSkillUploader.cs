@@ -57,7 +57,8 @@ public sealed class OpenAiSkillUploader : IProviderSkillUploader
             ? ServiceConstants.ApiUrls.OpenAiSkills
             : $"{ServiceConstants.ApiUrls.OpenAiSkills}/{existingSkillId}/versions";
 
-        // Directory bundle → zip mode. Lone .md → per-file mode.
+        // Directory → zip mode per docs: "Zip the top-level folder and upload the zip file".
+        // Lone .md → per-file mode (no folder to wrap).
         var reference = isDirectory
             ? await UploadAsZipAsync(skill, client, apiKey, uploadUrl, cancellationToken)
             : await UploadAsSingleFileAsync(skill, client, apiKey, uploadUrl, cancellationToken);
@@ -111,12 +112,12 @@ public sealed class OpenAiSkillUploader : IProviderSkillUploader
 
     private async Task<ProviderSkillReference> UploadAsZipAsync(AgentSkill skill, HttpClient client, string apiKey, string url, CancellationToken cancellationToken)
     {
+        // Per docs: "Zip the top-level folder and upload the zip file" — zip layout becomes
+        // "{skill}/SKILL.md" + sibling files under the same prefix.
         var zipPath = SkillBundleZipper.ZipDirectory(skill.BundlePath!);
         try
         {
             using var content = new MultipartFormDataContent();
-
-            // StreamContent owns the underlying FileStream and disposes it when content is disposed.
             var fileContent = new StreamContent(File.OpenRead(zipPath));
             fileContent.Headers.ContentType = new MediaTypeHeaderValue("application/zip");
             content.Add(fileContent, "files", $"{skill.Name}.zip");
@@ -127,6 +128,18 @@ public sealed class OpenAiSkillUploader : IProviderSkillUploader
         {
             SkillBundleZipper.TryDelete(zipPath);
         }
+    }
+
+    private static string? ExtractVersionString(JsonElement root, string fieldName)
+    {
+        if (!root.TryGetProperty(fieldName, out var el)) return null;
+        return el.ValueKind switch
+        {
+            JsonValueKind.Number => el.GetRawText(),
+            JsonValueKind.String => el.GetString(),
+            JsonValueKind.Null => null,
+            _ => el.ToString()
+        };
     }
 
     private async Task<ProviderSkillReference> UploadAsSingleFileAsync(AgentSkill skill, HttpClient client, string apiKey, string url, CancellationToken cancellationToken)
@@ -194,17 +207,26 @@ public sealed class OpenAiSkillUploader : IProviderSkillUploader
 
         using var doc = JsonDocument.Parse(json);
         var root = doc.RootElement;
-        var skillId = root.TryGetProperty("id", out var idEl)
-            ? idEl.GetString()
-            : root.TryGetProperty("skill_id", out var sidEl) ? sidEl.GetString() : null;
+
+        // Prefer the explicit skill_id field; fall back to id only when skill_id is absent. The
+        // versioned endpoint POST /v1/skills/{id}/versions can return BOTH `id` (= version id) and
+        // `skill_id` (= parent) — using `id` first there would cache a version_id and the next
+        // Responses call would 404 because the skill it references doesn't exist by that name.
+        var skillId = root.TryGetProperty("skill_id", out var sidEl) ? sidEl.GetString()
+                    : root.TryGetProperty("id", out var idEl) ? idEl.GetString() : null;
 
         if (string.IsNullOrEmpty(skillId))
             throw new InvalidOperationException($"OpenAI skill upload response missing id: {json}");
 
-        var version = root.TryGetProperty("version", out var verEl) ? verEl.ToString() : null;
+        // OpenAI Skills response shape (observed): { id, default_version, latest_version, ... }.
+        // Versioned endpoint may also return { version }. Probe all three; pinned ints win over
+        // "latest" alias so subsequent skill_reference calls have a concrete version to resolve.
+        string? version = ExtractVersionString(root, "version")
+                       ?? ExtractVersionString(root, "latest_version")
+                       ?? ExtractVersionString(root, "default_version");
 
         _logger.LogInformation("Uploaded skill '{Skill}' to OpenAI as {SkillId} (version {Version}).",
-            skill.Name, skillId, version ?? "latest");
+            skill.Name, skillId, version ?? "(unspecified)");
 
         return new ProviderSkillReference
         {

@@ -509,12 +509,21 @@ public sealed class AnthropicService(
     {
         var anthParams = chat.BackendParams as AnthropicInferenceParams;
 
+        // Anthropic Messages API rejects messages with role="system" inside the messages array
+        // ("Unexpected role 'system'. The Messages API accepts a top-level `system` parameter").
+        // Lift the system message out and skip it when building the messages array.
+        var systemMessage = conversation.FirstOrDefault(m =>
+            m.Role.Equals("system", StringComparison.OrdinalIgnoreCase));
+        var conversationWithoutSystem = systemMessage is null
+            ? conversation
+            : conversation.Where(m => !ReferenceEquals(m, systemMessage)).ToList();
+
         var requestBody = new Dictionary<string, object>
         {
             ["model"] = chat.ModelId,
             ["max_tokens"] = anthParams?.MaxTokens ?? 4096,
             ["stream"] = stream,
-            ["messages"] = await ChatHelper.BuildMessagesArray(conversation, chat, ImageType.AsBase64)
+            ["messages"] = await ChatHelper.BuildMessagesArray(conversationWithoutSystem, chat, ImageType.AsBase64)
         };
 
         if (anthParams != null)
@@ -529,9 +538,6 @@ public sealed class AnthropicService(
             foreach (var (key, value) in chat.BackendParams.AdditionalParams)
                 requestBody[key] = value;
         }
-
-        var systemMessage = conversation.FirstOrDefault(m =>
-            m.Role.Equals("system", StringComparison.OrdinalIgnoreCase));
 
         if (systemMessage != null && systemMessage.Content is string systemContent)
         {

@@ -30,7 +30,7 @@ public class SkillComposer : ISkillComposer
 
         var sorted = skills.OrderBy(s => s.Priority).ToList();
 
-        var (providerSkills, localSkills) = SplitForBackend(sorted, backend);
+        var (providerSkills, localSkills) = SplitForBackend(sorted, backend, agent.Model);
 
         if (providerSkills.Count > 0)
         {
@@ -57,13 +57,21 @@ public class SkillComposer : ISkillComposer
     }
 
     private (List<(AgentSkill Skill, ProviderSkillReference Reference)> Provider, List<AgentSkill> Local) SplitForBackend(
-        List<AgentSkill> sorted, BackendType? backend)
+        List<AgentSkill> sorted, BackendType? backend, string? modelId)
     {
         var providerSkills = new List<(AgentSkill, ProviderSkillReference)>();
         var localSkills = new List<AgentSkill>();
 
-        if (backend is null || _providerSkillCache is null || !backend.Value.HasNativeSkillsApi())
+        // Backend must (a) have a Skills API at all, and (b) the specific model must accept it.
+        // E.g. gpt-4o-mini rejects the shell tool even though OpenAi has the Skills API overall.
+        if (backend is null || _providerSkillCache is null ||
+            !backend.Value.HasNativeSkillsApi() ||
+            !backend.Value.SupportsSkillsApi(modelId))
         {
+            if (backend is not null && backend.Value.HasNativeSkillsApi() && !backend.Value.SupportsSkillsApi(modelId))
+                _logger.LogInformation(
+                    "Model '{Model}' on {Backend} does not support the native Skills API; falling back to inline composition.",
+                    modelId, backend.Value);
             return (providerSkills, sorted);
         }
 

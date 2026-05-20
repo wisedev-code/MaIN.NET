@@ -20,7 +20,7 @@ public class AgentWithFileSkillExample : IExample
         // Skills from ./skills/*.md are auto-loaded if SkillsDirectory is configured,
         // OR you can call AddSkillsFromDirectory() in startup.
         var context = await AIHub.Agent()
-            .WithModel(Models.OpenAi.Gpt4oMini)
+            .WithModel(Models.OpenAi.Gpt5_5)
             .WithSkill("web-search")
             .WithSkill("file-journalist")  // loaded from ./skills/file-journalist.md
             .CreateAsync(interactiveResponse: true);

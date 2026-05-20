@@ -53,10 +53,11 @@ public sealed class AnthropicSkillUploader : IProviderSkillUploader
             using var content = new MultipartFormDataContent();
             content.Add(new StringContent(skill.Name), "display_title");
 
-            // StreamContent owns the FileStream — it's disposed alongside the multipart content.
+            // Anthropic Skills API expects the multipart field name "files[]" (same convention as
+            // OpenAI). The earlier "skill" field name yielded HTTP 400 "No files provided".
             var fileContent = new StreamContent(File.OpenRead(zipPath));
             fileContent.Headers.ContentType = new MediaTypeHeaderValue("application/zip");
-            content.Add(fileContent, "skill", $"{skill.Name}.zip");
+            content.Add(fileContent, "files[]", $"{skill.Name}.zip");
 
             using var request = new HttpRequestMessage(HttpMethod.Post, ServiceConstants.ApiUrls.AnthropicSkills)
             {

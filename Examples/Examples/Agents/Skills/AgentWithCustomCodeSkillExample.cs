@@ -24,7 +24,7 @@ public class AgentWithCustomCodeSkillExample : IExample
 
         // CalculatorSkill is registered in Program.cs via DI (services.AddSingleton<IAgentSkillProvider, CalculatorSkill>();) and is already in the registry.
         var context = await AIHub.Agent()
-            .WithModel(Models.OpenAi.Gpt4oMini)
+            .WithModel(Models.OpenAi.Gpt5_5)
             .WithSkill("calculator")
             .CreateAsync(interactiveResponse: true);
 
