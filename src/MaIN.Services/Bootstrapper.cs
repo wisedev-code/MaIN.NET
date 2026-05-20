@@ -73,6 +73,12 @@ public static class Bootstrapper
             sp.GetRequiredService<ILogger<SkillRegistry>>()));
         serviceCollection.AddSingleton<ISkillComposer, SkillComposer>();
 
+        // Provider-side Skills API infrastructure (OpenAI Responses, Anthropic container.skills).
+        serviceCollection.AddSingleton<IProviderSkillCache, ProviderSkillCache>();
+        serviceCollection.AddSingleton<IProviderSkillUploader, OpenAiSkillUploader>();
+        serviceCollection.AddSingleton<IProviderSkillUploader, AnthropicSkillUploader>();
+        serviceCollection.AddSingleton<ProviderSkillUploadCoordinator>();
+
         // Register skills directory loader if configured
         if (!string.IsNullOrWhiteSpace(settings.SkillsDirectory))
         {
@@ -83,6 +89,18 @@ public static class Bootstrapper
         }
 
         return serviceCollection;
+    }
+
+    /// <summary>
+    /// Uploads every uploadable SKILL.md bundle to cloud providers with credentials configured.
+    /// Call once after the host is built and before any agent creation. Safe to call when no
+    /// cloud keys are set — it just no-ops.
+    /// </summary>
+    public static async Task UploadSkillsToProvidersAsync(this IServiceProvider provider, CancellationToken cancellationToken = default)
+    {
+        var coordinator = provider.GetService<ProviderSkillUploadCoordinator>();
+        if (coordinator is null) return;
+        await coordinator.RunAsync(cancellationToken);
     }
 
     public static IServiceCollection AddSkillsFromDirectory(

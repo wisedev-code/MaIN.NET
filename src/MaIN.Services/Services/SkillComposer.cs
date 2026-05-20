@@ -8,25 +8,80 @@ using MaIN.Domain.Entities.Tools;
 using MaIN.Domain.Exceptions.Skills;
 using MaIN.Domain.Models.Abstract;
 using MaIN.Services.Services.Abstract;
+using MaIN.Services.Services.Skills;
 using Microsoft.Extensions.Logging;
 
 namespace MaIN.Services.Services;
 
-public class SkillComposer(ILogger<SkillComposer> logger) : ISkillComposer
+public class SkillComposer : ISkillComposer
 {
-    public void Apply(Agent agent, IReadOnlyList<AgentSkill> skills, Knowledge? knowledge = null)
+    private readonly ILogger<SkillComposer> _logger;
+    private readonly IProviderSkillCache? _providerSkillCache;
+
+    public SkillComposer(ILogger<SkillComposer> logger, IProviderSkillCache? providerSkillCache = null)
+    {
+        _logger = logger;
+        _providerSkillCache = providerSkillCache;
+    }
+
+    public void Apply(Agent agent, IReadOnlyList<AgentSkill> skills, BackendType? backend = null, Knowledge? knowledge = null)
     {
         if (skills.Count == 0) return;
 
         var sorted = skills.OrderBy(s => s.Priority).ToList();
 
+        var (providerSkills, localSkills) = SplitForBackend(sorted, backend);
+
+        if (providerSkills.Count > 0)
+        {
+            foreach (var (skill, reference) in providerSkills)
+            {
+                agent.ProviderSkillReferences.Add(reference);
+                _logger.LogInformation(
+                    "Skill '{Skill}' routed to {Backend} provider as {SkillId}; instruction fragment and tools NOT inlined.",
+                    skill.Name, reference.Backend, reference.SkillId);
+            }
+        }
+
+        // Steps / Source / MCP / Behaviours / KnowledgeSeed always merge — they're MaIN
+        // orchestration concepts the provider's native Skills API does not subsume.
         MergeSteps(agent, sorted);
-        MergeTools(agent, sorted);
         MergeSource(agent, sorted);
         MergeMcp(agent, sorted);
         MergeBehaviours(agent, sorted);
-        MergeInstructionFragments(agent, sorted);
         MergeKnowledgeSeed(knowledge, sorted);
+
+        // Tools + InstructionFragments only merge for skills NOT delegated to the provider.
+        MergeTools(agent, localSkills);
+        MergeInstructionFragments(agent, localSkills);
+    }
+
+    private (List<(AgentSkill Skill, ProviderSkillReference Reference)> Provider, List<AgentSkill> Local) SplitForBackend(
+        List<AgentSkill> sorted, BackendType? backend)
+    {
+        var providerSkills = new List<(AgentSkill, ProviderSkillReference)>();
+        var localSkills = new List<AgentSkill>();
+
+        if (backend is null || _providerSkillCache is null || !backend.Value.HasNativeSkillsApi())
+        {
+            return (providerSkills, sorted);
+        }
+
+        foreach (var skill in sorted)
+        {
+            if (!ProviderSkillUploadCoordinator.IsUploadable(skill))
+            {
+                localSkills.Add(skill);
+                continue;
+            }
+
+            if (_providerSkillCache.TryGet(backend.Value, skill.Name, out var reference) && reference is not null)
+                providerSkills.Add((skill, reference));
+            else
+                localSkills.Add(skill);
+        }
+
+        return (providerSkills, localSkills);
     }
 
     private void MergeSteps(Agent agent, List<AgentSkill> skills)
@@ -48,7 +103,7 @@ public class SkillComposer(ILogger<SkillComposer> logger) : ISkillComposer
                 .ToList();
 
             if (siblings.Count > 0)
-                logger.LogWarning(
+                _logger.LogWarning(
                     "Replace skill '{Replace}' overrides the step pipeline; steps from '{Siblings}' will be ignored.",
                     replaceSkill.Name, string.Join("', '", siblings));
 
@@ -78,13 +133,13 @@ public class SkillComposer(ILogger<SkillComposer> logger) : ISkillComposer
 
     private void LogFinalPipeline(Agent agent, List<AgentSkill> skills)
     {
-        if (!logger.IsEnabled(LogLevel.Information)) return;
+        if (!_logger.IsEnabled(LogLevel.Information)) return;
 
         var pipeline = string.Join(" → ", (agent.Config.Steps ?? []).Select(RedactStep));
         var contributors = string.Join(", ",
             skills.Select(s => $"{s.Name}[{s.StepPlacement}:{string.Join(",", s.Steps.Select(RedactStep))}]"));
 
-        logger.LogInformation(
+        _logger.LogInformation(
             "Agent '{AgentId}' step pipeline composed: [{Pipeline}] from skills: {Contributors}",
             agent.Id, pipeline, contributors);
     }
@@ -218,7 +273,7 @@ public class SkillComposer(ILogger<SkillComposer> logger) : ISkillComposer
             foreach (var (key, value) in skill.Behaviours)
             {
                 if (agent.Behaviours.ContainsKey(key))
-                    logger.LogWarning("Skill '{Skill}' behaviour key '{Key}' overrides existing entry.", skill.Name, key);
+                    _logger.LogWarning("Skill '{Skill}' behaviour key '{Key}' overrides existing entry.", skill.Name, key);
 
                 agent.Behaviours[key] = value;
             }

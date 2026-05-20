@@ -26,6 +26,77 @@ public class FileSystemSkillLoaderTests : IDisposable
         Assert.Empty(loader.LoadAll());
     }
 
+    // --- BundlePath ---
+
+    [Fact]
+    public void LoadAll_SkillMdInOwnFolder_BundlePathPointsAtFolder()
+    {
+        WriteFile("code-review/SKILL.md", """
+            ---
+            name: code-review
+            description: Review code
+            ---
+
+            Body
+            """);
+        WriteFile("code-review/prompts/checklist.md", "checklist content");
+
+        var loader = new FileSystemSkillLoader(_tempDir);
+        var skill = loader.LoadAll().Single();
+
+        Assert.Equal("code-review", skill.Name);
+        Assert.NotNull(skill.BundlePath);
+        Assert.True(Directory.Exists(skill.BundlePath!));
+        Assert.Equal(Path.Combine(_tempDir, "code-review"), Path.GetFullPath(skill.BundlePath!));
+    }
+
+    [Fact]
+    public void LoadAll_LoneMd_BundlePathPointsAtFile()
+    {
+        WriteFile("quick-summary.md", """
+            ---
+            name: quick-summary
+            ---
+
+            Summarise quickly.
+            """);
+
+        var loader = new FileSystemSkillLoader(_tempDir);
+        var skill = loader.LoadAll().Single();
+
+        Assert.Equal("quick-summary", skill.Name);
+        Assert.NotNull(skill.BundlePath);
+        Assert.True(File.Exists(skill.BundlePath!));
+        Assert.EndsWith("quick-summary.md", skill.BundlePath);
+    }
+
+    [Fact]
+    public void LoadAll_SkillMdDirectlyInSkillsRoot_TreatedAsLoneFile()
+    {
+        // SKILL.md sitting next to other skill subfolders would otherwise bundle EVERYTHING.
+        // Loader guards against that and treats the file itself as the bundle target.
+        WriteFile("SKILL.md", """
+            ---
+            name: root-skill
+            ---
+
+            Root body
+            """);
+        WriteFile("other-skill/SKILL.md", """
+            ---
+            name: other-skill
+            ---
+
+            Other body
+            """);
+
+        var loader = new FileSystemSkillLoader(_tempDir);
+        var skills = loader.LoadAll().ToDictionary(s => s.Name);
+
+        Assert.True(File.Exists(skills["root-skill"].BundlePath));
+        Assert.True(Directory.Exists(skills["other-skill"].BundlePath));
+    }
+
     // --- Parsing ---
 
     [Fact]

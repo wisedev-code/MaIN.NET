@@ -1,4 +1,5 @@
 using MaIN.Core.Hub.Contexts;
+using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
 using MaIN.Domain.Entities.Agents.Knowledge;
@@ -270,8 +271,8 @@ public class AgentContextTests
 
         IReadOnlyList<AgentSkill>? composed = null;
         _mockSkillComposer
-            .Setup(c => c.Apply(It.IsAny<Agent>(), It.IsAny<IReadOnlyList<AgentSkill>>(), It.IsAny<Knowledge?>()))
-            .Callback<Agent, IReadOnlyList<AgentSkill>, Knowledge?>((_, skills, _) => composed = skills);
+            .Setup(c => c.Apply(It.IsAny<Agent>(), It.IsAny<IReadOnlyList<AgentSkill>>(), It.IsAny<BackendType?>(), It.IsAny<Knowledge?>()))
+            .Callback<Agent, IReadOnlyList<AgentSkill>, BackendType?, Knowledge?>((_, skills, _, _) => composed = skills);
 
         _mockAgentService
             .Setup(s => s.CreateAgent(
@@ -308,8 +309,8 @@ public class AgentContextTests
 
         IReadOnlyList<AgentSkill>? composed = null;
         _mockSkillComposer
-            .Setup(c => c.Apply(It.IsAny<Agent>(), It.IsAny<IReadOnlyList<AgentSkill>>(), It.IsAny<Knowledge?>()))
-            .Callback<Agent, IReadOnlyList<AgentSkill>, Knowledge?>((_, skills, _) => composed = skills);
+            .Setup(c => c.Apply(It.IsAny<Agent>(), It.IsAny<IReadOnlyList<AgentSkill>>(), It.IsAny<BackendType?>(), It.IsAny<Knowledge?>()))
+            .Callback<Agent, IReadOnlyList<AgentSkill>, BackendType?, Knowledge?>((_, skills, _, _) => composed = skills);
 
         _mockAgentService
             .Setup(s => s.CreateAgent(

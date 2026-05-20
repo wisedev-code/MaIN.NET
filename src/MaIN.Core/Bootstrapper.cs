@@ -30,6 +30,18 @@ public static class Bootstrapper
     public static IServiceProvider UseMaIN(this IServiceProvider sp)
     {
         _ = sp.GetRequiredService<IAIHubServices>();
+
+        // Warm the on-disk skills cache so the first lazy upload doesn't pay file-read latency.
+        // No network work happens here — actual uploads run on demand from AgentContext.
+        try
+        {
+            sp.UploadSkillsToProvidersAsync().GetAwaiter().GetResult();
+        }
+        catch
+        {
+            // Coordinator never throws today, but guard the bootstrap path anyway.
+        }
+
         return sp;
     }
     
@@ -57,7 +69,8 @@ public static class Bootstrapper
                     sp.GetRequiredService<IAgentFlowService>(),
                     sp.GetRequiredService<IMcpService>(),
                     sp.GetRequiredService<ISkillRegistry>(),
-                    sp.GetRequiredService<ISkillComposer>()
+                    sp.GetRequiredService<ISkillComposer>(),
+                    sp.GetService<MaIN.Services.Services.Skills.ProviderSkillUploadCoordinator>()
                 );
 
                 var settings = sp.GetRequiredService<MaINSettings>();

@@ -102,6 +102,7 @@ public class AgentService(
             Name = agent.Name,
             ImageGen = ModelRegistry.TryGetById(agent.Model, out var agentModel) && agentModel!.HasImageGeneration,
             ToolsConfiguration = agent.ToolsConfiguration,
+            ProviderSkillReferences = agent.ProviderSkillReferences.ToList(),
             BackendParams = inferenceParams,
             MemoryParams = memoryParams ?? new MemoryParams(),
             Messages = [],

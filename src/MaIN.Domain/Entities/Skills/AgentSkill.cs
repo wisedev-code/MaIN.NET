@@ -75,4 +75,11 @@ public class AgentSkill
     /// Before = prepend, After = append, Replace = discard agent steps entirely.
     /// </summary>
     public SkillStepPlacement StepPlacement { get; init; } = SkillStepPlacement.Before;
+
+    /// <summary>
+    /// Absolute path to the on-disk SKILL.md bundle directory, if this skill was loaded from disk.
+    /// Required for uploading the skill bundle to a cloud provider's native Skills API
+    /// (OpenAI Responses skills, Anthropic container.skills). Null for code-defined skills.
+    /// </summary>
+    public string? BundlePath { get; init; }
 }

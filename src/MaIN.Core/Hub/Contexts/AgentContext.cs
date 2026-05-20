@@ -1,5 +1,6 @@
 using MaIN.Core.Hub.Contexts.Interfaces.AgentContext;
 using MaIN.Core.Hub.Utils;
+using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
 using MaIN.Domain.Entities.Agents.AgentSource;
@@ -12,6 +13,7 @@ using MaIN.Domain.Models.Abstract;
 using MaIN.Services.Constants;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
+using MaIN.Services.Services.Skills;
 
 namespace MaIN.Core.Hub.Contexts;
 
@@ -20,6 +22,7 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
     private readonly IAgentService _agentService;
     private readonly ISkillRegistry? _skillRegistry;
     private readonly ISkillComposer? _skillComposer;
+    private readonly ProviderSkillUploadCoordinator? _uploadCoordinator;
     private readonly List<string> _pendingSkillNames = [];
     private readonly List<AgentSkill> _pendingInlineSkills = [];
     private bool _allSkillsApplied;
@@ -30,11 +33,12 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
     private readonly Agent _agent;
     internal Knowledge? _knowledge;
 
-    internal AgentContext(IAgentService agentService, ISkillRegistry skillRegistry, ISkillComposer skillComposer)
+    internal AgentContext(IAgentService agentService, ISkillRegistry skillRegistry, ISkillComposer skillComposer, ProviderSkillUploadCoordinator? uploadCoordinator = null)
     {
         _agentService = agentService;
         _skillRegistry = skillRegistry;
         _skillComposer = skillComposer;
+        _uploadCoordinator = uploadCoordinator;
         _agent = new Agent
         {
             Id = Guid.NewGuid().ToString(),
@@ -53,12 +57,13 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
         };
     }
 
-    internal AgentContext(IAgentService agentService, Agent existingAgent, ISkillRegistry? skillRegistry, ISkillComposer? skillComposer)
+    internal AgentContext(IAgentService agentService, Agent existingAgent, ISkillRegistry? skillRegistry, ISkillComposer? skillComposer, ProviderSkillUploadCoordinator? uploadCoordinator = null)
     {
         _agentService = agentService;
         _agent = existingAgent;
         _skillRegistry = skillRegistry;
         _skillComposer = skillComposer;
+        _uploadCoordinator = uploadCoordinator;
     }
 
     public IAgentConfigurationBuilder WithSkill(string skillName)
@@ -239,7 +244,7 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
 
     public async Task<IAgentContextExecutor> CreateAsync(bool flow = false, bool interactiveResponse = false)
     {
-        ApplyPendingSkills();
+        await ApplyPendingSkillsAsync();
 
         if (_ensureModelDownloaded && !string.IsNullOrWhiteSpace(_agent.Model))
         {
@@ -252,12 +257,12 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
 
     public IAgentContextExecutor Create(bool flow = false, bool interactiveResponse = false)
     {
-        ApplyPendingSkills();
+        ApplyPendingSkillsAsync().GetAwaiter().GetResult();
         _ = _agentService.CreateAgent(_agent, flow, interactiveResponse, _inferenceParams, _memoryParams, _disableCache).Result;
         return this;
     }
 
-    private void ApplyPendingSkills()
+    private async Task ApplyPendingSkillsAsync()
     {
         if (_skillComposer is null || _skillRegistry is null) return;
         if (_pendingSkillNames.Count == 0 && _pendingInlineSkills.Count == 0) return;
@@ -265,7 +270,21 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
         var namedSkills = _pendingSkillNames.Select(name => _skillRegistry.GetSkill(name));
         var allSkills = namedSkills.Concat(_pendingInlineSkills).ToList();
 
-        _skillComposer.Apply(_agent, allSkills, _knowledge);
+        var backend = ResolveBackend(_agent);
+
+        // Lazy upload — when the target backend supports a native Skills API and the user opted
+        // into lazy mode (default), push each uploadable skill now so SkillComposer can route it
+        // as a provider skill_reference instead of inlining it.
+        if (backend.HasValue && backend.Value.HasNativeSkillsApi() && _uploadCoordinator is not null)
+        {
+            foreach (var skill in allSkills)
+                await _uploadCoordinator.EnsureUploadedAsync(skill, backend.Value);
+
+            // Single disk flush after the whole batch instead of one per skill.
+            await _uploadCoordinator.FlushAsync();
+        }
+
+        _skillComposer.Apply(_agent, allSkills, backend, _knowledge);
 
         var newNames = _pendingSkillNames
             .Concat(_pendingInlineSkills.Select(s => s.Name))
@@ -273,6 +292,17 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
             .Except(_agent.Skills, StringComparer.OrdinalIgnoreCase);
 
         _agent.Skills.AddRange(newNames);
+    }
+
+    private static BackendType? ResolveBackend(Agent agent)
+    {
+        if (agent.Backend.HasValue)
+            return agent.Backend;
+
+        if (!string.IsNullOrEmpty(agent.Model) && ModelRegistry.TryGetById(agent.Model, out var model) && model is not null)
+            return model.Backend;
+
+        return null;
     }
 
     public IAgentConfigurationBuilder WithTools(ToolsConfiguration toolsConfiguration)

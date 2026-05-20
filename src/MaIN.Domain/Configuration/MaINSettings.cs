@@ -21,6 +21,22 @@ public class MaINSettings
     public string? VoicesPath { get; set; }
     public GoogleServiceAccountConfig? GoogleServiceAccountAuth { get; set; }
     public string? SkillsDirectory { get; set; }
+    public SkillUploadSettings SkillUpload { get; set; } = new();
+}
+
+public class SkillUploadSettings
+{
+    /// <summary>Path to the on-disk cache of provider skill ids. Avoids re-uploading bundles on each run.</summary>
+    public string CacheFilePath { get; set; } = Path.Combine(".main", "skills-cache.json");
+
+    /// <summary>
+    /// When true, before uploading to a backend for the first time in this process, the coordinator
+    /// fetches the provider's existing skill list (GET /v1/skills) and matches by name to recover
+    /// from a wiped cache file without creating duplicate uploads. The endpoint is not officially
+    /// documented for OpenAI / Anthropic; if it 404s the coordinator logs a warning and proceeds
+    /// without reconciliation. Default on — degrades gracefully when the endpoint is missing.
+    /// </summary>
+    public bool ReconcileWithProvider { get; set; } = true;
 }
 
 public enum BackendType

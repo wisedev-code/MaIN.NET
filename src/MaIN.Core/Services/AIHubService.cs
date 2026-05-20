@@ -1,5 +1,6 @@
 using MaIN.Core.Interfaces;
 using MaIN.Services.Services.Abstract;
+using MaIN.Services.Services.Skills;
 
 namespace MaIN.Core.Services;
 
@@ -9,7 +10,8 @@ public sealed class AIHubServices(
     IAgentFlowService flowService,
     IMcpService mcpService,
     ISkillRegistry skillRegistry,
-    ISkillComposer skillComposer)
+    ISkillComposer skillComposer,
+    ProviderSkillUploadCoordinator? uploadCoordinator = null)
     : IAIHubServices
 {
     public IChatService ChatService { get; } = chatService;
@@ -18,4 +20,5 @@ public sealed class AIHubServices(
     public IMcpService McpService { get; } = mcpService;
     public ISkillRegistry SkillRegistry { get; } = skillRegistry;
     public ISkillComposer SkillComposer { get; } = skillComposer;
+    public ProviderSkillUploadCoordinator? UploadCoordinator { get; } = uploadCoordinator;
 }

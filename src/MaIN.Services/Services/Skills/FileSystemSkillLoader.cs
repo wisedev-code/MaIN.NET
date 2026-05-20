@@ -82,6 +82,14 @@ public class FileSystemSkillLoader(string directoryPath, ILogger<FileSystemSkill
             return null;
 
         var skillDir = Path.GetDirectoryName(filePath)!;
+        var isSkillPackage = Path.GetFileName(filePath).Equals(FolderEntrypoint, StringComparison.OrdinalIgnoreCase);
+
+        // Guard: a SKILL.md placed directly in the skills-root directory would make
+        // BundlePath = skills-root, which on upload would zip every sibling skill into one
+        // bundle. Demand at least one directory of containment for a valid skill package.
+        if (isSkillPackage && PathHasSiblingSkills(skillDir))
+            isSkillPackage = false;
+
         var includesContent = LoadIncludes(dto.includes, skillDir);
 
         var fullFragment = (body, includesContent) switch
@@ -104,7 +112,10 @@ public class FileSystemSkillLoader(string directoryPath, ILogger<FileSystemSkill
             Behaviours = dto.behaviours ?? [],
             Source = BuildSource(dto.source),
             Mcp = BuildMcp(dto.mcp),
-            InstructionFragment = fullFragment
+            InstructionFragment = fullFragment,
+            // For SKILL.md packages, BundlePath points at the directory (whole tree gets zipped on upload).
+            // For lone .md files, BundlePath points at the file itself (uploaded via OpenAI per-file mode).
+            BundlePath = isSkillPackage ? skillDir : filePath
         };
     }
 
@@ -143,6 +154,25 @@ public class FileSystemSkillLoader(string directoryPath, ILogger<FileSystemSkill
         foreach (var file in Directory.GetFiles(dir, filePattern, SearchOption.TopDirectoryOnly)
                      .OrderBy(f => f))
             yield return file;
+    }
+
+    private static bool PathHasSiblingSkills(string dir)
+    {
+        try
+        {
+            var siblingMarkdown = Directory.GetFiles(dir, "*.md", SearchOption.TopDirectoryOnly);
+            // More than one .md file alongside (e.g. SKILL.md + sibling lone .md) suggests this
+            // is a skills-root, not a per-skill package directory.
+            if (siblingMarkdown.Length > 1) return true;
+
+            var subDirs = Directory.GetDirectories(dir);
+            // Sibling subdirectory containing its own SKILL.md → this is a parent of multiple skills.
+            return subDirs.Any(sd => File.Exists(Path.Combine(sd, FolderEntrypoint)));
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static SkillStepPlacement ParsePlacement(string? placement) =>

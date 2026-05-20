@@ -5,6 +5,7 @@ using MaIN.Domain.Entities.Skills;
 using MaIN.Domain.Exceptions.Skills;
 using MaIN.Domain.Models;
 using MaIN.Services.Services;
+using MaIN.Services.Services.Abstract;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -339,4 +340,71 @@ public class SkillComposerTests
         Assert.Equal(["ANSWER"], agent.Config.Steps);
         Assert.Equal(originalInstruction, agent.Config.Instruction);
     }
+
+    // --- Hybrid provider-skill routing ---
+
+    [Fact]
+    public void Apply_CloudBackendWithCachedSkill_RoutesAsProviderReferenceAndSkipsInlineInstruction()
+    {
+        var cacheMock = new Mock<IProviderSkillCache>();
+        var reference = new ProviderSkillReference
+        {
+            Name = "report-writer",
+            SkillId = "skill_abc123",
+            Backend = BackendType.OpenAi
+        };
+        cacheMock
+            .Setup(c => c.TryGet(BackendType.OpenAi, "report-writer", out It.Ref<ProviderSkillReference?>.IsAny))
+            .Returns(new TryGetCallback((BackendType _, string _, out ProviderSkillReference? r) =>
+            {
+                r = reference;
+                return true;
+            }));
+
+        var composer = new SkillComposer(Mock.Of<ILogger<SkillComposer>>(), cacheMock.Object);
+
+        var agent = MakeAgent();
+        var skill = MakeSkill("report-writer", instructionFragment: "Draft reports.");
+        // Simulate a bundle on disk to make it uploadable.
+        skill = new AgentSkill
+        {
+            Name = skill.Name,
+            Steps = skill.Steps,
+            StepPlacement = skill.StepPlacement,
+            InstructionFragment = skill.InstructionFragment,
+            Tools = skill.Tools,
+            Behaviours = skill.Behaviours,
+            Priority = skill.Priority,
+            BundlePath = "/tmp/fake-bundle"
+        };
+
+        composer.Apply(agent, [skill], BackendType.OpenAi);
+
+        Assert.Single(agent.ProviderSkillReferences);
+        Assert.Equal("skill_abc123", agent.ProviderSkillReferences[0].SkillId);
+        Assert.Null(agent.Config.Instruction);
+    }
+
+    [Fact]
+    public void Apply_LocalBackend_KeepsExistingInlineCompositionEvenForUploadableSkill()
+    {
+        var cacheMock = new Mock<IProviderSkillCache>();
+        var composer = new SkillComposer(Mock.Of<ILogger<SkillComposer>>(), cacheMock.Object);
+
+        var agent = MakeAgent();
+        var skill = new AgentSkill
+        {
+            Name = "report-writer",
+            InstructionFragment = "Draft reports.",
+            BundlePath = "/tmp/fake-bundle"
+        };
+
+        composer.Apply(agent, [skill], BackendType.Self);
+
+        Assert.Empty(agent.ProviderSkillReferences);
+        Assert.Equal("Draft reports.", agent.Config.Instruction);
+        cacheMock.Verify(c => c.TryGet(It.IsAny<BackendType>(), It.IsAny<string>(), out It.Ref<ProviderSkillReference?>.IsAny), Times.Never);
+    }
+
+    private delegate bool TryGetCallback(BackendType backend, string name, out ProviderSkillReference? reference);
 }
