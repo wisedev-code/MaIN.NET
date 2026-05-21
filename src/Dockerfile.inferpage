@@ -26,8 +26,9 @@ COPY MaIN.InferPage/     MaIN.InferPage/
 RUN dotnet publish MaIN.InferPage/MaIN.InferPage.csproj \
     --framework net10.0 \
     --configuration Release \
-    --no-restore \
-    --output /app/out
+    --output /app/out \
+    && echo "--- JS files in publish output ---" \
+    && find /app/out -name "*.js" | sort || true
 
 # ============================================================
 # Stage 3a – CUDA runtime (linux/amd64 only)
@@ -67,6 +68,11 @@ ENTRYPOINT ["dotnet", "MaIN.InferPage.dll"]
 #   macOS/Windows/Linux without GPU: docker build -f Dockerfile.inferpage .
 # ============================================================
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime-cpu
+
+# LlamaSharp CPU backend (libllama.so) requires libgomp for multi-threaded inference
+RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 ENV ASPNETCORE_ENVIRONMENT=Production
