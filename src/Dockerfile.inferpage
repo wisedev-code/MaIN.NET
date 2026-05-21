@@ -51,8 +51,10 @@ ENV DOTNET_ROOT=/usr/share/dotnet
 
 WORKDIR /app
 
+ENV ASPNETCORE_URLS=http://+:5555
 ENV ASPNETCORE_ENVIRONMENT=Production
 ENV MaIN__ModelsPath=/app/Models
+ENV MaIN_ModelsPath=/app/Models
 ENV NVIDIA_VISIBLE_DEVICES=all
 ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
 
@@ -75,8 +77,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 \
 
 WORKDIR /app
 
+ENV ASPNETCORE_URLS=http://+:5555
 ENV ASPNETCORE_ENVIRONMENT=Production
 ENV MaIN__ModelsPath=/app/Models
+ENV MaIN_ModelsPath=/app/Models
 
 VOLUME /app/Models
 EXPOSE 5555

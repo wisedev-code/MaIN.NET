@@ -72,7 +72,11 @@ public static class Utils
 
         if (backendType == BackendType.Self && Path == null)
         {
-            var defaultPath = DefaultModelsPath;
+            // Prefer an already-configured path (e.g. MaIN_ModelsPath set by Docker ENV) so that
+            // volume mounts are respected without the user having to re-enter the path.
+            var defaultPath = Environment.GetEnvironmentVariable("MaIN_ModelsPath")
+                ?? (!string.IsNullOrEmpty(mainSettings.ModelsPath) ? mainSettings.ModelsPath : null)
+                ?? DefaultModelsPath;
             Directory.CreateDirectory(defaultPath);
             Path = defaultPath;
             mainSettings.ModelsPath = defaultPath;

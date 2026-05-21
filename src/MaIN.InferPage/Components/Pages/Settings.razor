@@ -132,11 +132,19 @@
                     <label class="settings-label">Model Path</label>
                     <FluentTextField @bind-Value="_modelPath"
                                      @bind-Value:after="OnModelPathChanged"
-                                     Placeholder="Optional: model.gguf, C:\dir\model.gguf, or C:\dir"
+                                     Placeholder="@_modelPathPlaceholder"
                                      Style="width: 100%;" />
                     @if (ResolvedModelPathPreview is { } preview)
                     {
                         <span class="api-key-hint">Will load: @preview</span>
+                    }
+                    @if (_isDocker)
+                    {
+                        <span class="api-key-hint">
+                            Running in Docker — mount your models directory when starting the container:
+                            <code>-v /your/local/models:/app/Models</code>
+                            The path <code>/app/Models</code> is pre-configured as the default.
+                        </span>
                     }
                 </div>
             }
@@ -368,6 +376,13 @@
     private string? _downloadError;
     private CancellationTokenSource? _downloadCts;
     private DownloadProgress? _downloadProgress;
+
+    private static readonly bool _isDocker =
+        Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true";
+
+    private string _modelPathPlaceholder => _isDocker
+        ? "/app/Models  (or leave blank to use default)"
+        : "Optional: model.gguf, C:\\dir\\model.gguf, or C:\\dir";
 
     private bool RequiresApiKey => _selectedBackend?.RequiresApiKey == true;
     private bool IsVertexBackend => _selectedBackend?.BackendType == BackendType.Vertex;
