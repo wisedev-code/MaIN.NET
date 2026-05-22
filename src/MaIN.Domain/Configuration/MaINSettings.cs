@@ -30,13 +30,17 @@ public class SkillUploadSettings
     public string CacheFilePath { get; set; } = Path.Combine(".main", "skills-cache.json");
 
     /// <summary>
-    /// When true, before uploading to a backend for the first time in this process, the coordinator
-    /// fetches the provider's existing skill list (GET /v1/skills) and matches by name to recover
-    /// from a wiped cache file without creating duplicate uploads. The endpoint is not officially
-    /// documented for OpenAI / Anthropic; if it 404s the coordinator logs a warning and proceeds
-    /// without reconciliation. Default on — degrades gracefully when the endpoint is missing.
+    /// When true, the coordinator probes the provider's existing skill list (GET /v1/skills) on first
+    /// use per backend to recover cached skill_ids after a cache wipe; degrades gracefully if the endpoint 404s.
     /// </summary>
     public bool ReconcileWithProvider { get; set; } = true;
+
+    /// <summary>
+    /// When true, SkillComposer throws <see cref="MaIN.Domain.Exceptions.Skills.SkillNotSupportedException"/>
+    /// for any uploadable skill that can't be routed through a provider's native Skills API; default false silently
+    /// falls back to inline composition. Code-defined skills (Execute delegate) are exempt and always compose locally.
+    /// </summary>
+    public bool RequireNativeSkillsApi { get; set; } = false;
 }
 
 public enum BackendType

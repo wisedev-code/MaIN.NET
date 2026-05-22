@@ -17,11 +17,16 @@ public class SkillComposer : ISkillComposer
 {
     private readonly ILogger<SkillComposer> _logger;
     private readonly IProviderSkillCache? _providerSkillCache;
+    private readonly MaINSettings? _settings;
 
-    public SkillComposer(ILogger<SkillComposer> logger, IProviderSkillCache? providerSkillCache = null)
+    public SkillComposer(
+        ILogger<SkillComposer> logger,
+        IProviderSkillCache? providerSkillCache = null,
+        MaINSettings? settings = null)
     {
         _logger = logger;
         _providerSkillCache = providerSkillCache;
+        _settings = settings;
     }
 
     public void Apply(Agent agent, IReadOnlyList<AgentSkill> skills, BackendType? backend = null, Knowledge? knowledge = null)
@@ -62,31 +67,61 @@ public class SkillComposer : ISkillComposer
         var providerSkills = new List<(AgentSkill, ProviderSkillReference)>();
         var localSkills = new List<AgentSkill>();
 
-        // Backend must (a) have a Skills API at all, and (b) the specific model must accept it.
-        // E.g. gpt-4o-mini rejects the shell tool even though OpenAi has the Skills API overall.
-        if (backend is null || _providerSkillCache is null ||
-            !backend.Value.HasNativeSkillsApi() ||
-            !backend.Value.SupportsSkillsApi(modelId))
-        {
-            if (backend is not null && backend.Value.HasNativeSkillsApi() && !backend.Value.SupportsSkillsApi(modelId))
-                _logger.LogInformation(
-                    "Model '{Model}' on {Backend} does not support the native Skills API; falling back to inline composition.",
-                    modelId, backend.Value);
-            return (providerSkills, sorted);
-        }
+        var strict = _settings?.SkillUpload.RequireNativeSkillsApi == true;
 
         foreach (var skill in sorted)
         {
+            // Code-defined skills (C# Execute delegate / no bundle / no text) can never travel
+            // through a native Skills API. Strict mode does not apply to them — they always
+            // compose locally regardless of backend.
             if (!ProviderSkillUploadCoordinator.IsUploadable(skill))
             {
                 localSkills.Add(skill);
                 continue;
             }
 
-            if (_providerSkillCache.TryGet(backend.Value, skill.Name, out var reference) && reference is not null)
-                providerSkills.Add((skill, reference));
-            else
+            if (backend is null || !backend.Value.HasNativeSkillsApi())
+            {
+                if (strict)
+                    throw new SkillNotSupportedException(
+                        skill.Name,
+                        backend ?? BackendType.Self,
+                        modelId,
+                        "backend has no Skills API");
                 localSkills.Add(skill);
+                continue;
+            }
+
+            if (!backend.Value.SupportsSkillsApi(modelId))
+            {
+                if (strict)
+                    throw new SkillNotSupportedException(
+                        skill.Name,
+                        backend.Value,
+                        modelId,
+                        "model does not support Skills API");
+                _logger.LogInformation(
+                    "Model '{Model}' on {Backend} does not support the native Skills API for skill '{Skill}'; falling back to inline composition.",
+                    modelId, backend.Value, skill.Name);
+                localSkills.Add(skill);
+                continue;
+            }
+
+            if (_providerSkillCache is null ||
+                !_providerSkillCache.TryGet(backend.Value, skill.Name, out var reference) ||
+                reference is null)
+            {
+                if (strict)
+                    throw new SkillNotSupportedException(
+                        skill.Name,
+                        backend.Value,
+                        modelId,
+                        "skill not uploaded to provider (cache miss)");
+                localSkills.Add(skill);
+                continue;
+            }
+
+            providerSkills.Add((skill, reference));
         }
 
         return (providerSkills, localSkills);

@@ -408,4 +408,147 @@ public class SkillComposerTests
     }
 
     private delegate bool TryGetCallback(BackendType backend, string name, out ProviderSkillReference? reference);
+
+    // --- RequireNativeSkillsApi (strict) ---
+
+    private static AgentSkill MakeUploadableSkill(string name = "report-writer") => new()
+    {
+        Name = name,
+        InstructionFragment = "Draft reports.",
+        Tools = [],
+        BundlePath = "/tmp/fake-bundle"
+    };
+
+    private static MaINSettings MakeSettings(bool strict) => new()
+    {
+        SkillUpload = new SkillUploadSettings { RequireNativeSkillsApi = strict }
+    };
+
+    [Fact]
+    public void Strict_UploadableSkill_OnUnsupportedBackend_Throws()
+    {
+        var composer = new SkillComposer(
+            Mock.Of<ILogger<SkillComposer>>(),
+            Mock.Of<IProviderSkillCache>(),
+            MakeSettings(strict: true));
+
+        var agent = MakeAgent(modelId: "gemini-2.5-pro");
+        var skill = MakeUploadableSkill();
+
+        var ex = Assert.Throws<SkillNotSupportedException>(
+            () => composer.Apply(agent, [skill], BackendType.Gemini));
+
+        Assert.Equal("report-writer", ex.SkillName);
+        Assert.Equal(BackendType.Gemini, ex.Backend);
+        Assert.Contains("backend has no Skills API", ex.Reason);
+    }
+
+    [Fact]
+    public void Strict_UploadableSkill_OnUnsupportedOpenAiModel_Throws()
+    {
+        var composer = new SkillComposer(
+            Mock.Of<ILogger<SkillComposer>>(),
+            Mock.Of<IProviderSkillCache>(),
+            MakeSettings(strict: true));
+
+        // gpt-4o-mini has OpenAi backend but rejects the Skills shell tool.
+        var agent = MakeAgent(modelId: Models.OpenAi.Gpt4oMini);
+        var skill = MakeUploadableSkill();
+
+        var ex = Assert.Throws<SkillNotSupportedException>(
+            () => composer.Apply(agent, [skill], BackendType.OpenAi));
+
+        Assert.Equal(BackendType.OpenAi, ex.Backend);
+        Assert.Equal(Models.OpenAi.Gpt4oMini, ex.ModelId);
+        Assert.Contains("model does not support Skills API", ex.Reason);
+    }
+
+    [Fact]
+    public void Strict_UploadableSkill_CacheMiss_Throws()
+    {
+        var cacheMock = new Mock<IProviderSkillCache>();
+        cacheMock
+            .Setup(c => c.TryGet(It.IsAny<BackendType>(), It.IsAny<string>(), out It.Ref<ProviderSkillReference?>.IsAny))
+            .Returns(new TryGetCallback((BackendType _, string _, out ProviderSkillReference? r) =>
+            {
+                r = null;
+                return false;
+            }));
+
+        var composer = new SkillComposer(
+            Mock.Of<ILogger<SkillComposer>>(),
+            cacheMock.Object,
+            MakeSettings(strict: true));
+
+        var agent = MakeAgent(modelId: "gpt-5.5");
+        var skill = MakeUploadableSkill();
+
+        var ex = Assert.Throws<SkillNotSupportedException>(
+            () => composer.Apply(agent, [skill], BackendType.OpenAi));
+
+        Assert.Contains("cache miss", ex.Reason);
+    }
+
+    [Fact]
+    public void Strict_CodeDefinedSkill_OnUnsupportedBackend_DoesNotThrow()
+    {
+        var composer = new SkillComposer(
+            Mock.Of<ILogger<SkillComposer>>(),
+            Mock.Of<IProviderSkillCache>(),
+            MakeSettings(strict: true));
+
+        var agent = MakeAgent(modelId: "gemini-2.5-pro");
+        // Skill with C# Execute delegate — fundamentally cannot be uploaded; strict mode must
+        // not throw for it (would be unfixable from user code).
+        var codeSkill = new AgentSkill
+        {
+            Name = "web-search",
+            Tools =
+            [
+                new SkillToolDefinition
+                {
+                    Name = "search",
+                    Description = "search",
+                    Parameters = "{}",
+                    Execute = async _ => "result"
+                }
+            ]
+        };
+
+        composer.Apply(agent, [codeSkill], BackendType.Gemini);
+
+        // No exception; the skill stays out of provider references (no bundle to upload).
+        Assert.Empty(agent.ProviderSkillReferences);
+    }
+
+    [Fact]
+    public void NonStrict_AllUnsupportedCases_FallbackToInline()
+    {
+        var cacheMock = new Mock<IProviderSkillCache>();
+        cacheMock
+            .Setup(c => c.TryGet(It.IsAny<BackendType>(), It.IsAny<string>(), out It.Ref<ProviderSkillReference?>.IsAny))
+            .Returns(new TryGetCallback((BackendType _, string _, out ProviderSkillReference? r) =>
+            {
+                r = null;
+                return false;
+            }));
+
+        var composer = new SkillComposer(
+            Mock.Of<ILogger<SkillComposer>>(),
+            cacheMock.Object,
+            MakeSettings(strict: false));
+
+        // All three unsupported scenarios in one composer call; default behaviour falls back
+        // to inline composition without throwing.
+        var skillUnsupportedBackend = MakeUploadableSkill("a");
+        composer.Apply(MakeAgent(modelId: "gemini-2.5-pro"), [skillUnsupportedBackend], BackendType.Gemini);
+
+        var skillUnsupportedModel = MakeUploadableSkill("b");
+        composer.Apply(MakeAgent(modelId: Models.OpenAi.Gpt4oMini), [skillUnsupportedModel], BackendType.OpenAi);
+
+        var skillCacheMiss = MakeUploadableSkill("c");
+        composer.Apply(MakeAgent(modelId: "gpt-5.5"), [skillCacheMiss], BackendType.OpenAi);
+
+        // Reaching this line without exception proves non-strict regression is intact.
+    }
 }
