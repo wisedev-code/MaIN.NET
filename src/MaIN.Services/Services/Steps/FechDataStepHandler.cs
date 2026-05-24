@@ -58,6 +58,14 @@ public class FetchDataStepHandler(
             throw new AgentModelNotAvailableException(context.Agent.Id, context.Chat.ModelId);
         }
 
+        var lastUserContent = context.Chat.Messages
+            .LastOrDefault(m => m.Role?.Equals("user", StringComparison.OrdinalIgnoreCase) == true)
+            ?.Content;
+        var behaviour = context.Agent.Behaviours.GetValueOrDefault(context.Agent.CurrentBehaviour) ?? "";
+        var query = !string.IsNullOrWhiteSpace(lastUserContent)
+            ? lastUserContent
+            : behaviour.Replace("@filter@", filterVal ?? string.Empty);
+
         var backend = model!.Backend;
         return new Chat
         {
@@ -65,7 +73,7 @@ public class FetchDataStepHandler(
             [
                 new()
                 {
-                    Content = context.Agent.Behaviours[context.Agent.CurrentBehaviour].Replace("@filter@", filterVal ?? string.Empty),
+                    Content = query,
                     Type = backend != BackendType.Self ? MessageType.CloudLLM : MessageType.LocalLLM,
                     Role = "User"
                 }

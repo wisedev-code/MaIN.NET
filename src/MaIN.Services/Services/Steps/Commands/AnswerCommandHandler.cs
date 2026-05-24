@@ -73,9 +73,12 @@ public class AnswerCommandHandler(
 
     private async Task<bool> ShouldUseKnowledge(Knowledge? knowledge, Chat chat, BackendType backend)
     {
+        if (knowledge?.Index.Items is not { Count: > 0 })
+            return false;
+
         var originalContent = chat.Messages.Last().Content;
 
-        var indexAsKnowledge = knowledge?.Index.Items.ToDictionary(x => x.Name, x => x.Tags);
+        var indexAsKnowledge = knowledge.Index.Items.ToDictionary(x => x.Name, x => x.Tags);
         var index = JsonSerializer.Serialize(indexAsKnowledge, _jsonOptions);
 
         chat.InferenceGrammar = new Grammar(ServiceConstants.Grammars.DecisionGrammar, GrammarFormat.GBNF);
@@ -96,12 +99,21 @@ public class AnswerCommandHandler(
         {
             SaveConv = false
         });
-        var decision = JsonSerializer.Deserialize<JsonElement>(result!.Message.Content, _jsonOptions);
-        var decisionValue = decision.GetProperty("decision").GetRawText();
+
         chat.InferenceGrammar = null;
-        var shouldUseKnowledge = bool.Parse(decisionValue.Trim('"'));
         chat.Messages.Last().Content = originalContent;
-        return shouldUseKnowledge;
+
+        try
+        {
+            var decision = JsonSerializer.Deserialize<JsonElement>(result!.Message.Content, _jsonOptions);
+            var decisionValue = decision.GetProperty("decision").GetRawText();
+            return bool.Parse(decisionValue.Trim('"'));
+        }
+        catch (JsonException)
+        {
+            // Cloud backends ignore GBNF grammar — response is plain text, not JSON. Skip knowledge.
+            return false;
+        }
     }
 
     private async Task<Message?> ProcessKnowledgeQuery(Knowledge? knowledge, Chat chat, string agentId, ILLMService llmService)

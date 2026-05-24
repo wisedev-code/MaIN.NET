@@ -33,11 +33,17 @@ public sealed class AnthropicService(
     private const string ModelsUrl = ServiceConstants.ApiUrls.AnthropicModels;
     private const int MaxToolIterations = 5;
 
-    private HttpClient CreateAnthropicHttpClient()
+    private static bool HasAnthropicSkills(Chat chat) =>
+        chat.ProviderSkillReferences.Any(r => r.Backend == BackendType.Anthropic);
+
+    private HttpClient CreateAnthropicHttpClient(bool requireSkillsBeta = false)
     {
         var client = httpClientFactory.CreateClient(ServiceConstants.HttpClients.AnthropicClient);
         client.DefaultRequestHeaders.Add("x-api-key", GetApiKey());
         client.DefaultRequestHeaders.Add("anthropic-version", "2023-06-01");
+
+        if (requireSkillsBeta)
+            client.DefaultRequestHeaders.Add("anthropic-beta", ServiceConstants.AnthropicBetaFeatures.SkillsBetaHeader);
 
         return client;
     }
@@ -315,7 +321,7 @@ public sealed class AnthropicService(
         ChatRequestOptions options,
         CancellationToken cancellationToken)
     {
-        var httpClient = CreateAnthropicHttpClient();
+        var httpClient = CreateAnthropicHttpClient(HasAnthropicSkills(chat));
 
         var requestBody = await BuildAnthropicRequestBody(chat, conversation, true);
         var requestJson = JsonSerializer.Serialize(requestBody);
@@ -457,7 +463,7 @@ public sealed class AnthropicService(
         StringBuilder resultBuilder,
         CancellationToken cancellationToken)
     {
-        var httpClient = CreateAnthropicHttpClient();
+        var httpClient = CreateAnthropicHttpClient(HasAnthropicSkills(chat));
 
         var requestBody = await BuildAnthropicRequestBody(chat, conversation, false);
         var requestJson = JsonSerializer.Serialize(requestBody);
@@ -503,12 +509,21 @@ public sealed class AnthropicService(
     {
         var anthParams = chat.BackendParams as AnthropicInferenceParams;
 
+        // Anthropic Messages API rejects messages with role="system" inside the messages array
+        // ("Unexpected role 'system'. The Messages API accepts a top-level `system` parameter").
+        // Lift the system message out and skip it when building the messages array.
+        var systemMessage = conversation.FirstOrDefault(m =>
+            m.Role.Equals("system", StringComparison.OrdinalIgnoreCase));
+        var conversationWithoutSystem = systemMessage is null
+            ? conversation
+            : conversation.Where(m => !ReferenceEquals(m, systemMessage)).ToList();
+
         var requestBody = new Dictionary<string, object>
         {
             ["model"] = chat.ModelId,
             ["max_tokens"] = anthParams?.MaxTokens ?? 4096,
             ["stream"] = stream,
-            ["messages"] = await ChatHelper.BuildMessagesArray(conversation, chat, ImageType.AsBase64)
+            ["messages"] = await ChatHelper.BuildMessagesArray(conversationWithoutSystem, chat, ImageType.AsBase64)
         };
 
         if (anthParams != null)
@@ -524,9 +539,6 @@ public sealed class AnthropicService(
                 requestBody[key] = value;
         }
 
-        var systemMessage = conversation.FirstOrDefault(m =>
-            m.Role.Equals("system", StringComparison.OrdinalIgnoreCase));
-
         if (systemMessage != null && systemMessage.Content is string systemContent)
         {
             requestBody["system"] = systemContent;
@@ -538,15 +550,43 @@ public sealed class AnthropicService(
                 $"Respond only using the following grammar format: \n{chat.InferenceGrammar.Value}\n. Do not add explanations, code tags, or any extra content.";
         }
 
+        var anthropicSkills = chat.ProviderSkillReferences
+            .Where(r => r.Backend == BackendType.Anthropic)
+            .ToList();
+
+        var toolsList = new List<object>();
+
         if (chat.ToolsConfiguration?.Tools != null && chat.ToolsConfiguration.Tools.Any())
         {
-            requestBody["tools"] = chat.ToolsConfiguration.Tools.Select(t => new
+            toolsList.AddRange(chat.ToolsConfiguration.Tools.Select(t => (object)new
             {
                 name = t.Function!.Name,
                 description = t.Function.Description,
                 input_schema = t.Function.Parameters
-            }).ToList();
+            }));
         }
+
+        if (anthropicSkills.Count > 0)
+        {
+            toolsList.Add(new
+            {
+                type = ServiceConstants.AnthropicBetaFeatures.CodeExecutionToolType,
+                name = ServiceConstants.AnthropicBetaFeatures.CodeExecutionToolName
+            });
+
+            requestBody["container"] = new
+            {
+                skills = anthropicSkills.Select(s => new
+                {
+                    type = ServiceConstants.AnthropicBetaFeatures.CustomSkillType,
+                    skill_id = s.SkillId,
+                    version = s.Version ?? "latest"
+                }).ToList()
+            };
+        }
+
+        if (toolsList.Count > 0)
+            requestBody["tools"] = toolsList;
 
         return requestBody;
     }
@@ -615,7 +655,7 @@ public sealed class AnthropicService(
         bool interactiveUpdates,
         CancellationToken cancellationToken)
     {
-        var httpClient = CreateAnthropicHttpClient();
+        var httpClient = CreateAnthropicHttpClient(HasAnthropicSkills(chat));
 
         var requestBody = await BuildAnthropicRequestBody(chat, conversation, true);
         var requestJson = JsonSerializer.Serialize(requestBody);
@@ -692,7 +732,7 @@ public sealed class AnthropicService(
         StringBuilder resultBuilder,
         CancellationToken cancellationToken)
     {
-        var httpClient = CreateAnthropicHttpClient();
+        var httpClient = CreateAnthropicHttpClient(HasAnthropicSkills(chat));
 
         var requestBody = await BuildAnthropicRequestBody(chat, conversation, false);
         var requestJson = JsonSerializer.Serialize(requestBody);

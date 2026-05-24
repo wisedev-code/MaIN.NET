@@ -9,68 +9,20 @@ public class LLMServiceFactory(IServiceProvider serviceProvider) : ILLMServiceFa
 {
     public ILLMService CreateService(BackendType backendType)
     {
+        // ActivatorUtilities.CreateInstance resolves every constructor param (including the
+        // optional ILogger<T> overload) from the DI container — manual `new T(...)` calls
+        // silently leave logger=null which makes every logger?.LogInformation a no-op.
         return backendType switch
         {
-            BackendType.OpenAi => new OpenAiService(
-                serviceProvider.GetRequiredService<MaINSettings>(),
-                serviceProvider.GetRequiredService<INotificationService>(),
-                serviceProvider.GetRequiredService<IHttpClientFactory>(),
-                serviceProvider.GetRequiredService<IMemoryFactory>(),
-                serviceProvider.GetRequiredService<IMemoryService>()),
-
-            BackendType.Gemini => new GeminiService(
-                serviceProvider.GetRequiredService<MaINSettings>(),
-                serviceProvider.GetRequiredService<INotificationService>(),
-                serviceProvider.GetRequiredService<IHttpClientFactory>(),
-                serviceProvider.GetRequiredService<IMemoryFactory>(),
-                serviceProvider.GetRequiredService<IMemoryService>()),
-
-            BackendType.DeepSeek => new DeepSeekService(
-                serviceProvider.GetRequiredService<MaINSettings>(),
-                serviceProvider.GetRequiredService<INotificationService>(),
-                serviceProvider.GetRequiredService<IHttpClientFactory>(),
-                serviceProvider.GetRequiredService<IMemoryFactory>(),
-                serviceProvider.GetRequiredService<IMemoryService>()),
-
-            BackendType.GroqCloud => new GroqCloudService(
-                serviceProvider.GetRequiredService<MaINSettings>(),
-                serviceProvider.GetRequiredService<INotificationService>(),
-                serviceProvider.GetRequiredService<IHttpClientFactory>(),
-                serviceProvider.GetRequiredService<IMemoryFactory>(),
-                serviceProvider.GetRequiredService<IMemoryService>()),
-
-            BackendType.Xai => new XaiService(
-                serviceProvider.GetRequiredService<MaINSettings>(),
-                serviceProvider.GetRequiredService<INotificationService>(),
-                serviceProvider.GetRequiredService<IHttpClientFactory>(),
-                serviceProvider.GetRequiredService<IMemoryFactory>(),
-                serviceProvider.GetRequiredService<IMemoryService>()),
-
-            BackendType.Ollama => new OllamaService(
-                serviceProvider.GetRequiredService<MaINSettings>(),
-                serviceProvider.GetRequiredService<INotificationService>(),
-                serviceProvider.GetRequiredService<IHttpClientFactory>(),
-                serviceProvider.GetRequiredService<IMemoryFactory>(),
-                serviceProvider.GetRequiredService<IMemoryService>()),
-
-            BackendType.Anthropic => new AnthropicService(
-                serviceProvider.GetRequiredService<MaINSettings>(),
-                serviceProvider.GetRequiredService<INotificationService>(),
-                serviceProvider.GetRequiredService<IHttpClientFactory>()),
-
-            BackendType.Vertex => new VertexService(
-                serviceProvider.GetRequiredService<MaINSettings>(),
-                serviceProvider.GetRequiredService<INotificationService>(),
-                serviceProvider.GetRequiredService<IHttpClientFactory>(),
-                serviceProvider.GetRequiredService<IMemoryFactory>(),
-                serviceProvider.GetRequiredService<IMemoryService>()),
-
-            BackendType.Self => new LLMService(
-                serviceProvider.GetRequiredService<MaINSettings>(),
-                serviceProvider.GetRequiredService<INotificationService>(),
-                serviceProvider.GetRequiredService<IMemoryService>(),
-                serviceProvider.GetRequiredService<IMemoryFactory>()),
-
+            BackendType.OpenAi => ActivatorUtilities.CreateInstance<OpenAiService>(serviceProvider),
+            BackendType.Gemini => ActivatorUtilities.CreateInstance<GeminiService>(serviceProvider),
+            BackendType.DeepSeek => ActivatorUtilities.CreateInstance<DeepSeekService>(serviceProvider),
+            BackendType.GroqCloud => ActivatorUtilities.CreateInstance<GroqCloudService>(serviceProvider),
+            BackendType.Xai => ActivatorUtilities.CreateInstance<XaiService>(serviceProvider),
+            BackendType.Ollama => ActivatorUtilities.CreateInstance<OllamaService>(serviceProvider),
+            BackendType.Anthropic => ActivatorUtilities.CreateInstance<AnthropicService>(serviceProvider),
+            BackendType.Vertex => ActivatorUtilities.CreateInstance<VertexService>(serviceProvider),
+            BackendType.Self => ActivatorUtilities.CreateInstance<LLMService>(serviceProvider),
             _ => throw new ArgumentOutOfRangeException(nameof(backendType))
         };
     }
