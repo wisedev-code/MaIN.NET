@@ -2,6 +2,7 @@ using LLama.Native;
 using MaIN.Core.Hub.Contexts;
 using MaIN.Core.Interfaces;
 using MaIN.Domain.Configuration;
+using MaIN.Domain.Entities.Skills;
 using MaIN.Domain.Exceptions;
 using MaIN.Services.Services.Abstract;
 
@@ -12,6 +13,16 @@ public static class AIHub
     private static IAIHubServices? _services;
     private static MaINSettings _settings = null!;
     private static IHttpClientFactory _httpClientFactory = null!;
+
+    internal static bool IsInitialized => _services is not null;
+
+    /// <summary>
+    /// Returns skills that should survive a re-initialization: folder-loaded skills and
+    /// user-registered skills (via direct Register() or non-built-in IAgentSkillProvider).
+    /// Bundled built-in skills are excluded because the fresh DI container re-provides them.
+    /// </summary>
+    internal static IReadOnlyList<AgentSkill>? GetCurrentSkills() =>
+        _services?.SkillRegistry.GetAllExcludingBuiltIn();
 
     internal static void Initialize(IAIHubServices services,
         MaINSettings settings,
@@ -28,7 +39,7 @@ public static class AIHub
 
     public static ModelContext Model() => new(_settings, _httpClientFactory);
     public static ChatContext Chat() => new(Services.ChatService);
-    public static AgentContext Agent() => new(Services.AgentService);
+    public static AgentContext Agent() => new(Services.AgentService, Services.SkillRegistry, Services.SkillComposer, Services.UploadCoordinator);
     public static FlowContext Flow() => new(Services.FlowService, Services.AgentService);
     public static McpContext Mcp() => new(Services.McpService);
 

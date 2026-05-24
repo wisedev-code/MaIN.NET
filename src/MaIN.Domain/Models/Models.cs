@@ -11,6 +11,7 @@ public static class Models
         public const string Gpt4oMini = "gpt-4o-mini";
         public const string Gpt4_1Mini = "gpt-4.1-mini";
         public const string Gpt5Nano = "gpt-5-nano";
+        public const string Gpt5_5 = "gpt-5.5";
         public const string DallE3 = "dall-e-3";
         public const string GptImage1 = "gpt-image-1";
     }
@@ -19,6 +20,8 @@ public static class Models
     {
         public const string ClaudeSonnet4 = "claude-sonnet-4-20250514";
         public const string ClaudeSonnet4_5 = "claude-sonnet-4-5-20250929";
+        public const string ClaudeOpus4_6 = "claude-opus-4-6";
+        public const string ClaudeOpus4_7 = "claude-opus-4-7";
     }
 
     public static class Gemini

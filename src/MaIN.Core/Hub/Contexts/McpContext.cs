@@ -12,21 +12,25 @@ public sealed class McpContext : IMcpContext
 {
     private readonly IMcpService _mcpService;
     private Mcp? _mcpConfig;
+    private BackendType? _explicitBackend;
 
     internal McpContext(IMcpService mcpService)
     {
         _mcpService = mcpService;
         _mcpConfig = Mcp.NotSet;
     }
-    
+
     public IMcpContext WithConfig(Mcp mcpConfig)
     {
         _mcpConfig = mcpConfig;
+        if (_explicitBackend.HasValue)
+            _mcpConfig.Backend = _explicitBackend;
         return this;
     }
-    
+
     public IMcpContext WithBackend(BackendType backendType)
     {
+        _explicitBackend = backendType;
         _mcpConfig!.Backend = backendType;
         return this;
     }

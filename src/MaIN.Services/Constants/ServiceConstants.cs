@@ -22,6 +22,8 @@ public static class ServiceConstants
     {
         public const string OpenAiImageGenerations = "https://api.openai.com/v1/images/generations";
         public const string OpenAiChatCompletions = "https://api.openai.com/v1/chat/completions";
+        public const string OpenAiResponses = "https://api.openai.com/v1/responses";
+        public const string OpenAiSkills = "https://api.openai.com/v1/skills";
         public const string OpenAiModels = "https://api.openai.com/v1/models";
 
         public const string GeminiImageGenerations =
@@ -40,6 +42,7 @@ public static class ServiceConstants
 
         public const string AnthropicChatMessages = "https://api.anthropic.com/v1/messages";
         public const string AnthropicModels = "https://api.anthropic.com/v1/models";
+        public const string AnthropicSkills = "https://api.anthropic.com/v1/skills";
 
         public const string XaiImageGenerations = "https://api.x.ai/v1/images/generations";
         public const string XaiOpenAiChatCompletions = "https://api.x.ai/v1/chat/completions";
@@ -80,6 +83,25 @@ public static class ServiceConstants
         public const string ReceiveMessageUpdate = "ReceiveMessageUpdate";
         public const string ReceiveAgentUpdate = "ReceiveAgentUpdate";
 
+    }
+
+    public static class AnthropicBetaFeatures
+    {
+        public const string SkillsBetaHeader = "code-execution-2025-08-25,skills-2025-10-02";
+        public const string CodeExecutionToolType = "code_execution_20250825";
+        public const string CodeExecutionToolName = "code_execution";
+        public const string CustomSkillType = "custom";
+    }
+
+    public static class OpenAiResponses
+    {
+        public const string ShellToolType = "shell";
+        public const string ContainerAuto = "container_auto";
+        public const string SkillReferenceType = "skill_reference";
+        public const string FunctionCallType = "function_call";
+        public const string FunctionCallOutputType = "function_call_output";
+        public const string FunctionToolType = "function";
+        public const string DefaultVersionField = "default_version";
     }
 
     public static class Roles

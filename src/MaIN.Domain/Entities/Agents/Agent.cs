@@ -1,4 +1,5 @@
 using MaIN.Domain.Configuration;
+using MaIN.Domain.Entities.Skills;
 using MaIN.Domain.Entities.Tools;
 
 namespace MaIN.Domain.Entities.Agents;
@@ -18,4 +19,6 @@ public class Agent
     public Dictionary<string, string> Behaviours { get; set; } = [];
     public required string CurrentBehaviour { get; set; }
     public ToolsConfiguration? ToolsConfiguration { get; set; }
+    public List<string> Skills { get; set; } = [];
+    public List<ProviderSkillReference> ProviderSkillReferences { get; set; } = [];
 }

@@ -2,6 +2,7 @@ using MaIN.Core.Hub.Utils;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents.AgentSource;
 using MaIN.Domain.Entities.Agents.Knowledge;
+using MaIN.Domain.Entities.Skills;
 using MaIN.Domain.Entities.Tools;
 
 namespace MaIN.Core.Hub.Contexts.Interfaces.AgentContext;
@@ -136,6 +137,30 @@ public interface IAgentConfigurationBuilder : IAgentActions
     /// <param name="instruction">The instruction associated with the behavior.</param>
     /// <returns>The context instance implementing <see cref="IAgentConfigurationBuilder"/> for method chaining.</returns>
     IAgentConfigurationBuilder WithBehaviour(string name, string instruction);
+
+    /// <summary>
+    /// Applies a named skill from the registry, enriching the agent's steps, tools, source, and behaviours.
+    /// </summary>
+    IAgentConfigurationBuilder WithSkill(string skillName);
+
+    /// <summary>
+    /// Applies multiple named skills from the registry.
+    /// </summary>
+    IAgentConfigurationBuilder WithSkills(params string[] skillNames);
+
+    /// <summary>
+    /// Applies an inline skill defined directly in code (not from the registry).
+    /// </summary>
+    IAgentConfigurationBuilder WithSkill(AgentSkill skill);
+
+    /// <summary>
+    /// Applies every skill currently in the registry except:
+    ///   - MaIN's built-in skills (web-search, journalist, rag-expert, summarizer, mcp-tool-caller)
+    ///   - skills with <see cref="SkillStepPlacement.Replace"/> placement (they replace the whole
+    ///     step pipeline and are exclusive by design — opt them in explicitly via <see cref="WithSkill(string)"/>)
+    /// Includes user-registered providers and folder-loaded skills.
+    /// </summary>
+    IAgentConfigurationBuilder WithAllSkills();
 
     /// <summary>
     /// Synchronously creates the agent in the system.

@@ -20,6 +20,27 @@ public class MaINSettings
     public SqlSettings? SqlSettings { get; set; }
     public string? VoicesPath { get; set; }
     public GoogleServiceAccountConfig? GoogleServiceAccountAuth { get; set; }
+    public string? SkillsDirectory { get; set; }
+    public SkillUploadSettings SkillUpload { get; set; } = new();
+}
+
+public class SkillUploadSettings
+{
+    /// <summary>Path to the on-disk cache of provider skill ids. Avoids re-uploading bundles on each run.</summary>
+    public string CacheFilePath { get; set; } = Path.Combine(".main", "skills-cache.json");
+
+    /// <summary>
+    /// When true, the coordinator probes the provider's existing skill list (GET /v1/skills) on first
+    /// use per backend to recover cached skill_ids after a cache wipe; degrades gracefully if the endpoint 404s.
+    /// </summary>
+    public bool ReconcileWithProvider { get; set; } = true;
+
+    /// <summary>
+    /// When true, SkillComposer throws <see cref="MaIN.Domain.Exceptions.Skills.SkillNotSupportedException"/>
+    /// for any uploadable skill that can't be routed through a provider's native Skills API; default false silently
+    /// falls back to inline composition. Code-defined skills (Execute delegate) are exempt and always compose locally.
+    /// </summary>
+    public bool RequireNativeSkillsApi { get; set; } = false;
 }
 
 public enum BackendType

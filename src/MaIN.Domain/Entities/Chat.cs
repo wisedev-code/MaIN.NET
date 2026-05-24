@@ -1,6 +1,7 @@
 using LLama.Batched;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Configuration.BackendInferenceParams;
+using MaIN.Domain.Entities.Skills;
 using MaIN.Domain.Entities.Tools;
 using MaIN.Domain.Models.Abstract;
 using Grammar = MaIN.Domain.Models.Grammar;
@@ -49,6 +50,7 @@ public class Chat
     }
     public MemoryParams MemoryParams { get; set; } = new();
     public ToolsConfiguration? ToolsConfiguration { get; set; }
+    public List<ProviderSkillReference> ProviderSkillReferences { get; set; } = [];
     public TextToSpeechParams? TextToSpeechParams { get; set; }
     public Dictionary<string, string> Properties { get; init; } = [];
     public List<string> Memory { get; } = [];
