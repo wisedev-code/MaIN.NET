@@ -10,7 +10,7 @@ public class AnthropicExample
         MaINBootstrapper.Initialize(configureSettings: (options) =>
         {
             options.BackendType = BackendType.Anthropic;
-            options.AnthropicKey = "YOUR_ANTHROPIC_API_KEY";
+            options.AnthropicKey = "<YOUR_ANTHROPIC_KEY>";
         });
     }
 }
