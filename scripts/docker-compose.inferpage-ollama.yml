@@ -1,0 +1,33 @@
+services:
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+    # Uncomment to enable NVIDIA GPU pass-through:
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+  inferpage:
+    image: ghcr.io/${GITHUB_OWNER}/main-inferpage:ollama
+    container_name: inferpage
+    restart: unless-stopped
+    ports:
+      - "5555:5555"
+    environment:
+      MaIN__OllamaBaseUrl: http://ollama:11434
+      MaIN__BackendType: 7
+    depends_on:
+      - ollama
+
+volumes:
+  ollama-models:
