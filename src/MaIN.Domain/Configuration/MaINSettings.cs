@@ -13,6 +13,7 @@ public class MaINSettings
     public string? AnthropicKey { get; set; }
     public string? GroqCloudKey { get; set; }
     public string? OllamaKey { get; set; }
+    public string? OllamaBaseUrl { get; set; }
     public string? XaiKey { get; set; }
     public MongoDbSettings? MongoDbSettings { get; set; }
     public FileSystemSettings? FileSystemSettings { get; set; }
