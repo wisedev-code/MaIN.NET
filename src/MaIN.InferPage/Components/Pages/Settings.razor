@@ -1,6 +1,9 @@
 @using MaIN.Domain.Configuration
 @using MaIN.Domain.Configuration.Vertex
 @using MaIN.Domain.Models.Abstract
+@using MaIN.Core.Hub
+@using MaIN.Core.Hub.Contexts
+@using MaIN.Infrastructure.Models
 @inject SettingsService SettingsStorage
 @inject MaINSettings MaINSettings
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
@@ -35,10 +38,25 @@
 
             <div class="settings-field">
                 <label class="settings-label">Model</label>
-                <FluentTextField @bind-Value="_modelName"
-                                 @bind-Value:after="OnModelNameChanged"
-                                 Placeholder="e.g., gpt-4o, gemma3-4b"
-                                 Style="width: 100%;" />
+                @if (_selectedBackend?.BackendType == BackendType.Self)
+                {
+                    <FluentAutocomplete TOption="LocalModel"
+                                        OptionText="@(m => FormatLocalModelName(m))"
+                                        SelectedOptions="@_selectedLocalModels"
+                                        SelectedOptionsChanged="@OnLocalModelSelected"
+                                        OnOptionsSearch="@SearchLocalModels"
+                                        MaximumSelectedOptions="1"
+                                        MaximumOptionsSearch="@_chatLocalModels.Length"
+                                        Placeholder="Search and select a model..."
+                                        Style="width:100%;" />
+                }
+                else
+                {
+                    <FluentTextField @bind-Value="_modelName"
+                                     @bind-Value:after="OnModelNameChanged"
+                                     Placeholder="e.g., gpt-4o, gemma3-4b"
+                                     Style="width: 100%;" />
+                }
             </div>
 
             @if (RequiresApiKey)
@@ -113,11 +131,20 @@
                 <div class="settings-field">
                     <label class="settings-label">Model Path</label>
                     <FluentTextField @bind-Value="_modelPath"
-                                     Placeholder="Optional: model.gguf, C:\dir\model.gguf, or C:\dir"
+                                     @bind-Value:after="OnModelPathChanged"
+                                     Placeholder="@_modelPathPlaceholder"
                                      Style="width: 100%;" />
                     @if (ResolvedModelPathPreview is { } preview)
                     {
                         <span class="api-key-hint">Will load: @preview</span>
+                    }
+                    @if (_isDocker)
+                    {
+                        <span class="api-key-hint">
+                            Running in Docker — mount your models directory when starting the container:
+                            <code>-v /your/local/models:/app/Models</code>
+                            The path <code>/app/Models</code> is pre-configured as the default.
+                        </span>
                     }
                 </div>
             }
@@ -164,6 +191,52 @@
                 </div>
             }
 
+            @if (_selectedBackend?.BackendType == BackendType.Self && _isRegisteredModel
+                 && ModelRegistry.TryGetById(_modelName!, out var _dlModel) && _dlModel is LocalModel { DownloadUrl: not null })
+            {
+                <div class="settings-field">
+                    <label class="settings-label">Download</label>
+                    @if (_isDownloading)
+                    {
+                        <div style="display:flex;flex-direction:column;gap:6px;">
+                            @if (_downloadProgress?.Percentage is { } pct)
+                            {
+                                <FluentProgress Value="@((int)pct)" Max="100" Style="width:100%;" />
+                                <span class="api-key-hint">
+                                    @($"{pct:F1}%  ·  {FormatBytes(_downloadProgress.Value.BytesRead)}")
+                                    @if (_downloadProgress.Value.TotalBytes is { } total) { @($" / {FormatBytes(total)}") }
+                                    @($"  ·  {FormatSpeed(_downloadProgress.Value.BytesPerSecond)}")
+                                    @if (_downloadProgress?.Eta is { } eta) { @($"  ·  ETA {eta:mm\\:ss}") }
+                                </span>
+                            }
+                            else
+                            {
+                                <div style="display:flex;align-items:center;gap:8px;">
+                                    <FluentProgressRing Style="width:20px;height:20px;" />
+                                    <span class="api-key-hint">Connecting...</span>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else if (_isModelDownloaded)
+                    {
+                        <FluentBadge BackgroundColor="#16a34a" Color="#fff">Downloaded</FluentBadge>
+                    }
+                    else
+                    {
+                        <div style="display:flex;flex-direction:column;gap:4px;">
+                            <FluentButton Appearance="Appearance.Accent" OnClick="@DownloadModelAsync">
+                                Download
+                            </FluentButton>
+                            @if (_downloadError != null)
+                            {
+                                <span class="api-key-hint" style="color:var(--error);">@_downloadError</span>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+
             @if (_selectedBackend?.BackendType == BackendType.Self && !_isRegisteredModel && _manualVision)
             {
                 <div class="settings-field">
@@ -190,6 +263,17 @@
     [Parameter] public bool ShowCloseButton { get; set; }
     [Parameter] public EventCallback OnSettingsApplied { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
+
+    // Chat-appropriate local models (excludes embedding, TTS, image-gen, ONNX-only models)
+    private static readonly LocalModel[] _chatLocalModels = ModelRegistry.GetAllLocal()
+        .Where(m => m.DownloadUrl != null &&
+                    m is not IImageGenerationModel &&
+                    !m.FileName.EndsWith(".onnx", StringComparison.OrdinalIgnoreCase) &&
+                    !m.Name.Contains("Embed", StringComparison.OrdinalIgnoreCase))
+        .OrderBy(m => m.Name)
+        .ToArray();
+
+    private IEnumerable<LocalModel> _selectedLocalModels = [];
 
     private List<BackendOption> _backendOptions = null!;
     private BackendOption? _selectedBackend;
@@ -237,13 +321,13 @@
                 fileName = sanitizedModel;
             }
 
-            // Relative path: prepend configured models directory
+            // Relative path: prepend configured models directory (or default)
             if (!Path.IsPathFullyQualified(fileName))
             {
                 var modelsDir = MaINSettings.ModelsPath
-                    ?? Environment.GetEnvironmentVariable("MaIN_ModelsPath");
-                if (!string.IsNullOrEmpty(modelsDir))
-                    fileName = Path.Combine(modelsDir, fileName);
+                    ?? Environment.GetEnvironmentVariable("MaIN_ModelsPath")
+                    ?? Utils.DefaultModelsPath;
+                fileName = Path.Combine(modelsDir, fileName);
             }
 
             return fileName;
@@ -285,6 +369,20 @@
     private bool _manualReasoning;
     private bool _manualImageGen;
     private string? _mmProjName;
+
+    // Download state (registered local models only)
+    private bool _isModelDownloaded;
+    private bool _isDownloading;
+    private string? _downloadError;
+    private CancellationTokenSource? _downloadCts;
+    private DownloadProgress? _downloadProgress;
+
+    private static readonly bool _isDocker =
+        Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true";
+
+    private string _modelPathPlaceholder => _isDocker
+        ? "/app/Models  (or leave blank to use default)"
+        : "Optional: model.gguf, C:\\dir\\model.gguf, or C:\\dir";
 
     private bool RequiresApiKey => _selectedBackend?.RequiresApiKey == true;
     private bool IsVertexBackend => _selectedBackend?.BackendType == BackendType.Vertex;
@@ -366,6 +464,7 @@
                 _vertexLocation = settings.VertexLocation;
             }
 
+            SyncLocalModelSelection();
             OnModelNameChanged();
         }
         else if (!Utils.NeedsConfiguration)
@@ -382,6 +481,7 @@
             _modelName = Utils.Model;
             _modelPath = Utils.Path;
 
+            SyncLocalModelSelection();
             OnModelNameChanged();
         }
 
@@ -398,6 +498,7 @@
         if (profile != null)
         {
             _modelName = profile.Model;
+            SyncLocalModelSelection();
             OnModelNameChanged();                    // sets _isRegisteredModel + auto-detects caps
             if (!_isRegisteredModel)                // only restore manual caps for unregistered models
             {
@@ -414,7 +515,13 @@
             if (!string.IsNullOrEmpty(lastModel))
             {
                 _modelName = lastModel;
+                SyncLocalModelSelection();
                 OnModelNameChanged();
+            }
+            else
+            {
+                _modelName = null;
+                SyncLocalModelSelection();
             }
         }
 
@@ -442,8 +549,48 @@
         _apiKeyInput = null;
     }
 
+    private void OnLocalModelSelected(IEnumerable<LocalModel> selected)
+    {
+        _selectedLocalModels = selected;
+        _modelName = selected.FirstOrDefault()?.Id;
+        OnModelNameChanged();
+    }
+
+    private void SearchLocalModels(OptionsSearchEventArgs<LocalModel> e)
+    {
+        e.Items = string.IsNullOrEmpty(e.Text)
+            ? _chatLocalModels
+            : _chatLocalModels.Where(m =>
+                m.Name.Contains(e.Text, StringComparison.OrdinalIgnoreCase) ||
+                m.Id.Contains(e.Text, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string FormatLocalModelName(LocalModel m)
+    {
+        var caps = new List<string>();
+        if (m is IVisionModel) caps.Add("Vision");
+        if (m is IReasoningModel) caps.Add("Reasoning");
+        return caps.Count > 0 ? $"{m.Name}  [{string.Join(", ", caps)}]" : m.Name;
+    }
+
+    private void SyncLocalModelSelection()
+    {
+        if (_selectedBackend?.BackendType == BackendType.Self && !string.IsNullOrEmpty(_modelName))
+        {
+            var match = _chatLocalModels.FirstOrDefault(m => m.Id == _modelName);
+            _selectedLocalModels = match != null ? [match] : [];
+        }
+        else
+        {
+            _selectedLocalModels = [];
+        }
+    }
+
     private void OnModelNameChanged()
     {
+        _isModelDownloaded = false;
+        _downloadError = null;
+
         if (string.IsNullOrWhiteSpace(_modelName))
         {
             _isRegisteredModel = false;
@@ -456,6 +603,9 @@
             _detectedVision = model is IVisionModel;
             _detectedReasoning = model is IReasoningModel;
             _detectedImageGen = model is IImageGenerationModel;
+
+            if (_selectedBackend?.BackendType == BackendType.Self && model is LocalModel localModel)
+                _isModelDownloaded = localModel.IsDownloaded(GetEffectiveModelsBasePath());
         }
         else
         {
@@ -468,6 +618,74 @@
             if (Utils.IsKnownImageGenModel(_modelName)) _manualImageGen = true;
         }
     }
+
+    private void OnModelPathChanged()
+    {
+        if (_isRegisteredModel && _selectedBackend?.BackendType == BackendType.Self
+            && ModelRegistry.TryGetById(_modelName!, out var model) && model is LocalModel localModel)
+        {
+            _isModelDownloaded = localModel.IsDownloaded(GetEffectiveModelsBasePath());
+            _downloadError = null;
+        }
+    }
+
+    private string GetEffectiveModelsBasePath()
+    {
+        var raw = _modelPath?.Trim() ?? "";
+        if (!string.IsNullOrEmpty(raw))
+        {
+            return raw.EndsWith(".gguf", StringComparison.OrdinalIgnoreCase)
+                ? (Path.GetDirectoryName(raw) ?? "")
+                : raw;
+        }
+        return MaINSettings.ModelsPath
+            ?? Environment.GetEnvironmentVariable("MaIN_ModelsPath")
+            ?? Utils.DefaultModelsPath;
+    }
+
+    private async Task DownloadModelAsync()
+    {
+        _isDownloading = true;
+        _downloadError = null;
+        _downloadProgress = null;
+        _downloadCts = new CancellationTokenSource();
+        StateHasChanged();
+        try
+        {
+            var basePath = GetEffectiveModelsBasePath();
+            Directory.CreateDirectory(basePath);
+            Environment.SetEnvironmentVariable("MaIN_ModelsPath", basePath);
+            MaINSettings.ModelsPath = basePath;
+            var progress = new Progress<DownloadProgress>(p =>
+            {
+                _downloadProgress = p;
+                _ = InvokeAsync(StateHasChanged);
+            });
+            await AIHub.Model().EnsureDownloadedAsync(_modelName!, progress, _downloadCts.Token);
+            _isModelDownloaded = true;
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            _downloadError = ex.Message;
+        }
+        finally
+        {
+            _isDownloading = false;
+            _downloadCts = null;
+            StateHasChanged();
+        }
+    }
+
+    private static string FormatBytes(long bytes) => bytes switch
+    {
+        >= 1024L * 1024 * 1024 => $"{bytes / (1024.0 * 1024 * 1024):F1} GB",
+        >= 1024 * 1024          => $"{bytes / (1024.0 * 1024):F1} MB",
+        >= 1024                 => $"{bytes / 1024.0:F1} KB",
+        _                       => $"{bytes} B"
+    };
+
+    private static string FormatSpeed(double bytesPerSecond) => $"{FormatBytes((long)bytesPerSecond)}/s";
 
     private async Task LoadApiKeyPreview()
     {

@@ -1,0 +1,111 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS restore
+WORKDIR /src
+
+COPY MaIN.Domain/MaIN.Domain.csproj                 MaIN.Domain/
+COPY MaIN.Infrastructure/MaIN.Infrastructure.csproj MaIN.Infrastructure/
+COPY MaIN.Services/MaIN.Services.csproj              MaIN.Services/
+COPY MaIN.Core/MaIN.Core.csproj                      MaIN.Core/
+COPY MaIN.InferPage/MaIN.InferPage.csproj            MaIN.InferPage/
+
+RUN dotnet restore MaIN.InferPage/MaIN.InferPage.csproj
+
+FROM restore AS publish
+
+COPY MaIN.Domain/         MaIN.Domain/
+COPY MaIN.Infrastructure/ MaIN.Infrastructure/
+COPY MaIN.Services/       MaIN.Services/
+COPY MaIN.Core/           MaIN.Core/
+COPY MaIN.InferPage/      MaIN.InferPage/
+
+RUN dotnet publish MaIN.InferPage/MaIN.InferPage.csproj \
+    --framework net10.0 \
+    --configuration Release \
+    --no-restore \
+    --output /app/out
+
+FROM nvidia/cuda:12.9.1-runtime-ubuntu24.04 AS runtime-cuda
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        libicu74 \
+        libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=mcr.microsoft.com/dotnet/aspnet:10.0 /usr/share/dotnet /usr/share/dotnet
+RUN ln -sf /usr/share/dotnet/dotnet /usr/local/bin/dotnet
+
+WORKDIR /app
+
+ENV DOTNET_ROOT=/usr/share/dotnet
+ENV ASPNETCORE_URLS=http://+:5555
+ENV ASPNETCORE_ENVIRONMENT=Production
+ENV MaIN__ModelsPath=/app/Models
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
+ENV LD_LIBRARY_PATH=/usr/lib/wsl/lib
+
+VOLUME /app/Models
+EXPOSE 5555
+
+COPY --from=publish /app/out .
+
+RUN find /app/runtimes/linux-x64/native -maxdepth 2 -mindepth 1 -type d \
+    | tee /etc/ld.so.conf.d/llamasharp.conf \
+    && ldconfig
+
+ENTRYPOINT ["dotnet", "MaIN.InferPage.dll"]
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime-cpu
+
+RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+ENV ASPNETCORE_URLS=http://+:5555
+ENV ASPNETCORE_ENVIRONMENT=Production
+ENV MaIN__ModelsPath=/app/Models
+
+VOLUME /app/Models
+EXPOSE 5555
+
+COPY --from=publish /app/out .
+
+ENTRYPOINT ["dotnet", "MaIN.InferPage.dll"]
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime-ollama
+
+WORKDIR /app
+
+ENV ASPNETCORE_URLS=http://+:5555
+ENV ASPNETCORE_ENVIRONMENT=Production
+ENV MaIN__OllamaBaseUrl=http://host.docker.internal:11434
+ENV MaIN__BackendType=7
+
+EXPOSE 5555
+
+COPY --from=publish /app/out .
+
+ENTRYPOINT ["dotnet", "MaIN.InferPage.dll"]
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime-ollama-bundled
+
+COPY --from=ollama/ollama:latest /usr/bin/ollama /usr/bin/ollama
+
+WORKDIR /app
+
+ENV ASPNETCORE_URLS=http://+:5555
+ENV ASPNETCORE_ENVIRONMENT=Production
+ENV MaIN__OllamaBaseUrl=http://localhost:11434
+ENV MaIN__BackendType=7
+
+VOLUME /root/.ollama
+EXPOSE 5555
+EXPOSE 11434
+
+COPY --from=publish /app/out .
+COPY entrypoint-ollama.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]

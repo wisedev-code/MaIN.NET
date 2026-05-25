@@ -24,9 +24,11 @@ public sealed class OllamaService(
 
     private bool HasApiKey => !string.IsNullOrEmpty(_settings.OllamaKey) || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(LLMApiRegistry.Ollama.ApiKeyEnvName));
 
+    private string LocalBaseUrl => (_settings.OllamaBaseUrl ?? "http://localhost:11434").TrimEnd('/');
+
     protected override string HttpClientName => HasApiKey ? ServiceConstants.HttpClients.OllamaClient : ServiceConstants.HttpClients.OllamaLocalClient;
-    protected override string ChatCompletionsUrl => HasApiKey ? ServiceConstants.ApiUrls.OllamaOpenAiChatCompletions : ServiceConstants.ApiUrls.OllamaLocalOpenAiChatCompletions;
-    protected override string ModelsUrl => HasApiKey ? ServiceConstants.ApiUrls.OllamaModels : ServiceConstants.ApiUrls.OllamaLocalModels;
+    protected override string ChatCompletionsUrl => HasApiKey ? ServiceConstants.ApiUrls.OllamaOpenAiChatCompletions : $"{LocalBaseUrl}/v1/chat/completions";
+    protected override string ModelsUrl => HasApiKey ? ServiceConstants.ApiUrls.OllamaModels : $"{LocalBaseUrl}/v1/models";
     protected override Type ExpectedParamsType => typeof(OllamaInferenceParams);
 
     protected override string GetApiKey()

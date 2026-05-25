@@ -1,0 +1,10 @@
+**/bin/
+**/obj/
+**/.vs/
+**/.idea/
+**/*.user
+**/*.suo
+MaIN.Core.UnitTests/
+MaIN.Core.IntegrationTests/
+MaIN.Core.E2ETests/
+**/appsettings.*.local.json

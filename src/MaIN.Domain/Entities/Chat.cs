@@ -1,9 +1,7 @@
 using LLama.Batched;
-using MaIN.Domain.Configuration;
 using MaIN.Domain.Configuration.BackendInferenceParams;
 using MaIN.Domain.Entities.Skills;
 using MaIN.Domain.Entities.Tools;
-using MaIN.Domain.Models.Abstract;
 using Grammar = MaIN.Domain.Models.Grammar;
 
 namespace MaIN.Domain.Entities;

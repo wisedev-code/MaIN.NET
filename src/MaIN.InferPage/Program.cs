@@ -75,16 +75,11 @@ try
             {
                 if (string.IsNullOrEmpty(modelPathArg))
                 {
-                    Console.WriteLine("Error: A model path must be provided using --path when a local model is specified.");
-                    return;
-                }
-
-                var envModelsPath = Environment.GetEnvironmentVariable("MaIN_ModelsPath");
-                if (string.IsNullOrEmpty(envModelsPath))
-                {
-                    Console.Write("Please enter the MaIN_ModelsPath: ");
-                    envModelsPath = Console.ReadLine();
-                    Environment.SetEnvironmentVariable("MaIN_ModelsPath", envModelsPath);
+                    var defaultPath = Utils.DefaultModelsPath;
+                    Directory.CreateDirectory(defaultPath);
+                    Environment.SetEnvironmentVariable("MaIN_ModelsPath", defaultPath);
+                    Utils.Path = defaultPath;
+                    Console.WriteLine($"No --path provided. Using default models directory: {defaultPath}");
                 }
             }
         }
@@ -129,9 +124,9 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
 app.UseAntiforgery();
 app.Services.UseMaIN();
+app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
