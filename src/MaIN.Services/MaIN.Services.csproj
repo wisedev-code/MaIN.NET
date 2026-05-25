@@ -13,6 +13,7 @@
 
     <ItemGroup>
       <PackageReference Include="GTranslate" Version="2.3.1" />
+      <PackageReference Include="YamlDotNet" Version="16.3.0" />
       <PackageReference Include="HtmlAgilityPack" Version="1.12.4" />
       <PackageReference Include="llamasharp.backend.cpu" Version="0.27.0" />
       <PackageReference Include="LLamaSharp.Backend.Cuda12" Version="0.27.0" />

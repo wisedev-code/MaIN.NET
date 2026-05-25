@@ -1,7 +1,9 @@
 using MaIN.Core.Hub.Contexts;
+using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents;
 using MaIN.Domain.Entities.Agents.Knowledge;
+using MaIN.Domain.Entities.Skills;
 using MaIN.Domain.Exceptions.Agents;
 using MaIN.Domain.Models.Abstract;
 using MaIN.Services.Services.Abstract;
@@ -13,13 +15,17 @@ namespace MaIN.Core.UnitTests;
 public class AgentContextTests
 {
     private readonly Mock<IAgentService> _mockAgentService;
+    private readonly Mock<ISkillRegistry> _mockSkillRegistry;
+    private readonly Mock<ISkillComposer> _mockSkillComposer;
     private readonly AgentContext _agentContext;
     private readonly string _testModelId = "test-model";
 
     public AgentContextTests()
     {
         _mockAgentService = new Mock<IAgentService>();
-        _agentContext = new AgentContext(_mockAgentService.Object);
+        _mockSkillRegistry = new Mock<ISkillRegistry>();
+        _mockSkillComposer = new Mock<ISkillComposer>();
+        _agentContext = new AgentContext(_mockAgentService.Object, _mockSkillRegistry.Object, _mockSkillComposer.Object);
         var testModel = new GenericLocalModel(_testModelId);
         ModelRegistry.RegisterOrReplace(testModel);
     }
@@ -237,6 +243,123 @@ public class AgentContextTests
         // Assert
         Assert.NotNull(result);
         Assert.Equal(existingAgentId, result.GetAgentId());
+    }
+
+    [Fact]
+    public async Task WithAllSkills_SkipsReplacePlacementSkills()
+    {
+        var composable = new AgentSkill
+        {
+            Name = "code-review",
+            Steps = ["ANSWER"],
+            StepPlacement = SkillStepPlacement.Before,
+            Tags = [],
+            Priority = 30
+        };
+        var replaceSkill = new AgentSkill
+        {
+            Name = "funfact-writer",
+            Steps = ["MCP"],
+            StepPlacement = SkillStepPlacement.Replace,
+            Tags = [],
+            Priority = 10
+        };
+
+        _mockSkillRegistry
+            .Setup(r => r.GetAllExcludingBuiltIn())
+            .Returns(new List<AgentSkill> { composable, replaceSkill });
+
+        IReadOnlyList<AgentSkill>? composed = null;
+        _mockSkillComposer
+            .Setup(c => c.Apply(It.IsAny<Agent>(), It.IsAny<IReadOnlyList<AgentSkill>>(), It.IsAny<BackendType?>(), It.IsAny<Knowledge?>()))
+            .Callback<Agent, IReadOnlyList<AgentSkill>, BackendType?, Knowledge?>((_, skills, _, _) => composed = skills);
+
+        _mockAgentService
+            .Setup(s => s.CreateAgent(
+                It.IsAny<Agent>(),
+                It.IsAny<bool>(),
+                It.IsAny<bool>(),
+                It.IsAny<IBackendInferenceParams>(),
+                It.IsAny<MemoryParams>(),
+                It.IsAny<bool>()))
+            .ReturnsAsync(new Agent { Id = "x", CurrentBehaviour = "Default", Config = new AgentConfig() });
+
+        await _agentContext.WithAllSkills().CreateAsync();
+
+        Assert.NotNull(composed);
+        Assert.Single(composed!);
+        Assert.Equal("code-review", composed![0].Name);
+    }
+
+    [Fact]
+    public async Task WithAllSkills_CalledTwice_DoesNotDuplicate()
+    {
+        var skill = new AgentSkill
+        {
+            Name = "code-review",
+            Steps = ["ANSWER"],
+            StepPlacement = SkillStepPlacement.Before,
+            Tags = [],
+            Priority = 30
+        };
+
+        _mockSkillRegistry
+            .Setup(r => r.GetAllExcludingBuiltIn())
+            .Returns(new List<AgentSkill> { skill });
+
+        IReadOnlyList<AgentSkill>? composed = null;
+        _mockSkillComposer
+            .Setup(c => c.Apply(It.IsAny<Agent>(), It.IsAny<IReadOnlyList<AgentSkill>>(), It.IsAny<BackendType?>(), It.IsAny<Knowledge?>()))
+            .Callback<Agent, IReadOnlyList<AgentSkill>, BackendType?, Knowledge?>((_, skills, _, _) => composed = skills);
+
+        _mockAgentService
+            .Setup(s => s.CreateAgent(
+                It.IsAny<Agent>(),
+                It.IsAny<bool>(),
+                It.IsAny<bool>(),
+                It.IsAny<IBackendInferenceParams>(),
+                It.IsAny<MemoryParams>(),
+                It.IsAny<bool>()))
+            .ReturnsAsync(new Agent { Id = "x", CurrentBehaviour = "Default", Config = new AgentConfig() });
+
+        await _agentContext
+            .WithAllSkills()
+            .WithAllSkills()
+            .CreateAsync();
+
+        Assert.NotNull(composed);
+        Assert.Single(composed!);
+    }
+
+    [Fact]
+    public async Task WithAllSkills_PopulatesAgentSkillsList()
+    {
+        var folderSkill = new AgentSkill
+        {
+            Name = "folder-skill",
+            Steps = ["ANSWER"],
+            StepPlacement = SkillStepPlacement.Before,
+            Tags = [],
+            Priority = 30
+        };
+
+        _mockSkillRegistry
+            .Setup(r => r.GetAllExcludingBuiltIn())
+            .Returns(new List<AgentSkill> { folderSkill });
+
+        _mockAgentService
+            .Setup(s => s.CreateAgent(
+                It.IsAny<Agent>(),
+                It.IsAny<bool>(),
+                It.IsAny<bool>(),
+                It.IsAny<IBackendInferenceParams>(),
+                It.IsAny<MemoryParams>(),
+                It.IsAny<bool>()))
+            .ReturnsAsync(new Agent { Id = "x", CurrentBehaviour = "Default", Config = new AgentConfig() });
+
+        await _agentContext.WithAllSkills().CreateAsync();
+
+        Assert.Contains("folder-skill", _agentContext.GetAgent().Skills);
     }
 
     [Fact]

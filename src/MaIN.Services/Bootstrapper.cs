@@ -1,5 +1,6 @@
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
+using MaIN.Domain.Entities.Skills;
 using MaIN.Services.Constants;
 using MaIN.Services.Services;
 using MaIN.Services.Services.Abstract;
@@ -8,12 +9,14 @@ using MaIN.Services.Services.LLMService;
 using MaIN.Services.Services.LLMService.Factory;
 using MaIN.Services.Services.LLMService.Memory;
 using MaIN.Services.Services.Models.Commands;
+using MaIN.Services.Services.Skills;
 using MaIN.Services.Services.Steps;
 using MaIN.Services.Services.Steps.Commands;
 using MaIN.Services.Services.Steps.Commands.Abstract;
 using MaIN.Services.Services.TTSService;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace MaIN.Services;
 
@@ -63,6 +66,50 @@ public static class Bootstrapper
         // Register the step processor
         serviceCollection.AddSingleton<IStepProcessor, StepProcessor>();
 
+        // Register skill infrastructure
+        serviceCollection.AddSingleton<ISkillRegistry>(sp => new SkillRegistry(
+            sp.GetServices<IAgentSkillProvider>(),
+            sp.GetServices<ISkillLoader>(),
+            sp.GetRequiredService<ILogger<SkillRegistry>>()));
+        serviceCollection.AddSingleton<ISkillComposer, SkillComposer>();
+
+        // Provider-side Skills API infrastructure (OpenAI Responses, Anthropic container.skills).
+        serviceCollection.AddSingleton<IProviderSkillCache, ProviderSkillCache>();
+        serviceCollection.AddSingleton<IProviderSkillUploader, OpenAiSkillUploader>();
+        serviceCollection.AddSingleton<IProviderSkillUploader, AnthropicSkillUploader>();
+        serviceCollection.AddSingleton<ProviderSkillUploadCoordinator>();
+
+        // Register skills directory loader if configured
+        if (!string.IsNullOrWhiteSpace(settings.SkillsDirectory))
+        {
+            serviceCollection.AddSingleton<ISkillLoader>(sp =>
+                new FileSystemSkillLoader(
+                    settings.SkillsDirectory,
+                    sp.GetRequiredService<ILogger<FileSystemSkillLoader>>()));
+        }
+
+        return serviceCollection;
+    }
+
+    /// <summary>
+    /// Uploads every uploadable SKILL.md bundle to cloud providers with credentials configured.
+    /// Call once after the host is built and before any agent creation. Safe to call when no
+    /// cloud keys are set — it just no-ops.
+    /// </summary>
+    public static async Task UploadSkillsToProvidersAsync(this IServiceProvider provider, CancellationToken cancellationToken = default)
+    {
+        var coordinator = provider.GetService<ProviderSkillUploadCoordinator>();
+        if (coordinator is null) return;
+        await coordinator.RunAsync(cancellationToken);
+    }
+
+    public static IServiceCollection AddSkillsFromDirectory(
+        this IServiceCollection serviceCollection, string directoryPath)
+    {
+        serviceCollection.AddSingleton<ISkillLoader>(sp =>
+            new FileSystemSkillLoader(
+                directoryPath,
+                sp.GetRequiredService<ILogger<FileSystemSkillLoader>>()));
         return serviceCollection;
     }
 
