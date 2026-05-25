@@ -1,6 +1,4 @@
-# ============================================================
-# Stage 1 – restore (NuGet layer cache, invalidated only on .csproj changes)
-# ============================================================
+
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS restore
 WORKDIR /src
 
@@ -12,9 +10,6 @@ COPY MaIN.InferPage/MaIN.InferPage.csproj            MaIN.InferPage/
 
 RUN dotnet restore MaIN.InferPage/MaIN.InferPage.csproj
 
-# ============================================================
-# Stage 2 – publish (shared output used by both runtime targets)
-# ============================================================
 FROM restore AS publish
 
 COPY MaIN.Domain/        MaIN.Domain/
@@ -30,20 +25,15 @@ RUN dotnet publish MaIN.InferPage/MaIN.InferPage.csproj \
     && echo "--- JS files in publish output ---" \
     && find /app/out -name "*.js" | sort || true
 
-# ============================================================
-# Stage 3a – CUDA runtime (linux/amd64 only)
-#   Build explicitly: docker build --target runtime-cuda ...
-#   GPU is auto-exposed via NVIDIA_VISIBLE_DEVICES — no --gpus flag needed at docker run
-# ============================================================
-# Ubuntu 24.04 matches the base OS of mcr.microsoft.com/dotnet/aspnet:10.0
-FROM nvidia/cuda:12.6.0-runtime-ubuntu24.04 AS runtime-cuda
+FROM nvidia/cuda:12.5.1-runtime-ubuntu24.04 AS runtime-cuda
 
-# .NET native dependencies not already present in the CUDA image
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates libicu74 \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        libicu74 \
+        libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy ASP.NET Core runtime from Microsoft's official image — avoids apt package availability issues
 COPY --from=mcr.microsoft.com/dotnet/aspnet:10.0 /usr/share/dotnet /usr/share/dotnet
 RUN ln -sf /usr/share/dotnet/dotnet /usr/local/bin/dotnet
 
@@ -58,20 +48,21 @@ ENV MaIN_ModelsPath=/app/Models
 ENV NVIDIA_VISIBLE_DEVICES=all
 ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
 
+ENV LD_LIBRARY_PATH=/usr/lib/wsl/lib:${LD_LIBRARY_PATH}
+
 VOLUME /app/Models
 EXPOSE 5555
 
 COPY --from=publish /app/out .
 
+RUN find /app/runtimes/linux-x64/native -maxdepth 2 -mindepth 1 -type d \
+    | tee /etc/ld.so.conf.d/llamasharp.conf \
+    && ldconfig
+
 ENTRYPOINT ["dotnet", "MaIN.InferPage.dll"]
 
-# ============================================================
-# Stage 3b – CPU runtime (linux/amd64 + linux/arm64) — DEFAULT
-#   macOS/Windows/Linux without GPU: docker build -f Dockerfile.inferpage .
-# ============================================================
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime-cpu
 
-# LlamaSharp CPU backend (libllama.so) requires libgomp for multi-threaded inference
 RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 

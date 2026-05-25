@@ -4,6 +4,7 @@ using Examples.Agents.Flows;
 using Examples.Chat;
 using Examples.Mcp;
 using MaIN.Core;
+using MaIN.Services.Services.Abstract;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -29,7 +30,6 @@ var configuration = new ConfigurationBuilder()
 var services = new ServiceCollection();
 services.AddSingleton<IConfiguration>(configuration);
 services.AddMaIN(configuration);
-
 RegisterExamples(services);
 
 var serviceProvider = services.BuildServiceProvider();
