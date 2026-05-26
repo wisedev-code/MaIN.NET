@@ -347,9 +347,10 @@ public sealed class AnthropicService(
 
         var toolUseBuilders = new Dictionary<int, AnthropicToolUseBuilder>();
 
-        while (!reader.EndOfStream)
+        while (true)
         {
             var line = await reader.ReadLineAsync(cancellationToken);
+            if (line is null) break;
             if (string.IsNullOrWhiteSpace(line))
                 continue;
 
@@ -679,9 +680,10 @@ public sealed class AnthropicService(
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
         using var reader = new StreamReader(stream);
 
-        while (!reader.EndOfStream)
+        while (true)
         {
             var line = await reader.ReadLineAsync(cancellationToken);
+            if (line is null) break;
             if (string.IsNullOrWhiteSpace(line))
                 continue;
 

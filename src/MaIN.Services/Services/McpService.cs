@@ -146,7 +146,7 @@ public class McpService(MaINSettings settings, IServiceProvider serviceProvider)
                     .Deserialize<Dictionary<string, JsonElement>>(argsJson)
                     ?.ToDictionary(
                         kvp => kvp.Key,
-                        kvp => kvp.Value.ValueKind switch
+                        kvp => (object?)(kvp.Value.ValueKind switch
                         {
                             JsonValueKind.String => (object)kvp.Value.GetString()!,
                             JsonValueKind.True => true,
@@ -154,8 +154,8 @@ public class McpService(MaINSettings settings, IServiceProvider serviceProvider)
                             JsonValueKind.Number when kvp.Value.TryGetInt64(out var l) => l,
                             JsonValueKind.Number => (object)kvp.Value.GetDouble(),
                             _ => (object)kvp.Value
-                        })
-                    ?? new Dictionary<string, object>();
+                        }))
+                    ?? new Dictionary<string, object?>();
 
                 var toolResult = await mcpClient.CallToolAsync(toolName, argsDict);
                 var resultText = string.Join("\n", toolResult.Content
@@ -291,7 +291,7 @@ public class McpService(MaINSettings settings, IServiceProvider serviceProvider)
                     .Deserialize<Dictionary<string, JsonElement>>(inputElement.GetRawText())
                     ?.ToDictionary(
                         kvp => kvp.Key,
-                        kvp => kvp.Value.ValueKind switch
+                        kvp => (object?)(kvp.Value.ValueKind switch
                         {
                             JsonValueKind.String => (object)kvp.Value.GetString()!,
                             JsonValueKind.True => true,
@@ -299,8 +299,8 @@ public class McpService(MaINSettings settings, IServiceProvider serviceProvider)
                             JsonValueKind.Number when kvp.Value.TryGetInt64(out var l) => l,
                             JsonValueKind.Number => (object)kvp.Value.GetDouble(),
                             _ => (object)kvp.Value
-                        })
-                    ?? new Dictionary<string, object>();
+                        }))
+                    ?? new Dictionary<string, object?>();
 
                 var toolResult = await mcpClient.CallToolAsync(toolName, argsDict);
                 var resultText = string.Join("\n", toolResult.Content

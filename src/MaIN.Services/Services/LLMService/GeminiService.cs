@@ -155,7 +155,7 @@ public sealed class GeminiService(
 
                     if (requestOptions.InteractiveUpdates)
                     {
-                        await notificationService.DispatchNotification(
+                        await _notificationService.DispatchNotification(
                             NotificationMessageBuilder.CreateChatCompletion(chat.Id, tokenValue, false),
                             ServiceConstants.Notifications.ReceiveMessageUpdate);
                     }

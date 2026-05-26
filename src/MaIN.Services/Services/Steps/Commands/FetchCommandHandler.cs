@@ -154,7 +154,7 @@ public class FetchCommandHandler(
                 "ReceiveAgentUpdate");
 
             var result = await llmServiceFactory.CreateService(backend)
-                .AskMemory(memoryChat!, new ChatMemoryOptions { TextData = new Dictionary<string, string> { ["web-content"] = cleanText } }, new ChatRequestOptions());
+                .AskMemory(memoryChat!, new ChatMemoryOptions { TextData = new Dictionary<string, string> { ["web-content"] = cleanText ?? string.Empty } }, new ChatRequestOptions());
 
             await notificationService.DispatchNotification(
                 NotificationMessageBuilder.CreateActorProgress(

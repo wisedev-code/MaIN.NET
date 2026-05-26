@@ -24,6 +24,7 @@ public sealed class VertexService(
     ILogger<VertexService>? logger = null)
     : OpenAiCompatibleService(notificationService, httpClientFactory, memoryFactory, memoryService, logger), ILLMService
 {
+    private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
     private GoogleServiceAccountTokenProvider? _tokenProvider;
     private string _location = "us-central1";
 
@@ -46,7 +47,7 @@ public sealed class VertexService(
         var auth = Auth;
         _tokenProvider ??= new GoogleServiceAccountTokenProvider(auth);
 
-        var httpClient = httpClientFactory.CreateClient(HttpClientName);
+        var httpClient = _httpClientFactory.CreateClient(HttpClientName);
         // Task.Run avoids deadlocking on Blazor Server's single-threaded SynchronizationContext
         return Task.Run(() => _tokenProvider.GetAccessTokenAsync(httpClient)).GetAwaiter().GetResult();
     }

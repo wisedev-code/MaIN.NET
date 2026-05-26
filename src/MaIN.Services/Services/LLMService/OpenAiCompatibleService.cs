@@ -314,9 +314,10 @@ public abstract class OpenAiCompatibleService(
 
         var toolCallsBuilder = new Dictionary<int, ToolCallBuilder>();
 
-        while (!reader.EndOfStream)
+        while (true)
         {
             var line = await reader.ReadLineAsync(cancellationToken);
+            if (line is null) break;
             if (string.IsNullOrWhiteSpace(line))
                 continue;
 
@@ -755,11 +756,12 @@ public abstract class OpenAiCompatibleService(
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
         using var reader = new StreamReader(stream);
 
-        while (!reader.EndOfStream)
+        while (true)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
             var line = await reader.ReadLineAsync(cancellationToken);
+            if (line is null) break;
             if (string.IsNullOrWhiteSpace(line))
                 continue;
 
