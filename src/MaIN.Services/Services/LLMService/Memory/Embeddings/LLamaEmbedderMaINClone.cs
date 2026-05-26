@@ -72,9 +72,7 @@ public sealed class LLamaEmbedderMaINClone
 
     private async Task<(IReadOnlyList<float[]> Embeddings, int Tokens)> GetEmbeddingsWithTokenCount(string input, CancellationToken cancellationToken = default)
     {
-        // Create a fresh context for each embedding call (0.26.0 pattern)
         using var context = _weights.CreateContext(_params, _logger);
-        //NativeApi.em.llama_set_embeddings(context.NativeHandle, true);
 
         var tokens = context.Tokenize(input, special: true);
         if (tokens.Length > context.ContextSize)
@@ -82,7 +80,6 @@ public sealed class LLamaEmbedderMaINClone
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        // Evaluate prompt in batch-size chunks
         var n_past = 0;
         var batch = new LLamaBatch();
         var batchSize = (int)context.Params.BatchSize;
@@ -120,13 +117,11 @@ public sealed class LLamaEmbedderMaINClone
             }
         }
 
-        // Extract results
         var poolingType = context.NativeHandle.PoolingType;
         var resultsCount = poolingType == LLamaPoolingType.None ? tokens.Length : 1;
         var results = new List<float[]>(resultsCount);
         results.Add(context.NativeHandle.GetEmbeddingsSeq(LLamaSeqId.Zero).ToArray());
 
-        // Normalize the embeddings vector
         foreach (var embedding in results)
         {
             embedding.EuclideanNormalization();
