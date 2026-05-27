@@ -38,6 +38,7 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository_owner }}/main-inferpage:cpu
             ghcr.io/${{ github.repository_owner }}/main-inferpage:latest
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -50,6 +51,20 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: ghcr.io/${{ github.repository_owner }}/main-inferpage:cuda
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push Ollama image (linux/amd64 + linux/arm64)
+        uses: docker/build-push-action@v6
+        with:
+          context: ./src
+          file: ./src/Dockerfile.inferpage
+          target: runtime-ollama
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/main-inferpage:ollama
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -61,6 +76,17 @@ jobs:
           target: runtime-ollama-bundled
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/main-inferpage:ollama
+          tags: ghcr.io/${{ github.repository_owner }}/main-inferpage:ollama-bundled
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Make package public
+        run: |
+          gh api --method PATCH \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /user/packages/container/main-inferpage \
+            -f visibility=public || echo "::warning::Could not set package visibility via API — set it manually at: https://github.com/users/${{ github.repository_owner }}/packages/container/main-inferpage/settings"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
