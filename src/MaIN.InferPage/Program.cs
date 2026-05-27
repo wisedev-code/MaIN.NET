@@ -3,6 +3,7 @@ using MaIN.Domain.Configuration;
 using MaIN.Domain.Models.Concrete;
 using MaIN.Domain.Models.Abstract;
 using MaIN.InferPage.Services;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.FluentUI.AspNetCore.Components;
 using MaIN.InferPage.Components;
 using Utils = MaIN.InferPage.Utils;
@@ -17,6 +18,15 @@ builder.Services.AddRazorComponents()
 builder.Services.AddFluentUIComponents();
 builder.Services.AddScoped<SettingsService>();
 builder.Services.AddScoped<SettingsStateService>();
+
+if (!builder.Environment.IsDevelopment())
+{
+    // Persist Data Protection keys so antiforgery tokens survive container restarts.
+    // Mount /app/DataProtection-Keys as a volume to keep keys across container recreations.
+    builder.Services.AddDataProtection()
+        .SetApplicationName("MaIN.InferPage")
+        .PersistKeysToFileSystem(new DirectoryInfo("/app/DataProtection-Keys"));
+}
 
 try
 {
@@ -123,10 +133,11 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+if (app.Environment.IsDevelopment())
+    app.UseHttpsRedirection();
+app.UseStaticFiles();
 app.UseAntiforgery();
 app.Services.UseMaIN();
-app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
