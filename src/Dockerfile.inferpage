@@ -23,6 +23,9 @@ RUN dotnet publish MaIN.InferPage/MaIN.InferPage.csproj \
     --no-restore \
     --output /app/out
 
+RUN mkdir -p /app/out/wwwroot/_framework && \
+    cp MaIN.InferPage/docker-assets/blazor.web.js /app/out/wwwroot/_framework/blazor.web.js
+
 FROM nvidia/cuda:12.9.1-runtime-ubuntu24.04 AS runtime-cuda
 
 RUN apt-get update \
