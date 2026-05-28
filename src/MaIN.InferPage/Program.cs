@@ -138,6 +138,7 @@ if (app.Environment.IsDevelopment())
 app.UseStaticFiles();
 app.UseAntiforgery();
 app.Services.UseMaIN();
+AIHub.DisableLLamaLogs();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
