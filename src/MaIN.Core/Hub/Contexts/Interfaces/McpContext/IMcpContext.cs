@@ -26,6 +26,10 @@ public interface IMcpContext
     /// Sets the maximum number of tool-call iterations allowed in a single MCP prompt.
     /// Overrides the default limit of 10. Must be at least 1.
     /// </summary>
+    /// <remarks>
+    /// Not supported for <see cref="BackendType.Gemini"/> and <see cref="BackendType.Vertex"/> backends -
+    /// a <see cref="NotSupportedException"/> will be thrown at runtime when <see cref="PromptAsync"/> is called.
+    /// </remarks>
     IMcpContext WithMaxIterations(int maxIterations);
 
     /// <summary>

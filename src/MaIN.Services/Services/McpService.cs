@@ -37,6 +37,8 @@ public class McpService(MaINSettings settings, IServiceProvider serviceProvider,
 
         return backendType switch
         {
+            BackendType.Gemini or BackendType.Vertex when maxIterations.HasValue =>
+                throw new NotSupportedException($"MaxIterations is not supported for {backendType} backend."),
             BackendType.Gemini or BackendType.Vertex =>
                 await PromptWithSK(mcpClient, tools, config, messageHistory, backendType),
             BackendType.Anthropic =>
