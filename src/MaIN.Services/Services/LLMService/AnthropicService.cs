@@ -1,20 +1,20 @@
-﻿using MaIN.Domain.Entities;
+using System.Collections.Concurrent;
+using System.Text;
+using System.Text.Json;
+using LLama.Common;
+using MaIN.Domain.Configuration;
+using MaIN.Domain.Configuration.BackendInferenceParams;
+using MaIN.Domain.Entities;
+using MaIN.Domain.Entities.Tools;
+using MaIN.Domain.Exceptions;
 using MaIN.Domain.Models;
+using MaIN.Domain.Models.Concrete;
 using MaIN.Services.Constants;
 using MaIN.Services.Services.Abstract;
+using MaIN.Services.Services.LLMService.Utils;
 using MaIN.Services.Services.Models;
 using MaIN.Services.Utils;
 using Microsoft.Extensions.Logging;
-using System.Collections.Concurrent;
-using System.Text.Json;
-using System.Text;
-using LLama.Common;
-using MaIN.Domain.Configuration;
-using MaIN.Domain.Entities.Tools;
-using MaIN.Domain.Exceptions;
-using MaIN.Domain.Models.Concrete;
-using MaIN.Services.Services.LLMService.Utils;
-using MaIN.Domain.Configuration.BackendInferenceParams;
 
 namespace MaIN.Services.Services.LLMService;
 
@@ -43,7 +43,9 @@ public sealed class AnthropicService(
         client.DefaultRequestHeaders.Add("anthropic-version", "2023-06-01");
 
         if (requireSkillsBeta)
+        {
             client.DefaultRequestHeaders.Add("anthropic-beta", ServiceConstants.AnthropicBetaFeatures.SkillsBetaHeader);
+        }
 
         return client;
     }
@@ -73,7 +75,9 @@ public sealed class AnthropicService(
         ValidateApiKey();
 
         if (!chat.Messages.Any())
+        {
             return null;
+        }
 
         var lastMessage = chat.Messages.Last();
         await ChatHelper.ExtractImageFromFiles(lastMessage);
@@ -158,8 +162,9 @@ public sealed class AnthropicService(
         StringBuilder fullResponseBuilder = new();
         int iterations = 0;
         List<AnthropicToolUse>? currentToolUses = null;
+        var maxToolIterations = chat.ToolsConfiguration?.MaxIterations ?? MaxToolIterations;
 
-        while (iterations < MaxToolIterations)
+        while (iterations < maxToolIterations)
         {
             if (iterations > 0 && fullResponseBuilder.Length > 0)
             {
@@ -167,7 +172,9 @@ public sealed class AnthropicService(
                 tokens.Add(spaceToken);
 
                 if (options.TokenCallback != null)
+                {
                     await options.TokenCallback(spaceToken);
+                }
 
                 if (options.InteractiveUpdates)
                 {
@@ -291,10 +298,10 @@ public sealed class AnthropicService(
             iterations++;
         }
 
-        if (iterations >= MaxToolIterations)
+        if (iterations >= maxToolIterations)
         {
             logger?.LogWarning("Maximum tool iterations ({MaxIterations}) reached for chat {ChatId}",
-                MaxToolIterations, chat.Id);
+                maxToolIterations, chat.Id);
         }
 
         var finalResponse = fullResponseBuilder.ToString();
@@ -350,9 +357,15 @@ public sealed class AnthropicService(
         while (true)
         {
             var line = await reader.ReadLineAsync(cancellationToken);
-            if (line is null) break;
+            if (line is null)
+            {
+                break;
+            }
+
             if (string.IsNullOrWhiteSpace(line))
+            {
                 continue;
+            }
 
             if (line.StartsWith("event:"))
             {
@@ -392,7 +405,9 @@ public sealed class AnthropicService(
                             resultBuilder.Append(chunk.Delta.Text);
 
                             if (options.TokenCallback != null)
+                            {
                                 await options.TokenCallback(token);
+                            }
 
                             if (options.InteractiveUpdates)
                             {
@@ -429,12 +444,12 @@ public sealed class AnthropicService(
 
         return null;
     }
-    
+
     private async Task HandleApiError(HttpResponseMessage response, CancellationToken cancellationToken = default)
     {
         var errorResponseBody = await response.Content.ReadAsStringAsync(cancellationToken);
         var errorMessage = ExtractApiErrorMessage(errorResponseBody);
-                
+
         throw new LLMApiException(LLMApiRegistry.Anthropic.ApiName, response.StatusCode, errorMessage ?? errorResponseBody);
     }
 
@@ -529,15 +544,28 @@ public sealed class AnthropicService(
 
         if (anthParams != null)
         {
-            if (anthParams.Temperature.HasValue) requestBody["temperature"] = anthParams.Temperature.Value;
-            if (anthParams.TopP.HasValue) requestBody["top_p"] = anthParams.TopP.Value;
-            if (anthParams.TopK.HasValue) requestBody["top_k"] = anthParams.TopK.Value;
+            if (anthParams.Temperature.HasValue)
+            {
+                requestBody["temperature"] = anthParams.Temperature.Value;
+            }
+
+            if (anthParams.TopP.HasValue)
+            {
+                requestBody["top_p"] = anthParams.TopP.Value;
+            }
+
+            if (anthParams.TopK.HasValue)
+            {
+                requestBody["top_k"] = anthParams.TopK.Value;
+            }
         }
 
         if (chat.BackendParams?.AdditionalParams != null)
         {
             foreach (var (key, value) in chat.BackendParams.AdditionalParams)
+            {
                 requestBody[key] = value;
+            }
         }
 
         if (systemMessage != null && systemMessage.Content is string systemContent)
@@ -587,7 +615,9 @@ public sealed class AnthropicService(
         }
 
         if (toolsList.Count > 0)
+        {
             requestBody["tools"] = toolsList;
+        }
 
         return requestBody;
     }
@@ -604,7 +634,7 @@ public sealed class AnthropicService(
         var httpClient = CreateAnthropicHttpClient();
 
         using var response = await httpClient.GetAsync(ModelsUrl);
-        
+
         if (!response.IsSuccessStatusCode)
         {
             await HandleApiError(response);
@@ -683,9 +713,15 @@ public sealed class AnthropicService(
         while (true)
         {
             var line = await reader.ReadLineAsync(cancellationToken);
-            if (line is null) break;
+            if (line is null)
+            {
+                break;
+            }
+
             if (string.IsNullOrWhiteSpace(line))
+            {
                 continue;
+            }
 
             if (line.StartsWith("data:"))
             {
@@ -741,7 +777,7 @@ public sealed class AnthropicService(
         var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
 
         using var response = await httpClient.PostAsync(CompletionsUrl, content, cancellationToken);
-        
+
         if (!response.IsSuccessStatusCode)
         {
             await HandleApiError(response, cancellationToken);

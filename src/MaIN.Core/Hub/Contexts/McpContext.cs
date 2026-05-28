@@ -2,6 +2,7 @@ using MaIN.Core.Hub.Contexts.Interfaces.McpContext;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Exceptions.MPC;
+using MaIN.Domain.Exceptions.Tools;
 using MaIN.Services.Constants;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.Models;
@@ -13,6 +14,7 @@ public sealed class McpContext : IMcpContext
     private readonly IMcpService _mcpService;
     private Mcp? _mcpConfig;
     private BackendType? _explicitBackend;
+    private int? _maxIterations;
 
     internal McpContext(IMcpService mcpService)
     {
@@ -24,7 +26,10 @@ public sealed class McpContext : IMcpContext
     {
         _mcpConfig = mcpConfig;
         if (_explicitBackend.HasValue)
+        {
             _mcpConfig.Backend = _explicitBackend;
+        }
+
         return this;
     }
 
@@ -35,18 +40,29 @@ public sealed class McpContext : IMcpContext
         return this;
     }
 
+    public IMcpContext WithMaxIterations(int maxIterations)
+    {
+        if (maxIterations < 1)
+        {
+            throw new InvalidToolIterationsException(maxIterations);
+        }
+
+        _maxIterations = maxIterations;
+        return this;
+    }
+
     public async Task<McpResult> PromptAsync(string prompt)
     {
         if (_mcpConfig == null)
         {
             throw new MPCConfigNotFoundException();
         }
-        
-        return await _mcpService.Prompt(_mcpConfig!, [new Message()
+
+        return await _mcpService.Prompt(_mcpConfig, [new Message()
         {
             Content = prompt,
             Role = ServiceConstants.Roles.User,
             Type = MessageType.CloudLLM
-        }]);
+        }], _maxIterations);
     }
 }

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Agents.Knowledge;
@@ -12,7 +13,6 @@ using MaIN.Services.Services.Models;
 using MaIN.Services.Services.Models.Commands;
 using MaIN.Services.Services.Steps.Commands.Abstract;
 using MaIN.Services.Utils;
-using System.Text.Json;
 
 namespace MaIN.Services.Services.Steps.Commands;
 
@@ -74,7 +74,9 @@ public class AnswerCommandHandler(
     private async Task<bool> ShouldUseKnowledge(Knowledge? knowledge, Chat chat, BackendType backend)
     {
         if (knowledge?.Index.Items is not { Count: > 0 })
+        {
             return false;
+        }
 
         var originalContent = chat.Messages.Last().Content;
 
@@ -156,7 +158,7 @@ public class AnswerCommandHandler(
 
         if (mcpConfig is not null)
         {
-            var result = await mcpService.Prompt(mcpConfig, chat.Messages);
+            var result = await mcpService.Prompt(mcpConfig, chat.Messages, chat.ToolsConfiguration?.MaxIterations);
             return result.Message;
         }
 

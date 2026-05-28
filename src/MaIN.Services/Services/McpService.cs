@@ -1,27 +1,25 @@
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Models.Concrete;
 using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.LLMService.Auth;
-using MaIN.Services.Services.LLMService.Utils;
 using MaIN.Services.Services.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.Google;
 using ModelContextProtocol.Client;
-using System.Net.Http.Headers;
-using System.Text;
-using System.Text.Json;
 
 #pragma warning disable SKEXP0001
-#pragma warning disable SKEXP0070
 
 namespace MaIN.Services.Services;
 
 public class McpService(MaINSettings settings, IServiceProvider serviceProvider) : IMcpService
 {
-    public async Task<McpResult> Prompt(Mcp config, List<Message> messageHistory)
+    public async Task<McpResult> Prompt(Mcp config, List<Message> messageHistory, int? maxIterations = null)
     {
         await using var mcpClient = await McpClientFactory.CreateAsync(
             new StdioClientTransport(
@@ -41,10 +39,10 @@ public class McpService(MaINSettings settings, IServiceProvider serviceProvider)
             BackendType.Gemini or BackendType.Vertex =>
                 await PromptWithSK(mcpClient, tools, config, messageHistory, backendType),
             BackendType.Anthropic =>
-                await PromptWithAnthropic(mcpClient, tools, config, messageHistory),
+                await PromptWithAnthropic(mcpClient, tools, config, messageHistory, maxIterations),
             BackendType.DeepSeek or BackendType.Ollama or BackendType.Self =>
                 throw new NotSupportedException($"{backendType} does not support MCP integration."),
-            _ => await PromptWithHttp(mcpClient, tools, config, messageHistory, backendType)
+            _ => await PromptWithHttp(mcpClient, tools, config, messageHistory, backendType, maxIterations)
         };
     }
 
@@ -55,7 +53,8 @@ public class McpService(MaINSettings settings, IServiceProvider serviceProvider)
         IList<McpClientTool> tools,
         Mcp config,
         List<Message> messageHistory,
-        BackendType backendType)
+        BackendType backendType,
+        int? maxIterations = null)
     {
         var (url, apiKey) = GetEndpointAndKey(backendType, config);
 
@@ -82,8 +81,8 @@ public class McpService(MaINSettings settings, IServiceProvider serviceProvider)
             })
             .ToList();
 
-        const int maxIterations = 10;
-        for (int i = 0; i < maxIterations; i++)
+        var effectiveMaxIterations = maxIterations ?? 10;
+        for (int i = 0; i < effectiveMaxIterations; i++)
         {
             var requestBody = new Dictionary<string, object>
             {
@@ -183,7 +182,8 @@ public class McpService(MaINSettings settings, IServiceProvider serviceProvider)
         IMcpClient mcpClient,
         IList<McpClientTool> tools,
         Mcp config,
-        List<Message> messageHistory)
+        List<Message> messageHistory,
+        int? maxIterations = null)
     {
         var apiKey = GetAnthropicKey() ?? throw new InvalidOperationException("Anthropic API key not configured.");
         var httpClientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>();
@@ -211,8 +211,8 @@ public class McpService(MaINSettings settings, IServiceProvider serviceProvider)
             })
             .ToList();
 
-        const int maxIterations = 10;
-        for (int i = 0; i < maxIterations; i++)
+        var effectiveMaxIterations = maxIterations ?? 10;
+        for (int i = 0; i < effectiveMaxIterations; i++)
         {
             var requestBody = new Dictionary<string, object>
             {
@@ -262,6 +262,7 @@ public class McpService(MaINSettings settings, IServiceProvider serviceProvider)
                     });
                     continue;
                 }
+
                 return BuildResult(textContent, config.Model);
             }
 
@@ -317,6 +318,7 @@ public class McpService(MaINSettings settings, IServiceProvider serviceProvider)
                     ["content"] = resultText
                 });
             }
+
             messages.Add(new Dictionary<string, object> { ["role"] = "user", ["content"] = toolResults });
         }
 

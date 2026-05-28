@@ -1,12 +1,13 @@
 using System.Text.Json;
 using MaIN.Domain.Entities.Tools;
+using MaIN.Domain.Exceptions.Tools;
 
 namespace MaIN.Core.Hub.Utils;
 //TODO try to share logic of adding tool to the list across methods https://github.com/wisedev-code/MaIN.NET/pull/98#discussion_r2454997846
 public sealed class ToolsConfigurationBuilder
 {
     private readonly ToolsConfiguration _config = new() { Tools = [] };
-    
+
     public ToolsConfigurationBuilder AddDefaultTool(
         string type)
     {
@@ -16,10 +17,10 @@ public sealed class ToolsConfigurationBuilder
         });
         return this;
     }
-    
+
     public ToolsConfigurationBuilder AddTool(
-        string name, 
-        string description, 
+        string name,
+        string description,
         object parameters,
         Func<string, Task<string>> execute)
     {
@@ -37,8 +38,8 @@ public sealed class ToolsConfigurationBuilder
     }
 
     public ToolsConfigurationBuilder AddTool(
-        string name, 
-        string description, 
+        string name,
+        string description,
         object parameters,
         Func<string, string> execute)
     {
@@ -56,8 +57,8 @@ public sealed class ToolsConfigurationBuilder
     }
 
     public ToolsConfigurationBuilder AddTool<TArgs>(
-        string name, 
-        string description, 
+        string name,
+        string description,
         object parameters,
         Func<TArgs, Task<object>> execute) where TArgs : class
     {
@@ -71,7 +72,7 @@ public sealed class ToolsConfigurationBuilder
             },
             Execute = async (argsJson) =>
             {
-                var args = JsonSerializer.Deserialize<TArgs>(argsJson, 
+                var args = JsonSerializer.Deserialize<TArgs>(argsJson,
                     new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
                 var result = await execute(args);
                 return JsonSerializer.Serialize(result);
@@ -81,8 +82,8 @@ public sealed class ToolsConfigurationBuilder
     }
 
     public ToolsConfigurationBuilder AddTool<TArgs>(
-        string name, 
-        string description, 
+        string name,
+        string description,
         object parameters,
         Func<TArgs, object> execute) where TArgs : class
     {
@@ -96,7 +97,7 @@ public sealed class ToolsConfigurationBuilder
             },
             Execute = (argsJson) =>
             {
-                var args = JsonSerializer.Deserialize<TArgs>(argsJson, 
+                var args = JsonSerializer.Deserialize<TArgs>(argsJson,
                     new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
                 var result = execute(args);
                 return Task.FromResult(JsonSerializer.Serialize(result));
@@ -106,7 +107,7 @@ public sealed class ToolsConfigurationBuilder
     }
 
     public ToolsConfigurationBuilder AddTool(
-        string name, 
+        string name,
         string description,
         Func<Task<object>> execute)
     {
@@ -128,7 +129,7 @@ public sealed class ToolsConfigurationBuilder
     }
 
     public ToolsConfigurationBuilder AddTool(
-        string name, 
+        string name,
         string description,
         Func<object> execute)
     {
@@ -152,6 +153,17 @@ public sealed class ToolsConfigurationBuilder
     public ToolsConfigurationBuilder WithToolChoice(string choice)
     {
         _config.ToolChoice = choice;
+        return this;
+    }
+
+    public ToolsConfigurationBuilder WithMaxIterations(int maxIterations)
+    {
+        if (maxIterations < 1)
+        {
+            throw new InvalidToolIterationsException(maxIterations);
+        }
+
+        _config.MaxIterations = maxIterations;
         return this;
     }
 
