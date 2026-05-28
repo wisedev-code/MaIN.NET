@@ -250,7 +250,7 @@ public sealed class OpenAiService(
         string apiKey,
         CancellationToken cancellationToken)
     {
-        var maxIterations = chat.ToolsConfiguration?.MaxIterations ?? 5;
+        var maxIterations = chat.ToolsConfiguration?.MaxIterations ?? MaxToolIterations;
         string responseJson = string.Empty;
 
         for (var iteration = 0; iteration < maxIterations; iteration++)

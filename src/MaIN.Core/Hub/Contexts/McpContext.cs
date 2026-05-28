@@ -42,11 +42,7 @@ public sealed class McpContext : IMcpContext
 
     public IMcpContext WithMaxIterations(int maxIterations)
     {
-        if (maxIterations < 1)
-        {
-            throw new InvalidToolIterationsException(maxIterations);
-        }
-
+        InvalidToolIterationsException.ThrowIfInvalid(maxIterations);
         _maxIterations = maxIterations;
         return this;
     }

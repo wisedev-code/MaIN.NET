@@ -103,11 +103,7 @@ public sealed class ToolsConfigurationBuilder
 
     public ToolsConfigurationBuilder WithMaxIterations(int maxIterations)
     {
-        if (maxIterations < 1)
-        {
-            throw new InvalidToolIterationsException(maxIterations);
-        }
-
+        InvalidToolIterationsException.ThrowIfInvalid(maxIterations);
         _config.MaxIterations = maxIterations;
         return this;
     }

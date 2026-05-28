@@ -7,4 +7,12 @@ public class InvalidToolIterationsException(int value)
 {
     public override string PublicErrorMessage => Message;
     public override HttpStatusCode HttpStatusCode => HttpStatusCode.BadRequest;
+
+    public static void ThrowIfInvalid(int value)
+    {
+        if (value < 1)
+        {
+            throw new InvalidToolIterationsException(value);
+        }
+    }
 }
