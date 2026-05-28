@@ -8,6 +8,7 @@ using MaIN.Services.Services.Abstract;
 using MaIN.Services.Services.LLMService.Auth;
 using MaIN.Services.Services.Models;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.Google;
@@ -17,7 +18,7 @@ using ModelContextProtocol.Client;
 
 namespace MaIN.Services.Services;
 
-public class McpService(MaINSettings settings, IServiceProvider serviceProvider) : IMcpService
+public class McpService(MaINSettings settings, IServiceProvider serviceProvider, ILogger<McpService>? logger = null) : IMcpService
 {
     public async Task<McpResult> Prompt(Mcp config, List<Message> messageHistory, int? maxIterations = null)
     {
@@ -122,7 +123,7 @@ public class McpService(MaINSettings settings, IServiceProvider serviceProvider)
                     continue;
                 }
 
-                return BuildResult(content, config.Model);
+                return McpService.BuildResult(content, config.Model);
             }
 
             // Add assistant message with tool calls (preserve raw JSON element)
@@ -141,28 +142,7 @@ public class McpService(MaINSettings settings, IServiceProvider serviceProvider)
                 var argsJson = toolCall.GetProperty("function").GetProperty("arguments").GetString() ?? "{}";
                 var toolCallId = toolCall.GetProperty("id").GetString()!;
 
-                var argsDict = JsonSerializer
-                    .Deserialize<Dictionary<string, JsonElement>>(argsJson)
-                    ?.ToDictionary(
-                        kvp => kvp.Key,
-                        kvp => (object?)(kvp.Value.ValueKind switch
-                        {
-                            JsonValueKind.String => (object)kvp.Value.GetString()!,
-                            JsonValueKind.True => true,
-                            JsonValueKind.False => false,
-                            JsonValueKind.Number when kvp.Value.TryGetInt64(out var l) => l,
-                            JsonValueKind.Number => (object)kvp.Value.GetDouble(),
-                            _ => (object)kvp.Value
-                        }))
-                    ?? new Dictionary<string, object?>();
-
-                var toolResult = await mcpClient.CallToolAsync(toolName, argsDict);
-                var resultText = string.Join("\n", toolResult.Content
-                    .Where(c => c.Text != null)
-                    .Select(c => c.Text!));
-
-                if (toolResult.IsError == true)
-                    Console.WriteLine($"[MCP] Tool '{toolName}' returned error: {resultText}");
+                var resultText = await ExecuteToolAsync(mcpClient, toolName, argsJson);
 
                 messages.Add(new Dictionary<string, object>
                 {
@@ -173,7 +153,28 @@ public class McpService(MaINSettings settings, IServiceProvider serviceProvider)
             }
         }
 
-        return BuildResult("Max tool iterations reached.", config.Model);
+        logger?.LogWarning("Max tool iterations ({MaxIterations}) reached. Sending final synthesis request.", effectiveMaxIterations);
+
+        var finalRequestBody = new Dictionary<string, object>
+        {
+            ["model"] = config.Model,
+            ["messages"] = messages,
+            ["tools"] = toolDefs
+        };
+
+        var finalJson = JsonSerializer.Serialize(finalRequestBody);
+        var finalResponse = await client.PostAsync(url,
+            new StringContent(finalJson, Encoding.UTF8, "application/json"));
+        finalResponse.EnsureSuccessStatusCode();
+
+        var finalResponseText = await finalResponse.Content.ReadAsStringAsync();
+        var finalDoc = JsonDocument.Parse(finalResponseText);
+        var finalMessage = finalDoc.RootElement
+            .GetProperty("choices")[0]
+            .GetProperty("message");
+        var finalContent = finalMessage.TryGetProperty("content", out var fc) ? fc.GetString() ?? "" : "";
+
+        return McpService.BuildResult(finalContent, config.Model);
     }
 
     // Anthropic uses a different protocol: x-api-key header, input_schema instead of parameters,
@@ -224,8 +225,10 @@ public class McpService(MaINSettings settings, IServiceProvider serviceProvider)
                     ? (object)new Dictionary<string, object> { ["type"] = "any" }
                     : new Dictionary<string, object> { ["type"] = "auto" }
             };
-            if (systemContent != null)
+            if (systemContent is not null)
+            {
                 requestBody["system"] = systemContent;
+            }
 
             var json = JsonSerializer.Serialize(requestBody);
             var response = await client.PostAsync("https://api.anthropic.com/v1/messages",
@@ -263,14 +266,18 @@ public class McpService(MaINSettings settings, IServiceProvider serviceProvider)
                     continue;
                 }
 
-                return BuildResult(textContent, config.Model);
+                return McpService.BuildResult(textContent, config.Model);
             }
 
             // Add assistant turn with tool_use blocks
             var assistantContent = new List<object>();
             if (!string.IsNullOrEmpty(textContent))
+            {
                 assistantContent.Add(new Dictionary<string, object> { ["type"] = "text", ["text"] = textContent });
+            }
+
             foreach (var tu in toolUses)
+            {
                 assistantContent.Add(new Dictionary<string, object>
                 {
                     ["type"] = "tool_use",
@@ -278,6 +285,8 @@ public class McpService(MaINSettings settings, IServiceProvider serviceProvider)
                     ["name"] = tu.GetProperty("name").GetString()!,
                     ["input"] = tu.GetProperty("input")
                 });
+            }
+
             messages.Add(new Dictionary<string, object> { ["role"] = "assistant", ["content"] = assistantContent });
 
             // Execute tools and collect tool_result blocks
@@ -286,30 +295,7 @@ public class McpService(MaINSettings settings, IServiceProvider serviceProvider)
             {
                 var toolName = tu.GetProperty("name").GetString()!;
                 var toolId = tu.GetProperty("id").GetString()!;
-                var inputElement = tu.GetProperty("input");
-
-                var argsDict = JsonSerializer
-                    .Deserialize<Dictionary<string, JsonElement>>(inputElement.GetRawText())
-                    ?.ToDictionary(
-                        kvp => kvp.Key,
-                        kvp => (object?)(kvp.Value.ValueKind switch
-                        {
-                            JsonValueKind.String => (object)kvp.Value.GetString()!,
-                            JsonValueKind.True => true,
-                            JsonValueKind.False => false,
-                            JsonValueKind.Number when kvp.Value.TryGetInt64(out var l) => l,
-                            JsonValueKind.Number => (object)kvp.Value.GetDouble(),
-                            _ => (object)kvp.Value
-                        }))
-                    ?? new Dictionary<string, object?>();
-
-                var toolResult = await mcpClient.CallToolAsync(toolName, argsDict);
-                var resultText = string.Join("\n", toolResult.Content
-                    .Where(c => c.Text != null)
-                    .Select(c => c.Text!));
-
-                if (toolResult.IsError == true)
-                    Console.WriteLine($"[MCP] Tool '{toolName}' returned error: {resultText}");
+                var resultText = await ExecuteToolAsync(mcpClient, toolName, tu.GetProperty("input").GetRawText());
 
                 toolResults.Add(new Dictionary<string, object>
                 {
@@ -322,7 +308,34 @@ public class McpService(MaINSettings settings, IServiceProvider serviceProvider)
             messages.Add(new Dictionary<string, object> { ["role"] = "user", ["content"] = toolResults });
         }
 
-        return BuildResult("Max tool iterations reached.", config.Model);
+        logger?.LogWarning("Max tool iterations ({MaxIterations}) reached. Sending final synthesis request.", effectiveMaxIterations);
+
+        var finalRequestBody = new Dictionary<string, object>
+        {
+            ["model"] = config.Model,
+            ["max_tokens"] = 4096,
+            ["messages"] = messages,
+            ["tools"] = toolDefs
+        };
+        if (systemContent is not null)
+        {
+            finalRequestBody["system"] = systemContent;
+        }
+
+        var finalJson = JsonSerializer.Serialize(finalRequestBody);
+        var finalResponse = await client.PostAsync("https://api.anthropic.com/v1/messages",
+            new StringContent(finalJson, Encoding.UTF8, "application/json"));
+        finalResponse.EnsureSuccessStatusCode();
+
+        var finalResponseText = await finalResponse.Content.ReadAsStringAsync();
+        var finalDoc = JsonDocument.Parse(finalResponseText);
+        var finalContent = string.Concat(finalDoc.RootElement
+            .GetProperty("content")
+            .EnumerateArray()
+            .Where(b => b.TryGetProperty("type", out var t) && t.GetString() == "text")
+            .Select(b => b.TryGetProperty("text", out var txt) ? txt.GetString() ?? "" : ""));
+
+        return McpService.BuildResult(finalContent, config.Model);
     }
 
     private (string url, string apiKey) GetEndpointAndKey(BackendType backendType, Mcp config)
@@ -371,7 +384,7 @@ public class McpService(MaINSettings settings, IServiceProvider serviceProvider)
         var chatService = kernel.GetRequiredService<IChatCompletionService>();
         var result = await chatService.GetChatMessageContentsAsync(chatHistory, promptSettings, kernel);
 
-        return BuildResult(result.Last().Content!, config.Model);
+        return McpService.BuildResult(result.Last().Content!, config.Model);
     }
 
     private PromptExecutionSettings InitializeGoogleChatCompletions(IKernelBuilder kernelBuilder, Mcp config, BackendType backendType)
@@ -412,7 +425,37 @@ public class McpService(MaINSettings settings, IServiceProvider serviceProvider)
         };
     }
 
-    private McpResult BuildResult(string content, string model) => new()
+    private static Dictionary<string, object?> DeserializeToolArgs(string argsJson)
+    {
+        return JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(argsJson)
+            ?.ToDictionary(
+                kvp => kvp.Key,
+                kvp => (object?)(kvp.Value.ValueKind switch
+                {
+                    JsonValueKind.String => (object)kvp.Value.GetString()!,
+                    JsonValueKind.True => true,
+                    JsonValueKind.False => false,
+                    JsonValueKind.Number when kvp.Value.TryGetInt64(out var l) => l,
+                    JsonValueKind.Number => (object)kvp.Value.GetDouble(),
+                    _ => (object)kvp.Value
+                }))
+            ?? [];
+    }
+
+    private async Task<string> ExecuteToolAsync(IMcpClient mcpClient, string toolName, string argsJson)
+    {
+        var argsDict = DeserializeToolArgs(argsJson);
+        var result = await mcpClient.CallToolAsync(toolName, argsDict);
+        var text = string.Join("\n", result.Content.Where(c => c.Text is not null).Select(c => c.Text!));
+        if (result.IsError == true)
+        {
+            logger?.LogError("MCP tool '{ToolName}' returned error: {Error}", toolName, text);
+        }
+
+        return text;
+    }
+
+    private static McpResult BuildResult(string content, string model) => new()
     {
         CreatedAt = DateTime.Now,
         Message = new Message
