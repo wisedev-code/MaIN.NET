@@ -158,7 +158,7 @@ public class AnswerCommandHandler(
 
         if (mcpConfig is not null)
         {
-            var result = await mcpService.Prompt(mcpConfig, chat.Messages, chat.ToolsConfiguration?.MaxIterations);
+            var result = await mcpService.Prompt(mcpConfig, chat.Messages);
             return result.Message;
         }
 
