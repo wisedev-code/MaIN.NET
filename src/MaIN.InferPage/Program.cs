@@ -1,4 +1,5 @@
 using MaIN.Core;
+using MaIN.Core.Hub;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Models.Concrete;
 using MaIN.Domain.Models.Abstract;
@@ -138,7 +139,7 @@ if (app.Environment.IsDevelopment())
 app.UseStaticFiles();
 app.UseAntiforgery();
 app.Services.UseMaIN();
-AIHub.DisableLLamaLogs();
+AIHub.Extensions.DisableLLamaLogs();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
