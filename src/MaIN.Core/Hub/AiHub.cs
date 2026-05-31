@@ -8,6 +8,8 @@ using MaIN.Services.Services.Abstract;
 
 namespace MaIN.Core.Hub;
 
+[Obsolete("Use IMaINHub injected via DI. " +
+    "AIHub is retained for backward compatibility and will be removed in future updates.")]
 public static class AIHub
 {
     private static IAIHubServices? _services;
@@ -38,8 +40,8 @@ public static class AIHub
         throw new AIHubNotInitializedException();
 
     public static ModelContext Model() => new(_settings, _httpClientFactory);
-    public static ChatContext Chat() => new(Services.ChatService);
-    public static AgentContext Agent() => new(Services.AgentService, Services.SkillRegistry, Services.SkillComposer, Services.UploadCoordinator);
+    public static ChatContext Chat() => new(Services.ChatService, Model());
+    public static AgentContext Agent() => new(Services.AgentService, Services.SkillRegistry, Services.SkillComposer, Services.UploadCoordinator, Model());
     public static FlowContext Flow() => new(Services.FlowService, Services.AgentService);
     public static McpContext Mcp() => new(Services.McpService);
 
@@ -47,7 +49,7 @@ public static class AIHub
     {
         public static void DisableLLamaLogs()
         {
-            NativeLogConfig.llama_log_set((_,_) => {});
+            NativeLogConfig.llama_log_set((_, _) => { });
         }
 
         public static void DisableNotificationsLogs()

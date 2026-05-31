@@ -23,6 +23,7 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
     private readonly ISkillRegistry? _skillRegistry;
     private readonly ISkillComposer? _skillComposer;
     private readonly ProviderSkillUploadCoordinator? _uploadCoordinator;
+    private readonly ModelContext _modelContext;
     private readonly List<string> _pendingSkillNames = [];
     private readonly List<AgentSkill> _pendingInlineSkills = [];
     private bool _allSkillsApplied;
@@ -33,12 +34,18 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
     private readonly Agent _agent;
     internal Knowledge? _knowledge;
 
-    internal AgentContext(IAgentService agentService, ISkillRegistry skillRegistry, ISkillComposer skillComposer, ProviderSkillUploadCoordinator? uploadCoordinator = null)
+    internal AgentContext(
+        IAgentService agentService,
+        ISkillRegistry skillRegistry,
+        ISkillComposer skillComposer,
+        ProviderSkillUploadCoordinator? uploadCoordinator,
+        ModelContext modelContext)
     {
         _agentService = agentService;
         _skillRegistry = skillRegistry;
         _skillComposer = skillComposer;
         _uploadCoordinator = uploadCoordinator;
+        _modelContext = modelContext;
         _agent = new Agent
         {
             Id = Guid.NewGuid().ToString(),
@@ -57,13 +64,20 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
         };
     }
 
-    internal AgentContext(IAgentService agentService, Agent existingAgent, ISkillRegistry? skillRegistry, ISkillComposer? skillComposer, ProviderSkillUploadCoordinator? uploadCoordinator = null)
+    internal AgentContext(
+        IAgentService agentService,
+        Agent existingAgent,
+        ISkillRegistry? skillRegistry,
+        ISkillComposer? skillComposer,
+        ProviderSkillUploadCoordinator? uploadCoordinator,
+        ModelContext modelContext)
     {
         _agentService = agentService;
         _agent = existingAgent;
         _skillRegistry = skillRegistry;
         _skillComposer = skillComposer;
         _uploadCoordinator = uploadCoordinator;
+        _modelContext = modelContext;
     }
 
     public IAgentConfigurationBuilder WithSkill(string skillName)
@@ -86,14 +100,24 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
 
     public IAgentConfigurationBuilder WithAllSkills()
     {
-        if (_skillRegistry is null) return this;
-        if (_allSkillsApplied) return this;
+        if (_skillRegistry is null)
+        {
+            return this;
+        }
+
+        if (_allSkillsApplied)
+        {
+            return this;
+        }
+
         _allSkillsApplied = true;
 
         foreach (var skill in _skillRegistry.GetAllExcludingBuiltIn())
         {
             if (skill.StepPlacement == SkillStepPlacement.Replace)
+            {
                 continue;
+            }
 
             _pendingInlineSkills.Add(skill);
         }
@@ -127,7 +151,7 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
     {
         var existingAgent = await _agentService.GetAgentById(agentId) ?? throw new AgentNotFoundException(agentId);
 
-        var context = new AgentContext(_agentService, existingAgent, _skillRegistry, _skillComposer);
+        var context = new AgentContext(_agentService, existingAgent, _skillRegistry, _skillComposer, _uploadCoordinator, _modelContext);
         context.LoadExistingKnowledgeIfExists();
         return context;
     }
@@ -184,6 +208,7 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
         {
             mcpConfig.Backend = ModelRegistry.GetById(_agent.Model).Backend;
         }
+
         _agent.Config.McpConfig = mcpConfig;
         return this;
     }
@@ -248,7 +273,7 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
 
         if (_ensureModelDownloaded && !string.IsNullOrWhiteSpace(_agent.Model))
         {
-            await AIHub.Model().EnsureDownloadedAsync(_agent.Model);
+            await _modelContext.EnsureDownloadedAsync(_agent.Model);
         }
 
         await _agentService.CreateAgent(_agent, flow, interactiveResponse, _inferenceParams, _memoryParams, _disableCache);
@@ -264,8 +289,15 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
 
     private async Task ApplyPendingSkillsAsync()
     {
-        if (_skillComposer is null || _skillRegistry is null) return;
-        if (_pendingSkillNames.Count == 0 && _pendingInlineSkills.Count == 0) return;
+        if (_skillComposer is null || _skillRegistry is null)
+        {
+            return;
+        }
+
+        if (_pendingSkillNames.Count == 0 && _pendingInlineSkills.Count == 0)
+        {
+            return;
+        }
 
         var namedSkills = _pendingSkillNames.Select(name => _skillRegistry.GetSkill(name));
         var allSkills = namedSkills.Concat(_pendingInlineSkills).ToList();
@@ -283,7 +315,9 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
             _uploadCoordinator is not null)
         {
             foreach (var skill in allSkills)
+            {
                 await _uploadCoordinator.EnsureUploadedAsync(skill, backend.Value);
+            }
 
             // Single disk flush after the whole batch instead of one per skill.
             await _uploadCoordinator.FlushAsync();
@@ -302,10 +336,14 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
     private static BackendType? ResolveBackend(Agent agent)
     {
         if (agent.Backend.HasValue)
+        {
             return agent.Backend;
+        }
 
         if (!string.IsNullOrEmpty(agent.Model) && ModelRegistry.TryGetById(agent.Model, out var model) && model is not null)
+        {
             return model.Backend;
+        }
 
         return null;
     }
@@ -437,6 +475,7 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
     public static async Task<AgentContext> FromExisting(
         IAgentService agentService,
         string agentId,
+        ModelContext modelContext,
         ISkillRegistry? skillRegistry = null,
         ISkillComposer? skillComposer = null)
     {
@@ -446,7 +485,7 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
             throw new AgentNotFoundException(agentId);
         }
 
-        var context = new AgentContext(agentService, existingAgent, skillRegistry, skillComposer);
+        var context = new AgentContext(agentService, existingAgent, skillRegistry, skillComposer, null, modelContext);
         context.LoadExistingKnowledgeIfExists();
         return context;
     }
