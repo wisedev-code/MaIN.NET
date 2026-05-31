@@ -18,7 +18,7 @@ public class MaINHubRegistrationTests
     }
 
     [Fact]
-    public void AddMaIN_registers_IMaINHub_as_Scoped()
+    public void AddMaIN_registers_IMaINHub_as_Transient()
     {
         var configuration = new ConfigurationBuilder().Build();
         var services = new ServiceCollection();
@@ -26,7 +26,7 @@ public class MaINHubRegistrationTests
 
         var descriptor = services.Single(d => d.ServiceType == typeof(IMaINHub));
 
-        Assert.Equal(ServiceLifetime.Scoped, descriptor.Lifetime);
+        Assert.Equal(ServiceLifetime.Transient, descriptor.Lifetime);
     }
 
     [Fact]
