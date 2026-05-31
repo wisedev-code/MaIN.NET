@@ -9,13 +9,14 @@ internal sealed class MaINHub(
     MaINSettings settings,
     IHttpClientFactory httpClientFactory) : IMaINHub
 {
-    public ChatContext Chat() => new(services.ChatService);
+    public ChatContext Chat() => new(services.ChatService, Model());
 
     public AgentContext Agent() => new(
         services.AgentService,
         services.SkillRegistry,
         services.SkillComposer,
-        services.UploadCoordinator);
+        services.UploadCoordinator,
+        Model());
 
     public FlowContext Flow() => new(services.FlowService, services.AgentService);
 

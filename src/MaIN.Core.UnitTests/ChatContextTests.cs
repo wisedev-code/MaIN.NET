@@ -1,4 +1,5 @@
 using MaIN.Core.Hub.Contexts;
+using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Models.Abstract;
 using MaIN.Services.Services.Abstract;
@@ -14,10 +15,13 @@ public class ChatContextTests
     private readonly ChatContext _chatContext;
     private readonly string _testModelId = "test-model";
 
+    private static ModelContext CreateModelContext() =>
+        new(new MaINSettings(), Mock.Of<IHttpClientFactory>());
+
     public ChatContextTests()
     {
         _mockChatService = new Mock<IChatService>();
-        _chatContext = new ChatContext(_mockChatService.Object);
+        _chatContext = new ChatContext(_mockChatService.Object, CreateModelContext());
         var testModel = new GenericLocalModel(_testModelId);
         ModelRegistry.RegisterOrReplace(testModel);
     }
