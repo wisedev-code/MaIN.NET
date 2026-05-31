@@ -1,150 +1,96 @@
 using System.Text.Json;
 using MaIN.Domain.Entities.Tools;
+using MaIN.Domain.Exceptions.Tools;
 
 namespace MaIN.Core.Hub.Utils;
-//TODO try to share logic of adding tool to the list across methods https://github.com/wisedev-code/MaIN.NET/pull/98#discussion_r2454997846
+
 public sealed class ToolsConfigurationBuilder
 {
+    private static readonly JsonSerializerOptions s_deserializeOptions = new() { PropertyNameCaseInsensitive = true };
     private readonly ToolsConfiguration _config = new() { Tools = [] };
-    
-    public ToolsConfigurationBuilder AddDefaultTool(
-        string type)
+
+    public ToolsConfigurationBuilder AddDefaultTool(string type)
     {
-        _config.Tools.Add(new ToolDefinition
-        {
-            Type = type
-        });
+        _config.Tools.Add(new ToolDefinition { Type = type });
         return this;
     }
-    
+
     public ToolsConfigurationBuilder AddTool(
-        string name, 
-        string description, 
+        string name,
+        string description,
+        object parameters,
+        Func<string, Task<string>> execute)
+    {
+        return AddToolCore(name, description, parameters, execute);
+    }
+
+    public ToolsConfigurationBuilder AddTool(
+        string name,
+        string description,
+        object parameters,
+        Func<string, string> execute)
+    {
+        return AddToolCore(name, description, parameters, args => Task.FromResult(execute(args)));
+    }
+
+    public ToolsConfigurationBuilder AddTool<TArgs>(
+        string name,
+        string description,
+        object parameters,
+        Func<TArgs, Task<object>> execute) where TArgs : class
+    {
+        return AddToolCore(name, description, parameters, async argsJson =>
+            {
+                var args = JsonSerializer.Deserialize<TArgs>(argsJson, s_deserializeOptions)!;
+                return JsonSerializer.Serialize(await execute(args));
+            });
+    }
+
+    public ToolsConfigurationBuilder AddTool<TArgs>(
+        string name,
+        string description,
+        object parameters,
+        Func<TArgs, object> execute) where TArgs : class
+    {
+        return AddToolCore(name, description, parameters, argsJson =>
+            {
+                var args = JsonSerializer.Deserialize<TArgs>(argsJson, s_deserializeOptions)!;
+                return Task.FromResult(JsonSerializer.Serialize(execute(args)));
+            });
+    }
+
+    public ToolsConfigurationBuilder AddTool(
+        string name,
+        string description,
+        Func<Task<object>> execute)
+    {
+        return AddToolCore(
+            name,
+            description,
+            new { type = "object", properties = new { } },
+            async _ => JsonSerializer.Serialize(await execute()));
+    }
+
+    public ToolsConfigurationBuilder AddTool(
+        string name,
+        string description,
+        Func<object> execute)
+        => AddToolCore(
+            name,
+            description,
+            new { type = "object", properties = new { } },
+            _ => Task.FromResult(JsonSerializer.Serialize(execute())));
+
+    private ToolsConfigurationBuilder AddToolCore(
+        string name,
+        string description,
         object parameters,
         Func<string, Task<string>> execute)
     {
         _config.Tools.Add(new ToolDefinition
         {
-            Function = new FunctionDefinition
-            {
-                Name = name,
-                Description = description,
-                Parameters = parameters
-            },
+            Function = new FunctionDefinition { Name = name, Description = description, Parameters = parameters },
             Execute = execute
-        });
-        return this;
-    }
-
-    public ToolsConfigurationBuilder AddTool(
-        string name, 
-        string description, 
-        object parameters,
-        Func<string, string> execute)
-    {
-        _config.Tools!.Add(new ToolDefinition
-        {
-            Function = new FunctionDefinition
-            {
-                Name = name,
-                Description = description,
-                Parameters = parameters
-            },
-            Execute = args => Task.FromResult(execute(args))
-        });
-        return this;
-    }
-
-    public ToolsConfigurationBuilder AddTool<TArgs>(
-        string name, 
-        string description, 
-        object parameters,
-        Func<TArgs, Task<object>> execute) where TArgs : class
-    {
-        _config.Tools.Add(new ToolDefinition
-        {
-            Function = new FunctionDefinition
-            {
-                Name = name,
-                Description = description,
-                Parameters = parameters
-            },
-            Execute = async (argsJson) =>
-            {
-                var args = JsonSerializer.Deserialize<TArgs>(argsJson, 
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
-                var result = await execute(args);
-                return JsonSerializer.Serialize(result);
-            }
-        });
-        return this;
-    }
-
-    public ToolsConfigurationBuilder AddTool<TArgs>(
-        string name, 
-        string description, 
-        object parameters,
-        Func<TArgs, object> execute) where TArgs : class
-    {
-        _config.Tools!.Add(new ToolDefinition
-        {
-            Function = new FunctionDefinition
-            {
-                Name = name,
-                Description = description,
-                Parameters = parameters
-            },
-            Execute = (argsJson) =>
-            {
-                var args = JsonSerializer.Deserialize<TArgs>(argsJson, 
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
-                var result = execute(args);
-                return Task.FromResult(JsonSerializer.Serialize(result));
-            }
-        });
-        return this;
-    }
-
-    public ToolsConfigurationBuilder AddTool(
-        string name, 
-        string description,
-        Func<Task<object>> execute)
-    {
-        _config.Tools.Add(new ToolDefinition
-        {
-            Function = new FunctionDefinition
-            {
-                Name = name,
-                Description = description,
-                Parameters = new { type = "object", properties = new { } }
-            },
-            Execute = async (args) =>
-            {
-                var result = await execute();
-                return JsonSerializer.Serialize(result);
-            }
-        });
-        return this;
-    }
-
-    public ToolsConfigurationBuilder AddTool(
-        string name, 
-        string description,
-        Func<object> execute)
-    {
-        _config.Tools.Add(new ToolDefinition
-        {
-            Function = new FunctionDefinition
-            {
-                Name = name,
-                Description = description,
-                Parameters = new { type = "object", properties = new { } }
-            },
-            Execute = (args) =>
-            {
-                var result = execute();
-                return Task.FromResult(JsonSerializer.Serialize(result));
-            }
         });
         return this;
     }
@@ -152,6 +98,13 @@ public sealed class ToolsConfigurationBuilder
     public ToolsConfigurationBuilder WithToolChoice(string choice)
     {
         _config.ToolChoice = choice;
+        return this;
+    }
+
+    public ToolsConfigurationBuilder WithMaxIterations(int maxIterations)
+    {
+        InvalidToolIterationsException.ThrowIfInvalid(maxIterations);
+        _config.MaxIterations = maxIterations;
         return this;
     }
 

@@ -1,4 +1,4 @@
-﻿using MaIN.Domain.Configuration;
+using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
 using MaIN.Services.Services.Models;
 
@@ -21,6 +21,16 @@ public interface IMcpContext
     /// <param name="backendType">The <see cref="BackendType"/> enum value specifying which backend implementation to use.</param>
     /// <returns>The context instance implementing <see cref="IMcpContext"/> for method chaining.</returns>
     IMcpContext WithBackend(BackendType backendType);
+
+    /// <summary>
+    /// Sets the maximum number of tool-call iterations allowed in a single MCP prompt.
+    /// Overrides the default limit of 10. Must be at least 1.
+    /// </summary>
+    /// <remarks>
+    /// Not supported for <see cref="BackendType.Gemini"/> and <see cref="BackendType.Vertex"/> backends -
+    /// a <see cref="NotSupportedException"/> will be thrown at runtime when <see cref="PromptAsync"/> is called.
+    /// </remarks>
+    IMcpContext WithMaxIterations(int maxIterations);
 
     /// <summary>
     /// Asynchronously processes a prompt through the configured MCP service, sending the prompt to the MCP server and returning the processed result.

@@ -1,3 +1,6 @@
+using System.Collections.Concurrent;
+using System.Text;
+using System.Text.Json;
 using LLama;
 using LLama.Batched;
 using LLama.Common;
@@ -5,9 +8,9 @@ using LLama.Native;
 using LLama.Sampling;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
+using MaIN.Domain.Entities.Tools;
 using MaIN.Domain.Exceptions;
 using MaIN.Domain.Exceptions.Models;
-using MaIN.Domain.Entities.Tools;
 using MaIN.Domain.Models;
 using MaIN.Domain.Models.Abstract;
 using MaIN.Services.Constants;
@@ -17,9 +20,6 @@ using MaIN.Services.Services.LLMService.Utils;
 using MaIN.Services.Services.Models;
 using MaIN.Services.Utils;
 using Microsoft.KernelMemory;
-using System.Collections.Concurrent;
-using System.Text;
-using System.Text.Json;
 using Grammar = LLama.Sampling.Grammar;
 using LocalInferenceParams = MaIN.Domain.Entities.LocalInferenceParams;
 #pragma warning disable KMEXP00
@@ -57,7 +57,7 @@ public class LLMService : ILLMService
         CancellationToken cancellationToken = default)
     {
         chat.BackendParams ??= new LocalInferenceParams();
-        
+
         if (chat.BackendParams is not LocalInferenceParams)
         {
             throw new InvalidBackendParamsException("Local LLM", nameof(LocalInferenceParams), chat.BackendParams.GetType().Name);
@@ -86,6 +86,7 @@ public class LLMService : ILLMService
         {
             return await ProcessWithToolsAsync(chat, requestOptions, cancellationToken);
         }
+
         var tokens = await ProcessChatRequest(chat, model, lastMsg, requestOptions, cancellationToken);
         lastMsg.MarkProcessed();
         return await CreateChatResult(chat, tokens, requestOptions);
@@ -150,25 +151,30 @@ public class LLMService : ILLMService
                 ModelLoader.RemoveModel(model.FileName);
                 textGenerator.Dispose();
             }
+
             generator._embedder.Dispose();
             generator._embedder._weights.Dispose();
             generator.Dispose();
 
             var ctxBuilder = new StringBuilder();
             foreach (var citation in searchResult.Results.SelectMany(r => r.Partitions))
+            {
                 ctxBuilder.AppendLine(citation.Text);
+            }
 
             var originalContent = userMessage.Content;
             if (ctxBuilder.Length > 0)
+            {
                 userMessage.Content =
                     $"Use the following context to answer the question:\n\n{ctxBuilder}\n\nQuestion: {originalContent}";
+            }
+
             userMessage.Files = null;
 
             var chatResult = await Send(chat, requestOptions, cancellationToken);
             userMessage.Content = originalContent;
             return chatResult;
         }
-
 
         MemoryAnswer result;
 
@@ -574,7 +580,9 @@ public class LLMService : ILLMService
     {
         // Try registry lookup (TryGetById to avoid throwing for unregistered models)
         if (ModelRegistry.TryGetById(chat.ModelId, out var model) && model is LocalModel localModel)
+        {
             return localModel;
+        }
 
         // 3. Fallback: create generic local model for unregistered models
         var modelId = chat.ModelId;
@@ -592,8 +600,11 @@ public class LLMService : ILLMService
             // Model name only — replace ':' with '-' (colon is illegal in Windows file names)
             fileName = modelId.Replace(':', '-');
             if (!fileName.EndsWith(".gguf", StringComparison.OrdinalIgnoreCase))
+            {
                 fileName += ".gguf";
+            }
         }
+
         return new GenericLocalModel(FileName: fileName);
     }
 
@@ -613,7 +624,10 @@ public class LLMService : ILLMService
     private string ResolvePath(string? customPath, string fileName)
     {
         if (Path.IsPathFullyQualified(fileName))
+        {
             return fileName;
+        }
+
         return Path.Combine(customPath ?? modelsPath, fileName);
     }
 
@@ -667,8 +681,9 @@ public class LLMService : ILLMService
         var iterations = 0;
         var lastResponseTokens = new List<LLMTokenValue>();
         var lastResponse = string.Empty;
+        var maxToolIterations = chat.ToolsConfiguration?.MaxIterations ?? MaxToolIterations;
 
-        while (iterations < MaxToolIterations)
+        while (iterations < maxToolIterations)
         {
             var lastMsg = chat.Messages.Last();
             var tokenCallbackOrg = requestOptions.TokenCallback;
@@ -797,7 +812,7 @@ public class LLMService : ILLMService
             iterations++;
         }
 
-        if (iterations >= MaxToolIterations)
+        if (iterations >= maxToolIterations)
         {
             var errorMessage = "Maximum tool invocation iterations reached. Ending the tool-loop prematurely.";
             var iterationMessage = new Message
@@ -834,5 +849,4 @@ public class LLMService : ILLMService
             ? $"{message.Content}{additionalPrompt}"
             : message.Content;
     }
-
 }

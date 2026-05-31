@@ -1,22 +1,22 @@
-﻿using MaIN.Domain.Models;
-using MaIN.Services.Constants;
-using MaIN.Services.Services.Abstract;
-using MaIN.Services.Services.LLMService.Utils;
-using MaIN.Services.Services.Models;
-using MaIN.Services.Utils;
-using Microsoft.Extensions.Logging;
-using Microsoft.KernelMemory;
 using System.Collections.Concurrent;
 using System.Net.Http.Headers;
 using System.Net.Mime;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using MaIN.Domain.Entities;
-using MaIN.Services.Services.LLMService.Memory;
 using LLama.Common;
+using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Tools;
 using MaIN.Domain.Exceptions;
+using MaIN.Domain.Models;
+using MaIN.Services.Constants;
+using MaIN.Services.Services.Abstract;
+using MaIN.Services.Services.LLMService.Memory;
+using MaIN.Services.Services.LLMService.Utils;
+using MaIN.Services.Services.Models;
+using MaIN.Services.Utils;
+using Microsoft.Extensions.Logging;
+using Microsoft.KernelMemory;
 
 namespace MaIN.Services.Services.LLMService;
 
@@ -36,7 +36,6 @@ public abstract class OpenAiCompatibleService(
 
     private static readonly JsonSerializerOptions DefaultJsonSerializerOptions = new() { PropertyNameCaseInsensitive = true };
 
-
     protected abstract string GetApiKey();
     protected abstract string GetApiName();
     protected abstract void ValidateApiKey();
@@ -51,14 +50,16 @@ public abstract class OpenAiCompatibleService(
         ChatRequestOptions options,
         CancellationToken cancellationToken = default)
     {
-        if (chat.BackendParams != null && chat.BackendParams?.GetType() != ExpectedParamsType)
+        if (chat.BackendParams is not null && chat.BackendParams?.GetType() != ExpectedParamsType)
         {
             throw new InvalidBackendParamsException(GetApiName(), ExpectedParamsType.Name, chat.BackendParams!.GetType().Name);
         }
 
         ValidateApiKey();
         if (!chat.Messages.Any())
+        {
             return null;
+        }
 
         List<LLMTokenValue> tokens = new();
         string apiKey = GetApiKey();
@@ -78,7 +79,7 @@ public abstract class OpenAiCompatibleService(
             return CreateChatResult(chat, resultBuilder.ToString(), memoryResult.Message.Tokens);
         }
 
-        if (chat.ToolsConfiguration?.Tools != null && chat.ToolsConfiguration.Tools.Any())
+        if (chat.ToolsConfiguration?.Tools is not null && chat.ToolsConfiguration.Tools.Any())
         {
             return await ProcessWithToolsAsync(
                 chat,
@@ -89,7 +90,7 @@ public abstract class OpenAiCompatibleService(
                 cancellationToken);
         }
 
-        if (options.InteractiveUpdates || options.TokenCallback != null)
+        if (options.InteractiveUpdates || options.TokenCallback is not null)
         {
             await ProcessStreamingChatAsync(
                 chat,
@@ -135,26 +136,29 @@ public abstract class OpenAiCompatibleService(
         CancellationToken cancellationToken)
     {
         StringBuilder resultBuilder = new();
-        StringBuilder fullResponseBuilder = new();  
+        StringBuilder fullResponseBuilder = new();
         int iterations = 0;
+        var maxToolIterations = chat.ToolsConfiguration?.MaxIterations ?? MaxToolIterations;
 
-        while (iterations < MaxToolIterations)
+        while (iterations < maxToolIterations)
         {
             if (iterations > 0 && options.InteractiveUpdates && fullResponseBuilder.Length > 0)
             {
                 var spaceToken = new LLMTokenValue { Text = " ", Type = TokenType.Message };
                 tokens.Add(spaceToken);
-                
-                if (options.TokenCallback != null)
+
+                if (options.TokenCallback is not null)
+                {
                     await options.TokenCallback(spaceToken);
-                    
+                }
+
                 await _notificationService.DispatchNotification(
                     NotificationMessageBuilder.CreateChatCompletion(chat.Id, spaceToken, false),
                     ServiceConstants.Notifications.ReceiveMessageUpdate);
             }
 
             List<ToolCall>? currentToolCalls;
-            if (options.InteractiveUpdates || options.TokenCallback != null)
+            if (options.InteractiveUpdates || options.TokenCallback is not null)
             {
                 currentToolCalls = await ProcessStreamingChatWithToolsAsync(
                     chat,
@@ -175,17 +179,18 @@ public abstract class OpenAiCompatibleService(
                     options,
                     cancellationToken);
             }
-            
-            if (resultBuilder.Length > 0) 
+
+            if (resultBuilder.Length > 0)
             {
                 if (fullResponseBuilder.Length > 0)
                 {
-                    fullResponseBuilder.Append(" ");
+                    fullResponseBuilder.Append(' ');
                 }
+
                 fullResponseBuilder.Append(resultBuilder);
             }
-            
-            if (currentToolCalls == null || !currentToolCalls.Any())
+
+            if (currentToolCalls is null || currentToolCalls.Count == 0)
             {
                 break;
             }
@@ -208,7 +213,7 @@ public abstract class OpenAiCompatibleService(
 
                 var executor = chat.ToolsConfiguration?.GetExecutor(toolCall.Function.Name);
 
-                if (executor == null)
+                if (executor is null)
                 {
                     var errorMessage = $"No executor found for tool: {toolCall.Function.Name}";
                     logger?.LogError(errorMessage);
@@ -240,7 +245,7 @@ public abstract class OpenAiCompatibleService(
                 catch (Exception ex)
                 {
                     logger?.LogError(ex, "Error executing tool {ToolName}", toolCall.Function.Name);
-                    
+
                     var errorResult = JsonSerializer.Serialize(new { error = ex.Message });
                     var toolMessage = new ChatMessage(ServiceConstants.Roles.Tool, errorResult)
                     {
@@ -255,10 +260,10 @@ public abstract class OpenAiCompatibleService(
             iterations++;
         }
 
-        if (iterations >= MaxToolIterations)
+        if (iterations >= maxToolIterations)
         {
-            logger?.LogWarning("Maximum tool iterations ({MaxIterations}) reached for chat {ChatId}", 
-                MaxToolIterations, chat.Id);
+            logger?.LogWarning("Maximum tool iterations ({MaxIterations}) reached for chat {ChatId}",
+                maxToolIterations, chat.Id);
         }
 
         var finalResponse = fullResponseBuilder.ToString();
@@ -317,15 +322,23 @@ public abstract class OpenAiCompatibleService(
         while (true)
         {
             var line = await reader.ReadLineAsync(cancellationToken);
-            if (line is null) break;
+            if (line is null)
+            {
+                break;
+            }
+
             if (string.IsNullOrWhiteSpace(line))
+            {
                 continue;
+            }
 
             if (line.StartsWith("data: "))
             {
                 var data = line.Substring("data: ".Length).Trim();
                 if (data == "[DONE]")
+                {
                     break;
+                }
 
                 try
                 {
@@ -333,7 +346,7 @@ public abstract class OpenAiCompatibleService(
                         new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
                     var choice = chunk?.Choices?.FirstOrDefault();
-                    if (choice?.Delta != null)
+                    if (choice?.Delta is not null)
                     {
                         // Handle content
                         if (!string.IsNullOrEmpty(choice.Delta.Content))
@@ -356,7 +369,7 @@ public abstract class OpenAiCompatibleService(
                             }
                         }
 
-                        if (choice.Delta.ToolCalls != null)
+                        if (choice.Delta.ToolCalls is not null)
                         {
                             foreach (var toolCallChunk in choice.Delta.ToolCalls)
                             {
@@ -368,18 +381,26 @@ public abstract class OpenAiCompatibleService(
                                 var builder = toolCallsBuilder[toolCallChunk.Index];
 
                                 if (!string.IsNullOrEmpty(toolCallChunk.Id))
+                                {
                                     builder.Id = toolCallChunk.Id;
+                                }
 
                                 if (!string.IsNullOrEmpty(toolCallChunk.Type))
+                                {
                                     builder.Type = toolCallChunk.Type;
+                                }
 
-                                if (toolCallChunk.Function != null)
+                                if (toolCallChunk.Function is not null)
                                 {
                                     if (!string.IsNullOrEmpty(toolCallChunk.Function.Name))
+                                    {
                                         builder.FunctionName = toolCallChunk.Function.Name;
+                                    }
 
                                     if (!string.IsNullOrEmpty(toolCallChunk.Function.Arguments))
+                                    {
                                         builder.FunctionArguments.Append(toolCallChunk.Function.Arguments);
+                                    }
                                 }
                             }
                         }
@@ -393,9 +414,9 @@ public abstract class OpenAiCompatibleService(
         }
 
         // Build final tool calls from accumulated chunks
-        if (toolCallsBuilder.Any())
+        if (toolCallsBuilder.Count != 0)
         {
-            return toolCallsBuilder.Values.Select(b => b.Build()).ToList();
+            return [.. toolCallsBuilder.Values.Select(b => b.Build())];
         }
 
         return null;
@@ -418,7 +439,7 @@ public abstract class OpenAiCompatibleService(
         var content = new StringContent(requestJson, Encoding.UTF8, MediaTypeNames.Application.Json);
 
         using var response = await client.PostAsync(ChatCompletionsUrl, content, cancellationToken);
-        
+
         if (!response.IsSuccessStatusCode)
         {
             await HandleApiError(response, cancellationToken);
@@ -430,7 +451,7 @@ public abstract class OpenAiCompatibleService(
 
         var message = chatResponse?.Choices?.FirstOrDefault()?.Message;
 
-        if (message?.Content != null)
+        if (message?.Content is not null)
         {
             resultBuilder.Append(message.Content);
         }
@@ -444,8 +465,10 @@ public abstract class OpenAiCompatibleService(
         ChatRequestOptions requestOptions,
         CancellationToken cancellationToken = default)
     {
-        if (!chat.Messages.Any())
+        if (chat.Messages.Count == 0)
+        {
             return null;
+        }
 
         var kernel = memoryFactory.CreateMemoryWithOpenAi(GetApiKey(), chat.MemoryParams);
         await memoryService.ImportDataToMemory((kernel, null), memoryOptions, cancellationToken);
@@ -453,7 +476,7 @@ public abstract class OpenAiCompatibleService(
         var lastMessage = chat.Messages.Last();
         var userQuery = lastMessage.Content;
 
-        if (chat.MemoryParams.Grammar != null)
+        if (chat.MemoryParams.Grammar is not null)
         {
             var jsonGrammarConverter = new GrammarToJsonConverter();
             var jsonGrammar = jsonGrammarConverter.ConvertToJson(chat.MemoryParams.Grammar);
@@ -496,7 +519,7 @@ public abstract class OpenAiCompatibleService(
             var tokens = new List<LLMTokenValue>();
             var resultBuilder = new StringBuilder();
 
-            if (requestOptions.InteractiveUpdates || requestOptions.TokenCallback != null)
+            if (requestOptions.InteractiveUpdates || requestOptions.TokenCallback is not null)
             {
                 await ProcessStreamingChatAsync(chat, conversation, GetApiKey(), tokens, resultBuilder, requestOptions, cancellationToken);
             }
@@ -522,7 +545,7 @@ public abstract class OpenAiCompatibleService(
         MemoryAnswer retrievedContext;
         var standardTokens = new List<LLMTokenValue>();
 
-        if (requestOptions.InteractiveUpdates || requestOptions.TokenCallback != null)
+        if (requestOptions.InteractiveUpdates || requestOptions.TokenCallback is not null)
         {
             var responseBuilder = new StringBuilder();
 
@@ -594,10 +617,15 @@ public abstract class OpenAiCompatibleService(
                     var contextBuilder = new StringBuilder();
                     foreach (var partition in retrievedChunks.OrderByDescending(p => p.Relevance))
                     {
-                        if (string.IsNullOrWhiteSpace(partition.Text)) continue;
+                        if (string.IsNullOrWhiteSpace(partition.Text))
+                        {
+                            continue;
+                        }
+
                         contextBuilder.AppendLine(partition.Text);
                         contextBuilder.AppendLine();
                     }
+
                     var fallback = contextBuilder.ToString().TrimEnd();
 
                     logger?.LogInformation(
@@ -626,20 +654,20 @@ public abstract class OpenAiCompatibleService(
         SetAuthorizationIfNeeded(client, GetApiKey());
 
         using var response = await client.GetAsync(ModelsUrl);
-        
+
         if (!response.IsSuccessStatusCode)
         {
             await HandleApiError(response);
         }
 
         var responseJson = await response.Content.ReadAsStringAsync();
-        var modelsResponse = JsonSerializer.Deserialize<OpenAiModelsResponse>(responseJson, 
+        var modelsResponse = JsonSerializer.Deserialize<OpenAiModelsResponse>(responseJson,
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
         return (modelsResponse?.Data?
                     .Select(m => m.Id)
-                    .Where(id => id != null)
-                    .ToArray() 
+                    .Where(id => id is not null)
+                    .ToArray()
                 ?? [])!;
     }
 
@@ -675,27 +703,31 @@ public abstract class OpenAiCompatibleService(
 
     protected static async Task ExtractImageFromFiles(Message message)
     {
-        if (message.Files == null || message.Files.Count == 0)
+        if (message.Files is null || message.Files.Count == 0)
+        {
             return;
+        }
 
         var imageFiles = message.Files
             .Where(f => ImageExtensions.Contains(f.Extension.ToLowerInvariant()))
             .ToList();
 
         if (imageFiles.Count == 0)
+        {
             return;
+        }
 
         var imageBytesList = new List<byte[]>();
         foreach (var imageFile in imageFiles)
         {
-            if (imageFile.StreamContent != null)
+            if (imageFile.StreamContent is not null)
             {
                 using var ms = new MemoryStream();
                 imageFile.StreamContent.Position = 0;
                 await imageFile.StreamContent.CopyToAsync(ms);
                 imageBytesList.Add(ms.ToArray());
             }
-            else if (imageFile.Path != null)
+            else if (imageFile.Path is not null)
             {
                 imageBytesList.Add(await File.ReadAllBytesAsync(imageFile.Path));
             }
@@ -706,12 +738,14 @@ public abstract class OpenAiCompatibleService(
         message.Images = imageBytesList;
 
         if (message.Files.Count == 0)
+        {
             message.Files = null;
+        }
     }
 
     protected static bool HasFiles(Message message)
     {
-        return message.Files != null && message.Files.Count > 0;
+        return message.Files is not null && message.Files.Count > 0;
     }
 
     private static void SetAuthorizationIfNeeded(HttpClient client, string apiKey)
@@ -734,7 +768,7 @@ public abstract class OpenAiCompatibleService(
         SetAuthorizationIfNeeded(client, apiKey);
 
         var requestBody = BuildRequestBody(chat, conversation, true);
-        
+
         var requestJson = JsonSerializer.Serialize(requestBody);
         var content = new StringContent(requestJson, Encoding.UTF8, MediaTypeNames.Application.Json);
 
@@ -761,15 +795,23 @@ public abstract class OpenAiCompatibleService(
             cancellationToken.ThrowIfCancellationRequested();
 
             var line = await reader.ReadLineAsync(cancellationToken);
-            if (line is null) break;
+            if (line is null)
+            {
+                break;
+            }
+
             if (string.IsNullOrWhiteSpace(line))
+            {
                 continue;
+            }
 
             if (line.StartsWith("data: "))
             {
                 var data = line.Substring("data: ".Length).Trim();
                 if (data == "[DONE]")
+                {
                     break;
+                }
 
                 try
                 {
@@ -805,7 +847,7 @@ public abstract class OpenAiCompatibleService(
     {
         var errorResponseBody = await response.Content.ReadAsStringAsync(cancellationToken);
         var errorMessage = ExtractApiErrorMessage(errorResponseBody);
-        
+
         throw new LLMApiException(GetApiName(), response.StatusCode, errorMessage ?? errorResponseBody);
     }
 
@@ -814,7 +856,7 @@ public abstract class OpenAiCompatibleService(
         try
         {
             using var jasonDocument = JsonDocument.Parse(json);
-            
+
             if (jasonDocument.RootElement.ValueKind == JsonValueKind.Array)
             {
                 var firstElement = jasonDocument.RootElement[0];
@@ -836,7 +878,7 @@ public abstract class OpenAiCompatibleService(
             // we fall back to the raw response body in the calling method.
             return null;
         }
-        
+
         return null;
     }
 
@@ -869,7 +911,7 @@ public abstract class OpenAiCompatibleService(
         var content = new StringContent(requestJson, Encoding.UTF8, MediaTypeNames.Application.Json);
 
         using var response = await client.PostAsync(ChatCompletionsUrl, content, cancellationToken);
-        
+
         if (!response.IsSuccessStatusCode)
         {
             await HandleApiError(response, cancellationToken);
@@ -880,7 +922,7 @@ public abstract class OpenAiCompatibleService(
             JsonSerializer.Deserialize<ChatCompletionResponse>(responseJson, DefaultJsonSerializerOptions);
         var responseContent = chatResponse?.Choices?.FirstOrDefault()?.Message?.Content;
 
-        if (responseContent != null)
+        if (responseContent is not null)
         {
             resultBuilder.Append(responseContent);
         }
@@ -898,12 +940,12 @@ public abstract class OpenAiCompatibleService(
         ApplyBackendParams(requestBody, chat);
         ApplyAdditionalParams(requestBody, chat);
 
-        if (chat.ToolsConfiguration?.Tools != null && chat.ToolsConfiguration.Tools.Any())
+        if (chat.ToolsConfiguration?.Tools is not null && chat.ToolsConfiguration.Tools.Any())
         {
             requestBody["tools"] = chat.ToolsConfiguration.Tools.Select(t => new
             {
                 type = t.Type,
-                function = t.Function != null ? new
+                function = t.Function is not null ? new
                 {
                     name = t.Function.Name,
                     description = t.Function.Description,
@@ -926,13 +968,16 @@ public abstract class OpenAiCompatibleService(
 
     private static void ApplyAdditionalParams(Dictionary<string, object> requestBody, Chat chat)
     {
-        if (chat.BackendParams?.AdditionalParams == null) return;
+        if (chat.BackendParams?.AdditionalParams is null)
+        {
+            return;
+        }
+
         foreach (var (key, value) in chat.BackendParams.AdditionalParams)
         {
             requestBody[key] = value;
         }
     }
-
 
     protected static ChatResult CreateChatResult(Chat chat, string content, List<LLMTokenValue> tokens)
     {
@@ -953,7 +998,7 @@ public abstract class OpenAiCompatibleService(
 
     private static async Task InvokeTokenCallbackAsync(Func<LLMTokenValue, Task>? callback, LLMTokenValue token)
     {
-        if (callback != null)
+        if (callback is not null)
         {
             await callback.Invoke(token);
         }
@@ -1034,7 +1079,7 @@ file class ChoiceChunk
 file class Delta
 {
     public string? Content { get; set; }
-    
+
     [JsonPropertyName("tool_calls")]
     public List<ToolCallChunk>? ToolCalls { get; set; }
 }
@@ -1054,7 +1099,7 @@ file class FunctionCallChunk
 }
 
 file class OpenAiModelsResponse
-{ 
+{
     public List<OpenAiModel>? Data { get; set; }
 }
 
