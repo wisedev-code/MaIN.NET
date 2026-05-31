@@ -8,6 +8,8 @@ using MaIN.Services.Services.Abstract;
 
 namespace MaIN.Core.Hub;
 
+[Obsolete("Use IMaINHub injected via DI. " +
+    "AIHub is retained for backward compatibility and will be removed in future updates.")]
 public static class AIHub
 {
     private static IAIHubServices? _services;
@@ -47,7 +49,7 @@ public static class AIHub
     {
         public static void DisableLLamaLogs()
         {
-            NativeLogConfig.llama_log_set((_,_) => {});
+            NativeLogConfig.llama_log_set((_, _) => { });
         }
 
         public static void DisableNotificationsLogs()

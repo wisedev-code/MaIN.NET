@@ -183,7 +183,9 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
 
         if (_ensureModelDownloaded)
         {
+#pragma warning disable CS0618
             await AIHub.Model().EnsureDownloadedAsync(_chat.ModelId, cancellationToken);
+#pragma warning restore CS0618
         }
 
         _chat.Messages.Last().Files = _files;

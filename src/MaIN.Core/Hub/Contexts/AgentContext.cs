@@ -248,7 +248,9 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
 
         if (_ensureModelDownloaded && !string.IsNullOrWhiteSpace(_agent.Model))
         {
+#pragma warning disable CS0618
             await AIHub.Model().EnsureDownloadedAsync(_agent.Model);
+#pragma warning restore CS0618
         }
 
         await _agentService.CreateAgent(_agent, flow, interactiveResponse, _inferenceParams, _memoryParams, _disableCache);
