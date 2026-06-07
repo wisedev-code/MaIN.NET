@@ -346,6 +346,7 @@ public abstract class OpenAiCompatibleService(
                         new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
                     var choice = chunk?.Choices?.FirstOrDefault();
+
                     if (choice?.Delta is not null)
                     {
                         // Handle content
@@ -388,6 +389,11 @@ public abstract class OpenAiCompatibleService(
                                 if (!string.IsNullOrEmpty(toolCallChunk.Type))
                                 {
                                     builder.Type = toolCallChunk.Type;
+                                }
+
+                                if (toolCallChunk.ExtraContent.HasValue)
+                                {
+                                    builder.ExtraContent = toolCallChunk.ExtraContent;
                                 }
 
                                 if (toolCallChunk.Function is not null)
@@ -1028,6 +1034,7 @@ internal class ToolCallBuilder
     public string Type { get; set; } = "function";
     public string FunctionName { get; set; } = string.Empty;
     public StringBuilder FunctionArguments { get; set; } = new();
+    public JsonElement? ExtraContent { get; set; }
 
     public ToolCall Build()
     {
@@ -1039,7 +1046,8 @@ internal class ToolCallBuilder
             {
                 Name = FunctionName,
                 Arguments = FunctionArguments.ToString()
-            }
+            },
+            ExtraContent = ExtraContent
         };
     }
 }
@@ -1090,6 +1098,9 @@ file class ToolCallChunk
     public string? Id { get; set; }
     public string? Type { get; set; }
     public FunctionCallChunk? Function { get; set; }
+
+    [JsonPropertyName("extra_content")]
+    public JsonElement? ExtraContent { get; set; }
 }
 
 file class FunctionCallChunk
