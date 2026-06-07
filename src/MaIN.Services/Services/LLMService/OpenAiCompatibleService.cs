@@ -1071,6 +1071,8 @@ file class Choice
 file class ChatMessageResponse
 {
     public string? Content { get; set; }
+
+    [JsonPropertyName("tool_calls")]
     public List<ToolCall>? ToolCalls { get; set; }
 }
 
