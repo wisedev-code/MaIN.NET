@@ -20,7 +20,7 @@
       <PackageReference Include="LLamaSharp.kernel-memory" Version="0.27.0" />
       <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.1" />
       <PackageReference Include="Microsoft.KernelMemory" Version="0.98.250508.3" />
-      <PackageReference Include="Microsoft.SemanticKernel.Connectors.Google" Version="1.64.0-alpha" />
+      <PackageReference Include="Microsoft.SemanticKernel.Connectors.Google" Version="1.77.0-alpha" />
       <PackageReference Include="ModelContextProtocol.AspNetCore" Version="0.2.0-preview.1" />
       <PackageReference Include="NAudio" Version="2.2.1" />
       <PackageReference Include="NumSharp" Version="0.30.0" />

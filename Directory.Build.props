@@ -2,4 +2,9 @@
   <PropertyGroup>
     <NoWarn>$(NoWarn);CS9057</NoWarn>
   </PropertyGroup>
+  <ItemGroup>
+    <!-- Security: override vulnerable transitive versions from MongoDB.Driver.Core -->
+    <PackageReference Include="SharpCompress" Version="0.49.1" />
+    <PackageReference Include="Snappier" Version="1.3.1" />
+  </ItemGroup>
 </Project>
