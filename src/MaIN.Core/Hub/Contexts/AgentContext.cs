@@ -1,4 +1,5 @@
 using MaIN.Core.Hub.Contexts.Interfaces.AgentContext;
+using MaIN.Core.Hub.Contexts.Interfaces.ModelContext;
 using MaIN.Core.Hub.Utils;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities;
@@ -23,7 +24,7 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
     private readonly ISkillRegistry? _skillRegistry;
     private readonly ISkillComposer? _skillComposer;
     private readonly ProviderSkillUploadCoordinator? _uploadCoordinator;
-    private readonly ModelContext _modelContext;
+    private readonly IModelContext _modelContext;
     private readonly List<string> _pendingSkillNames = [];
     private readonly List<AgentSkill> _pendingInlineSkills = [];
     private bool _allSkillsApplied;
@@ -39,7 +40,7 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
         ISkillRegistry skillRegistry,
         ISkillComposer skillComposer,
         ProviderSkillUploadCoordinator? uploadCoordinator,
-        ModelContext modelContext)
+        IModelContext modelContext)
     {
         _agentService = agentService;
         _skillRegistry = skillRegistry;
@@ -70,7 +71,7 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
         ISkillRegistry? skillRegistry,
         ISkillComposer? skillComposer,
         ProviderSkillUploadCoordinator? uploadCoordinator,
-        ModelContext modelContext)
+        IModelContext modelContext)
     {
         _agentService = agentService;
         _agent = existingAgent;
@@ -472,23 +473,6 @@ public sealed class AgentContext : IAgentBuilderEntryPoint, IAgentConfigurationB
         };
     }
 
-    public static async Task<AgentContext> FromExisting(
-        IAgentService agentService,
-        string agentId,
-        ModelContext modelContext,
-        ISkillRegistry? skillRegistry = null,
-        ISkillComposer? skillComposer = null)
-    {
-        var existingAgent = await agentService.GetAgentById(agentId);
-        if (existingAgent is null)
-        {
-            throw new AgentNotFoundException(agentId);
-        }
-
-        var context = new AgentContext(agentService, existingAgent, skillRegistry, skillComposer, null, modelContext);
-        context.LoadExistingKnowledgeIfExists();
-        return context;
-    }
 }
 
 public static class AgentExtensions
