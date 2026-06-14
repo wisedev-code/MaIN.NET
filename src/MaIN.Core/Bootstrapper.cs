@@ -4,6 +4,7 @@ using MaIN.Core.Interfaces;
 using MaIN.Core.Services;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Entities.Skills;
+using MaIN.Domain.Exceptions;
 using MaIN.Infrastructure;
 using MaIN.Services;
 using MaIN.Services.Services;
@@ -44,7 +45,7 @@ public static class Bootstrapper
 
         return sp;
     }
-    
+
     public static IServiceCollection AddAIHub(this IServiceCollection services)
     {
         // Register core services
@@ -59,6 +60,8 @@ public static class Bootstrapper
         services.AddSingleton<IAgentSkillProvider, JournalistSkillProvider>();
         services.AddSingleton<IAgentSkillProvider, SummarizerSkillProvider>();
         services.AddSingleton<IAgentSkillProvider, McpToolCallerSkillProvider>();
+
+        services.AddSingleton<IMaINHub, MaINHub>();
 
         // Register service provider for AIHub
         services.AddSingleton<IAIHubServices>(sp =>
@@ -75,12 +78,12 @@ public static class Bootstrapper
 
                 var settings = sp.GetRequiredService<MaINSettings>();
                 var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
-                // Initialize AIHub with the services
-                AIHub.Initialize(aiServices, settings, httpClientFactory );
+
+                AIHub.Initialize(aiServices, settings, httpClientFactory);
                 return aiServices;
             }
         );
-        
+
         // Ensure IHttpClientFactory is registered
         if (services.All(sd => sd.ServiceType != typeof(IHttpClientFactory)))
         {
@@ -96,6 +99,14 @@ public static class MaINBootstrapper
     private static IServiceProvider? _serviceProvider;
 
     /// <summary>
+    /// Returns the <see cref="IMaINHub"/> instance from the zero-config container.
+    /// Call <see cref="Initialize"/> first. Use this instead of the <c>[Obsolete]</c> <see cref="AIHub"/>
+    /// in script / CLI scenarios where full DI is not set up by the host.
+    /// </summary>
+    public static IMaINHub Hub =>
+        (_serviceProvider ?? throw new AIHubNotInitializedException()).GetRequiredService<IMaINHub>();
+
+    /// <summary>
     /// Initializes the dependency injection container and registers all services.
     /// </summary>
     /// <param name="configuration">The application configuration.</param>
@@ -108,33 +119,35 @@ public static class MaINBootstrapper
 
         var services = new ServiceCollection();
 
-        if (configuration == null)
-        {
-            var basePath = Directory.GetCurrentDirectory();
-            configuration = new ConfigurationBuilder()
-                .SetBasePath(basePath)
-                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-                .AddEnvironmentVariables()
-                .Build();
+        configuration ??= new ConfigurationBuilder()
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+            .AddEnvironmentVariables()
+            .Build();
 
-            services.AddLogging(b => b
-                .AddConfiguration(configuration.GetSection("Logging"))
-                .AddSimpleConsole(o => { o.SingleLine = true; o.TimestampFormat = "HH:mm:ss "; }));
-
-            services.AddMaIN(configuration, configureSettings);
-
-            _serviceProvider = services.BuildServiceProvider();
-            _serviceProvider.UseMaIN();
-
-            // Re-register skills that existed before re-init (file-based, user-defined, etc.)
-            if (previousSkills is { Count: > 0 })
+        services.AddLogging(b => b
+            .AddConfiguration(configuration.GetSection("Logging"))
+            .AddSimpleConsole(o =>
             {
-                var registry = _serviceProvider.GetRequiredService<ISkillRegistry>();
-                foreach (var skill in previousSkills)
-                    registry.Register(skill);
-            }
+                o.SingleLine = true;
+                o.TimestampFormat = "HH:mm:ss ";
+            }));
 
-            Console.WriteLine("AIHub Initialized Successfully");
+        services.AddMaIN(configuration, configureSettings);
+
+        _serviceProvider = services.BuildServiceProvider();
+        _serviceProvider.UseMaIN();
+
+        // Re-register skills that existed before re-init (file-based, user-defined, etc.)
+        if (previousSkills is { Count: > 0 })
+        {
+            var registry = _serviceProvider.GetRequiredService<ISkillRegistry>();
+            foreach (var skill in previousSkills)
+            {
+                registry.Register(skill);
+            }
         }
+
+        Console.WriteLine("AIHub Initialized Successfully");
     }
 }

@@ -1,5 +1,4 @@
 using System.Text.Json;
-using MaIN.Core.Hub;
 using MaIN.Domain.Configuration;
 using MaIN.Domain.Configuration.BackendInferenceParams;
 using MaIN.Domain.Entities.Tools;

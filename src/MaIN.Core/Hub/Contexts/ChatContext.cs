@@ -1,4 +1,5 @@
 using MaIN.Core.Hub.Contexts.Interfaces.ChatContext;
+using MaIN.Core.Hub.Contexts.Interfaces.ModelContext;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Tools;
 using MaIN.Domain.Exceptions.Chats;
@@ -16,14 +17,16 @@ namespace MaIN.Core.Hub.Contexts;
 public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, IChatConfigurationBuilder
 {
     private readonly IChatService _chatService;
+    private readonly IModelContext _modelContext;
     private bool _preProcess;
     private bool _ensureModelDownloaded;
     private readonly Chat _chat;
     private List<FileInfo> _files = [];
 
-    internal ChatContext(IChatService chatService)
+    internal ChatContext(IChatService chatService, IModelContext modelContext)
     {
         _chatService = chatService;
+        _modelContext = modelContext;
         _chat = new Chat
         {
             Name = "New Chat",
@@ -33,9 +36,10 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
         };
     }
 
-    internal ChatContext(IChatService chatService, Chat existingChat)
+    internal ChatContext(IChatService chatService, IModelContext modelContext, Chat existingChat)
     {
         _chatService = chatService;
+        _modelContext = modelContext;
         _chat = existingChat;
     }
 
@@ -133,7 +137,13 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
 
     public IChatConfigurationBuilder WithFiles(List<FileStream> file, bool preProcess = false)
     {
-        _files = [.. file.Select(f => new FileInfo { Name = Path.GetFileName(f.Name), StreamContent = f, Extension = Path.GetExtension(f.Name) })];
+        _files = [.. file.Select(f => new FileInfo
+        {
+            Name = Path.GetFileName(f.Name),
+            StreamContent = f,
+            Extension = Path.GetExtension(f.Name)
+        })];
+
         _preProcess = preProcess;
         return this;
     }
@@ -183,7 +193,7 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
 
         if (_ensureModelDownloaded)
         {
-            await AIHub.Model().EnsureDownloadedAsync(_chat.ModelId, cancellationToken);
+            await _modelContext.EnsureDownloadedAsync(_chat.ModelId, cancellationToken);
         }
 
         _chat.Messages.Last().Files = _files;
@@ -212,7 +222,7 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
         var existing = await _chatService.GetById(chatId);
         return existing is null
             ? throw new ChatNotFoundException(chatId)
-            : new ChatContext(_chatService, existing);
+            : new ChatContext(_chatService, _modelContext, existing);
     }
 
     private async Task<bool> ChatExists(string id)

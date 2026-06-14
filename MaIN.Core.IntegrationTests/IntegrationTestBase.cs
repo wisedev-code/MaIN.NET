@@ -1,3 +1,4 @@
+using MaIN.Core.Hub;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -5,8 +6,9 @@ namespace MaIN.Core.IntegrationTests;
 
 public class IntegrationTestBase : IDisposable
 {
-    protected readonly IHost _host;
-    protected readonly IServiceProvider _services;
+    private readonly IHost _host;
+    private readonly IServiceProvider _services;
+    protected IMaINHub AIHub { get; }
 
     protected IntegrationTestBase()
     {
@@ -22,6 +24,7 @@ public class IntegrationTestBase : IDisposable
         _host.Start();
 
         _services = _host.Services;
+        AIHub = _services.GetRequiredService<IMaINHub>();
     }
 
     // Allow derived classes to add additional services or override existing ones

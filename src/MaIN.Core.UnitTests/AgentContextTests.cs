@@ -20,12 +20,20 @@ public class AgentContextTests
     private readonly AgentContext _agentContext;
     private readonly string _testModelId = "test-model";
 
+    private static ModelContext CreateModelContext() =>
+        new(new MaINSettings(), Mock.Of<IHttpClientFactory>());
+
     public AgentContextTests()
     {
         _mockAgentService = new Mock<IAgentService>();
         _mockSkillRegistry = new Mock<ISkillRegistry>();
         _mockSkillComposer = new Mock<ISkillComposer>();
-        _agentContext = new AgentContext(_mockAgentService.Object, _mockSkillRegistry.Object, _mockSkillComposer.Object);
+        _agentContext = new AgentContext(
+            _mockAgentService.Object,
+            _mockSkillRegistry.Object,
+            _mockSkillComposer.Object,
+            null,
+            CreateModelContext());
         var testModel = new GenericLocalModel(_testModelId);
         ModelRegistry.RegisterOrReplace(testModel);
     }
@@ -238,7 +246,7 @@ public class AgentContextTests
             .ReturnsAsync(existingAgent);
 
         // Act
-        var result = await AgentContext.FromExisting(_mockAgentService.Object, existingAgentId);
+        var result = await _agentContext.FromExisting(existingAgentId);
 
         // Assert
         Assert.NotNull(result);
@@ -374,6 +382,6 @@ public class AgentContextTests
 
         // Act & Assert
         await Assert.ThrowsAsync<AgentNotFoundException>(() =>
-            AgentContext.FromExisting(_mockAgentService.Object, nonExistentAgentId));
+            _agentContext.FromExisting(nonExistentAgentId));
     }
 }
