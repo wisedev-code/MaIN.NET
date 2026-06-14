@@ -1,6 +1,5 @@
 using MaIN.Core.Hub;
-using MaIN.Core.Hub.Contexts;
-using MaIN.Core.Interfaces;
+using MaIN.Core.Hub.Contexts.Interfaces.ChatContext;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -18,7 +17,7 @@ public class MaINHubRegistrationTests
     }
 
     [Fact]
-    public void AddMaIN_registers_IMaINHub_as_Transient()
+    public void AddMaIN_registers_IMaINHub_as_Singleton()
     {
         var configuration = new ConfigurationBuilder().Build();
         var services = new ServiceCollection();
@@ -26,11 +25,11 @@ public class MaINHubRegistrationTests
 
         var descriptor = services.Single(d => d.ServiceType == typeof(IMaINHub));
 
-        Assert.Equal(ServiceLifetime.Transient, descriptor.Lifetime);
+        Assert.Equal(ServiceLifetime.Singleton, descriptor.Lifetime);
     }
 
     [Fact]
-    public void IMaINHub_Chat_returns_ChatContext()
+    public void IMaINHub_Chat_returns_IChatBuilderEntryPoint()
     {
         var provider = BuildProvider();
 
@@ -39,11 +38,11 @@ public class MaINHubRegistrationTests
         var context = hub.Chat();
 
         Assert.NotNull(context);
-        Assert.IsType<ChatContext>(context);
+        Assert.IsAssignableFrom<IChatBuilderEntryPoint>(context);
     }
 
     [Fact]
-    public void Two_scopes_get_distinct_hub_instances_but_shared_services()
+    public void Two_scopes_get_same_hub_instance()
     {
         var provider = BuildProvider();
 
@@ -52,10 +51,7 @@ public class MaINHubRegistrationTests
 
         var hubA = scopeA.ServiceProvider.GetRequiredService<IMaINHub>();
         var hubB = scopeB.ServiceProvider.GetRequiredService<IMaINHub>();
-        var servicesA = scopeA.ServiceProvider.GetRequiredService<IAIHubServices>();
-        var servicesB = scopeB.ServiceProvider.GetRequiredService<IAIHubServices>();
 
-        Assert.NotSame(hubA, hubB);
-        Assert.Same(servicesA, servicesB);
+        Assert.Same(hubA, hubB);
     }
 }
