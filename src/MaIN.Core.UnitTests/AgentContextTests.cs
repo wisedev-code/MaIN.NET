@@ -246,7 +246,7 @@ public class AgentContextTests
             .ReturnsAsync(existingAgent);
 
         // Act
-        var result = await AgentContext.FromExisting(_mockAgentService.Object, existingAgentId, CreateModelContext());
+        var result = await _agentContext.FromExisting(existingAgentId);
 
         // Assert
         Assert.NotNull(result);
@@ -382,6 +382,6 @@ public class AgentContextTests
 
         // Act & Assert
         await Assert.ThrowsAsync<AgentNotFoundException>(() =>
-            AgentContext.FromExisting(_mockAgentService.Object, nonExistentAgentId, CreateModelContext()));
+            _agentContext.FromExisting(nonExistentAgentId));
     }
 }

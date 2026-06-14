@@ -1,4 +1,8 @@
-using MaIN.Core.Hub.Contexts;
+using MaIN.Core.Hub.Contexts.Interfaces.AgentContext;
+using MaIN.Core.Hub.Contexts.Interfaces.ChatContext;
+using MaIN.Core.Hub.Contexts.Interfaces.FlowContext;
+using MaIN.Core.Hub.Contexts.Interfaces.McpContext;
+using MaIN.Core.Hub.Contexts.Interfaces.ModelContext;
 
 namespace MaIN.Core.Hub;
 
@@ -9,9 +13,9 @@ namespace MaIN.Core.Hub;
 /// </summary>
 public interface IMaINHub
 {
-    ChatContext Chat();
-    AgentContext Agent();
-    FlowContext Flow();
-    ModelContext Model();
-    McpContext Mcp();
+    IChatBuilderEntryPoint Chat();
+    IAgentBuilderEntryPoint Agent();
+    IFlowContext Flow();
+    IModelContext Model();
+    IMcpContext Mcp();
 }

@@ -1,4 +1,9 @@
 using MaIN.Core.Hub.Contexts;
+using MaIN.Core.Hub.Contexts.Interfaces.AgentContext;
+using MaIN.Core.Hub.Contexts.Interfaces.ChatContext;
+using MaIN.Core.Hub.Contexts.Interfaces.FlowContext;
+using MaIN.Core.Hub.Contexts.Interfaces.McpContext;
+using MaIN.Core.Hub.Contexts.Interfaces.ModelContext;
 using MaIN.Core.Interfaces;
 using MaIN.Domain.Configuration;
 
@@ -9,18 +14,18 @@ internal sealed class MaINHub(
     MaINSettings settings,
     IHttpClientFactory httpClientFactory) : IMaINHub
 {
-    public ChatContext Chat() => new(services.ChatService, Model());
+    public IChatBuilderEntryPoint Chat() => new ChatContext(services.ChatService, Model());
 
-    public AgentContext Agent() => new(
+    public IAgentBuilderEntryPoint Agent() => new AgentContext(
         services.AgentService,
         services.SkillRegistry,
         services.SkillComposer,
         services.UploadCoordinator,
         Model());
 
-    public FlowContext Flow() => new(services.FlowService, services.AgentService);
+    public IFlowContext Flow() => new FlowContext(services.FlowService, services.AgentService);
 
-    public ModelContext Model() => new(settings, httpClientFactory);
+    public IModelContext Model() => new ModelContext(settings, httpClientFactory);
 
-    public McpContext Mcp() => new(services.McpService);
+    public IMcpContext Mcp() => new McpContext(services.McpService);
 }

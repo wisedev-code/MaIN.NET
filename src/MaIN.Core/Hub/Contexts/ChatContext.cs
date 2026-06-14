@@ -1,4 +1,5 @@
 using MaIN.Core.Hub.Contexts.Interfaces.ChatContext;
+using MaIN.Core.Hub.Contexts.Interfaces.ModelContext;
 using MaIN.Domain.Entities;
 using MaIN.Domain.Entities.Tools;
 using MaIN.Domain.Exceptions.Chats;
@@ -16,13 +17,13 @@ namespace MaIN.Core.Hub.Contexts;
 public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, IChatConfigurationBuilder
 {
     private readonly IChatService _chatService;
-    private readonly ModelContext _modelContext;
+    private readonly IModelContext _modelContext;
     private bool _preProcess;
     private bool _ensureModelDownloaded;
     private readonly Chat _chat;
     private List<FileInfo> _files = [];
 
-    internal ChatContext(IChatService chatService, ModelContext modelContext)
+    internal ChatContext(IChatService chatService, IModelContext modelContext)
     {
         _chatService = chatService;
         _modelContext = modelContext;
@@ -35,7 +36,7 @@ public sealed class ChatContext : IChatBuilderEntryPoint, IChatMessageBuilder, I
         };
     }
 
-    internal ChatContext(IChatService chatService, ModelContext modelContext, Chat existingChat)
+    internal ChatContext(IChatService chatService, IModelContext modelContext, Chat existingChat)
     {
         _chatService = chatService;
         _modelContext = modelContext;

@@ -61,7 +61,7 @@ public static class Bootstrapper
         services.AddSingleton<IAgentSkillProvider, SummarizerSkillProvider>();
         services.AddSingleton<IAgentSkillProvider, McpToolCallerSkillProvider>();
 
-        services.AddTransient<IMaINHub, MaINHub>();
+        services.AddSingleton<IMaINHub, MaINHub>();
 
         // Register service provider for AIHub (kept for [Obsolete] backward compat)
         services.AddSingleton<IAIHubServices>(sp =>
