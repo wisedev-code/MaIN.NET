@@ -63,7 +63,7 @@ public static class Bootstrapper
 
         services.AddSingleton<IMaINHub, MaINHub>();
 
-        // Register service provider for AIHub (kept for [Obsolete] backward compat)
+        // Register service provider for AIHub
         services.AddSingleton<IAIHubServices>(sp =>
             {
                 var aiServices = new AIHubServices(
@@ -79,9 +79,7 @@ public static class Bootstrapper
                 var settings = sp.GetRequiredService<MaINSettings>();
                 var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
 
-#pragma warning disable CS0618
                 AIHub.Initialize(aiServices, settings, httpClientFactory);
-#pragma warning restore CS0618
                 return aiServices;
             }
         );
@@ -117,9 +115,7 @@ public static class MaINBootstrapper
     {
         // Snapshot any externally-loaded skills (e.g. from AddSkillsFromDirectory) so they
         // survive re-initialization with new settings (e.g. switching backend to OpenAI).
-#pragma warning disable CS0618
         var previousSkills = AIHub.GetCurrentSkills()?.ToList();
-#pragma warning restore CS0618
 
         var services = new ServiceCollection();
 
